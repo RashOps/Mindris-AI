@@ -1,0 +1,56 @@
+# --- System & IDE ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.log
+
+# --- Python (uv & venv) ---
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+.python-version
+.pytest_cache/
+.ruff_cache/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+
+# --- Node / Bun / Next.js ---
+node_modules/
+bun.lockb
+.next/
+out/
+.vercel
+*.tsbuildinfo
+
+# --- Mindris AI Specific ---
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Local Storage & Cache
+/storage/
+/temp/
+*.pdf
+/services/scraper/downloads/
+
+# Playwright / Puppeteer
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.local-browsers
