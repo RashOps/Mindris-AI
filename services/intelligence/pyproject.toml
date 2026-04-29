@@ -1,0 +1,25 @@
+[project]
+name = "intelligence"
+version = "0.1.0"
+description = "Mindris AI Intelligence service"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "crewai>=1.14.3",
+    "langchain-community>=0.4.1",
+    "langchain-openai>=1.2.1",
+    "langgraph>=1.1.10",
+    "supabase>=2.29.0",
+    "database",
+]
+
+[tool.uv.sources]
+database = { workspace = true }
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["intelligence"]
+package-dir = {"intelligence" = "."}
