@@ -1,0 +1,140 @@
+{
+  "document_meta": {
+    "version": "1.1",
+    "last_modified": "2026-04-28T16:00:00Z",
+    "template_id": "mindris-default-dark",
+    "global_settings": {
+      "font_family": "Inter",
+      "font_size": "11pt",
+      "primary_color": "#2563eb",
+      "unit": "mm"
+    }
+  },
+  "sections": [
+    {
+      "id": "profile-001",
+      "type": "profile",
+      "layout": { "x": 0, "y": 40, "w": 210, "h": "auto", "z": 1 },
+      "style": { "text_align": "justify", "margin_bottom": 10 },
+      "content": {
+        "full_name": "Jean Dupont",
+        "phone": "+33 6 00 00 00 00",
+        "email": "jeandupont@gmail.com",
+        "title": "Profil Professionnel",
+        "location": {
+          "city": "Paris",
+          "country": "France"
+        },
+        "socials": [
+          {
+            "type": "linkedin",
+            "url": "https://linkedin.com/in/jeandupont"
+          },
+          {
+            "type": "github",
+            "url": "https://github.com/jeandupont"
+          },
+          {
+            "type": "website",
+            "url": "https://jeandupont.com",
+            "label": "Portfolio"
+          }
+        ],
+        "text_markdown": "Expert en **Data Science** et **Stratégie Business**, spécialisé dans le déploiement d'architectures IA scalables..."
+      }
+    },
+    {
+      "id": "edu-001",
+      "type": "education",
+      "layout": { "x": 0, "y": 80, "w": 210, "h": "auto", "z": 1 },
+      "content": {
+        "title": "Formation",
+        "items": [
+          {
+            "institution": "PSTB",
+            "degree": "Double Diplôme Data & IA",
+            "period": "2024 - 2026",
+            "location": "Paris, France",
+            "description_markdown": "Focus sur le Deep Learning et l'ingénierie des données."
+          }
+        ]
+      }
+    },
+    {
+      "id": "skills-001",
+      "type": "skill_group",
+      "layout": { "x": 140, "y": 120, "w": 70, "h": "auto", "z": 1 },
+      "content": {
+        "title": "Compétences",
+        "groups": [
+          {
+            "category": "Backend",
+            "skills": ["Python", "FastAPI", "Bun", "PostgreSQL"]
+          },
+          {
+            "category": "AI/LLM",
+            "skills": ["LangGraph", "CrewAI", "RAG", "Embeddings"]
+          }
+        ]
+      }
+    },
+    {
+      "id": "proj-001",
+      "type": "projects",
+      "layout": { "x": 0, "y": 120, "w": 130, "h": "auto", "z": 1 },
+      "content": {
+        "title": "Projets Majeurs",
+        "items": [
+          {
+            "name": "Mindris AI",
+            "url": "https://github.com/...",
+            "description_markdown": "Architecture microservices pour l'optimisation de carrière via agents IA.",
+            "tech_stack": ["LangGraph", "Playwright", "Supabase"]
+          }
+        ]
+      }
+    },
+    {
+      "id": "lang-001",
+      "type": "languages",
+      "layout": { "x": 140, "y": 200, "w": 70, "h": "auto", "z": 1 },
+      "content": {
+        "title": "Langues",
+        "items": [
+          {"language": "Français", "level": "Natif"},
+          {"language": "Anglais", "level": "Full Professional Proficiency"}
+        ]
+      }
+    },
+    {
+      "id": "hobby-001",
+      "type": "hobbies",
+      "layout": { "x": 0, "y": 250, "w": 210, "h": "auto", "z": 1 },
+      "content": {
+        "title": "Centres d’intérêt",
+        "items": ["Informatique", "Veille Technologique", "Entreprenariat"]
+      }
+    },
+    {
+      "id": "exp-001", 
+      "type": "experience",
+      "layout": { "x": 0, "y": 120, "w": 130, "h": "auto", "z": 1 },
+      "content": {
+        "title": "Expériences",
+        "items": [
+          {
+            "company": "Tech Corp",
+            "role": "IA Engineer",
+            "period": "2022 - Présent",
+            "location": {
+              "city": "Paris",
+              "country": "France"
+            },
+            "description_markdown": "- Optimisation de **pipelines RAG**...\n- Lead sur le projet X...",
+            "keywords": ["RAG", "Python", "LangGraph"]
+          }
+        ]
+      }
+    }
+  ]
+}
