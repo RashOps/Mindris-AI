@@ -4,7 +4,7 @@ Base class for all scrapers in the project.
 import asyncio
 from pathlib import Path
 from playwright.async_api import async_playwright
-from playwright_stealth import stealth_async
+from playwright_stealth import Stealth
 
 # user agent for different os
 USER_AGENT_MAC = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36"
@@ -21,21 +21,31 @@ class BaseScraper:
         Initialize the base scraper.
         """
         self.headless = headless
-        self.browser = None
-        self.page = None
-        self.user_agent = None
+        self.pw = None
+        self.context = None
+        self.user_agent = USER_AGENT_LINUX
+        self.stealth = Stealth()
+        
+        # Calcul du chemin de stockage relatif à la racine du projet
+        current_file = Path(__file__).resolve()
+        # Structure : services/scraper/core.py -> 2 parents pour remonter à mindris-ai
+        self.project_root = current_file.parents[2]
+        self.storage_dir = self.project_root / "services" / "scraper" / "storage"
 
     async def __aenter__(self):
         """
         Async context manager for the scraper.
         """
+        self.storage_dir.mkdir(parents=True, exist_ok=True)
+        
         self.pw = await async_playwright().start()
-        self.browser = await self.pw.chromium.launch(headless=self.headless)
-        self.context = await self.browser.launch_persistent_context(
-            user_data_dir=Path.home() / "projects/mindris-ai/services/scraper/storage/auth_state.json",
-            channel="chromium",
-            viewport=None,
-            user_agent=self.user_agent
+        
+        # Lancement du contexte persistant (lance automatiquement le navigateur)
+        self.context = await self.pw.chromium.launch_persistent_context(
+            user_data_dir=str(self.storage_dir),
+            headless=self.headless,
+            user_agent=self.user_agent,
+            viewport={'width': 1280, 'height': 720}
         )
         return self
 
@@ -43,20 +53,31 @@ class BaseScraper:
         """
         Async context manager exit.
         """
-        await self.browser.close()
-        await self.pw.stop()
+        if self.context:
+            await self.context.close()
+        if self.pw:
+            await self.pw.stop()
 
     async def get_page_content(self, url: str):
         """
         Get the page content for a given URL.
         """
+        if not self.context:
+            raise RuntimeError("Scraper must be used as an async context manager (async with)")
+
         page = await self.context.new_page()
 
-        await stealth_async(page)
+        # Application du mode furtif (stealth)
+        await self.stealth.apply_stealth_async(page)
+        
         await page.goto(url, wait_until="networkidle")
         
+        # Petit délai pour laisser les scripts se charger
         await asyncio.sleep(2)
-        return await page.content()
+        
+        content = await page.content()
+        await page.close()
+        return content
 
     def set_user_agent(self, user_agent: str):
         """
@@ -70,10 +91,13 @@ if __name__ == "__main__":
         scraper.set_user_agent(USER_AGENT_LINUX)
         
         async with scraper as s:
-            print("🚀 Browser launched...")
+            print("🚀 Navigateur lancé avec le mode stealth...")
             content = await s.get_page_content("https://www.google.com")
-            print(f"✅ Content length: {len(content)}")
+            print(f"✅ Taille du contenu récupéré : {len(content)} octets")
             if "Google" in content:
                 print("🎯 Test réussi : Google est bien chargé.")
 
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
