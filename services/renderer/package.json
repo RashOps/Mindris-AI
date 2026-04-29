@@ -1,0 +1,17 @@
+{
+  "name": "renderer",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "joi": "^18.1.2",
+    "puppeteer": "^24.42.0",
+    "zod": "^4.3.6"
+  }
+}
