@@ -22,14 +22,14 @@ Nous avons centralisé la gestion des dépendances via `uv` :
 - **Isolation des Dépendances :** Les dépendances de runtime sont déplacées dans les services/paquets spécifiques. Le `pyproject.toml` racine ne contient que les `dev-dependencies` globales (ex: `ruff`).
 - **Synchronisation Globale :** Utilisation de `uv sync --all-packages` pour garantir que tous les membres du workspace et leurs dépendances croisées sont installés dans l'environnement virtuel unique du projet.
 
-### 2.2 Structure "Absolute Flat" pour les Services
-Pour réduire la complexité et la profondeur des chemins de fichiers, nous avons opté pour une structure plate :
-- **Suppression du dossier `src/` :** Les fichiers sources sont placés directement à la racine de chaque service (ex: `services/scraper/core.py`).
-- **Paquet à la racine :** Chaque service est son propre paquet Python (présence de `__init__.py` à la racine du service).
+### 2.2 Structure "Absolute Flat" pour les Services et Paquets
+Pour réduire la complexité et la profondeur des fichiers, nous avons opté pour une structure plate :
+- **Suppression du dossier `src/` :** Les fichiers sources sont placés directement à la racine de chaque service ou paquet (ex: `services/scraper/core.py`, `packages/database/schemas/`).
+- **Paquet à la racine :** Chaque module est son propre paquet Python (présence de `__init__.py` à la racine).
 
 ### 2.3 Choix du Moteur de Build : Setuptools
 Bien que `hatchling` soit moderne, il impose des contraintes strictes sur la structure des dossiers (exigeant un sous-dossier portant le nom du paquet) pour fonctionner en mode "editable" avec `uv`.
-- **Décision :** Utilisation de `setuptools` comme backend de build pour les services.
+- **Décision :** Utilisation de `setuptools` comme backend de build pour les services et paquets internes.
 - **Justification :** Permet d'utiliser `package-dir = {"nom_paquet" = "."}` pour mapper la racine du service comme étant le contenu du paquet, garantissant la compatibilité avec les installations `uv` en mode développement.
 
 ### 2.4 Gestion du Code Partagé
@@ -43,12 +43,12 @@ Bien que `hatchling` soit moderne, il impose des contraintes strictes sur la str
     - Performance de build et de synchronisation optimale avec `uv`.
     - Meilleure isolation des services tout en facilitant le partage de code.
 - **Négatives :**
-    - Nécessite l'utilisation de `setuptools` au lieu de `hatchling` pour les services "plats".
+    - Nécessite l'utilisation de `setuptools` au lieu de `hatchling` pour les structures "plates".
     - Le calcul des chemins relatifs dans le code (ex: `Path(__file__).parents[N]`) doit être rigoureusement mis à jour lors de tout changement de structure.
 
-## 4. Guide de Création d'un Nouveau Service
-Pour tout nouveau service Python dans `services/` :
-1. Placer `pyproject.toml` et `__init__.py` à la racine du dossier du service.
+## 4. Guide de Création d'un Nouveau Service ou Paquet
+Pour tout nouveau module Python dans `services/` ou `packages/` :
+1. Placer `pyproject.toml` et `__init__.py` à la racine du dossier.
 2. Utiliser `setuptools` comme build-backend.
-3. Déclarer le paquet via `package-dir = {"nom_service" = "."}`.
+3. Déclarer le paquet via `package-dir = {"nom_paquet" = "."}`.
 4. L'ajouter au workspace via `uv sync --all-packages`.
