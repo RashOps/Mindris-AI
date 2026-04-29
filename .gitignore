@@ -28,6 +28,7 @@ sdist/
 var/
 wheels/
 *.egg-info/
+*typed
 
 # --- Node / Bun / Next.js ---
 node_modules/
@@ -46,9 +47,10 @@ out/
 
 # Local Storage & Cache
 /storage/
+/scratch/
 /temp/
 *.pdf
-/services/scraper/downloads/
+/services/scraper/storage/
 
 # Playwright / Puppeteer
 /test-results/

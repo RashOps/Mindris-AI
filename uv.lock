@@ -10,6 +10,7 @@ resolution-markers = [
 [manifest]
 members = [
     "api-gateway",
+    "database",
     "intelligence",
     "mindris-ai",
     "scraper",
@@ -179,6 +180,7 @@ name = "api-gateway"
 version = "0.1.0"
 source = { editable = "services/api-gateway" }
 dependencies = [
+    { name = "database" },
     { name = "fastapi" },
     { name = "pydantic-settings" },
     { name = "uvicorn" },
@@ -186,6 +188,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "database", editable = "packages/database" },
     { name = "fastapi", specifier = ">=0.136.1" },
     { name = "pydantic-settings", specifier = ">=2.10.1" },
     { name = "uvicorn", specifier = ">=0.46.0" },
@@ -602,6 +605,17 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/06/bd/0a9d3edbf5eadbac926d7b9b3cd0c4be584eeeae4a003d24d9eda4affbbd/cryptography-47.0.0-cp38-abi3-win32.whl", hash = "sha256:ed67ea4e0cfb5faa5bc7ecb6e2b8838f3807a03758eec239d6c21c8769355310", size = 3248487, upload-time = "2026-04-24T19:54:33.494Z" },
     { url = "https://files.pythonhosted.org/packages/60/80/5681af756d0da3a599b7bdb586fac5a1540f1bcefd2717a20e611ddade45/cryptography-47.0.0-cp38-abi3-win_amd64.whl", hash = "sha256:835d2d7f47cdc53b3224e90810fb1d36ca94ea29cc1801fb4c1bc43876735769", size = 3755737, upload-time = "2026-04-24T19:54:35.408Z" },
 ]
+
+[[package]]
+name = "database"
+version = "0.1.0"
+source = { editable = "packages/database" }
+dependencies = [
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pydantic", specifier = ">=2.0.0" }]
 
 [[package]]
 name = "dataclasses-json"
@@ -1116,6 +1130,7 @@ version = "0.1.0"
 source = { editable = "services/intelligence" }
 dependencies = [
     { name = "crewai" },
+    { name = "database" },
     { name = "langchain-community" },
     { name = "langchain-openai" },
     { name = "langgraph" },
@@ -1125,6 +1140,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "crewai", specifier = ">=1.14.3" },
+    { name = "database", editable = "packages/database" },
     { name = "langchain-community", specifier = ">=0.4.1" },
     { name = "langchain-openai", specifier = ">=1.2.1" },
     { name = "langgraph", specifier = ">=1.1.10" },
@@ -1684,26 +1700,16 @@ wheels = [
 name = "mindris-ai"
 version = "0.1.0"
 source = { virtual = "." }
-dependencies = [
-    { name = "crewai" },
-    { name = "fastapi" },
-    { name = "langgraph" },
-    { name = "pydantic" },
-    { name = "pydantic-settings" },
+
+[package.dev-dependencies]
+dev = [
     { name = "ruff" },
-    { name = "uvicorn" },
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "crewai", specifier = ">=1.14.3" },
-    { name = "fastapi", specifier = ">=0.136.1" },
-    { name = "langgraph", specifier = ">=1.1.10" },
-    { name = "pydantic", specifier = ">=2.11.10" },
-    { name = "pydantic-settings", specifier = ">=2.10.1" },
-    { name = "ruff", specifier = ">=0.15.12" },
-    { name = "uvicorn", specifier = ">=0.46.0" },
-]
+
+[package.metadata.requires-dev]
+dev = [{ name = "ruff", specifier = ">=0.3.4" }]
 
 [[package]]
 name = "mmh3"
@@ -3311,12 +3317,14 @@ name = "scraper"
 version = "0.1.0"
 source = { editable = "services/scraper" }
 dependencies = [
+    { name = "database" },
     { name = "playwright" },
     { name = "playwright-stealth" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "database", editable = "packages/database" },
     { name = "playwright", specifier = ">=1.58.0" },
     { name = "playwright-stealth", specifier = ">=2.0.3" },
 ]

@@ -1,17 +1,14 @@
 [project]
 name = "mindris-ai"
 version = "0.1.0"
-description = "Add your description here"
+description = "Mindris AI Monorepo"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = [
-    "crewai>=1.14.3",
-    "fastapi>=0.136.1",
-    "langgraph>=1.1.10",
-    "pydantic>=2.11.10",
-    "pydantic-settings>=2.10.1",
-    "ruff>=0.15.12",
-    "uvicorn>=0.46.0",
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "ruff>=0.3.4",
 ]
 
 [tool.uv.workspace]
@@ -19,4 +16,11 @@ members = [
     "services/api-gateway",
     "services/intelligence",
     "services/scraper",
+    "packages/database",
 ]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+# Basic ruff configuration
+# select = ["E", "F", "I", "N", "W", "B", "C4", "UP"]
