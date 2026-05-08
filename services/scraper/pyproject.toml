@@ -7,11 +7,14 @@ requires-python = ">=3.12"
 dependencies = [
     "playwright>=1.58.0",
     "playwright-stealth>=2.0.3",
+    "markdownify>=1.2.2",
     "database",
+    "utils",
 ]
 
 [tool.uv.sources]
 database = { workspace = true }
+utils = { workspace = true }
 
 [build-system]
 requires = ["setuptools>=61.0"]
