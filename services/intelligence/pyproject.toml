@@ -5,16 +5,18 @@ description = "Mindris AI Intelligence service"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "crewai>=1.14.3",
+    "crewai[tools]>=1.14.3",
     "langchain-community>=0.4.1",
     "langchain-openai>=1.2.1",
     "langgraph>=1.1.10",
     "supabase>=2.29.0",
     "database",
+    "utils",
 ]
 
 [tool.uv.sources]
 database = { workspace = true }
+utils = { workspace = true }
 
 [build-system]
 requires = ["setuptools>=61.0"]
