@@ -1,0 +1,25 @@
+## Mindris AI — Ollama Modelfile
+## Creates a gemma4 variant with a 32 768-token context window.
+##
+## USAGE (run this once from a Windows terminal):
+##
+##   ollama create gemma4:32k -f gemma4-32k.modelfile
+##
+## Then update .env:
+##   OPENAI_MODEL_NAME="gemma4:32k"
+##
+## After this, the `extra_body` trick in llm_config.py is no longer needed
+## (though it is harmless to keep as a safety net).
+
+FROM gemma4:latest
+
+## Raise the KV-cache context window to 32 768 tokens.
+## This is the ONLY reliable way to change the context length:
+## setting it per-request via options.num_ctx works only if the model
+## was *loaded* with enough KV cache already allocated.
+PARAMETER num_ctx 32768
+
+## Keep sampling parameters consistent with the base model defaults.
+PARAMETER temperature 1
+PARAMETER top_k 64
+PARAMETER top_p 0.95
