@@ -25,11 +25,11 @@
     - Noeud de Scoring (ATS-Proof check).
 - [x] **Multi-Model Support :** Intégration LiteLLM (Ollama / Groq / Gemini).
 
-## 🔵 Phase 4 : Moteur de Rendu (The Architect)
-- [ ] **Renderer Service :** Setup de Bun + Puppeteer.
-- [ ] **Shadow DOM Implementation :** Isolation des styles de templates.
-- [ ] **Templates Pro :** Création du premier template CSS (Modern Minimalist).
-- [ ] **Conversion PDF :** API de génération haute fidélité.
+## 🟢 Phase 4 : Moteur de Rendu (Terminée)
+- [x] **Renderer Service :** Setup de Bun + Puppeteer (ElysiaJS API).
+- [x] **Shadow DOM Implementation :** Isolation des styles de templates (Engine Handlebars).
+- [x] **Templates Pro :** Création du premier template CSS (Modern Minimalist).
+- [x] **Conversion PDF :** API de génération haute fidélité (Puppeteer `page.pdf`).
 
 ## 🟣 Phase 5 : Interface "Canva-like"
 - [ ] **Frontend Next.js :** Dashboard principal.
