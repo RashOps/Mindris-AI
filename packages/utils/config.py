@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Resolve the project root (packages/utils/ -> packages/ -> project root)
@@ -27,14 +27,16 @@ class Settings(BaseSettings):
     logs_dir: Path = Field(default=_PROJECT_ROOT / "logs")
     storage_dir: Path = Field(default=_PROJECT_ROOT / "storage")
 
-    # ── LLM / Ollama ─────────────────────────────────────────────────────────
-    llm_type: str = Field(default="ollama", alias="LLM_TYPE")
-    openai_api_base: str = Field(
-        default="http://127.0.0.1:11434", alias="OPENAI_API_BASE"
+    # ── Local Ollama Configuration ────────────────────────────────────────────
+    ollama_api_base: str = Field(
+        default="http://127.0.0.1:11434", alias="OLLAMA_API_BASE"
     )
-    openai_model_name: str = Field(default="gemma4:latest", alias="OPENAI_MODEL_NAME")
-    openai_api_key: str = Field(default="ollama", alias="OPENAI_API_KEY")
-    llm_num_ctx: int = Field(default=32768, alias="LLM_NUM_CTX")
+    llm_num_ctx: int = Field(default=32768, alias="OLLAMA_NUM_CTX")
+
+    # ── Cloud LLM Providers API Keys ──────────────────────────────────────────
+    openai_api_key: SecretStr | None = Field(default=None, alias="OPENAI_API_KEY")
+    groq_api_key: SecretStr | None = Field(default=None, alias="GROQ_API_KEY")
+    gemini_api_key: SecretStr | None = Field(default=None, alias="GEMINI_API_KEY")
 
     # ── Scraper ───────────────────────────────────────────────────────────────
     scraper_headless: bool = Field(default=True, alias="SCRAPER_HEADLESS")
