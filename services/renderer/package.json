@@ -10,6 +10,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@elysiajs/cors": "^1.4.2",
     "elysia": "^1.4.28",
     "handlebars": "^4.7.9",
     "joi": "^18.1.2",

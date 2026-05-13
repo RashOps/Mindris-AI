@@ -1,19 +1,28 @@
 import { Elysia, t } from "elysia";
+import { cors } from "@elysiajs/cors";
 import { generateHtml } from "./templates/engine";
 import { generatePDF } from "./pdf/generator";
 
 // Setup Elysia application
 const app = new Elysia()
+    .use(cors()) // Enable CORS for the Next.js frontend
     // Basic health check
     .get("/", () => ({ status: "Renderer Service is running" }))
     
     // PDF Generation route
     .post("/render/pdf", async ({ body }: any) => {
-        const { cv_data, template_id, return_buffer } = body;
+        const { cv_data, template_id, return_buffer, return_html } = body;
 
         try {
             // 1. Generate HTML with Shadow DOM isolation
             const html = generateHtml(cv_data, template_id);
+
+            // If the frontend only wants the HTML for the Live Preview:
+            if (return_html) {
+                return new Response(html, {
+                    headers: { 'Content-Type': 'text/html' }
+                });
+            }
 
             // 2. Generate a unique filename
             const filename = `cv_${Date.now()}.pdf`;
@@ -51,10 +60,11 @@ const app = new Elysia()
         body: t.Object({
             cv_data: t.Any(), // In a real app, strict typing would be mapped here
             template_id: t.Optional(t.String({ default: "modern" })),
-            return_buffer: t.Optional(t.Boolean({ default: false }))
+            return_buffer: t.Optional(t.Boolean({ default: false })),
+            return_html: t.Optional(t.Boolean({ default: false }))
         })
     })
-    .listen(3000);
+    .listen(4000);
 
 console.log(
     `🚀 Mindris Renderer Service running at http://${app.server?.hostname}:${app.server?.port}`
