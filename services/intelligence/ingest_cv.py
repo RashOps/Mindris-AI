@@ -72,24 +72,15 @@ def chunk_cv_data(cv_data: dict) -> list[dict]:
     return chunks
 
 
-def ingest_master_cv(cv_json_path: str) -> None:
-    """Load, chunk, and index the master CV into ChromaDB.
+def ingest_cv_data(cv_data: dict) -> None:
+    """Chunk and index a CV dictionary into ChromaDB.
 
     Args:
-        cv_json_path: Path to the Master CV JSON file.
+        cv_data: The CV data dictionary.
     """
     print("🚀 Initializing Vector Store...")
     # Will connect to storage/vectordb and use HuggingFace embeddings
     store = MindrisVectorStore(collection_name="mindris_master_profile")
-
-    print(f"📖 Reading Master CV from {cv_json_path}...")
-    path = Path(cv_json_path)
-    if not path.exists():
-        print(f"❌ File not found: {path}")
-        return
-
-    with path.open(encoding="utf-8") as f:
-        cv_data = json.load(f)
 
     print("✂️  Chunking CV data...")
     chunks = chunk_cv_data(cv_data)
@@ -99,12 +90,32 @@ def ingest_master_cv(cv_json_path: str) -> None:
 
     print(f"🧠 Generating embeddings for {len(chunks)} chunks and saving to ChromaDB...")
 
-    # We clear first to avoid duplicates if re-running
+    # Clear existing vectors to avoid duplicates / dead data
     store.clear()
 
-    store.add_texts(texts=texts, metadatas=metadatas)
+    if texts:
+        store.add_texts(texts=texts, metadatas=metadatas)
+        print("✅ Ingestion complete! Master Profile is ready for RAG.")
+    else:
+        print("⚠️ No data to ingest.")
 
-    print("✅ Ingestion complete! Master Profile is ready for RAG.")
+
+def ingest_master_cv(cv_json_path: str) -> None:
+    """Load, chunk, and index the master CV into ChromaDB.
+
+    Args:
+        cv_json_path: Path to the Master CV JSON file.
+    """
+    print(f"📖 Reading Master CV from {cv_json_path}...")
+    path = Path(cv_json_path)
+    if not path.exists():
+        print(f"❌ File not found: {path}")
+        return
+
+    with path.open(encoding="utf-8") as f:
+        cv_data = json.load(f)
+
+    ingest_cv_data(cv_data)
 
 
 if __name__ == "__main__":
