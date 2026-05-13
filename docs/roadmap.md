@@ -31,13 +31,13 @@
 - [x] **Templates Pro :** Création du premier template CSS (Modern Minimalist).
 - [x] **Conversion PDF :** API de génération haute fidélité (Puppeteer `page.pdf`).
 
-## 🟣 Phase 5 : Interface "Canva-like"
-- [ ] **Frontend Next.js :** Dashboard principal.
-- [ ] **Drag & Drop Engine :** Intégration de `dnd-kit` liée au JSON.
-- [ ] **Live Preview :** Rendu en temps réel des modifications IA.
-- [ ] **Ghost Mode :** Feedback visuel des agents en plein travail.
+## 🟢 Phase 5 : Interface "Canva-like" (Terminée)
+- [x] **Frontend Next.js :** Dashboard principal.
+- [x] **Drag & Drop Engine :** Intégration de `dnd-kit` liée au JSON.
+- [x] **Live Preview :** Rendu en temps réel des modifications IA (Connecté au Shadow DOM Bun).
+- [x] **Ghost Mode :** Feedback visuel des agents en plein travail (Connecté à l'API Gateway FastAPI).
 
-## ⚪ Phase 6 : Finalisation & SaaS Ready
+## 🔵 Phase 6 : Finalisation & SaaS Ready
 - [ ] **Refactoring Microservices :** Dockerisation complète.
 - [ ] **Auth & Stripe :** (Optionnel) Préparation à la mise sur le marché.
 - [ ] **Telemetry :** Suivi des performances avec LangSmith/Phoenix.
