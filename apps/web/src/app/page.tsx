@@ -1,220 +1,418 @@
-"use client";
+import Link from "next/link";
 
-import { Editor } from "@/components/Editor";
-import { LivePreview } from "@/components/LivePreview";
-import { useCVStore } from "@/store/useCVStore";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useState, useRef } from "react";
+const FEATURES = [
+  {
+    id: "cv-creator",
+    icon: "🎯",
+    label: "Available now",
+    title: "CV Creator",
+    description:
+      "Drag & drop editor powered by your real CV data. Upload once, paste any job URL — agents retrieve your most relevant experiences and rewrite every bullet point for maximum ATS compatibility.",
+    cta: { label: "Open Editor", href: "/app" },
+    available: true,
+  },
+  {
+    id: "markdown-pdf",
+    icon: "📝",
+    label: "Available now",
+    title: "Markdown → PDF",
+    description:
+      "Universal converter. Paste any Markdown — cover letters, reports, summaries — and download a pixel-perfect A4 PDF instantly. Choose document or letter style.",
+    cta: { label: "Convert Markdown", href: "/tools/markdown" },
+    available: true,
+  },
+  {
+    id: "ats-score",
+    icon: "⚡",
+    label: "Coming soon",
+    title: "ATS Score",
+    description:
+      "Real-time keyword density analysis between your generated CV and any target job offer. Know exactly where you stand before you submit.",
+    cta: null,
+    available: false,
+  },
+];
 
-export default function Home() {
-  const { isOptimizing, setIsOptimizing, setCVData } = useCVStore();
-  const [jobUrl, setJobUrl] = useState("https://www.linkedin.com/jobs/view/123456789");
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
-  const pdfInputRef = useRef<HTMLInputElement>(null);
-  const jsonInputRef = useRef<HTMLInputElement>(null);
+const STEPS = [
+  {
+    number: "01",
+    title: "Upload Your CV",
+    description: "Drop a PDF. LlamaCloud parses every experience, skill and achievement into a structured knowledge base.",
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+      </svg>
+    ),
+  },
+  {
+    number: "02",
+    title: "Paste Job URL",
+    description: "Drop a LinkedIn, Indeed or WTTJ link. The stealth scraper extracts every requirement and keyword.",
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+      </svg>
+    ),
+  },
+  {
+    number: "03",
+    title: "Agents Work",
+    description: "LangGraph orchestrates retrieval, drafting and self-correction. Watch the pipeline live in Ghost Mode.",
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+    ),
+  },
+  {
+    number: "04",
+    title: "Download PDF",
+    description: "A pixel-perfect, ATS-proof PDF via Puppeteer with Shadow DOM style isolation. Your design, your rules.",
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+      </svg>
+    ),
+  },
+];
 
-  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+const STACK = [
+  "LangGraph", "CrewAI", "LlamaCloud", "Playwright",
+  "ChromaDB", "Bun", "Puppeteer", "FastAPI", "Next.js", "dnd-kit",
+];
 
-    setIsUploading(true);
-    setUploadStatus("📄 Parsing PDF with LlamaParse (this may take 10-30s)...");
-
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("provider", "groq");
-      formData.append("model_name", "llama-3.3-70b-versatile");
-
-      const res = await fetch("http://localhost:8000/api/v1/cv/upload-pdf", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.detail || "Upload failed");
-      }
-
-      const data = await res.json();
-
-      // Update the editor with the extracted data
-      if (data.cv_data) {
-        setCVData(data.cv_data);
-      }
-
-      setUploadStatus("✅ PDF indexed! Editor and RAG updated.");
-      setTimeout(() => setUploadStatus(null), 4000);
-    } catch (err: any) {
-      console.error("PDF upload failed", err);
-      setUploadStatus(`❌ ${err.message}`);
-      setTimeout(() => setUploadStatus(null), 6000);
-    } finally {
-      setIsUploading(false);
-      if (pdfInputRef.current) pdfInputRef.current.value = "";
-    }
-  };
-
-  const handleJsonUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const text = await file.text();
-      const jsonData = JSON.parse(text);
-
-      setCVData(jsonData);
-
-      const res = await fetch("http://localhost:8000/api/v1/cv/upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(jsonData),
-      });
-
-      if (!res.ok) throw new Error("Upload failed");
-
-      setUploadStatus("✅ JSON CV indexed!");
-      setTimeout(() => setUploadStatus(null), 3000);
-    } catch (err) {
-      console.error("JSON upload failed", err);
-      setUploadStatus("❌ Failed to upload JSON.");
-      setTimeout(() => setUploadStatus(null), 5000);
-    } finally {
-      if (jsonInputRef.current) jsonInputRef.current.value = "";
-    }
-  };
-
-  const handleOptimize = async () => {
-    if (!jobUrl) return;
-    
-    // Enter Ghost Mode
-    setIsOptimizing(true);
-    
-    try {
-      const res = await fetch("http://localhost:8000/api/v1/optimize", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          job_url: jobUrl,
-          provider: "groq",
-          model_name: "llama-3.3-70b-versatile"
-        })
-      });
-      
-      const data = await res.json();
-      console.log("Optimization started:", data);
-      
-      // Simulate the agent finishing after 5 seconds for the sake of UI demo
-      // In a real app, we would use WebSockets or Polling to know when it's done
-      setTimeout(() => {
-        setIsOptimizing(false);
-        // We could also set the new CV Data here if we received it
-      }, 5000);
-      
-    } catch (err) {
-      console.error("Optimization failed", err);
-      setIsOptimizing(false);
-    }
-  };
-
+export default function LandingPage() {
   return (
-    <main className="flex h-screen w-full flex-col bg-white overflow-hidden">
-      {/* Upload Status Toast */}
-      {uploadStatus && (
-        <div className="fixed top-4 right-4 z-50 px-4 py-2.5 rounded-lg bg-slate-900 text-white text-sm shadow-xl animate-in slide-in-from-top-2 duration-300">
-          {uploadStatus}
-        </div>
-      )}
+    <div className="relative min-h-screen overflow-x-hidden" style={{ backgroundColor: "#0f172a", color: "#f1f5f9" }}>
 
-      {/* Header */}
-      <header className="h-16 border-b flex items-center justify-between px-6 bg-slate-50">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-md flex items-center justify-center text-white font-bold text-xl">M</div>
-          <h1 className="font-bold text-xl text-slate-800">Mindris AI</h1>
-        </div>
-        
-        <div className="flex items-center gap-4 w-1/3">
-          <Input 
-            value={jobUrl}
-            onChange={(e) => setJobUrl(e.target.value)}
-            placeholder="Paste Job Offer URL (LinkedIn/Indeed)"
-            className="w-full bg-white"
-          />
-          <Button 
-            onClick={handleOptimize}
-            disabled={isOptimizing}
-            className="bg-blue-600 hover:bg-blue-700 text-white min-w-[120px]"
-          >
-            {isOptimizing ? "Optimizing..." : "Auto-Optimize"}
-          </Button>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          {/* Hidden File Inputs */}
-          <input
-            type="file"
-            accept=".pdf"
-            className="hidden"
-            ref={pdfInputRef}
-            onChange={handlePdfUpload}
-          />
-          <input
-            type="file"
-            accept=".json"
-            className="hidden"
-            ref={jsonInputRef}
-            onChange={handleJsonUpload}
-          />
+      {/* Animated background blobs */}
+      <div className="land-blob land-blob-blue" />
+      <div className="land-blob land-blob-indigo" />
+      <div className="land-blob land-blob-purple" />
 
-          {/* PDF Upload Button */}
-          <div className="relative">
-            <button
-              onClick={() => pdfInputRef.current?.click()}
-              disabled={isUploading}
-              className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-blue-300 bg-white text-blue-700 hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      {/* ── Navbar ────────────────────────────────────────────────────── */}
+      <nav
+        className="fixed top-0 left-0 right-0 z-50 border-b"
+        style={{
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+          backgroundColor: "rgba(15,23,42,0.75)",
+          borderColor: "rgba(255,255,255,0.08)",
+        }}
+      >
+        <div className="max-w-6xl mx-auto px-8 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div
+              className="w-9 h-9 rounded-lg flex items-center justify-center font-black text-lg text-white flex-shrink-0"
+              style={{ background: "linear-gradient(135deg, #2563eb, #818cf8)" }}
             >
-              {isUploading ? (
-                <span className="inline-block h-3 w-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-              )}
-              Upload PDF CV
-            </button>
+              M
+            </div>
+            <span className="font-bold text-lg" style={{ color: "#f1f5f9" }}>Mindris AI</span>
           </div>
 
-          <button
-            onClick={() => jsonInputRef.current?.click()}
-            className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-colors"
+          <div className="hidden md:flex items-center gap-8">
+            <a href="#features" className="land-nav-link">Features</a>
+            <a href="#how-it-works" className="land-nav-link">How it works</a>
+            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="land-nav-link">GitHub ↗</a>
+          </div>
+
+          <Link
+            href="/app"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all"
+            style={{
+              background: "linear-gradient(135deg, #2563eb, #818cf8)",
+              boxShadow: "0 0 20px rgba(37,99,235,0.3)",
+            }}
           >
-            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-            JSON CV
-          </button>
-
-          <Button variant="outline">Export PDF</Button>
-          <div className="w-8 h-8 rounded-full bg-slate-200"></div>
+            Open App →
+          </Link>
         </div>
-      </header>
+      </nav>
 
-      {/* Main Content: Split View */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Pane: Editor */}
-        <div className="w-1/2 h-full border-r bg-slate-50/50 p-6 overflow-hidden">
-          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Structure Editor</h2>
-          <Editor />
-        </div>
+      {/* ── Hero ──────────────────────────────────────────────────────── */}
+      <section className="relative pt-40 pb-24 text-center z-10">
+        <div className="max-w-5xl mx-auto px-8">
 
-        {/* Right Pane: Live Preview */}
-        <div className="w-1/2 h-full bg-slate-200/50 p-6 overflow-hidden flex flex-col">
-          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Live Preview</h2>
-          <div className="flex-1 overflow-hidden">
-            <LivePreview />
+          {/* Pill */}
+          <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full text-xs font-semibold tracking-widest mb-8"
+            style={{
+              border: "1px solid rgba(99,102,241,0.5)",
+              backgroundColor: "rgba(99,102,241,0.1)",
+              color: "#818cf8",
+            }}
+          >
+            <span className="land-pill-dot" />
+            AI-Powered Career Engine
+          </div>
+
+          {/* Headline */}
+          <h1
+            className="font-black leading-tight tracking-tight mb-6"
+            style={{ fontSize: "clamp(2.8rem, 6vw, 4.5rem)", color: "#f1f5f9" }}
+          >
+            Build CVs that actually
+            <br />
+            <span className="land-gradient-text">get interviews.</span>
+          </h1>
+
+          {/* Sub */}
+          <p className="text-lg leading-relaxed max-w-2xl mx-auto mb-10" style={{ color: "#94a3b8" }}>
+            Mindris AI scrapes job offers, matches your profile via{" "}
+            <span style={{ color: "#818cf8" }}>RAG</span>, and tailors your CV
+            automatically — with a live agent feed you can watch in real time.
+          </p>
+
+          {/* CTAs */}
+          <div className="flex items-center justify-center gap-4 flex-wrap mb-16">
+            <Link
+              href="/app"
+              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl text-base font-semibold text-white transition-all"
+              style={{
+                background: "linear-gradient(135deg, #2563eb, #818cf8)",
+                boxShadow: "0 0 30px rgba(37,99,235,0.35)",
+              }}
+            >
+              Start for free →
+            </Link>
+            <Link
+              href="/tools/markdown"
+              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl text-base font-medium transition-all"
+              style={{
+                backgroundColor: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                color: "#94a3b8",
+                backdropFilter: "blur(8px)",
+              }}
+            >
+              Markdown → PDF
+            </Link>
+          </div>
+
+          {/* Terminal mockup */}
+          <div
+            className="max-w-2xl mx-auto rounded-2xl overflow-hidden text-left"
+            style={{
+              backgroundColor: "rgba(15,23,42,0.85)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              backdropFilter: "blur(12px)",
+              boxShadow: "0 25px 80px rgba(0,0,0,0.6), 0 0 60px rgba(129,140,248,0.15)",
+            }}
+          >
+            {/* Title bar */}
+            <div
+              className="flex items-center gap-2 px-5 py-3 border-b"
+              style={{ backgroundColor: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.08)" }}
+            >
+              <span className="w-3 h-3 rounded-full bg-[#ff5f57]" />
+              <span className="w-3 h-3 rounded-full bg-[#febc2e]" />
+              <span className="w-3 h-3 rounded-full bg-[#28c840]" />
+              <span className="ml-2 text-xs" style={{ color: "#475569", fontFamily: "monospace" }}>
+                Mindris Intelligence — Live Feed
+              </span>
+            </div>
+            {/* Lines */}
+            <div className="p-6" style={{ fontFamily: "monospace", fontSize: "0.875rem" }}>
+              <div className="land-tline" style={{"--delay": "0.2s"} as any}>
+                <span style={{ color: "#4ade80" }}>✅</span>
+                <span style={{ color: "#475569" }}>[Retrieval]</span>
+                <span style={{ color: "#f1f5f9" }}> Found </span>
+                <span style={{ color: "#818cf8" }}>4</span>
+                <span style={{ color: "#f1f5f9" }}> relevant CV chunks.</span>
+              </div>
+              <div className="land-tline" style={{"--delay": "0.7s"} as any}>
+                <span style={{ color: "#facc15" }}>✍️</span>
+                <span style={{ color: "#475569" }}>[Draft]</span>
+                <span style={{ color: "#f1f5f9" }}> Tailoring CV — </span>
+                <span style={{ color: "#a78bfa" }}>Iteration 1</span>
+                <span style={{ color: "#f1f5f9" }}>...</span>
+              </div>
+              <div className="land-tline" style={{"--delay": "1.3s"} as any}>
+                <span style={{ color: "#fb923c" }}>⚖️</span>
+                <span style={{ color: "#475569" }}>[Score]</span>
+                <span style={{ color: "#fb923c" }}> 72/100</span>
+                <span style={{ color: "#f1f5f9" }}> — Revising...</span>
+              </div>
+              <div className="land-tline" style={{"--delay": "2.0s"} as any}>
+                <span style={{ color: "#facc15" }}>✍️</span>
+                <span style={{ color: "#475569" }}>[Draft]</span>
+                <span style={{ color: "#f1f5f9" }}> Tailoring CV — </span>
+                <span style={{ color: "#a78bfa" }}>Iteration 2</span>
+                <span style={{ color: "#f1f5f9" }}>...</span>
+              </div>
+              <div className="land-tline" style={{"--delay": "2.8s"} as any}>
+                <span style={{ color: "#4ade80" }}>✅</span>
+                <span style={{ color: "#475569" }}>[Score]</span>
+                <span style={{ color: "#4ade80" }}> 88/100</span>
+                <span style={{ color: "#f1f5f9" }}> — Done!</span>
+              </div>
+              <div className="land-cursor">█</div>
+            </div>
           </div>
         </div>
-      </div>
-    </main>
+      </section>
+
+      {/* ── Features ──────────────────────────────────────────────────── */}
+      <section id="features" className="relative z-10 py-24" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+        <div className="max-w-6xl mx-auto px-8">
+          <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: "#818cf8" }}>Features</p>
+          <h2 className="font-black text-4xl mb-3" style={{ color: "#f1f5f9" }}>
+            One engine. <span className="land-gradient-text">Multiple tools.</span>
+          </h2>
+          <p className="text-base leading-relaxed mb-12 max-w-xl" style={{ color: "#94a3b8" }}>
+            Every tool shares the same intelligence pipeline — your CV data, your job targets, your style.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {FEATURES.map((f) => (
+              <div
+                key={f.id}
+                className="flex flex-col gap-4 p-7 rounded-2xl transition-all duration-300"
+                style={{
+                  backgroundColor: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(255,255,255,0.07)",
+                  backdropFilter: "blur(8px)",
+                  opacity: f.available ? 1 : 0.5,
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <span style={{ fontSize: "1.75rem" }}>{f.icon}</span>
+                  <span
+                    className="text-xs font-semibold tracking-widest uppercase px-2.5 py-1 rounded-full"
+                    style={f.available
+                      ? { backgroundColor: "rgba(37,99,235,0.15)", color: "#818cf8", border: "1px solid rgba(99,102,241,0.3)" }
+                      : { backgroundColor: "rgba(100,116,139,0.15)", color: "#475569", border: "1px solid rgba(100,116,139,0.3)" }
+                    }
+                  >
+                    {f.label}
+                  </span>
+                </div>
+                <h3 className="text-xl font-bold" style={{ color: "#f1f5f9" }}>{f.title}</h3>
+                <p className="text-sm leading-relaxed flex-1" style={{ color: "#94a3b8" }}>{f.description}</p>
+                {f.cta && (
+                  <Link href={f.cta.href} className="text-sm font-semibold mt-1 transition-colors" style={{ color: "#818cf8" }}>
+                    {f.cta.label} →
+                  </Link>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── How It Works ──────────────────────────────────────────────── */}
+      <section id="how-it-works" className="relative z-10 py-24" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+        <div className="max-w-6xl mx-auto px-8">
+          <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: "#818cf8" }}>How it works</p>
+          <h2 className="font-black text-4xl mb-12" style={{ color: "#f1f5f9" }}>
+            From job URL to <span className="land-gradient-text">tailored PDF</span> in minutes.
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {STEPS.map((step) => (
+              <div
+                key={step.number}
+                className="flex flex-col gap-4 p-6 rounded-2xl transition-all duration-300"
+                style={{
+                  backgroundColor: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(255,255,255,0.07)",
+                }}
+              >
+                <span className="text-xs font-bold tracking-widest uppercase" style={{ color: "#818cf8" }}>
+                  {step.number}
+                </span>
+                <div
+                  className="w-11 h-11 rounded-xl flex items-center justify-center"
+                  style={{
+                    backgroundColor: "rgba(99,102,241,0.1)",
+                    border: "1px solid rgba(99,102,241,0.2)",
+                    color: "#818cf8",
+                  }}
+                >
+                  {step.icon}
+                </div>
+                <h3 className="font-bold text-base" style={{ color: "#f1f5f9" }}>{step.title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: "#94a3b8" }}>{step.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Stack ─────────────────────────────────────────────────────── */}
+      <section className="relative z-10 py-16 text-center" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+        <div className="max-w-6xl mx-auto px-8">
+          <p className="text-xs font-semibold tracking-widest uppercase mb-6" style={{ color: "#475569" }}>Built with</p>
+          <div className="flex flex-wrap gap-3 justify-center">
+            {STACK.map((tech) => (
+              <span
+                key={tech}
+                className="px-4 py-1.5 rounded-full text-sm font-medium transition-colors"
+                style={{
+                  backgroundColor: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  color: "#94a3b8",
+                }}
+              >
+                {tech}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA Banner ────────────────────────────────────────────────── */}
+      <section className="relative z-10 py-24" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+        <div className="max-w-6xl mx-auto px-8">
+          <div
+            className="rounded-3xl p-16 text-center"
+            style={{
+              background: "linear-gradient(135deg, rgba(37,99,235,0.12), rgba(129,140,248,0.08), rgba(167,139,250,0.06))",
+              border: "1px solid rgba(99,102,241,0.3)",
+              backdropFilter: "blur(12px)",
+              boxShadow: "0 0 80px rgba(37,99,235,0.1)",
+            }}
+          >
+            <h2 className="font-black text-4xl mb-3" style={{ color: "#f1f5f9" }}>
+              Ready to master your narrative?
+            </h2>
+            <p className="text-base mb-8" style={{ color: "#94a3b8" }}>
+              Upload your CV. Paste a job URL. Let the agents work.
+            </p>
+            <Link
+              href="/app"
+              className="inline-flex items-center gap-2 px-10 py-4 rounded-xl text-base font-semibold text-white transition-all"
+              style={{
+                background: "linear-gradient(135deg, #2563eb, #818cf8)",
+                boxShadow: "0 0 30px rgba(37,99,235,0.4)",
+              }}
+            >
+              Open Mindris AI →
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Footer ────────────────────────────────────────────────────── */}
+      <footer className="relative z-10 py-8" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+        <div className="max-w-6xl mx-auto px-8 flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-2">
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center font-black text-sm text-white"
+              style={{ background: "linear-gradient(135deg, #2563eb, #818cf8)" }}
+            >
+              M
+            </div>
+            <span className="font-bold text-sm" style={{ color: "#f1f5f9" }}>Mindris AI</span>
+          </div>
+          <div className="flex gap-6">
+            <Link href="/app" className="text-sm transition-colors" style={{ color: "#475569" }}>CV Creator</Link>
+            <Link href="/tools/markdown" className="text-sm transition-colors" style={{ color: "#475569" }}>Markdown → PDF</Link>
+            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-sm transition-colors" style={{ color: "#475569" }}>GitHub</a>
+          </div>
+          <p className="text-xs" style={{ color: "#475569" }}>© {new Date().getFullYear()} Mindris AI. Built by Rayhan.</p>
+        </div>
+      </footer>
+    </div>
   );
 }

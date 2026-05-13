@@ -128,3 +128,100 @@
     @apply font-sans;
   }
 }
+
+/* ─── Landing Page: Only what Tailwind can't do ────────────────
+   All layout, color, spacing are handled via Tailwind utilities
+   and inline styles in page.tsx. These classes handle only CSS
+   features that require @keyframes or vendor prefixes.
+   ─────────────────────────────────────────────────────────────── */
+
+/* Gradient text (requires webkit vendor prefix) */
+.land-gradient-text {
+  background: linear-gradient(135deg, #2563eb, #818cf8, #a78bfa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Navbar links */
+.land-nav-link {
+  color: #94a3b8;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+.land-nav-link:hover { color: #f1f5f9; }
+
+
+/* Animated blobs */
+.land-blob {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+  animation: landBlobDrift 18s ease-in-out infinite alternate;
+}
+.land-blob-blue {
+  width: 600px; height: 600px;
+  top: -200px; left: -150px;
+  background: rgba(37, 99, 235, 0.2);
+  animation-delay: 0s;
+}
+.land-blob-indigo {
+  width: 500px; height: 500px;
+  top: 40%; right: -100px;
+  background: rgba(129, 140, 248, 0.15);
+  animation-delay: -6s;
+}
+.land-blob-purple {
+  width: 400px; height: 400px;
+  bottom: 5%; left: 30%;
+  background: rgba(167, 139, 250, 0.1);
+  animation-delay: -12s;
+}
+@keyframes landBlobDrift {
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(40px, 30px) scale(1.08); }
+  100% { transform: translate(-20px, 20px) scale(0.95); }
+}
+
+/* Pill dot pulsing indicator */
+.land-pill-dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #818cf8;
+  animation: landPulseDot 2s ease-in-out infinite;
+}
+@keyframes landPulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(1.5); }
+}
+
+/* Terminal line staggered fade-in */
+.land-tline {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+  opacity: 0;
+  animation: landFadeLine 0.35s ease forwards var(--delay, 0s);
+}
+@keyframes landFadeLine {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Blinking cursor */
+.land-cursor {
+  color: #818cf8;
+  opacity: 0;
+  margin-top: 0.25rem;
+  animation: landBlink 1s step-end infinite 3s forwards;
+  animation-fill-mode: forwards;
+}
+@keyframes landBlink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
