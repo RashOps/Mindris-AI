@@ -86,8 +86,6 @@ class BaseScraper:
         self.stealth = Stealth()
         self._pw = None
         self._browser = None
-        # Persistent profile directory — keeps cookies across runs so
-        # Cloudflare challenges already solved are not repeated.
         self._profile_dir: Path = settings.storage_dir / "browser_profile"
 
     # ── Context manager ───────────────────────────────────────────────────────
