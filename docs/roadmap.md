@@ -4,26 +4,26 @@
 
 ---
 
-## 🟢 Phase 1 : Fondations & Architecture (En cours)
+## 🟢 Phase 1 : Fondations & Architecture (Terminée)
 - [x] Initialisation du Workspace (`uv`, `Bun`)
 - [x] Définition de l'ADR-001 (Stack Technique)
-- [x] Conception du **Mindris Core Schema** (JSON/Zod)
+- [x] Conception du **Mindris Core Schema** (JSON/Pydantic)
 - [x] Configuration de l'environnement WSL (Dependencies & Playwright deps)
 
-## 🟡 Phase 2 : Ingestion & Scraping (Priorité 1)
-- [ ] **Scraper Service :** Développement du module Playwright (LinkedIn/Indeed).
-- [ ] **Stealth Integration :** Contournement des anti-bots.
-- [ ] **Agent Analyste :** Premier agent CrewAI pour transformer le HTML brut en "Job JSON".
-- [ ] **Validation :** Schéma Zod pour valider l'extraction.
+## 🟢 Phase 2 : Ingestion & Scraping (Terminée)
+- [x] **Scraper Service :** Développement du module Playwright (LinkedIn/Indeed).
+- [x] **Stealth Integration :** Contournement des anti-bots.
+- [x] **Agent Analyste :** Premier agent CrewAI pour transformer le HTML brut en "Job JSON".
+- [x] **Validation :** Schéma Pydantic pour valider l'extraction (JobOffer).
 
-## 🟠 Phase 3 : Intelligence & RAG
-- [ ] **Supabase Setup :** Création des tables et activation de `pgvector`.
-- [ ] **Embedding Pipeline :** Script pour vectoriser le "Master Profile" (ton parcours).
-- [ ] **LangGraph Workflow :**
+## 🟢 Phase 3 : Intelligence & RAG (Terminée)
+- [x] **Vector Database :** Setup de ChromaDB en local (remplace Supabase/pgvector).
+- [x] **Embedding Pipeline :** Script (`ingest_cv.py`) pour vectoriser le "Master Profile" (Hugging Face `sentence-transformers`).
+- [x] **LangGraph Workflow :**
     - Noeud de Retrieval (Matching sémantique).
     - Noeud de Rédaction (Agent Copywriter).
     - Noeud de Scoring (ATS-Proof check).
-- [ ] **Multi-Model Support :** Intégration LiteLLM (Ollama / Groq / Gemini).
+- [x] **Multi-Model Support :** Intégration LiteLLM (Ollama / Groq / Gemini).
 
 ## 🔵 Phase 4 : Moteur de Rendu (The Architect)
 - [ ] **Renderer Service :** Setup de Bun + Puppeteer.
