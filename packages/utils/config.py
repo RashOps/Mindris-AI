@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     openai_api_key: SecretStr | None = Field(default=None, alias="OPENAI_API_KEY")
     groq_api_key: SecretStr | None = Field(default=None, alias="GROQ_API_KEY")
     gemini_api_key: SecretStr | None = Field(default=None, alias="GEMINI_API_KEY")
+    llama_cloud_api_key: SecretStr | None = Field(default=None, alias="LLAMA_CLOUD_API_KEY")
 
     # ── Vector Database & Embeddings ──────────────────────────────────────────
     chroma_db_dir: Path = Field(default=_PROJECT_ROOT / "storage" / "vectordb")

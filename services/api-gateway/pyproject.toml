@@ -8,11 +8,17 @@ dependencies = [
     "fastapi>=0.136.1",
     "pydantic-settings>=2.10.1",
     "uvicorn>=0.46.0",
+    "llama-cloud>=2.0.0",
+    "python-multipart>=0.0.20",
     "database",
+    "intelligence",
+    "scraper",
 ]
 
 [tool.uv.sources]
 database = { workspace = true }
+intelligence = { workspace = true }
+scraper = { workspace = true }
 
 [build-system]
 requires = ["setuptools>=61.0"]
