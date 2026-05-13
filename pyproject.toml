@@ -44,6 +44,8 @@ convention = "google"
 "packages/utils/config.py" = ["E501"]
 "packages/utils/logger.py" = ["E501"]
 "services/scraper/core.py" = ["T201", "E501"]
+"services/intelligence/workflow.py" = ["T201", "E501"]
+"services/intelligence/ingest_cv.py" = ["T201", "E501"]
 # Auto-generated stubs — not our concern
 "services/api-gateway/__init__.py" = ["D", "N"]
 "services/intelligence/__init__.py" = ["D"]
