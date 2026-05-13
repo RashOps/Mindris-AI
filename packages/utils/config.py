@@ -38,6 +38,13 @@ class Settings(BaseSettings):
     groq_api_key: SecretStr | None = Field(default=None, alias="GROQ_API_KEY")
     gemini_api_key: SecretStr | None = Field(default=None, alias="GEMINI_API_KEY")
 
+    # ── Vector Database & Embeddings ──────────────────────────────────────────
+    chroma_db_dir: Path = Field(default=_PROJECT_ROOT / "storage" / "vectordb")
+    # Defaulting to an offline HuggingFace model (sentence-transformers)
+    embedding_model: str = Field(
+        default="all-MiniLM-L6-v2", alias="EMBEDDING_MODEL"
+    )
+
     # ── Scraper ───────────────────────────────────────────────────────────────
     scraper_headless: bool = Field(default=True, alias="SCRAPER_HEADLESS")
     scraper_timeout_ms: int = Field(default=60_000, alias="SCRAPER_TIMEOUT_MS")
@@ -46,6 +53,7 @@ class Settings(BaseSettings):
         """Ensure required directories exist after settings are loaded."""
         self.logs_dir.mkdir(parents=True, exist_ok=True)
         self.storage_dir.mkdir(parents=True, exist_ok=True)
+        self.chroma_db_dir.mkdir(parents=True, exist_ok=True)
 
 
 # Singleton — import `settings` everywhere, do not re-instantiate.
