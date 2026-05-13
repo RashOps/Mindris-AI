@@ -11,13 +11,25 @@ class MindrisIntelligence:
 
     Usage::
 
-        intelligence = MindrisIntelligence()
+        intelligence = MindrisIntelligence(
+            provider="groq",
+            model_name="llama3-70b-8192",
+        )
         result = intelligence.analyze_job(markdown_text, source_url)
     """
 
-    def __init__(self) -> None:
-        """Initialise agents and task factories."""
-        self.agents = MindrisAgents()
+    def __init__(
+        self,
+        provider: str = "ollama",
+        model_name: str = "gemma4:32k",
+    ) -> None:
+        """Initialise agents and task factories with the specified LLM.
+
+        Args:
+            provider: The LLM provider (e.g., "ollama", "groq", "gemini", "openai").
+            model_name: The specific model name for the provider.
+        """
+        self.agents = MindrisAgents(provider=provider, model_name=model_name)
         self.tasks = MindrisTasks()
 
     def analyze_job(self, job_markdown: str, url: str = "http://unknown") -> CrewOutput:
