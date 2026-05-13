@@ -72,49 +72,74 @@ async def pdf_to_markdown(pdf_bytes: bytes, filename: str = "cv.pdf") -> str:
 # ── Markdown → Structured CV JSON ────────────────────────────────────────────
 
 _SYSTEM_PROMPT = """\
-You are an expert CV parser. Your task is to extract structured information \
-from a CV in Markdown format.
+You are an expert CV parser. Extract structured information from a CV in Markdown format.
 
-Return a **JSON object** with **exactly** this structure:
+Return a **JSON object** with EXACTLY this structure (Mindris AI schema v2):
 {
-  "profile_name": "string (full name)",
-  "profile_title": "string (current role / headline)",
-  "profile_summary": "string (1-2 sentence summary)",
+  "global_settings": {
+    "font_family": "Inter",
+    "font_size": "11pt",
+    "primary_color": "#2563eb"
+  },
+  "profile": {
+    "full_name": "string",
+    "title": "string (current role or headline)",
+    "phone": "string",
+    "email": "string",
+    "location": { "city": "string", "country": "string" },
+    "socials": [
+      { "type": "linkedin|github|website|other", "url": "string", "label": "string or omit" }
+    ],
+    "text_markdown": "string (2-4 sentence professional summary)"
+  },
   "experience": [
     {
       "id": "exp-1",
-      "title": "string (job title)",
-      "company": "string (company name)",
-      "start_date": "string (e.g. '2022' or 'Jan 2022')",
-      "end_date": "string (e.g. 'Present' or '2024')",
-      "description": "string (1-2 sentence description)",
-      "achievements": ["string", "string"]
-    }
-  ],
-  "skills": [
-    {
-      "id": "sk-1",
-      "category": "string (e.g. 'Languages', 'Frameworks', 'Tools')",
-      "items": ["string", "string"]
+      "company": "string",
+      "role": "string (job title)",
+      "period": "string (e.g. '2022 - Present' or 'Jan 2022 - Dec 2023')",
+      "location": { "city": "string", "country": "string" },
+      "description_markdown": "string (bullet points or paragraph, markdown ok)",
+      "keywords": ["string"]
     }
   ],
   "education": [
     {
       "id": "ed-1",
-      "degree": "string (e.g. 'Master in Data Science')",
       "institution": "string",
-      "start_date": "string",
-      "end_date": "string"
+      "degree": "string",
+      "period": "string (e.g. '2020 - 2024')",
+      "location": "string (city, country)",
+      "description_markdown": "string"
     }
   ],
-  "profile": "string (one paragraph summary combining name, title, and background)"
+  "skills": [
+    {
+      "id": "sk-1",
+      "category": "string (e.g. 'Backend', 'AI/ML', 'Frontend')",
+      "skills": ["string"]
+    }
+  ],
+  "projects": [
+    {
+      "id": "proj-1",
+      "name": "string",
+      "url": "string or empty",
+      "description_markdown": "string",
+      "tech_stack": ["string"]
+    }
+  ],
+  "languages": [
+    { "id": "lang-1", "language": "string", "level": "string (e.g. Natif, C1, B2)" }
+  ],
+  "hobbies": ["string"]
 }
 
 Rules:
-- id fields must be unique: exp-1, exp-2... sk-1, sk-2... ed-1, ed-2...
-- If any field is missing in the CV, return an empty string or empty array.
-- Do NOT invent data. Only use what is explicitly in the CV.
-- Return ONLY the JSON object, no explanation, no markdown code block.
+- IDs must be unique strings: exp-1, exp-2, ed-1, sk-1, proj-1, lang-1, etc.
+- If a field is missing, use empty string "" or empty array [].
+- Do NOT invent data. Use only what is explicitly in the CV.
+- Return ONLY the JSON object — no markdown fences, no explanation.
 """
 
 
