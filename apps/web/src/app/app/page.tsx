@@ -5,6 +5,7 @@ import { LivePreview } from "@/components/LivePreview";
 import { GhostMode } from "@/components/GhostMode";
 import { StylePanel } from "@/components/StylePanel";
 import { JobInsightsPanel } from "@/components/JobInsightsPanel";
+import { CoverLetterModal } from "@/components/CoverLetterModal";
 import { useCVStore } from "@/store/useCVStore";
 import type { JobInsights } from "@/store/useCVStore";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ export default function AppPage() {
   const [showGhost, setShowGhost] = useState(false);
   const [showStyle, setShowStyle] = useState(false);
   const [showInsights, setShowInsights] = useState(false);
+  const [showCoverLetter, setShowCoverLetter] = useState(false);
   const [toast, setToast]         = useState<string | null>(null);
 
   const pdfInputRef  = useRef<HTMLInputElement>(null);
@@ -261,6 +263,11 @@ export default function AppPage() {
               )}
             </button>
 
+            <button onClick={() => setShowCoverLetter(true)}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 transition-colors">
+              ✉️ Cover Letter
+            </button>
+
             <button onClick={() => setShowStyle((v) => !v)}
               className={`inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors ${showStyle ? "border-violet-300 bg-violet-50 text-violet-700" : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"}`}>
               🎨 Style
@@ -315,8 +322,9 @@ export default function AppPage() {
         </div>
 
         {/* Drawers (outside main flow) */}
-        <StylePanel     open={showStyle}    onClose={() => setShowStyle(false)} />
-        <JobInsightsPanel open={showInsights} onClose={() => setShowInsights(false)} />
+        <StylePanel      open={showStyle}       onClose={() => setShowStyle(false)} />
+        <JobInsightsPanel open={showInsights}   onClose={() => setShowInsights(false)} />
+        <CoverLetterModal open={showCoverLetter} onClose={() => setShowCoverLetter(false)} />
 
       </main>
     </DndContext>

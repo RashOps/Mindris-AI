@@ -97,6 +97,29 @@ export default function MarkdownToolPage() {
   const [activeTemplate, setActiveTemplate] = useState<keyof typeof TEMPLATES>("cover_letter");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // ── Read draft injected by CoverLetterModal ───────────────────────────────
+  useEffect(() => {
+    const draft = localStorage.getItem("md_draft");
+    if (draft) {
+      setMarkdown(draft);
+
+      const savedStyle = localStorage.getItem("md_draft_style");
+      const savedTitle = localStorage.getItem("md_draft_title");
+
+      if (savedStyle === "letter" || savedStyle === "document") setStyle(savedStyle);
+      if (savedTitle) setTitle(savedTitle);
+
+      // Show the matching template as active in the tab bar (visual only — markdown stays the AI draft)
+      setActiveTemplate(savedStyle === "letter" ? "cover_letter" : "blank");
+
+      // Clean up so next visit is fresh
+      localStorage.removeItem("md_draft");
+      localStorage.removeItem("md_draft_style");
+      localStorage.removeItem("md_draft_title");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ── Preview (debounced) ───────────────────────────────────────────────────
   const fetchPreview = useCallback(async (md: string, s: string, t: string) => {
     if (!md.trim()) { setPreviewHtml(""); return; }

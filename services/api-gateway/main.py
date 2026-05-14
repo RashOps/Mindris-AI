@@ -59,10 +59,20 @@ class OptimizationResponse(BaseModel):
 
 class PatchRequest(BaseModel):
     """Request body for /api/v1/cv/patch-from-bullets."""
-    drafted_bullets: list[str]          # Parsed bullet strings from Job Insights Panel
-    cv_data: dict                       # Current CVData from the frontend store
+    drafted_bullets: list[str]
+    cv_data: dict
     provider: str = TASK_DEFAULTS["patch"]["provider"]
     model_name: str = TASK_DEFAULTS["patch"]["model_name"]
+
+
+class CoverLetterRequest(BaseModel):
+    """Request body for /api/v1/cover-letter."""
+    cv_data: dict
+    job_insights: dict                  # title, company, hard_skills, drafted_bullets
+    instructions: str = ""             # Free-form user instructions
+    example_letter: str | None = None  # Optional style guide letter
+    provider: str = TASK_DEFAULTS["cover_letter"]["provider"]
+    model_name: str = TASK_DEFAULTS["cover_letter"]["model_name"]
 
 
 # ── Health ────────────────────────────────────────────────────────────────────
@@ -80,8 +90,30 @@ def llm_catalogue() -> dict:
         "defaults":  TASK_DEFAULTS,
     }
 
+# ── Cover Letter Generator ────────────────────────────────────────────────────
+@app.post("/api/v1/cover-letter")
+async def generate_cover_letter_route(request: CoverLetterRequest) -> dict:
+    """Generate a tailored cover letter in Markdown using an AI agent.
 
-# ── CV Patch from AI Bullets (Option A — auto-inject) ─────────────────────────
+    The letter is built from the candidate's CV data, the scraped job
+    insights, optional user instructions, and an optional style example.
+    """
+    from intelligence.cover_letter import generate_cover_letter
+    try:
+        markdown = await generate_cover_letter(
+            cv_data=request.cv_data,
+            job_insights=request.job_insights,
+            instructions=request.instructions,
+            example_letter=request.example_letter,
+            provider=request.provider,
+            model_name=request.model_name,
+        )
+        return {"status": "success", "markdown": markdown}
+    except Exception as e:
+        print(f"❌ Cover letter generation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
 @app.post("/api/v1/cv/patch-from-bullets")
 async def patch_cv_from_bullets(request: PatchRequest) -> dict:
     """Use an LLM to map AI-generated bullets back to a CVData JSON patch.

@@ -23,8 +23,8 @@ TASK_DEFAULTS: dict[str, dict[str, str]] = {
         "model_name": "llama-3.3-70b-versatile",
     },
     "cover_letter": {
-        "provider":   "gemini",
-        "model_name": "gemini-2.0-flash",
+        "provider":   "groq",
+        "model_name": "llama-3.3-70b-versatile",  # Gemini when quota available
     },
     "ats_score": {
         "provider":   "groq",

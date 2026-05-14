@@ -100,7 +100,7 @@ export interface AppSettings {
 
 const DEFAULT_APP_SETTINGS: AppSettings = {
   optimize_llm:     { provider: 'groq',   model_name: 'llama-3.3-70b-versatile' },
-  cover_letter_llm: { provider: 'gemini', model_name: 'gemini-2.0-flash' },
+  cover_letter_llm: { provider: 'groq',   model_name: 'llama-3.3-70b-versatile' },
   ats_llm:          { provider: 'groq',   model_name: 'llama-3.1-8b-instant' },
   patch_llm:        { provider: 'groq',   model_name: 'llama-3.3-70b-versatile' },
 };
