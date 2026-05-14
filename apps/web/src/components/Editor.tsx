@@ -15,6 +15,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  useDroppable,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -30,10 +31,42 @@ import { CSS } from "@dnd-kit/utilities";
 const DragHandle = () => (
   <div className="cursor-grab text-slate-300 hover:text-slate-500 transition-colors px-1 flex-shrink-0">
     <svg width="14" height="14" viewBox="0 0 15 15" fill="none">
-      <path d="M5.5 4.625C6.12 4.625 6.625 4.12 6.625 3.5C6.625 2.88 6.12 2.375 5.5 2.375C4.88 2.375 4.375 2.88 4.375 3.5C4.375 4.12 4.88 4.625 5.5 4.625ZM9.5 4.625C10.12 4.625 10.625 4.12 10.625 3.5C10.625 2.88 10.12 2.375 9.5 2.375C8.88 2.375 8.375 2.88 8.375 3.5C8.375 4.12 8.88 4.625 9.5 4.625ZM10.625 7.5C10.625 8.12 10.12 8.625 9.5 8.625C8.88 8.625 8.375 8.12 8.375 7.5C8.375 6.88 8.88 6.375 9.5 6.375C10.12 6.375 10.625 6.88 10.625 7.5ZM5.5 8.625C6.12 8.625 6.625 8.12 6.625 7.5C6.625 6.88 6.12 6.375 5.5 6.375C4.88 6.375 4.375 6.88 4.375 7.5C4.375 8.12 4.88 8.625 5.5 8.625ZM10.625 11.5C10.625 12.12 10.12 12.625 9.5 12.625C8.88 12.625 8.375 12.12 8.375 11.5C8.375 10.88 8.88 10.375 9.5 10.375C10.12 10.375 10.625 10.88 10.625 11.5ZM5.5 12.625C6.12 12.625 6.625 12.12 6.625 11.5C6.625 10.88 6.12 10.375 5.5 10.375C4.88 10.375 4.375 10.88 4.375 11.5C4.375 12.12 4.88 12.625 5.5 12.625Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"/>
+      <path d="M5.5 4.625C6.12 4.625 6.625 4.12 6.625 3.5C6.625 2.88 6.12 2.375 5.5 2.375C4.88 2.375 4.375 2.88 4.375 3.5C4.375 4.12 4.88 4.625 5.5 4.625ZM9.5 4.625C10.12 4.625 10.625 4.12 10.625 3.5C10.625 2.88 10.12 2.375 9.5 2.375C8.88 2.375 8.375 2.88 8.375 3.5C8.375 4.12 8.88 4.625 9.5 4.625ZM10.625 7.5C10.625 8.12 10.12 8.625 9.5 8.625C8.88 8.625 8.375 8.12 8.375 7.5C8.375 6.88 8.88 6.375 9.5 6.375C10.12 6.375 10.625 6.88 10.625 7.5ZM5.5 8.625C6.12 8.625 6.625 8.12 6.625 7.5C6.625 6.88 6.12 6.375 5.5 6.375C4.88 6.375 4.375 6.88 4.375 7.5C4.375 8.12 4.88 4.625 5.5 8.625ZM10.625 11.5C10.625 12.12 10.12 12.625 9.5 12.625C8.88 12.625 8.375 12.12 8.375 11.5C8.375 10.88 8.88 10.375 9.5 10.375C10.12 10.375 10.625 10.88 10.625 11.5ZM5.5 12.625C6.12 12.625 6.625 12.12 6.625 11.5C6.625 10.88 6.12 10.375 5.5 10.375C4.88 10.375 4.375 10.88 4.375 11.5C4.375 12.12 4.88 12.625 5.5 12.625Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"/>
     </svg>
   </div>
 );
+
+// ── Drop zone wrappers (for JobInsightsPanel drag) ────────────────────────────
+
+function DroppableExpCard({ expId, children }: { expId: string; children: React.ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `drop-exp-${expId}`,
+    data: { kind: "experience", expId },
+  });
+  return (
+    <div
+      ref={setNodeRef}
+      className={`transition-all ${isOver ? "ring-2 ring-blue-400 ring-offset-1 rounded-lg" : ""}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+function DroppableSkillGroup({ groupId, children }: { groupId: string; children: React.ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `drop-skill-${groupId}`,
+    data: { kind: "skillGroup", groupId },
+  });
+  return (
+    <div
+      ref={setNodeRef}
+      className={`transition-all ${isOver ? "ring-2 ring-green-400 ring-offset-1 rounded-lg" : ""}`}
+    >
+      {children}
+    </div>
+  );
+}
 
 const RemoveBtn = ({ onClick }: { onClick: () => void }) => (
   <button
@@ -175,28 +208,30 @@ function ExperienceSection() {
           {cvData.experience.map((exp) => (
             <SortableRow key={exp.id} id={exp.id}>
               {({ attributes, listeners }) => (
-                <div className="p-3 border border-slate-100 rounded-lg bg-slate-50/50 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div {...attributes} {...listeners}><DragHandle /></div>
-                    <Input value={exp.role} onChange={(e) => updateExperience(exp.id, { role: e.target.value })} placeholder="Poste" className="font-medium text-sm" />
-                    <Input value={exp.company} onChange={(e) => updateExperience(exp.id, { company: e.target.value })} placeholder="Entreprise" className="text-sm" />
-                    <RemoveBtn onClick={() => removeExperience(exp.id)} />
+                <DroppableExpCard expId={exp.id}>
+                  <div className="p-3 border border-slate-100 rounded-lg bg-slate-50/50 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div {...attributes} {...listeners}><DragHandle /></div>
+                      <Input value={exp.role} onChange={(e) => updateExperience(exp.id, { role: e.target.value })} placeholder="Poste" className="font-medium text-sm" />
+                      <Input value={exp.company} onChange={(e) => updateExperience(exp.id, { company: e.target.value })} placeholder="Entreprise" className="text-sm" />
+                      <RemoveBtn onClick={() => removeExperience(exp.id)} />
+                    </div>
+                    <div className="flex gap-2">
+                      <Input value={exp.period} onChange={(e) => updateExperience(exp.id, { period: e.target.value })} placeholder="Période" className="text-xs" />
+                      <Input value={exp.location.city} onChange={(e) => updateExperience(exp.id, { location: { ...exp.location, city: e.target.value } })} placeholder="Ville" className="text-xs" />
+                    </div>
+                    <Textarea
+                      value={exp.description_markdown}
+                      onChange={(v) => updateExperience(exp.id, { description_markdown: v })}
+                      placeholder="Drop bullets here or type in Markdown…"
+                      rows={3}
+                    />
+                    <div>
+                      <Label className="text-xs text-slate-400 mb-1 block">Keywords (Enter pour valider)</Label>
+                      <TagInput tags={exp.keywords} onChange={(kw) => updateExperience(exp.id, { keywords: kw })} placeholder="Python, RAG..." />
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Input value={exp.period} onChange={(e) => updateExperience(exp.id, { period: e.target.value })} placeholder="Période" className="text-xs" />
-                    <Input value={exp.location.city} onChange={(e) => updateExperience(exp.id, { location: { ...exp.location, city: e.target.value } })} placeholder="Ville" className="text-xs" />
-                  </div>
-                  <Textarea
-                    value={exp.description_markdown}
-                    onChange={(v) => updateExperience(exp.id, { description_markdown: v })}
-                    placeholder="Description (Markdown supporté)..."
-                    rows={3}
-                  />
-                  <div>
-                    <Label className="text-xs text-slate-400 mb-1 block">Keywords (Enter pour valider)</Label>
-                    <TagInput tags={exp.keywords} onChange={(kw) => updateExperience(exp.id, { keywords: kw })} placeholder="Python, RAG..." />
-                  </div>
-                </div>
+                </DroppableExpCard>
               )}
             </SortableRow>
           ))}
@@ -263,22 +298,24 @@ function SkillsSection() {
     <SectionCard title="Compétences" onAdd={addSkillGroup} addLabel="Add group">
       <div className="space-y-3">
         {cvData.skills.map((group) => (
-          <div key={group.id} className="p-3 border border-slate-100 rounded-lg bg-slate-50/50 space-y-2">
-            <div className="flex items-center gap-2">
-              <Input
-                value={group.category}
-                onChange={(e) => updateSkillGroup(group.id, { category: e.target.value })}
-                placeholder="Catégorie"
-                className="text-sm font-medium"
+          <DroppableSkillGroup key={group.id} groupId={group.id}>
+            <div className="p-3 border border-slate-100 rounded-lg bg-slate-50/50 space-y-2">
+              <div className="flex items-center gap-2">
+                <Input
+                  value={group.category}
+                  onChange={(e) => updateSkillGroup(group.id, { category: e.target.value })}
+                  placeholder="Catégorie"
+                  className="text-sm font-medium"
+                />
+                <RemoveBtn onClick={() => removeSkillGroup(group.id)} />
+              </div>
+              <TagInput
+                tags={group.skills}
+                onChange={(skills) => updateSkillGroup(group.id, { skills })}
+                placeholder="Drop skill tags here or type… (Enter)"
               />
-              <RemoveBtn onClick={() => removeSkillGroup(group.id)} />
             </div>
-            <TagInput
-              tags={group.skills}
-              onChange={(skills) => updateSkillGroup(group.id, { skills })}
-              placeholder="Python, FastAPI... (Enter)"
-            />
-          </div>
+          </DroppableSkillGroup>
         ))}
       </div>
     </SectionCard>

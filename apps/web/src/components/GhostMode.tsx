@@ -18,13 +18,14 @@ interface GhostModeProps {
   jobId: string | null;
   onDone?: () => void;
   onError?: () => void;
+  onJobResult?: (data: any) => void;  // Called when job_result SSE event arrives
 }
 
 const API = "http://localhost:8000";
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function GhostMode({ jobId, onDone, onError }: GhostModeProps) {
+export function GhostMode({ jobId, onDone, onError, onJobResult }: GhostModeProps) {
   const [events, setEvents] = useState<GhostEvent[]>([]);
   const [status, setStatus] = useState<"idle" | "running" | "done" | "error">("idle");
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -33,9 +34,10 @@ export function GhostMode({ jobId, onDone, onError }: GhostModeProps) {
   // ── Stable refs for callbacks (never trigger the effect) ──────────────────
   const onDoneRef = useRef(onDone);
   const onErrorRef = useRef(onError);
-  // Keep refs up-to-date with latest props without adding them as dependencies
+  const onJobResultRef = useRef(onJobResult);
   onDoneRef.current = onDone;
   onErrorRef.current = onError;
+  onJobResultRef.current = onJobResult;
 
   // ── Connect SSE only when jobId changes ────────────────────────────────────
   useEffect(() => {
@@ -66,22 +68,27 @@ export function GhostMode({ jobId, onDone, onError }: GhostModeProps) {
 
         setEvents((prev) => [...prev, entry]);
 
+        if (eventType === "job_result") {
+          // Forward structured data to parent without displaying in terminal
+          onJobResultRef.current?.(data);
+          return;
+        }
         if (eventType === "done") {
           setStatus("done");
           es.close();
-          onDoneRef.current?.();   // ← use ref, not closure
+          onDoneRef.current?.();
         }
         if (eventType === "error") {
           setStatus("error");
           es.close();
-          onErrorRef.current?.();  // ← use ref, not closure
+          onErrorRef.current?.();
         }
       } catch {
         // ignore malformed events
       }
     };
 
-    const eventTypes = ["pipeline_start", "node_start", "node_done", "done", "error", "ping"];
+    const eventTypes = ["pipeline_start", "node_start", "node_done", "done", "error", "ping", "job_result"];
     eventTypes.forEach((type) => {
       es.addEventListener(type, (evt) => handleEvent(evt as MessageEvent, type));
     });

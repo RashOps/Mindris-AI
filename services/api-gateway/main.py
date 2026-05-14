@@ -1,6 +1,7 @@
 """Mindris AI API Gateway service."""
 
 import asyncio
+import json
 import os
 from contextlib import asynccontextmanager
 
@@ -9,6 +10,7 @@ from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from intelligence.event_bus import create_job_queue, emit, stream_events
 from intelligence.ingest_cv import ingest_cv_data
+from intelligence.llm_config import MODEL_CATALOGUE, TASK_DEFAULTS, get_llm
 from intelligence.pdf_parser import parse_pdf_cv
 from intelligence.workflow import create_rag_workflow
 from pydantic import AnyHttpUrl, BaseModel
@@ -44,8 +46,9 @@ app.add_middleware(
 # ── Models ────────────────────────────────────────────────────────────────────
 class OptimizeRequest(BaseModel):
     job_url: AnyHttpUrl
-    provider: str = "groq"
-    model_name: str = "llama-3.3-70b-versatile"
+    # Per-task LLM override — falls back to TASK_DEFAULTS["optimize"] if not set
+    provider: str = TASK_DEFAULTS["optimize"]["provider"]
+    model_name: str = TASK_DEFAULTS["optimize"]["model_name"]
 
 
 class OptimizationResponse(BaseModel):
@@ -54,13 +57,93 @@ class OptimizationResponse(BaseModel):
     job_id: str
 
 
+class PatchRequest(BaseModel):
+    """Request body for /api/v1/cv/patch-from-bullets."""
+    drafted_bullets: list[str]          # Parsed bullet strings from Job Insights Panel
+    cv_data: dict                       # Current CVData from the frontend store
+    provider: str = TASK_DEFAULTS["patch"]["provider"]
+    model_name: str = TASK_DEFAULTS["patch"]["model_name"]
+
+
 # ── Health ────────────────────────────────────────────────────────────────────
 @app.get("/")
 def health_check() -> dict:
     return {"status": "healthy", "service": "Mindris AI Gateway"}
 
 
-# ── CV Upload (JSON) ──────────────────────────────────────────────────────────
+# ── LLM Catalogue (for frontend selectors) ────────────────────────────────────
+@app.get("/api/v1/llm/catalogue")
+def llm_catalogue() -> dict:
+    """Return available providers, models, and per-task defaults."""
+    return {
+        "catalogue": MODEL_CATALOGUE,
+        "defaults":  TASK_DEFAULTS,
+    }
+
+
+# ── CV Patch from AI Bullets (Option A — auto-inject) ─────────────────────────
+@app.post("/api/v1/cv/patch-from-bullets")
+async def patch_cv_from_bullets(request: PatchRequest) -> dict:
+    """Use an LLM to map AI-generated bullets back to a CVData JSON patch.
+
+    The agent receives the current CV structure + the drafted bullet points,
+    and returns a minimal JSON patch: {experience: [{id, description_markdown}]}.
+    """
+    from crewai import Agent, Crew, Process, Task
+
+    try:
+        llm = get_llm(provider=request.provider, model_name=request.model_name)
+
+        # Build a minimal representation of experience items for the agent
+        experiences = request.cv_data.get("experience", [])
+        exp_list = "\n".join(
+            f"  - id: {e.get('id')}, role: {e.get('role')}, company: {e.get('company')}"
+            for e in experiences
+        )
+        bullets_text = "\n".join(f"  - {b}" for b in request.drafted_bullets)
+
+        patcher = Agent(
+            role="CV Data Architect",
+            goal="Map AI-generated bullet points to the correct CV experience entries.",
+            backstory=(
+                "You are a precise data mapper. Given a list of tailored bullet points "
+                "and a CV structure, you assign each bullet to the most relevant "
+                "experience entry and return a JSON patch."
+            ),
+            llm=llm,
+            allow_delegation=False,
+            verbose=False,
+        )
+
+        task = Task(
+            description=(
+                f"Experience entries in the CV:\n{exp_list}\n\n"
+                f"AI-generated bullet points:\n{bullets_text}\n\n"
+                "Task: Return a JSON object mapping experience IDs to their new "
+                "description_markdown. Format:\n"
+                '{"experience": [{"id": "...", "description_markdown": "- bullet1\\n- bullet2"}]}\n'
+                "Only include entries that have matching bullets. Return ONLY the JSON."
+            ),
+            expected_output='{"experience": [...]}',
+            agent=patcher,
+        )
+
+        crew = Crew(agents=[patcher], tasks=[task], process=Process.sequential)
+        result = crew.kickoff()
+
+        raw = str(result.raw).strip()
+        # Extract JSON from the response
+        start = raw.find("{")
+        end = raw.rfind("}") + 1
+        patch = json.loads(raw[start:end]) if start != -1 else {}
+
+        return {"status": "success", "patch": patch}
+
+    except Exception as e:
+        print(f"❌ Patch failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
 @app.post("/api/v1/cv/upload")
 async def upload_cv(cv_data: dict) -> dict:
     """Upload a new CV (JSON format), clear the old one, and embed."""

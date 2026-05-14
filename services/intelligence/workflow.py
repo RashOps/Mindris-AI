@@ -168,6 +168,24 @@ def make_nodes(job_id: str):
             "message": f"ATS Score: {score}/100",
             "score": score,
         })
+
+        # ── Emit full structured result for Job Insights Panel ────────────────
+        drafted_markdown = state.get("drafted_cv", "")
+        bullets = [
+            line.lstrip("•-* ").strip()
+            for line in drafted_markdown.splitlines()
+            if line.strip() and line.strip()[0] in ("-", "•", "*")
+        ]
+        emit(job_id, "job_result", {
+            "job_title":       state["job_offer"].title,
+            "company":         state["job_offer"].company,
+            "hard_skills":     state["job_offer"].hard_skills,
+            "soft_skills":     state["job_offer"].soft_skills,
+            "drafted_bullets": bullets,
+            "raw_markdown":    drafted_markdown,
+            "score":           score,
+        })
+
         return state
 
     return retrieve_context, draft_cv, score_cv

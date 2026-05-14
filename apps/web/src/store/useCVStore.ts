@@ -70,6 +70,41 @@ export interface LanguageItem {
   level: string;
 }
 
+// ── Job Insights (from SSE job_result event) ──────────────────────────────────
+
+export interface JobInsights {
+  job_title: string;
+  company: string;
+  hard_skills: string[];
+  soft_skills: string[];
+  drafted_bullets: string[];   // parsed from Markdown
+  raw_markdown: string;
+  score: number;
+}
+
+// ── Multi-LLM per task ────────────────────────────────────────────────────────
+
+export type LLMProvider = 'groq' | 'gemini' | 'openai' | 'mistral' | 'ollama';
+
+export interface LLMConfig {
+  provider: LLMProvider;
+  model_name: string;
+}
+
+export interface AppSettings {
+  optimize_llm:     LLMConfig;
+  cover_letter_llm: LLMConfig;
+  ats_llm:          LLMConfig;
+  patch_llm:        LLMConfig;
+}
+
+const DEFAULT_APP_SETTINGS: AppSettings = {
+  optimize_llm:     { provider: 'groq',   model_name: 'llama-3.3-70b-versatile' },
+  cover_letter_llm: { provider: 'gemini', model_name: 'gemini-2.0-flash' },
+  ats_llm:          { provider: 'groq',   model_name: 'llama-3.1-8b-instant' },
+  patch_llm:        { provider: 'groq',   model_name: 'llama-3.3-70b-versatile' },
+};
+
 export interface CVData {
   global_settings: GlobalSettings;
   profile: Profile;
@@ -86,6 +121,22 @@ export interface CVData {
 interface CVStore {
   cvData: CVData;
   isOptimizing: boolean;
+
+  // Job Insights
+  jobInsights: JobInsights | null;
+  setJobInsights: (data: JobInsights) => void;
+  clearJobInsights: () => void;
+
+  // Auto-inject mode (Option A)
+  autoInjectMode: boolean;
+  setAutoInjectMode: (v: boolean) => void;
+
+  // Apply a patch from /api/v1/cv/patch-from-bullets
+  applyPatch: (patch: { experience?: Array<{ id: string; description_markdown: string }> }) => void;
+
+  // App settings (multi-LLM per task)
+  appSettings: AppSettings;
+  setAppSettings: (s: Partial<AppSettings>) => void;
 
   // Generic setters
   setGlobalSettings: (s: Partial<GlobalSettings>) => void;
@@ -206,6 +257,30 @@ const initialCV: CVData = {
 export const useCVStore = create<CVStore>((set) => ({
   cvData: initialCV,
   isOptimizing: false,
+
+  // ── Job Insights ────────────────────────────────────────────────────────────
+  jobInsights: null,
+  setJobInsights: (data) => set({ jobInsights: data }),
+  clearJobInsights: () => set({ jobInsights: null }),
+
+  // ── Auto-inject mode ────────────────────────────────────────────────────────
+  autoInjectMode: false,
+  setAutoInjectMode: (v) => set({ autoInjectMode: v }),
+
+  // ── Patch from AI bullets ────────────────────────────────────────────────────
+  applyPatch: (patch) =>
+    set((state) => {
+      if (!patch.experience) return state;
+      const updated = state.cvData.experience.map((exp) => {
+        const match = patch.experience!.find((p) => p.id === exp.id);
+        return match ? { ...exp, description_markdown: match.description_markdown } : exp;
+      });
+      return { cvData: { ...state.cvData, experience: updated } };
+    }),
+
+  // ── App Settings (multi-LLM per task) ────────────────────────────────────────
+  appSettings: DEFAULT_APP_SETTINGS,
+  setAppSettings: (s) => set((state) => ({ appSettings: { ...state.appSettings, ...s } })),
 
   setGlobalSettings: (s) =>
     set((state) => ({
