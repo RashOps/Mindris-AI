@@ -24,12 +24,12 @@ const FEATURES = [
   {
     id: "ats-score",
     icon: "⚡",
-    label: "Coming soon",
+    label: "Available now",
     title: "ATS Score",
     description:
       "Real-time keyword density analysis between your generated CV and any target job offer. Know exactly where you stand before you submit.",
-    cta: null,
-    available: false,
+    cta: { label: "Try it out", href: "/app" },
+    available: true,
   },
 ];
 

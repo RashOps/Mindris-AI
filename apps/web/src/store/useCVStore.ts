@@ -82,6 +82,20 @@ export interface LanguageItem {
 
 // ── Job Insights (from SSE job_result event) ──────────────────────────────────
 
+export interface KeywordStatus {
+  keyword: string;
+  found: boolean;
+  density: string;
+  severity: "high" | "medium" | "low";
+}
+
+export interface AtsReport {
+  score: number;
+  summary: string;
+  keyword_analysis: KeywordStatus[];
+  recommendations: string[];
+}
+
 export interface JobInsights {
   job_title: string;
   company: string;
@@ -90,6 +104,7 @@ export interface JobInsights {
   drafted_bullets: string[];   // parsed from Markdown
   raw_markdown: string;
   score: number;
+  ats_report?: AtsReport;      // populated by on-demand detailed scoring
 }
 
 // ── Multi-LLM per task ────────────────────────────────────────────────────────
@@ -296,7 +311,15 @@ export const useCVStore = create<CVStore>((set, get) => ({
       });
       if (res.ok) {
         const data = await res.json();
-        set({ jobInsights: { ...jobInsights, score: data.score } });
+        if (data.report) {
+          set({
+            jobInsights: {
+              ...jobInsights,
+              score: data.report.score,
+              ats_report: data.report,
+            },
+          });
+        }
       }
     } catch (err) {
       console.error("ATS score calculation failed", err);

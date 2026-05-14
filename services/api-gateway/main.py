@@ -128,13 +128,13 @@ async def calculate_ats_score_route(request: ScoreRequest) -> dict:
     """Calculate the ATS score for the current CV against the job insights."""
     from intelligence.ats_score import calculate_ats_score
     try:
-        score = await calculate_ats_score(
+        report = await calculate_ats_score(
             cv_data=request.cv_data,
             job_insights=request.job_insights,
             provider=request.provider,
             model_name=request.model_name,
         )
-        return {"status": "success", "score": score}
+        return {"status": "success", "report": report}
     except Exception as e:
         print(f"❌ ATS score calculation failed: {e}")
         raise HTTPException(status_code=500, detail=str(e)) from e

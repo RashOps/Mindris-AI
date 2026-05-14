@@ -203,6 +203,17 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
                   Score my CV
                 </button>
               </div>
+              {jobInsights.ats_report && (
+                <button
+                  onClick={() => {
+                    localStorage.setItem("ats_report", JSON.stringify(jobInsights.ats_report));
+                    window.open("/tools/ats-score", "_blank");
+                  }}
+                  className="w-full mt-1 py-1.5 text-xs font-semibold bg-white border border-blue-200 text-blue-600 hover:bg-blue-50 rounded transition-colors flex items-center justify-center gap-2"
+                >
+                  📊 View Detailed Report
+                </button>
+              )}
             </div>
 
             {/* Auto-inject mode */}
