@@ -7,6 +7,7 @@ export interface GlobalSettings {
   font_family: string;
   font_size: string;
   primary_color: string;
+  margin_page: string;
 }
 
 export interface Social {
@@ -131,8 +132,9 @@ const uid = () => Math.random().toString(36).slice(2, 9);
 const initialCV: CVData = {
   global_settings: {
     font_family: 'Inter',
-    font_size: '11pt',
+    font_size: '13px',
     primary_color: '#2563eb',
+    margin_page: '48px',
   },
   profile: {
     full_name: 'Jean Dupont',

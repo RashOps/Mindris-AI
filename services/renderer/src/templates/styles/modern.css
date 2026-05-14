@@ -1,27 +1,38 @@
 /* ===================================================================
    Mindris AI — Modern CV Template
+   All hardcoded values replaced with CSS custom properties
    Isolated in Shadow DOM — safe from host page styles
    =================================================================== */
 
 :host {
+    /* ── Design Tokens (overridable via global_settings) ──────────── */
+    --primary-color:  #2563eb;
+    --font-family:    'Inter', sans-serif;
+    --font-size-base: 13px;
+    --margin-page:    48px;
+
+    /* ── Derived / fixed ──────────────────────────────────────────── */
+    --primary-light:  color-mix(in srgb, var(--primary-color) 12%, white);
+    --primary-border: color-mix(in srgb, var(--primary-color) 30%, white);
+    --primary-dim:    color-mix(in srgb, var(--primary-color) 70%, #334155);
+
     display: block;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family);
+    font-size: var(--font-size-base);
     color: #334155;
     line-height: 1.5;
     box-sizing: border-box;
-    font-size: 13px;
 }
 
 * { box-sizing: inherit; margin: 0; padding: 0; }
-
 a { color: inherit; text-decoration: none; }
 
-/* ── Wrapper ──────────────────────────────────────────────────── */
+/* ── Wrapper ──────────────────────────────────────────────────────── */
 .cv-wrapper {
-    padding: 36px 48px;
+    padding: var(--margin-page) calc(var(--margin-page) * 1.33);
 }
 
-/* ── Header ──────────────────────────────────────────────────── */
+/* ── Header ───────────────────────────────────────────────────────── */
 .header {
     margin-bottom: 32px;
     padding-bottom: 20px;
@@ -29,7 +40,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 .header h1 {
-    font-size: 28px;
+    font-size: calc(var(--font-size-base) * 2.15);
     font-weight: 700;
     color: #0f172a;
     letter-spacing: -0.5px;
@@ -37,9 +48,9 @@ a { color: inherit; text-decoration: none; }
 }
 
 .tagline {
-    font-size: 15px;
+    font-size: calc(var(--font-size-base) * 1.15);
     font-weight: 500;
-    color: #2563eb;
+    color: var(--primary-color);
     margin-bottom: 12px;
 }
 
@@ -52,25 +63,23 @@ a { color: inherit; text-decoration: none; }
 }
 
 .contact-item {
-    font-size: 11px;
+    font-size: calc(var(--font-size-base) * 0.85);
     color: #64748b;
     display: flex;
     align-items: center;
     gap: 4px;
 }
 
-.contact-link {
-    color: #2563eb;
-}
+.contact-link { color: var(--primary-color); }
 
 .summary {
-    font-size: 12.5px;
+    font-size: calc(var(--font-size-base) * 0.96);
     color: #475569;
     line-height: 1.65;
     max-width: 720px;
 }
 
-/* ── Main Grid ───────────────────────────────────────────────── */
+/* ── Main Grid ────────────────────────────────────────────────────── */
 .main-grid {
     display: grid;
     grid-template-columns: 2fr 1fr;
@@ -78,17 +87,13 @@ a { color: inherit; text-decoration: none; }
     align-items: start;
 }
 
-.left-col, .right-col {
-    min-width: 0;
-}
+.left-col, .right-col { min-width: 0; }
 
-/* ── Sections ────────────────────────────────────────────────── */
-.section {
-    margin-bottom: 28px;
-}
+/* ── Sections ─────────────────────────────────────────────────────── */
+.section { margin-bottom: 28px; }
 
 .section-title {
-    font-size: 10px;
+    font-size: calc(var(--font-size-base) * 0.77);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1.5px;
@@ -98,30 +103,21 @@ a { color: inherit; text-decoration: none; }
     border-bottom: 1px solid #f1f5f9;
 }
 
-/* ── Experience / Projects items ─────────────────────────────── */
+/* ── Items ────────────────────────────────────────────────────────── */
 .item {
     margin-bottom: 22px;
     padding-bottom: 22px;
     border-bottom: 1px solid #f8fafc;
 }
 
-.item:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-    padding-bottom: 0;
-}
+.item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
 
-.item--compact {
-    margin-bottom: 16px;
-    padding-bottom: 16px;
-}
+.item--compact { margin-bottom: 16px; padding-bottom: 16px; }
 
-.item-header {
-    margin-bottom: 8px;
-}
+.item-header { margin-bottom: 8px; }
 
 .item h3 {
-    font-size: 14px;
+    font-size: calc(var(--font-size-base) * 1.077);
     font-weight: 600;
     color: #0f172a;
     margin-bottom: 2px;
@@ -129,72 +125,54 @@ a { color: inherit; text-decoration: none; }
 
 .company, .institution {
     display: block;
-    font-size: 12.5px;
+    font-size: calc(var(--font-size-base) * 0.96);
     font-weight: 500;
-    color: #2563eb;
+    color: var(--primary-color);
     margin-bottom: 2px;
 }
 
 .meta {
     display: block;
-    font-size: 11px;
+    font-size: calc(var(--font-size-base) * 0.85);
     color: #94a3b8;
     margin-bottom: 6px;
 }
 
 .description {
-    font-size: 12px;
+    font-size: calc(var(--font-size-base) * 0.92);
     color: #475569;
     line-height: 1.65;
     white-space: pre-line;
 }
 
-.description--sm {
-    font-size: 11.5px;
-    margin-top: 4px;
-}
+.description--sm { font-size: calc(var(--font-size-base) * 0.88); margin-top: 4px; }
 
-.proj-link {
-    font-size: 11px;
-    color: #2563eb;
-    font-weight: 400;
-}
+.proj-link { font-size: calc(var(--font-size-base) * 0.85); color: var(--primary-color); font-weight: 400; }
 
-/* ── Keyword / Tech tags ─────────────────────────────────────── */
-.keyword-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    margin-top: 8px;
-}
+/* ── Tags ─────────────────────────────────────────────────────────── */
+.keyword-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
 
 .kw-tag {
-    background: #eff6ff;
-    color: #2563eb;
-    border: 1px solid #bfdbfe;
+    background: var(--primary-light);
+    color: var(--primary-dim);
+    border: 1px solid var(--primary-border);
     padding: 2px 7px;
     border-radius: 3px;
-    font-size: 10.5px;
+    font-size: calc(var(--font-size-base) * 0.81);
     font-weight: 500;
 }
 
-/* ── Skills ──────────────────────────────────────────────────── */
-.skill-group {
-    margin-bottom: 14px;
-}
+/* ── Skills ───────────────────────────────────────────────────────── */
+.skill-group { margin-bottom: 14px; }
 
 .skill-category {
-    font-size: 11.5px;
+    font-size: calc(var(--font-size-base) * 0.88);
     font-weight: 600;
     color: #0f172a;
     margin-bottom: 7px;
 }
 
-.skill-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-}
+.skill-tags { display: flex; flex-wrap: wrap; gap: 5px; }
 
 .tag {
     background: #f1f5f9;
@@ -202,11 +180,11 @@ a { color: inherit; text-decoration: none; }
     border: 1px solid #e2e8f0;
     padding: 2px 8px;
     border-radius: 3px;
-    font-size: 11px;
+    font-size: calc(var(--font-size-base) * 0.85);
     font-weight: 500;
 }
 
-/* ── Languages ───────────────────────────────────────────────── */
+/* ── Languages ────────────────────────────────────────────────────── */
 .lang-item {
     display: flex;
     justify-content: space-between;
@@ -218,17 +196,17 @@ a { color: inherit; text-decoration: none; }
 .lang-item:last-child { border-bottom: none; }
 
 .lang-name {
-    font-size: 12.5px;
+    font-size: calc(var(--font-size-base) * 0.96);
     font-weight: 500;
     color: #0f172a;
 }
 
 .lang-level {
-    font-size: 11px;
+    font-size: calc(var(--font-size-base) * 0.85);
     color: #64748b;
 }
 
-/* ── Print / A4 ──────────────────────────────────────────────── */
+/* ── Print ────────────────────────────────────────────────────────── */
 @media print {
     .cv-wrapper { padding: 20px 28px; }
     .item { page-break-inside: avoid; }

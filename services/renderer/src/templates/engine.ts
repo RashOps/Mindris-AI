@@ -2,7 +2,37 @@ import Handlebars from "handlebars";
 import { readFileSync } from "fs";
 import { join } from "path";
 
-// ── Shadow DOM Shell ──────────────────────────────────────────────────────────
+// ── CSS Token Injection ───────────────────────────────────────────────────────
+
+/**
+ * Build a :host { } override block from cv_data.global_settings.
+ * Only properties explicitly set by the user are overridden.
+ */
+function buildTokenOverrides(settings?: Record<string, string>): string {
+    if (!settings || typeof settings !== "object") return "";
+
+    const props: string[] = [];
+
+    if (settings.primary_color) {
+        props.push(`  --primary-color: ${settings.primary_color};`);
+    }
+    if (settings.font_family) {
+        // Ensure the value is quoted if it contains spaces
+        const family = settings.font_family.includes(" ")
+            ? `'${settings.font_family}'`
+            : settings.font_family;
+        props.push(`  --font-family: ${family}, sans-serif;`);
+    }
+    if (settings.font_size) {
+        props.push(`  --font-size-base: ${settings.font_size};`);
+    }
+    if (settings.margin_page) {
+        props.push(`  --margin-page: ${settings.margin_page};`);
+    }
+
+    return props.length ? `:host {\n${props.join("\n")}\n}` : "";
+}
+
 const shellTemplate = Handlebars.compile(`<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -212,5 +242,10 @@ export function generateHtml(cvData: any, templateId: string = "modern"): string
         throw new Error(`Template "${templateId}" is not supported.`);
     }
 
+    // Append user token overrides — these win the cascade inside Shadow DOM
+    const tokenOverrides = buildTokenOverrides(cvData?.global_settings);
+    if (tokenOverrides) css += `\n\n/* ── User Design Tokens ── */\n${tokenOverrides}`;
+
     return shellTemplate({ css, content });
 }
+
