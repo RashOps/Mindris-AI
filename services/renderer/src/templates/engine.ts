@@ -13,21 +13,42 @@ function buildTokenOverrides(settings?: Record<string, string>): string {
 
     const props: string[] = [];
 
-    if (settings.primary_color) {
+    if (settings.primary_color)
         props.push(`  --primary-color: ${settings.primary_color};`);
-    }
+
     if (settings.font_family) {
-        // Ensure the value is quoted if it contains spaces
         const family = settings.font_family.includes(" ")
             ? `'${settings.font_family}'`
             : settings.font_family;
         props.push(`  --font-family: ${family}, sans-serif;`);
     }
-    if (settings.font_size) {
+    if (settings.font_size)
         props.push(`  --font-size-base: ${settings.font_size};`);
-    }
-    if (settings.margin_page) {
-        props.push(`  --margin-page: ${settings.margin_page};`);
+
+    if (settings.line_height)
+        props.push(`  --line-height: ${settings.line_height};`);
+
+    // Spacing — prefer granular tokens, fall back to margin_page
+    if (settings.margin_h)
+        props.push(`  --margin-page-h: ${settings.margin_h};`);
+    else if (settings.margin_page)
+        props.push(`  --margin-page-h: ${settings.margin_page};`);
+
+    if (settings.margin_v)
+        props.push(`  --margin-page-v: ${settings.margin_v};`);
+    else if (settings.margin_page)
+        props.push(`  --margin-page-v: ${settings.margin_page};`);
+
+    if (settings.entry_spacing)
+        props.push(`  --entry-spacing: ${settings.entry_spacing};`);
+
+    // Layout — column width & swap
+    if (settings.col_left_width)
+        props.push(`  --col-left-width: ${settings.col_left_width}%;`);
+
+    if (settings.col_swap === "true") {
+        props.push(`  --col-order-left: 2;`);
+        props.push(`  --col-order-right: 1;`);
     }
 
     return props.length ? `:host {\n${props.join("\n")}\n}` : "";
@@ -88,25 +109,28 @@ const modernTemplate = Handlebars.compile(`
 
   {{!-- HEADER --}}
   <header class="header">
-    <h1>{{profile.full_name}}</h1>
-    <p class="tagline">{{profile.title}}</p>
+    <div class="header-accent"></div>
+    <div class="header-body">
+      <h1>{{profile.full_name}}</h1>
+      <p class="tagline">{{profile.title}}</p>
 
-    {{!-- Contact bar --}}
-    <div class="contact-bar">
-      {{#if profile.email}}<span class="contact-item">✉ {{profile.email}}</span>{{/if}}
-      {{#if profile.phone}}<span class="contact-item">☎ {{profile.phone}}</span>{{/if}}
-      {{#if profile.location.city}}<span class="contact-item">📍 {{profile.location.city}}, {{profile.location.country}}</span>{{/if}}
-      {{#each profile.socials}}
-        <span class="contact-item"><a href="{{url}}" class="contact-link">{{#if label}}{{label}}{{else}}{{type}}{{/if}}</a></span>
-      {{/each}}
+      {{!-- Contact bar --}}
+      <div class="contact-bar">
+        {{#if profile.email}}<span class="contact-item">✉ {{profile.email}}</span>{{/if}}
+        {{#if profile.phone}}<span class="contact-item">☎ {{profile.phone}}</span>{{/if}}
+        {{#if profile.location.city}}<span class="contact-item">📍 {{profile.location.city}}, {{profile.location.country}}</span>{{/if}}
+        {{#each profile.socials}}
+          <span class="contact-item"><a href="{{url}}" class="contact-link">{{#if label}}{{label}}{{else}}{{type}}{{/if}}</a></span>
+        {{/each}}
+      </div>
+
+      {{#if profile.text_markdown}}
+        <p class="summary">{{profile.text_markdown}}</p>
+      {{/if}}
     </div>
-
-    {{#if profile.text_markdown}}
-      <p class="summary">{{profile.text_markdown}}</p>
-    {{/if}}
   </header>
 
-  {{!-- MAIN GRID: left column (2/3) + right column (1/3) --}}
+  {{!-- MAIN GRID: left column + right column --}}
   <div class="main-grid">
 
     {{!-- LEFT COLUMN --}}
@@ -226,20 +250,24 @@ const modernTemplate = Handlebars.compile(`
 // ── Engine Entry Point ────────────────────────────────────────────────────────
 
 export function generateHtml(cvData: any, templateId: string = "modern"): string {
-    const cssPath = join(import.meta.dir, "styles", `${templateId}.css`);
+    // Prefer template_id from global_settings if not explicitly passed
+    const resolvedTemplate =
+        (cvData?.global_settings?.template_id as string | undefined) ?? templateId;
+
+    const cssPath = join(import.meta.dir, "styles", `${resolvedTemplate}.css`);
     let css = "";
     try {
         css = readFileSync(cssPath, "utf-8");
-    } catch (e) {
-        console.warn(`CSS not found for template "${templateId}", using fallback.`);
+    } catch {
+        console.warn(`CSS not found for template "${resolvedTemplate}", using fallback.`);
         css = ":host { font-family: sans-serif; }";
     }
 
     let content = "";
-    if (templateId === "modern") {
-        content = modernTemplate(cvData);
+    if (resolvedTemplate === "modern" || resolvedTemplate === "compact") {
+        content = modernTemplate(cvData);   // Both templates share the same Handlebars layout
     } else {
-        throw new Error(`Template "${templateId}" is not supported.`);
+        throw new Error(`Template "${resolvedTemplate}" is not supported.`);
     }
 
     // Append user token overrides — these win the cascade inside Shadow DOM

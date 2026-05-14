@@ -4,10 +4,20 @@ import { arrayMove } from '@dnd-kit/sortable';
 // ── Types aligned with cv_schema.json ────────────────────────────────────────
 
 export interface GlobalSettings {
-  font_family: string;
-  font_size: string;
+  // Typography
+  font_family:   string;
+  font_size:     string;     // e.g. "13px"
   primary_color: string;
-  margin_page: string;
+  line_height:   string;     // e.g. "1.5"
+  // Spacing
+  margin_page:   string;     // legacy — kept for backward compat
+  margin_h:      string;     // left & right margin e.g. "64px"
+  margin_v:      string;     // top & bottom margin e.g. "48px"
+  entry_spacing: string;     // space between entries e.g. "20px"
+  // Layout
+  col_left_width: string;   // left column width in % e.g. "65"
+  col_swap:       string;   // "true" | "false" — swap L/R columns
+  template_id:    string;   // "modern" | "compact"
 }
 
 export interface Social {
@@ -124,8 +134,9 @@ interface CVStore {
 
   // Job Insights
   jobInsights: JobInsights | null;
-  setJobInsights: (data: JobInsights) => void;
+  setJobInsights: (data: JobInsights | null) => void;
   clearJobInsights: () => void;
+  calculateAtsScore: () => Promise<void>;
 
   // Auto-inject mode (Option A)
   autoInjectMode: boolean;
@@ -182,10 +193,17 @@ const uid = () => Math.random().toString(36).slice(2, 9);
 
 const initialCV: CVData = {
   global_settings: {
-    font_family: 'Inter',
-    font_size: '13px',
-    primary_color: '#2563eb',
-    margin_page: '48px',
+    font_family:    'Inter',
+    font_size:      '13px',
+    primary_color:  '#2563eb',
+    line_height:    '1.5',
+    margin_page:    '48px',   // legacy fallback
+    margin_h:       '64px',
+    margin_v:       '48px',
+    entry_spacing:  '20px',
+    col_left_width: '65',
+    col_swap:       'false',
+    template_id:    'modern',
   },
   profile: {
     full_name: 'Jean Dupont',
@@ -254,7 +272,7 @@ const initialCV: CVData = {
 
 // ── Store ─────────────────────────────────────────────────────────────────────
 
-export const useCVStore = create<CVStore>((set) => ({
+export const useCVStore = create<CVStore>((set, get) => ({
   cvData: initialCV,
   isOptimizing: false,
 
@@ -262,6 +280,28 @@ export const useCVStore = create<CVStore>((set) => ({
   jobInsights: null,
   setJobInsights: (data) => set({ jobInsights: data }),
   clearJobInsights: () => set({ jobInsights: null }),
+  calculateAtsScore: async () => {
+    const { cvData, jobInsights, appSettings } = get();
+    if (!jobInsights) return;
+    try {
+      const res = await fetch("http://localhost:8000/api/v1/cv/score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cv_data: cvData,
+          job_insights: jobInsights,
+          provider: appSettings.patch_llm.provider,
+          model_name: appSettings.patch_llm.model_name,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        set({ jobInsights: { ...jobInsights, score: data.score } });
+      }
+    } catch (err) {
+      console.error("ATS score calculation failed", err);
+    }
+  },
 
   // ── Auto-inject mode ────────────────────────────────────────────────────────
   autoInjectMode: false,

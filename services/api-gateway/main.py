@@ -75,6 +75,14 @@ class CoverLetterRequest(BaseModel):
     model_name: str = TASK_DEFAULTS["cover_letter"]["model_name"]
 
 
+class ScoreRequest(BaseModel):
+    """Request body for /api/v1/cv/score."""
+    cv_data: dict
+    job_insights: dict
+    provider: str = TASK_DEFAULTS["ats_score"]["provider"]
+    model_name: str = TASK_DEFAULTS["ats_score"]["model_name"]
+
+
 # ── Health ────────────────────────────────────────────────────────────────────
 @app.get("/")
 def health_check() -> dict:
@@ -111,6 +119,24 @@ async def generate_cover_letter_route(request: CoverLetterRequest) -> dict:
         return {"status": "success", "markdown": markdown}
     except Exception as e:
         print(f"❌ Cover letter generation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+# ── ATS Score On-Demand ───────────────────────────────────────────────────────
+@app.post("/api/v1/cv/score")
+async def calculate_ats_score_route(request: ScoreRequest) -> dict:
+    """Calculate the ATS score for the current CV against the job insights."""
+    from intelligence.ats_score import calculate_ats_score
+    try:
+        score = await calculate_ats_score(
+            cv_data=request.cv_data,
+            job_insights=request.job_insights,
+            provider=request.provider,
+            model_name=request.model_name,
+        )
+        return {"status": "success", "score": score}
+    except Exception as e:
+        print(f"❌ ATS score calculation failed: {e}")
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 

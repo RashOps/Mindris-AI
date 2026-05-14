@@ -85,10 +85,12 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
     jobInsights, clearJobInsights,
     autoInjectMode, setAutoInjectMode,
     applyPatch, cvData, appSettings, setAppSettings,
+    calculateAtsScore,
   } = useCVStore();
 
   const [isPatchLoading, setIsPatchLoading] = useState(false);
   const [patchStatus, setPatchStatus] = useState<string | null>(null);
+  const [isScoring, setIsScoring] = useState(false);
   const [provider, setProvider] = useState(appSettings.patch_llm.provider);
   const [modelName, setModelName] = useState(appSettings.patch_llm.model_name);
 
@@ -179,12 +181,28 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
           <div className="flex-1 overflow-y-auto">
 
             {/* Job summary */}
-            <div className="px-4 py-3 bg-slate-50 border-b">
-              <p className="text-sm font-semibold text-slate-800">{jobInsights.job_title}</p>
-              <p className="text-xs text-slate-500">{jobInsights.company}</p>
-              <p className={`text-xs font-bold mt-1 ${scoreColor}`}>
-                ATS Match: {jobInsights.score}/100
-              </p>
+            <div className="px-4 py-3 bg-slate-50 border-b flex flex-col gap-2">
+              <div>
+                <p className="text-sm font-semibold text-slate-800">{jobInsights.job_title}</p>
+                <p className="text-xs text-slate-500">{jobInsights.company}</p>
+              </div>
+              <div className="flex items-center justify-between">
+                <p className={`text-xs font-bold ${scoreColor}`}>
+                  ATS Match: {jobInsights.score}/100
+                </p>
+                <button
+                  onClick={async () => {
+                    setIsScoring(true);
+                    await calculateAtsScore();
+                    setIsScoring(false);
+                  }}
+                  disabled={isScoring}
+                  className="px-2 py-1 text-[10px] font-medium bg-white border border-slate-200 rounded text-slate-600 hover:bg-slate-100 disabled:opacity-50 flex items-center gap-1 transition-colors"
+                >
+                  {isScoring ? <span className="w-2 h-2 border border-slate-600 border-t-transparent rounded-full animate-spin" /> : "🏅"}
+                  Score my CV
+                </button>
+              </div>
             </div>
 
             {/* Auto-inject mode */}
