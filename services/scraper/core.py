@@ -82,7 +82,11 @@ class BaseScraper:
         self.headless: bool = (
             headless if headless is not None else settings.scraper_headless
         )
-        self.user_agent: str = USER_AGENT_WINDOWS
+        # Randomly rotate User-Agent across OS profiles on each instantiation
+        # to reduce fingerprinting risk across repeated scraping sessions.
+        self.user_agent: str = random.choice(  # noqa: S311
+            [USER_AGENT_WINDOWS, USER_AGENT_MAC, USER_AGENT_LINUX]
+        )
         self.stealth = Stealth()
         self._pw = None
         self._browser = None

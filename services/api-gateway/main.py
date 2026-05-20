@@ -15,7 +15,7 @@ from intelligence.llm_config import MODEL_CATALOGUE, TASK_DEFAULTS, get_llm
 from intelligence.pdf_parser import parse_pdf_cv
 from intelligence.workflow import create_rag_workflow
 from pydantic import AnyHttpUrl, BaseModel
-from scraper.core import BaseScraper
+from scraper.smart_scraper import ScraperExhaustedError, SmartScraper
 from sse_starlette.sse import EventSourceResponse
 
 logger = logging.getLogger(__name__)
@@ -269,11 +269,17 @@ async def run_intelligence_pipeline(
             "icon": "🌐",
             "message": "Scraping job offer page…",
         })
-        async with BaseScraper() as scraper:
-            markdown_content = await scraper.get_cleaned_content(job_url)
+        try:
+            async with SmartScraper() as scraper:
+                markdown_content = await scraper.get_cleaned_content(job_url)
+        except ScraperExhaustedError as exc:
+            emit(job_id, "error", {"message": f"All scraping providers failed: {exc}"})
+            logger.error("[%s] ScraperExhaustedError: %s", job_id, exc)
+            return
 
         if not markdown_content:
-            emit(job_id, "error", {"message": "Scraping failed — no content found."})
+            emit(job_id, "error", {"message": "Scraping returned empty content."})
+            logger.warning("[%s] SmartScraper returned empty string for %s", job_id, job_url)
             return
 
         emit(job_id, "node_done", {

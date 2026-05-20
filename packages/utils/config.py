@@ -51,6 +51,18 @@ class Settings(BaseSettings):
     scraper_headless: bool = Field(default=True, alias="SCRAPER_HEADLESS")
     scraper_timeout_ms: int = Field(default=60_000, alias="SCRAPER_TIMEOUT_MS")
 
+    # ── Proxy / Rotation providers ──────────────────────────────────────────
+    scrape_do_api_key: SecretStr | None = Field(default=None, alias="SCRAPE_DO_API")
+    scrapingbee_api_key: SecretStr | None = Field(default=None, alias="SCRAPINGBEE_API")
+    # Strategy: "auto" (Playwright → Scrape.do → ScrapingBee)
+    #           "playwright_only" (never use cloud proxies)
+    #           "proxy_first" (skip Playwright, hit proxies directly)
+    scraper_strategy: str = Field(default="auto", alias="SCRAPER_STRATEGY")
+    scraper_proxy_fallback: bool = Field(default=True, alias="SCRAPER_PROXY_FALLBACK")
+
+    # ── Logging ────────────────────────────────────────────────────────────
+    log_level: str = Field(default="INFO", alias="LOG_LEVEL")
+
     def model_post_init(self, __context: object) -> None:
         """Ensure required directories exist after settings are loaded."""
         self.logs_dir.mkdir(parents=True, exist_ok=True)

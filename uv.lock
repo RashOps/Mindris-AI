@@ -4047,6 +4047,7 @@ version = "0.1.0"
 source = { editable = "services/scraper" }
 dependencies = [
     { name = "database" },
+    { name = "httpx" },
     { name = "markdownify" },
     { name = "playwright" },
     { name = "playwright-stealth" },
@@ -4056,6 +4057,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "database", editable = "packages/database" },
+    { name = "httpx", specifier = ">=0.28.0" },
     { name = "markdownify", specifier = ">=1.2.2" },
     { name = "playwright", specifier = ">=1.58.0" },
     { name = "playwright-stealth", specifier = ">=2.0.3" },
