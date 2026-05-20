@@ -28,7 +28,7 @@ const FEATURES = [
     title: "ATS Score",
     description:
       "Real-time keyword density analysis between your generated CV and any target job offer. Know exactly where you stand before you submit.",
-    cta: { label: "Try it out", href: "/app" },
+    cta: { label: "Try it out", href: "/tools/ats-score" },
     available: true,
   },
 ];

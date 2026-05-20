@@ -197,7 +197,7 @@ export default function AppPage() {
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      <main className="flex h-screen w-full flex-col bg-white overflow-hidden">
+      <main className="flex h-screen w-full flex-col overflow-hidden" style={{ background: '#0a0f1a', color: '#e2e8f0' }}>
 
         {/* Toast */}
         {toast && (
@@ -207,11 +207,11 @@ export default function AppPage() {
         )}
 
         {/* ── Header ─────────────────────────────────────────────────────────── */}
-        <header className="h-14 border-b flex items-center justify-between px-4 bg-white shrink-0 z-30">
+        <header className="h-12 border-b flex items-center justify-between px-4 shrink-0 z-30" style={{ background: 'rgba(10,15,26,0.95)', borderColor: 'rgba(255,255,255,0.07)' }}>
           <Link href="/" className="flex items-center gap-2 no-underline shrink-0">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-black text-base"
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-black text-sm"
               style={{ background: "linear-gradient(135deg, #2563eb, #818cf8)" }}>M</div>
-            <span className="font-bold text-slate-800 text-sm">Mindris AI</span>
+            <span style={{ fontFamily: 'var(--font-space)', color: '#f1f5f9', fontWeight: 600, fontSize: '0.875rem' }}>Mindris AI</span>
           </Link>
 
           {/* Job URL */}
@@ -222,11 +222,13 @@ export default function AppPage() {
               onKeyDown={(e) => e.key === "Enter" && handleOptimize()}
               placeholder="Paste job offer URL…"
               className="text-sm"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0' }}
             />
             <Button
               onClick={handleOptimize}
               disabled={isOptimizing || !jobUrl.trim()}
-              className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white text-sm px-4"
+              className="shrink-0 text-white text-sm px-4"
+              style={{ background: isOptimizing ? 'rgba(37,99,235,0.4)' : 'linear-gradient(135deg, #1d4ed8, #2563eb)' }}
             >
               {isOptimizing
                 ? <span className="flex items-center gap-2"><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Running…</span>
@@ -241,22 +243,30 @@ export default function AppPage() {
             <input type="file" accept=".json" className="hidden" ref={jsonInputRef} onChange={handleJsonUpload} />
 
             <button onClick={() => pdfInputRef.current?.click()} disabled={isUploading}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-50 transition-colors">
-              {isUploading ? <span className="w-3 h-3 border border-blue-600 border-t-transparent rounded-full animate-spin" /> : "📄"} PDF
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors disabled:opacity-50"
+              style={{ borderColor: 'rgba(37,99,235,0.3)', background: 'rgba(37,99,235,0.1)', color: '#93c5fd' }}>
+              {isUploading ? <span className="w-3 h-3 border border-blue-400 border-t-transparent rounded-full animate-spin" /> : "📄"} PDF
             </button>
 
             <button onClick={() => jsonInputRef.current?.click()}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors">
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+              style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}>
               {"{ }"} JSON
             </button>
 
             <button onClick={() => setShowGhost((v) => !v)}
-              className={`inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors ${showGhost ? "border-indigo-300 bg-indigo-50 text-indigo-700" : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"}`}>
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+              style={showGhost
+                ? { borderColor: 'rgba(99,102,241,0.4)', background: 'rgba(99,102,241,0.12)', color: '#a5b4fc' }
+                : { borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}>
               👻 Ghost
             </button>
 
             <button onClick={() => setShowInsights((v) => !v)}
-              className={`relative inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors ${showInsights ? "border-amber-300 bg-amber-50 text-amber-700" : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"}`}>
+              className="relative inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+              style={showInsights
+                ? { borderColor: 'rgba(245,158,11,0.4)', background: 'rgba(245,158,11,0.1)', color: '#fcd34d' }
+                : { borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}>
               💼 Insights
               {jobInsights && (
                 <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full" />
@@ -264,17 +274,22 @@ export default function AppPage() {
             </button>
 
             <button onClick={() => setShowCoverLetter(true)}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 transition-colors">
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+              style={{ borderColor: 'rgba(139,92,246,0.3)', background: 'rgba(139,92,246,0.1)', color: '#c4b5fd' }}>
               ✉️ Cover Letter
             </button>
 
             <button onClick={() => setShowStyle((v) => !v)}
-              className={`inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors ${showStyle ? "border-violet-300 bg-violet-50 text-violet-700" : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"}`}>
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+              style={showStyle
+                ? { borderColor: 'rgba(139,92,246,0.4)', background: 'rgba(139,92,246,0.12)', color: '#c4b5fd' }
+                : { borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}>
               🎨 Style
             </button>
 
             <button onClick={handleExportPDF}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 transition-colors">
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+              style={{ borderColor: 'rgba(16,185,129,0.3)', background: 'rgba(16,185,129,0.1)', color: '#6ee7b7' }}>
               ↓ Export
             </button>
           </div>
@@ -284,9 +299,10 @@ export default function AppPage() {
         <div className="flex-1 flex overflow-hidden">
 
           {/* Editor */}
-          <div className={`h-full border-r bg-slate-50/50 flex flex-col overflow-hidden transition-all duration-300 ${showGhost ? "w-[30%]" : "w-[45%]"}`}>
-            <div className="px-4 py-2 border-b bg-white shrink-0">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Structure Editor</p>
+          <div className={`h-full border-r flex flex-col overflow-hidden transition-all duration-300 ${showGhost ? "w-[30%]" : "w-[45%]"}`}
+            style={{ background: 'rgba(10,15,26,0.8)', borderColor: 'rgba(255,255,255,0.07)' }}>
+            <div className="px-4 py-2 border-b shrink-0" style={{ background: 'rgba(15,23,42,0.6)', borderColor: 'rgba(255,255,255,0.06)' }}>
+              <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#475569' }}>Structure Editor</p>
             </div>
             <div className="flex-1 overflow-hidden px-3 py-3">
               <Editor />
@@ -295,9 +311,9 @@ export default function AppPage() {
 
           {/* Ghost Mode */}
           {showGhost && (
-            <div className="w-[35%] h-full border-r flex flex-col overflow-hidden">
-              <div className="px-4 py-2 border-b bg-white shrink-0">
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Ghost Mode</p>
+            <div className="w-[35%] h-full border-r flex flex-col overflow-hidden" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
+              <div className="px-4 py-2 border-b shrink-0" style={{ background: 'rgba(15,23,42,0.6)', borderColor: 'rgba(255,255,255,0.06)' }}>
+                <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#475569' }}>Ghost Mode</p>
               </div>
               <div className="flex-1 overflow-hidden p-3">
                 <GhostMode
@@ -311,9 +327,9 @@ export default function AppPage() {
           )}
 
           {/* Preview */}
-          <div className="flex-1 h-full bg-slate-100/50 flex flex-col overflow-hidden">
-            <div className="px-4 py-2 border-b bg-white shrink-0">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Live Preview</p>
+          <div className="flex-1 h-full flex flex-col overflow-hidden" style={{ background: 'rgba(5,10,20,0.5)' }}>
+            <div className="px-4 py-2 border-b shrink-0" style={{ background: 'rgba(15,23,42,0.6)', borderColor: 'rgba(255,255,255,0.06)' }}>
+              <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#475569' }}>Live Preview</p>
             </div>
             <div className="flex-1 p-4 overflow-hidden">
               <LivePreview />

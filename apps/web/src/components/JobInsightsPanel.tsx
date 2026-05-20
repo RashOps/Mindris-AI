@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { useCVStore } from "@/store/useCVStore";
 import type { JobInsights } from "@/store/useCVStore";
+import { AtsScoreWidget } from "@/components/ats/AtsScoreWidget";
 
 const API = "http://localhost:8000";
 
@@ -186,34 +187,29 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
                 <p className="text-sm font-semibold text-slate-800">{jobInsights.job_title}</p>
                 <p className="text-xs text-slate-500">{jobInsights.company}</p>
               </div>
-              <div className="flex items-center justify-between">
-                <p className={`text-xs font-bold ${scoreColor}`}>
-                  ATS Match: {jobInsights.score}/100
-                </p>
-                <button
-                  onClick={async () => {
-                    setIsScoring(true);
-                    await calculateAtsScore();
-                    setIsScoring(false);
-                  }}
-                  disabled={isScoring}
-                  className="px-2 py-1 text-[10px] font-medium bg-white border border-slate-200 rounded text-slate-600 hover:bg-slate-100 disabled:opacity-50 flex items-center gap-1 transition-colors"
-                >
-                  {isScoring ? <span className="w-2 h-2 border border-slate-600 border-t-transparent rounded-full animate-spin" /> : "🏅"}
-                  Score my CV
-                </button>
-              </div>
-              {jobInsights.ats_report && (
-                <button
-                  onClick={() => {
+              {/* ATS Score widget */}
+              <AtsScoreWidget
+                score={jobInsights.score}
+                onClick={() => {
+                  if (jobInsights.ats_report) {
                     localStorage.setItem("ats_report", JSON.stringify(jobInsights.ats_report));
-                    window.open("/tools/ats-score", "_blank");
-                  }}
-                  className="w-full mt-1 py-1.5 text-xs font-semibold bg-white border border-blue-200 text-blue-600 hover:bg-blue-50 rounded transition-colors flex items-center justify-center gap-2"
-                >
-                  📊 View Detailed Report
-                </button>
-              )}
+                  }
+                  window.open("/tools/ats-score", "_blank");
+                }}
+              />
+              {/* Score my CV button */}
+              <button
+                onClick={async () => {
+                  setIsScoring(true);
+                  await calculateAtsScore();
+                  setIsScoring(false);
+                }}
+                disabled={isScoring}
+                className="w-full py-1.5 text-[10px] font-medium bg-white border border-slate-200 rounded text-slate-600 hover:bg-slate-100 disabled:opacity-50 flex items-center justify-center gap-1 transition-colors"
+              >
+                {isScoring ? <span className="w-2 h-2 border border-slate-600 border-t-transparent rounded-full animate-spin" /> : "🏅"}
+                Deep Score my CV
+              </button>
             </div>
 
             {/* Auto-inject mode */}
