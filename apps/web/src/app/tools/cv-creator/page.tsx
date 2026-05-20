@@ -197,7 +197,7 @@ export default function AppPage() {
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      <main className="flex h-screen w-full flex-col overflow-hidden" style={{ background: '#0a0f1a', color: '#e2e8f0' }}>
+      <main className="flex h-screen w-full flex-col overflow-hidden theme-dark-tool" style={{ background: '#0a0f1a', color: '#e2e8f0' }}>
 
         {/* Toast */}
         {toast && (

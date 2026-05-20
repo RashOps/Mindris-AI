@@ -187,7 +187,7 @@ export default function MarkdownToolPage() {
   const charCount = markdown.length;
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#0a0f1a', color: '#e2e8f0' }}>
+    <div className="flex flex-col h-screen overflow-hidden theme-dark-tool" style={{ background: '#0a0f1a', color: '#e2e8f0' }}>
 
       {/* Toast */}
       {status && (

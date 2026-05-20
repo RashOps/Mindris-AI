@@ -187,6 +187,57 @@
 @keyframes sidebarSlideIn  { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
 @keyframes sidebarSlideOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(-12px); } }
 
+/* ─── Dark tool theme override ─────────────────────────────────────────────
+   Apply .theme-dark-tool on any container that uses the dark (#0a0f1a)
+   background. It remaps shadcn CSS variables to their dark counterparts so
+   that Input, Button, Select, Textarea and all base-ui primitives render
+   with readable light text inside the dark layout.
+   ─────────────────────────────────────────────────────────────────────────── */
+.theme-dark-tool {
+  /* Core */
+  --background:          oklch(0.09 0.01 264);   /* #0a0f1a */
+  --foreground:          oklch(0.92 0.01 264);   /* #e2e8f0 */
+  /* Cards / popovers */
+  --card:                oklch(0.12 0.015 264);
+  --card-foreground:     oklch(0.92 0.01 264);
+  --popover:             oklch(0.12 0.015 264);
+  --popover-foreground:  oklch(0.92 0.01 264);
+  /* Muted */
+  --muted:               oklch(0.18 0.01 264);
+  --muted-foreground:    oklch(0.55 0.01 264);  /* #64748b */
+  /* Accent */
+  --accent:              oklch(0.22 0.02 264);
+  --accent-foreground:   oklch(0.92 0.01 264);
+  /* Input / border / ring */
+  --input:               oklch(0.22 0.015 264);
+  --border:              oklch(0.25 0.015 264);
+  --ring:                oklch(0.6 0.18 290);    /* violet-400 */
+  /* Primary (buttons) */
+  --primary:             oklch(0.6 0.18 290);
+  --primary-foreground:  oklch(0.98 0 0);
+}
+
+/* Ensure native inputs within .theme-dark-tool are also readable */
+.theme-dark-tool input,
+.theme-dark-tool textarea,
+.theme-dark-tool select {
+  color: #e2e8f0;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.theme-dark-tool input::placeholder,
+.theme-dark-tool textarea::placeholder {
+  color: #334155;
+}
+.theme-dark-tool input:focus,
+.theme-dark-tool textarea:focus,
+.theme-dark-tool select:focus {
+  outline: none;
+  border-color: rgba(139, 92, 246, 0.5);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+}
+
+
 /* ─── Landing Page: Only what Tailwind can't do ────────────────
    All layout, color, spacing are handled via Tailwind utilities
    and inline styles in page.tsx. These classes handle only CSS
