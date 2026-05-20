@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { useCVStore } from "@/store/useCVStore";
 import type { JobInsights } from "@/store/useCVStore";
+import { AtsScoreWidget } from "@/components/ats/AtsScoreWidget";
 
 const API = "http://localhost:8000";
 
@@ -52,8 +53,8 @@ function DraggableBullet({ bullet, index }: { bullet: string; index: number }) {
       `}
       style={transform ? { transform: `translate(${transform.x}px, ${transform.y}px)`, zIndex: 999 } : undefined}
     >
-      <span className="text-slate-300 group-hover:text-blue-400 shrink-0 mt-0.5">⠿</span>
-      <span className="leading-relaxed">{bullet}</span>
+      <span style={{ color: '#475569' }} className="shrink-0 mt-0.5">⠿</span>
+      <span className="leading-relaxed" style={{ color: '#94a3b8' }}>{bullet}</span>
     </div>
   );
 }
@@ -152,82 +153,80 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
       )}
 
       <aside
-        className={`fixed top-0 right-0 h-full z-50 w-80 bg-white border-l border-slate-200 shadow-2xl
-          flex flex-col transition-transform duration-300 ease-in-out
+        className={`fixed top-0 right-0 h-full z-50 w-80 flex flex-col transition-transform duration-300 ease-in-out
           ${open ? "translate-x-0" : "translate-x-full"}`}
+        style={{ background: 'rgba(10,15,26,0.97)', borderLeft: '1px solid rgba(255,255,255,0.08)', boxShadow: '-8px 0 40px rgba(0,0,0,0.6)' }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b bg-white shrink-0">
+        <div className="flex items-center justify-between px-4 py-3 shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'rgba(15,23,42,0.8)' }}>
           <div className="flex items-center gap-2">
             <span className="text-base">💼</span>
-            <h2 className="text-sm font-semibold text-slate-800">Job Insights</h2>
+            <h2 className="text-sm font-semibold" style={{ color: '#f1f5f9', fontFamily: 'var(--font-space)' }}>Job Insights</h2>
           </div>
           <button
             onClick={onClose}
-            className="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors text-sm"
+            className="w-6 h-6 flex items-center justify-center rounded text-sm transition-colors"
+            style={{ color: '#475569' }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#e2e8f0')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#475569')}
           >✕</button>
         </div>
 
         {/* No insights yet */}
         {!jobInsights ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-slate-400 px-6 text-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center text-2xl">🎯</div>
+          <div className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-3" style={{ color: '#334155' }}>
+            <div className="w-12 h-12 rounded-full flex items-center justify-center text-2xl" style={{ background: 'rgba(255,255,255,0.04)' }}>🎯</div>
             <div>
-              <p className="text-sm font-medium text-slate-600">No job insights yet</p>
-              <p className="text-xs mt-1">Paste a job URL and click ⚡ Optimize to generate tailored content.</p>
+              <p className="text-sm font-medium" style={{ color: '#64748b' }}>No job insights yet</p>
+              <p className="text-xs mt-1" style={{ color: '#334155' }}>Paste a job URL and click ⚡ Optimize to generate tailored content.</p>
             </div>
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto">
 
             {/* Job summary */}
-            <div className="px-4 py-3 bg-slate-50 border-b flex flex-col gap-2">
+            <div className="px-4 py-3 flex flex-col gap-2" style={{ background: 'rgba(15,23,42,0.6)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
               <div>
-                <p className="text-sm font-semibold text-slate-800">{jobInsights.job_title}</p>
-                <p className="text-xs text-slate-500">{jobInsights.company}</p>
+                <p className="text-sm font-semibold" style={{ color: '#e2e8f0' }}>{jobInsights.job_title}</p>
+                <p className="text-xs" style={{ color: '#64748b' }}>{jobInsights.company}</p>
               </div>
-              <div className="flex items-center justify-between">
-                <p className={`text-xs font-bold ${scoreColor}`}>
-                  ATS Match: {jobInsights.score}/100
-                </p>
-                <button
-                  onClick={async () => {
-                    setIsScoring(true);
-                    await calculateAtsScore();
-                    setIsScoring(false);
-                  }}
-                  disabled={isScoring}
-                  className="px-2 py-1 text-[10px] font-medium bg-white border border-slate-200 rounded text-slate-600 hover:bg-slate-100 disabled:opacity-50 flex items-center gap-1 transition-colors"
-                >
-                  {isScoring ? <span className="w-2 h-2 border border-slate-600 border-t-transparent rounded-full animate-spin" /> : "🏅"}
-                  Score my CV
-                </button>
-              </div>
-              {jobInsights.ats_report && (
-                <button
-                  onClick={() => {
+              {/* ATS Score widget */}
+              <AtsScoreWidget
+                score={jobInsights.score}
+                onClick={() => {
+                  if (jobInsights.ats_report) {
                     localStorage.setItem("ats_report", JSON.stringify(jobInsights.ats_report));
-                    window.open("/tools/ats-score", "_blank");
-                  }}
-                  className="w-full mt-1 py-1.5 text-xs font-semibold bg-white border border-blue-200 text-blue-600 hover:bg-blue-50 rounded transition-colors flex items-center justify-center gap-2"
-                >
-                  📊 View Detailed Report
-                </button>
-              )}
+                  }
+                  window.open("/tools/ats-score", "_blank");
+                }}
+              />
+              {/* Score my CV button */}
+              <button
+                onClick={async () => {
+                  setIsScoring(true);
+                  await calculateAtsScore();
+                  setIsScoring(false);
+                }}
+                disabled={isScoring}
+                className="w-full py-1.5 text-[10px] font-medium rounded border disabled:opacity-50 flex items-center justify-center gap-1 transition-colors"
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#64748b' }}
+              >
+                {isScoring ? <span className="w-2 h-2 border border-slate-500 border-t-transparent rounded-full animate-spin" /> : "🏅"}
+                Deep Score my CV
+              </button>
             </div>
 
             {/* Auto-inject mode */}
-            <div className="px-4 py-3 border-b bg-white">
+            <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
               <div className="flex items-center justify-between mb-2">
                 <div>
-                  <p className="text-xs font-semibold text-slate-700">Mode Auto</p>
-                  <p className="text-[10px] text-slate-400">LLM patch directly into editor</p>
+                  <p className="text-xs font-semibold" style={{ color: '#cbd5e1' }}>Mode Auto</p>
+                  <p className="text-[10px]" style={{ color: '#475569' }}>LLM patch directly into editor</p>
                 </div>
                 <button
                   onClick={() => handleAutoInjectToggle(!autoInjectMode)}
-                  className={`relative w-10 h-5 rounded-full transition-colors ${
-                    autoInjectMode ? "bg-blue-600" : "bg-slate-200"
-                  }`}
+                  className="relative w-10 h-5 rounded-full transition-colors"
+                  style={{ background: autoInjectMode ? '#7c3aed' : 'rgba(255,255,255,0.12)' }}
                 >
                   <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
                     autoInjectMode ? "translate-x-5" : "translate-x-0.5"
@@ -240,36 +239,39 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
                 <select
                   value={provider}
                   onChange={(e) => { setProvider(e.target.value as any); setModelName(MODELS[e.target.value][0].id); }}
-                  className="flex-1 text-xs border border-slate-200 rounded px-2 py-1 bg-white focus:outline-none"
+                  className="flex-1 text-xs rounded px-2 py-1 focus:outline-none"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#cbd5e1' }}
                 >
-                  {PROVIDERS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+                  {PROVIDERS.map(p => <option key={p.id} value={p.id} style={{ background: '#0a0f1a' }}>{p.label}</option>)}
                 </select>
                 <select
                   value={modelName}
                   onChange={(e) => setModelName(e.target.value)}
-                  className="flex-1 text-xs border border-slate-200 rounded px-2 py-1 bg-white focus:outline-none"
+                  className="flex-1 text-xs rounded px-2 py-1 focus:outline-none"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#cbd5e1' }}
                 >
-                  {(MODELS[provider] ?? []).map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+                  {(MODELS[provider] ?? []).map(m => <option key={m.id} value={m.id} style={{ background: '#0a0f1a' }}>{m.label}</option>)}
                 </select>
               </div>
 
               <button
                 onClick={() => triggerPatch(jobInsights.drafted_bullets)}
                 disabled={isPatchLoading}
-                className="w-full mt-2 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                className="w-full mt-2 py-1.5 text-xs font-semibold rounded-lg disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                style={{ background: 'linear-gradient(135deg, #1d4ed8, #2563eb)', color: '#fff', boxShadow: '0 0 12px rgba(37,99,235,0.25)' }}
               >
                 {isPatchLoading
                   ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Patching…</>
                   : "⚡ Apply to CV"
                 }
               </button>
-              {patchStatus && <p className="text-xs text-center mt-1.5 text-slate-600">{patchStatus}</p>}
+              {patchStatus && <p className="text-xs text-center mt-1.5" style={{ color: '#64748b' }}>{patchStatus}</p>}
             </div>
 
             {/* Hard Skills */}
             {jobInsights.hard_skills.length > 0 && (
-              <div className="px-4 py-3 border-b">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+              <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: '#475569' }}>
                   🎯 Required Skills — drag → Skills section
                 </p>
                 <div className="flex flex-wrap gap-1.5">
@@ -282,8 +284,8 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
 
             {/* Soft Skills */}
             {jobInsights.soft_skills.length > 0 && (
-              <div className="px-4 py-3 border-b">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+              <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: '#475569' }}>
                   💬 Soft Skills — drag → Skills section
                 </p>
                 <div className="flex flex-wrap gap-1.5">
@@ -297,7 +299,7 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
             {/* Drafted Bullets */}
             {jobInsights.drafted_bullets.length > 0 && (
               <div className="px-4 py-3">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: '#475569' }}>
                   ✍️ AI Bullets — drag → Experience
                 </p>
                 <div className="space-y-1.5">
@@ -312,22 +314,31 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
 
         {/* Footer actions */}
         {jobInsights && (
-          <div className="px-4 py-3 border-t bg-white shrink-0 flex gap-2">
+          <div className="px-4 py-3 shrink-0 flex gap-2" style={{ borderTop: '1px solid rgba(255,255,255,0.07)', background: 'rgba(15,23,42,0.6)' }}>
             <button
               onClick={copyToClipboard}
-              className="flex-1 py-1.5 text-xs font-medium rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
+              className="flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors"
+              style={{ border: '1px solid rgba(255,255,255,0.08)', color: '#64748b', background: 'rgba(255,255,255,0.03)' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
             >
               📋 Copy
             </button>
             <button
               onClick={openInMarkdown}
-              className="flex-1 py-1.5 text-xs font-medium rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
+              className="flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors"
+              style={{ border: '1px solid rgba(255,255,255,0.08)', color: '#64748b', background: 'rgba(255,255,255,0.03)' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
             >
               → Markdown
             </button>
             <button
               onClick={() => { clearJobInsights(); }}
-              className="py-1.5 px-2 text-xs text-slate-400 hover:text-red-500 transition-colors"
+              className="py-1.5 px-2 text-xs transition-colors"
+              style={{ color: '#475569' }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#f87171')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#475569')}
               title="Clear"
             >✕</button>
           </div>

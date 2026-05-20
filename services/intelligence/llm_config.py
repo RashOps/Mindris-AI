@@ -12,8 +12,12 @@ Default LLMs per task
 These can be overridden at runtime by passing provider/model_name.
 """
 
+import logging
+
 from crewai import LLM
 from utils.config import settings
+
+logger = logging.getLogger(__name__)
 
 # ── Per-task defaults ─────────────────────────────────────────────────────────
 
@@ -87,7 +91,11 @@ def get_llm(
         ValueError: If an unsupported provider is specified.
     """
     if provider == "ollama":
-        name = model_name if model_name.startswith("ollama/") else f"ollama/{model_name}"
+        name = (
+            model_name
+            if model_name.startswith("ollama/")
+            else f"ollama/{model_name}"
+        )
         return LLM(
             model=name,
             base_url=settings.ollama_api_base,
@@ -101,21 +109,34 @@ def get_llm(
         return LLM(model=name, api_key=api_key.get_secret_value() if api_key else None)
 
     if provider == "gemini":
-        name = model_name if model_name.startswith("gemini/") else f"gemini/{model_name}"
+        name = (
+            model_name
+            if model_name.startswith("gemini/")
+            else f"gemini/{model_name}"
+        )
         api_key = settings.gemini_api_key
         return LLM(model=name, api_key=api_key.get_secret_value() if api_key else None)
 
     if provider == "openai":
         api_key = settings.openai_api_key
-        return LLM(model=model_name, api_key=api_key.get_secret_value() if api_key else None)
+        return LLM(
+            model=model_name,
+            api_key=api_key.get_secret_value() if api_key else None,
+        )
 
     if provider == "mistral":
-        name = model_name if model_name.startswith("mistral/") else f"mistral/{model_name}"
+        name = (
+            model_name
+            if model_name.startswith("mistral/")
+            else f"mistral/{model_name}"
+        )
         api_key = settings.mistral_api_key
         return LLM(model=name, api_key=api_key.get_secret_value() if api_key else None)
 
-    raise ValueError(f"Unsupported LLM provider: '{provider}'. "
-                     f"Choose from: {list(MODEL_CATALOGUE.keys())}")
+    raise ValueError(
+        f"Unsupported LLM provider: '{provider}'. "
+        f"Choose from: {list(MODEL_CATALOGUE.keys())}"
+    )
 
 
 def get_task_llm(task: str) -> LLM:
@@ -123,6 +144,9 @@ def get_task_llm(task: str) -> LLM:
 
     Args:
         task: One of 'optimize', 'cover_letter', 'ats_score', 'patch'.
+
+    Returns:
+        A configured :class:`crewai.LLM` for the given task.
     """
     cfg = TASK_DEFAULTS.get(task, TASK_DEFAULTS["optimize"])
     return get_llm(provider=cfg["provider"], model_name=cfg["model_name"])

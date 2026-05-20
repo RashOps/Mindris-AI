@@ -82,7 +82,11 @@ class BaseScraper:
         self.headless: bool = (
             headless if headless is not None else settings.scraper_headless
         )
-        self.user_agent: str = USER_AGENT_WINDOWS
+        # Randomly rotate User-Agent across OS profiles on each instantiation
+        # to reduce fingerprinting risk across repeated scraping sessions.
+        self.user_agent: str = random.choice(  # noqa: S311
+            [USER_AGENT_WINDOWS, USER_AGENT_MAC, USER_AGENT_LINUX]
+        )
         self.stealth = Stealth()
         self._pw = None
         self._browser = None
@@ -182,15 +186,11 @@ class BaseScraper:
             # Wait for the page to settle, then check for Cloudflare
             await self._human_delay(min_s=4, max_s=8)
             if await self._is_cloudflare_page(page):
-                print("⏳ Cloudflare detected — waiting 15 s for auto-resolution…")
-                logger.warning("Cloudflare challenge detected on %s", url)
+                logger.warning("⏳ Cloudflare detected — waiting 15 s for auto-resolution…")
                 await asyncio.sleep(15)
                 if await self._is_cloudflare_page(page):
-                    print(
-                        "❌ Cloudflare challenge not resolved. Aborting to protect LLM."
-                    )
                     logger.error(
-                        "Cloudflare not resolved for %s — returning empty.", url
+                        "❌ Cloudflare challenge not resolved for %s — returning empty.", url
                     )
                     return ""
 
@@ -204,8 +204,7 @@ class BaseScraper:
 
             # Final safety check on the extracted HTML
             if any(pat in html for pat in _CF_PATTERNS):
-                print("❌ Cloudflare JS detected in extracted HTML. Aborting.")
-                logger.error("CF content in extracted HTML for %s.", url)
+                logger.error("❌ Cloudflare JS detected in extracted HTML for %s. Aborting.", url)
                 return ""
 
             markdown = self._html_to_markdown(html)
@@ -258,7 +257,6 @@ class BaseScraper:
             await page.wait_for_selector(selector, timeout=10_000)
             return selector
         except Exception:
-            print(f"❌ Selector '{selector}' not found — falling back to body.")
             logger.warning("Selector '%s' not found, using body.", selector)
             return "body"
 
@@ -316,11 +314,11 @@ if __name__ == "__main__":
     async def _smoke_test() -> None:
         """Quick smoke test: verify Google loads correctly."""
         async with BaseScraper(headless=False) as s:
-            print("🚀 Browser launched with stealth mode…")
+            logger.info("🚀 Browser launched with stealth mode…")
             content = await s.get_page_content("https://www.google.com")
-            print(f"✅ Retrieved {len(content)} bytes.")
+            logger.info("✅ Retrieved %d bytes.", len(content))
             if "Google" in content:
-                print("🎯 Smoke test passed.")
+                logger.info("🎯 Smoke test passed.")
 
     with contextlib.suppress(KeyboardInterrupt):
         asyncio.run(_smoke_test())

@@ -29,7 +29,7 @@ import { CSS } from "@dnd-kit/utilities";
 // ── Shared UI primitives ─────────────────────────────────────────────────────
 
 const DragHandle = () => (
-  <div className="cursor-grab text-slate-300 hover:text-slate-500 transition-colors px-1 flex-shrink-0">
+  <div className="cursor-grab transition-colors px-1 flex-shrink-0" style={{ color: '#334155' }}>
     <svg width="14" height="14" viewBox="0 0 15 15" fill="none">
       <path d="M5.5 4.625C6.12 4.625 6.625 4.12 6.625 3.5C6.625 2.88 6.12 2.375 5.5 2.375C4.88 2.375 4.375 2.88 4.375 3.5C4.375 4.12 4.88 4.625 5.5 4.625ZM9.5 4.625C10.12 4.625 10.625 4.12 10.625 3.5C10.625 2.88 10.12 2.375 9.5 2.375C8.88 2.375 8.375 2.88 8.375 3.5C8.375 4.12 8.88 4.625 9.5 4.625ZM10.625 7.5C10.625 8.12 10.12 8.625 9.5 8.625C8.88 8.625 8.375 8.12 8.375 7.5C8.375 6.88 8.88 6.375 9.5 6.375C10.12 6.375 10.625 6.88 10.625 7.5ZM5.5 8.625C6.12 8.625 6.625 8.12 6.625 7.5C6.625 6.88 6.12 6.375 5.5 6.375C4.88 6.375 4.375 6.88 4.375 7.5C4.375 8.12 4.88 4.625 5.5 8.625ZM10.625 11.5C10.625 12.12 10.12 12.625 9.5 12.625C8.88 12.625 8.375 12.12 8.375 11.5C8.375 10.88 8.88 10.375 9.5 10.375C10.12 10.375 10.625 10.88 10.625 11.5ZM5.5 12.625C6.12 12.625 6.625 12.12 6.625 11.5C6.625 10.88 6.12 10.375 5.5 10.375C4.88 10.375 4.375 10.88 4.375 11.5C4.375 12.12 4.88 12.625 5.5 12.625Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"/>
     </svg>
@@ -71,7 +71,10 @@ function DroppableSkillGroup({ groupId, children }: { groupId: string; children:
 const RemoveBtn = ({ onClick }: { onClick: () => void }) => (
   <button
     onClick={onClick}
-    className="ml-auto flex-shrink-0 w-6 h-6 flex items-center justify-center rounded text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors"
+    className="ml-auto flex-shrink-0 w-6 h-6 flex items-center justify-center rounded transition-colors"
+    style={{ color: '#475569' }}
+    onMouseEnter={e => (e.currentTarget.style.color = '#f87171')}
+    onMouseLeave={e => (e.currentTarget.style.color = '#475569')}
   >
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M18 6L6 18M6 6l12 12"/>
@@ -90,13 +93,16 @@ const SectionCard = ({
   addLabel?: string;
   children: React.ReactNode;
 }) => (
-  <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-    <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-100">
-      <h3 className="text-sm font-semibold text-slate-700">{title}</h3>
+  <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(255,255,255,0.07)' }}>
+    <div className="flex items-center justify-between px-4 py-2.5" style={{ background: 'rgba(15,23,42,0.9)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <h3 className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#64748b' }}>{title}</h3>
       {onAdd && (
         <button
           onClick={onAdd}
-          className="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1"
+          className="text-xs font-medium flex items-center gap-1 transition-colors"
+          style={{ color: '#8b5cf6' }}
+          onMouseEnter={e => (e.currentTarget.style.color = '#a78bfa')}
+          onMouseLeave={e => (e.currentTarget.style.color = '#8b5cf6')}
         >
           <span className="text-base leading-none">+</span> {addLabel}
         </button>
@@ -108,7 +114,7 @@ const SectionCard = ({
 
 const FieldRow = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div className="space-y-1">
-    <Label className="text-xs text-slate-500">{label}</Label>
+    <Label className="text-xs" style={{ color: '#64748b' }}>{label}</Label>
     {children}
   </div>
 );
@@ -129,7 +135,15 @@ const Textarea = ({
     value={value}
     onChange={(e) => onChange(e.target.value)}
     placeholder={placeholder}
-    className="w-full rounded-md border border-slate-200 bg-transparent px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 placeholder:text-slate-400"
+    className="w-full rounded-md px-3 py-2 text-sm resize-none focus:outline-none"
+    style={{
+      background: 'rgba(255,255,255,0.04)',
+      border: '1px solid rgba(255,255,255,0.08)',
+      color: '#cbd5e1',
+      fontFamily: 'var(--font-mono)',
+    }}
+    onFocus={e => (e.target.style.borderColor = 'rgba(139,92,246,0.4)')}
+    onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.08)')}
   />
 );
 
@@ -156,11 +170,15 @@ function TagInput({
     }
   };
   return (
-    <div className="flex flex-wrap gap-1.5 p-2 border border-slate-200 rounded-md min-h-[36px] focus-within:ring-1 focus-within:ring-slate-400">
+    <div
+      className="flex flex-wrap gap-1.5 p-2 rounded-md min-h-[36px]"
+      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+    >
       {tags.map((tag, i) => (
-        <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded font-medium">
+        <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded font-medium"
+          style={{ background: 'rgba(139,92,246,0.15)', color: '#c4b5fd', border: '1px solid rgba(139,92,246,0.2)' }}>
           {tag}
-          <button onClick={() => onChange(tags.filter((_, j) => j !== i))} className="hover:text-red-500">×</button>
+          <button onClick={() => onChange(tags.filter((_, j) => j !== i))} style={{ color: '#a78bfa' }}>×</button>
         </span>
       ))}
       <input
@@ -168,7 +186,8 @@ function TagInput({
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKey}
         placeholder={tags.length === 0 ? placeholder : ""}
-        className="flex-1 min-w-[80px] text-sm outline-none bg-transparent placeholder:text-slate-400"
+        className="flex-1 min-w-[80px] text-sm outline-none bg-transparent"
+        style={{ color: '#cbd5e1' }}
       />
     </div>
   );
@@ -209,7 +228,7 @@ function ExperienceSection() {
             <SortableRow key={exp.id} id={exp.id}>
               {({ attributes, listeners }) => (
                 <DroppableExpCard expId={exp.id}>
-                  <div className="p-3 border border-slate-100 rounded-lg bg-slate-50/50 space-y-2">
+                  <div className="p-3 rounded-lg space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
                     <div className="flex items-center gap-2">
                       <div {...attributes} {...listeners}><DragHandle /></div>
                       <Input value={exp.role} onChange={(e) => updateExperience(exp.id, { role: e.target.value })} placeholder="Poste" className="font-medium text-sm" />
@@ -227,7 +246,7 @@ function ExperienceSection() {
                       rows={3}
                     />
                     <div>
-                      <Label className="text-xs text-slate-400 mb-1 block">Keywords (Enter pour valider)</Label>
+                      <Label className="text-xs mb-1 block" style={{ color: '#64748b' }}>Keywords (Enter pour valider)</Label>
                       <TagInput tags={exp.keywords} onChange={(kw) => updateExperience(exp.id, { keywords: kw })} placeholder="Python, RAG..." />
                     </div>
                   </div>
@@ -263,7 +282,7 @@ function EducationSection() {
           {cvData.education.map((edu) => (
             <SortableRow key={edu.id} id={edu.id}>
               {({ attributes, listeners }) => (
-                <div className="p-3 border border-slate-100 rounded-lg bg-slate-50/50 space-y-2">
+                <div className="p-3 rounded-lg space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
                   <div className="flex items-center gap-2">
                     <div {...attributes} {...listeners}><DragHandle /></div>
                     <Input value={edu.degree} onChange={(e) => updateEducation(edu.id, { degree: e.target.value })} placeholder="Diplôme" className="font-medium text-sm" />
@@ -299,7 +318,7 @@ function SkillsSection() {
       <div className="space-y-3">
         {cvData.skills.map((group) => (
           <DroppableSkillGroup key={group.id} groupId={group.id}>
-            <div className="p-3 border border-slate-100 rounded-lg bg-slate-50/50 space-y-2">
+            <div className="p-3 rounded-lg space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
               <div className="flex items-center gap-2">
                 <Input
                   value={group.category}
@@ -344,7 +363,7 @@ function ProjectsSection() {
           {cvData.projects.map((proj) => (
             <SortableRow key={proj.id} id={proj.id}>
               {({ attributes, listeners }) => (
-                <div className="p-3 border border-slate-100 rounded-lg bg-slate-50/50 space-y-2">
+                <div className="p-3 rounded-lg space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
                   <div className="flex items-center gap-2">
                     <div {...attributes} {...listeners}><DragHandle /></div>
                     <Input value={proj.name} onChange={(e) => updateProject(proj.id, { name: e.target.value })} placeholder="Nom du projet" className="font-medium text-sm" />
@@ -358,7 +377,7 @@ function ProjectsSection() {
                     rows={2}
                   />
                   <div>
-                    <Label className="text-xs text-slate-400 mb-1 block">Tech stack</Label>
+                    <Label className="text-xs mb-1 block" style={{ color: '#64748b' }}>Tech stack</Label>
                     <TagInput tags={proj.tech_stack} onChange={(ts) => updateProject(proj.id, { tech_stack: ts })} placeholder="React, FastAPI..." />
                   </div>
                 </div>
@@ -386,7 +405,8 @@ function LanguagesSection() {
             <select
               value={lang.level}
               onChange={(e) => updateLanguage(lang.id, { level: e.target.value })}
-              className="flex-shrink-0 h-9 rounded-md border border-slate-200 px-2 text-sm text-slate-700 bg-white focus:outline-none focus:ring-1 focus:ring-slate-400"
+              className="flex-shrink-0 h-9 rounded-md px-2 text-sm focus:outline-none"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#cbd5e1' }}
             >
               {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
             </select>
@@ -449,7 +469,7 @@ function ProfileSection() {
 
         {/* Socials */}
         <div className="space-y-1">
-          <Label className="text-xs text-slate-500">Réseaux sociaux</Label>
+          <Label className="text-xs mb-1 block" style={{ color: '#64748b' }}>Réseaux sociaux</Label>
           {p.socials.map((s, i) => (
             <div key={i} className="flex items-center gap-2">
               <select
@@ -459,7 +479,8 @@ function ProfileSection() {
                   updated[i] = { ...s, type: e.target.value as any };
                   setProfile({ socials: updated });
                 }}
-                className="h-8 rounded border border-slate-200 px-2 text-xs text-slate-600 bg-white focus:outline-none focus:ring-1 focus:ring-slate-400 w-28 flex-shrink-0"
+                className="h-8 rounded border px-2 text-xs w-28 flex-shrink-0 focus:outline-none"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#cbd5e1' }}
               >
                 <option value="linkedin">LinkedIn</option>
                 <option value="github">GitHub</option>

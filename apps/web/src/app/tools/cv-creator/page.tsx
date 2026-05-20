@@ -1,0 +1,348 @@
+"use client";
+
+import { Editor } from "@/components/Editor";
+import { LivePreview } from "@/components/LivePreview";
+import { GhostMode } from "@/components/GhostMode";
+import { StylePanel } from "@/components/StylePanel";
+import { JobInsightsPanel } from "@/components/JobInsightsPanel";
+import { CoverLetterModal } from "@/components/CoverLetterModal";
+import { useCVStore } from "@/store/useCVStore";
+import type { JobInsights } from "@/store/useCVStore";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useState, useRef, useCallback } from "react";
+import Link from "next/link";
+import {
+  DndContext,
+  type DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+
+const API = "http://localhost:8000";
+const RENDERER = "http://localhost:4000";
+
+export default function AppPage() {
+  const {
+    setIsOptimizing, replaceCVData, cvData,
+    setJobInsights, jobInsights,
+    updateSkillGroup, updateExperience,
+    appSettings,
+  } = useCVStore();
+
+  const [jobUrl, setJobUrl]       = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [jobId, setJobId]         = useState<string | null>(null);
+  const [showGhost, setShowGhost] = useState(false);
+  const [showStyle, setShowStyle] = useState(false);
+  const [showInsights, setShowInsights] = useState(false);
+  const [showCoverLetter, setShowCoverLetter] = useState(false);
+  const [toast, setToast]         = useState<string | null>(null);
+
+  const pdfInputRef  = useRef<HTMLInputElement>(null);
+  const jsonInputRef = useRef<HTMLInputElement>(null);
+
+  const showToast = (msg: string, ms = 4000) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), ms);
+  };
+
+  // ── dnd-kit sensors ────────────────────────────────────────────────────────
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+
+  // ── Global drag end handler ────────────────────────────────────────────────
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+
+    const dragData  = active.data.current as any;
+    const dropData  = over.data.current   as any;
+
+    // Skill tag → skill group
+    if (dragData?.kind === "skill" && dropData?.kind === "skillGroup") {
+      const group = cvData.skills.find((g) => g.id === dropData.groupId);
+      if (group && !group.skills.includes(dragData.skill)) {
+        updateSkillGroup(group.id, { skills: [...group.skills, dragData.skill] });
+        showToast(`✅ "${dragData.skill}" added to ${group.category}`);
+      }
+    }
+
+    // Bullet → experience description
+    if (dragData?.kind === "bullet" && dropData?.kind === "experience") {
+      const exp = cvData.experience.find((e) => e.id === dropData.expId);
+      if (exp) {
+        const existing = exp.description_markdown;
+        const updated  = existing ? `${existing}\n- ${dragData.bullet}` : `- ${dragData.bullet}`;
+        updateExperience(exp.id, { description_markdown: updated });
+        showToast("✅ Bullet added to experience");
+      }
+    }
+  }, [cvData, updateSkillGroup, updateExperience]);
+
+  // ── Job Result callback (from GhostMode SSE) ──────────────────────────────
+  const handleJobResult = useCallback((data: any) => {
+    const insights: JobInsights = {
+      job_title:       data.job_title      ?? "Unknown Role",
+      company:         data.company        ?? "",
+      hard_skills:     data.hard_skills    ?? [],
+      soft_skills:     data.soft_skills    ?? [],
+      drafted_bullets: data.drafted_bullets ?? [],
+      raw_markdown:    data.raw_markdown   ?? "",
+      score:           data.score          ?? 0,
+    };
+    setJobInsights(insights);
+    setShowInsights(true);
+    showToast("💼 Job Insights ready — see panel →");
+  }, [setJobInsights]);
+
+  // ── PDF Upload ─────────────────────────────────────────────────────────────
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    showToast("📄 Parsing PDF (10-30s)…", 30000);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("provider", appSettings.optimize_llm.provider);
+      formData.append("model_name", appSettings.optimize_llm.model_name);
+      const res = await fetch(`${API}/api/v1/cv/upload-pdf`, { method: "POST", body: formData });
+      if (!res.ok) { const err = await res.json(); throw new Error(err.detail ?? "Upload failed"); }
+      const data = await res.json();
+      if (data.cv_data) replaceCVData(data.cv_data);
+      showToast("✅ PDF indexed! Editor and RAG updated.");
+    } catch (err: any) {
+      showToast(`❌ ${err.message}`, 6000);
+    } finally {
+      setIsUploading(false);
+      if (pdfInputRef.current) pdfInputRef.current.value = "";
+    }
+  };
+
+  // ── JSON Upload ────────────────────────────────────────────────────────────
+  const handleJsonUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const jsonData = JSON.parse(text);
+      replaceCVData(jsonData);
+      await fetch(`${API}/api/v1/cv/upload`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(jsonData),
+      });
+      showToast("✅ JSON CV indexed!");
+    } catch {
+      showToast("❌ Failed to parse or upload JSON.", 5000);
+    } finally {
+      if (jsonInputRef.current) jsonInputRef.current.value = "";
+    }
+  };
+
+  // ── Export PDF ─────────────────────────────────────────────────────────────
+  const handleExportPDF = async () => {
+    showToast("⏳ Generating PDF…", 30000);
+    try {
+      const res = await fetch(`${RENDERER}/render/pdf`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cv_data: cvData, template_id: "modern", return_buffer: true }),
+      });
+      if (!res.ok) throw new Error("Render failed");
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href     = url;
+      a.download = `${cvData.profile.full_name.replace(/\s+/g, "_")}_CV.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast("✅ PDF downloaded!");
+    } catch (err: any) {
+      showToast(`❌ ${err.message}`, 5000);
+    }
+  };
+
+  // ── Optimize ───────────────────────────────────────────────────────────────
+  const handleOptimize = async () => {
+    if (!jobUrl.trim()) return;
+    setIsOptimizing(true);
+    setShowGhost(true);
+    setJobId(null);
+    try {
+      const res = await fetch(`${API}/api/v1/optimize`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          job_url:    jobUrl,
+          provider:   appSettings.optimize_llm.provider,
+          model_name: appSettings.optimize_llm.model_name,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to start pipeline");
+      const data = await res.json();
+      setJobId(data.job_id);
+    } catch (err: any) {
+      showToast(`❌ ${err.message}`, 5000);
+      setIsOptimizing(false);
+      setShowGhost(false);
+    }
+  };
+
+  const handleGhostDone  = () => { setIsOptimizing(false); showToast("🎉 CV optimized! Check the preview →"); };
+  const handleGhostError = () => { setIsOptimizing(false); showToast("❌ Pipeline failed.", 6000); };
+
+  const { isOptimizing } = useCVStore();
+
+  return (
+    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+      <main className="flex h-screen w-full flex-col overflow-hidden theme-dark-tool" style={{ background: '#0a0f1a', color: '#e2e8f0' }}>
+
+        {/* Toast */}
+        {toast && (
+          <div className="fixed top-4 right-4 z-[100] px-4 py-2.5 rounded-lg bg-slate-900 text-white text-sm shadow-xl max-w-sm animate-in slide-in-from-top-2 duration-300">
+            {toast}
+          </div>
+        )}
+
+        {/* ── Header ─────────────────────────────────────────────────────────── */}
+        <header className="h-12 border-b flex items-center justify-between px-4 shrink-0 z-30" style={{ background: 'rgba(10,15,26,0.95)', borderColor: 'rgba(255,255,255,0.07)' }}>
+          <Link href="/" className="flex items-center gap-2 no-underline shrink-0">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-black text-sm"
+              style={{ background: "linear-gradient(135deg, #2563eb, #818cf8)" }}>M</div>
+            <span style={{ fontFamily: 'var(--font-space)', color: '#f1f5f9', fontWeight: 600, fontSize: '0.875rem' }}>Mindris AI</span>
+          </Link>
+
+          {/* Job URL */}
+          <div className="flex items-center gap-2 flex-1 max-w-md mx-4">
+            <Input
+              value={jobUrl}
+              onChange={(e) => setJobUrl(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleOptimize()}
+              placeholder="Paste job offer URL…"
+              className="text-sm"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0' }}
+            />
+            <Button
+              onClick={handleOptimize}
+              disabled={isOptimizing || !jobUrl.trim()}
+              className="shrink-0 text-white text-sm px-4"
+              style={{ background: isOptimizing ? 'rgba(37,99,235,0.4)' : 'linear-gradient(135deg, #1d4ed8, #2563eb)' }}
+            >
+              {isOptimizing
+                ? <span className="flex items-center gap-2"><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Running…</span>
+                : "⚡ Optimize"
+              }
+            </Button>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-1.5">
+            <input type="file" accept=".pdf"  className="hidden" ref={pdfInputRef}  onChange={handlePdfUpload} />
+            <input type="file" accept=".json" className="hidden" ref={jsonInputRef} onChange={handleJsonUpload} />
+
+            <button onClick={() => pdfInputRef.current?.click()} disabled={isUploading}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors disabled:opacity-50"
+              style={{ borderColor: 'rgba(37,99,235,0.3)', background: 'rgba(37,99,235,0.1)', color: '#93c5fd' }}>
+              {isUploading ? <span className="w-3 h-3 border border-blue-400 border-t-transparent rounded-full animate-spin" /> : "📄"} PDF
+            </button>
+
+            <button onClick={() => jsonInputRef.current?.click()}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+              style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}>
+              {"{ }"} JSON
+            </button>
+
+            <button onClick={() => setShowGhost((v) => !v)}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+              style={showGhost
+                ? { borderColor: 'rgba(99,102,241,0.4)', background: 'rgba(99,102,241,0.12)', color: '#a5b4fc' }
+                : { borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}>
+              👻 Ghost
+            </button>
+
+            <button onClick={() => setShowInsights((v) => !v)}
+              className="relative inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+              style={showInsights
+                ? { borderColor: 'rgba(245,158,11,0.4)', background: 'rgba(245,158,11,0.1)', color: '#fcd34d' }
+                : { borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}>
+              💼 Insights
+              {jobInsights && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full" />
+              )}
+            </button>
+
+            <button onClick={() => setShowCoverLetter(true)}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+              style={{ borderColor: 'rgba(139,92,246,0.3)', background: 'rgba(139,92,246,0.1)', color: '#c4b5fd' }}>
+              ✉️ Cover Letter
+            </button>
+
+            <button onClick={() => setShowStyle((v) => !v)}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+              style={showStyle
+                ? { borderColor: 'rgba(139,92,246,0.4)', background: 'rgba(139,92,246,0.12)', color: '#c4b5fd' }
+                : { borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}>
+              🎨 Style
+            </button>
+
+            <button onClick={handleExportPDF}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+              style={{ borderColor: 'rgba(16,185,129,0.3)', background: 'rgba(16,185,129,0.1)', color: '#6ee7b7' }}>
+              ↓ Export
+            </button>
+          </div>
+        </header>
+
+        {/* ── Body ───────────────────────────────────────────────────────────── */}
+        <div className="flex-1 flex overflow-hidden">
+
+          {/* Editor */}
+          <div className={`h-full border-r flex flex-col overflow-hidden transition-all duration-300 ${showGhost ? "w-[30%]" : "w-[45%]"}`}
+            style={{ background: 'rgba(10,15,26,0.8)', borderColor: 'rgba(255,255,255,0.07)' }}>
+            <div className="px-4 py-2 border-b shrink-0" style={{ background: 'rgba(15,23,42,0.6)', borderColor: 'rgba(255,255,255,0.06)' }}>
+              <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#475569' }}>Structure Editor</p>
+            </div>
+            <div className="flex-1 overflow-hidden px-3 py-3">
+              <Editor />
+            </div>
+          </div>
+
+          {/* Ghost Mode */}
+          {showGhost && (
+            <div className="w-[35%] h-full border-r flex flex-col overflow-hidden" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
+              <div className="px-4 py-2 border-b shrink-0" style={{ background: 'rgba(15,23,42,0.6)', borderColor: 'rgba(255,255,255,0.06)' }}>
+                <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#475569' }}>Ghost Mode</p>
+              </div>
+              <div className="flex-1 overflow-hidden p-3">
+                <GhostMode
+                  jobId={jobId}
+                  onDone={handleGhostDone}
+                  onError={handleGhostError}
+                  onJobResult={handleJobResult}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Preview */}
+          <div className="flex-1 h-full flex flex-col overflow-hidden" style={{ background: 'rgba(5,10,20,0.5)' }}>
+            <div className="px-4 py-2 border-b shrink-0" style={{ background: 'rgba(15,23,42,0.6)', borderColor: 'rgba(255,255,255,0.06)' }}>
+              <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#475569' }}>Live Preview</p>
+            </div>
+            <div className="flex-1 p-4 overflow-hidden">
+              <LivePreview />
+            </div>
+          </div>
+        </div>
+
+        {/* Drawers (outside main flow) */}
+        <StylePanel      open={showStyle}       onClose={() => setShowStyle(false)} />
+        <JobInsightsPanel open={showInsights}   onClose={() => setShowInsights(false)} />
+        <CoverLetterModal open={showCoverLetter} onClose={() => setShowCoverLetter(false)} />
+
+      </main>
+    </DndContext>
+  );
+}

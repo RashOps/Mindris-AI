@@ -5,10 +5,13 @@ using local Hugging Face embeddings (sentence-transformers).
 """
 
 import json
+import logging
 from pathlib import Path
 
 from database.vector_store import MindrisVectorStore
 from utils.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 def chunk_cv_data(cv_data: dict) -> list[dict]:
@@ -108,8 +111,8 @@ def chunk_cv_data(cv_data: dict) -> list[dict]:
 
     # 6. Languages
     lang_texts = [
-        f"{l.get('language', '')} ({l.get('level', '')})"
-        for l in cv_data.get("languages", [])
+        f"{lang.get('language', '')} ({lang.get('level', '')})"
+        for lang in cv_data.get("languages", [])
     ]
     if lang_texts:
         chunks.append({
@@ -127,26 +130,26 @@ def ingest_cv_data(cv_data: dict) -> None:
     Args:
         cv_data: The CV data dictionary.
     """
-    print("🚀 Initializing Vector Store...")
+    logger.info("🚀 Initializing Vector Store...")
     # Will connect to storage/vectordb and use HuggingFace embeddings
     store = MindrisVectorStore(collection_name="mindris_master_profile")
 
-    print("✂️  Chunking CV data...")
+    logger.info("✂️  Chunking CV data...")
     chunks = chunk_cv_data(cv_data)
 
     texts = [c["text"] for c in chunks]
     metadatas = [c["metadata"] for c in chunks]
 
-    print(f"🧠 Generating embeddings for {len(chunks)} chunks and saving to ChromaDB...")
+    logger.info("🧠 Generating embeddings for %d chunks and saving to ChromaDB...", len(chunks))
 
     # Clear existing vectors to avoid duplicates / dead data
     store.clear()
 
     if texts:
         store.add_texts(texts=texts, metadatas=metadatas)
-        print("✅ Ingestion complete! Master Profile is ready for RAG.")
+        logger.info("✅ Ingestion complete! Master Profile is ready for RAG.")
     else:
-        print("⚠️ No data to ingest.")
+        logger.warning("⚠️ No data to ingest.")
 
 
 def ingest_master_cv(cv_json_path: str) -> None:
@@ -155,10 +158,10 @@ def ingest_master_cv(cv_json_path: str) -> None:
     Args:
         cv_json_path: Path to the Master CV JSON file.
     """
-    print(f"📖 Reading Master CV from {cv_json_path}...")
+    logger.info("📖 Reading Master CV from %s...", cv_json_path)
     path = Path(cv_json_path)
     if not path.exists():
-        print(f"❌ File not found: {path}")
+        logger.error("❌ File not found: %s", path)
         return
 
     with path.open(encoding="utf-8") as f:
@@ -171,7 +174,7 @@ if __name__ == "__main__":
     # Create a dummy CV for testing if it doesn't exist
     dummy_cv_path = settings.storage_dir / "master_cv.json"
     if not dummy_cv_path.exists():
-        print("⚠️ No master_cv.json found. Creating a sample one in storage/...")
+        logger.warning("⚠️ No master_cv.json found. Creating a sample one in storage/...")
         sample_data = {
             "profile": "Data Analyst and AI Engineer passionate about building smart systems.",
             "experience": [

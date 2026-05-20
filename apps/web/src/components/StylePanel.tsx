@@ -51,16 +51,16 @@ function Slider({
   return (
     <div className="space-y-1.5">
       <div className="flex justify-between items-center">
-        <label className="text-xs font-medium text-slate-600">{label}</label>
-        <span className="text-xs font-semibold text-slate-800 tabular-nums">{value}{unit}</span>
+        <label className="text-xs font-medium" style={{ color: '#94a3b8' }}>{label}</label>
+        <span className="text-xs font-semibold tabular-nums" style={{ color: '#e2e8f0', fontFamily: 'var(--font-mono)' }}>{value}{unit}</span>
       </div>
       <input
         type="range" min={min} max={max} step={step} value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
-        style={{ accentColor: "var(--panel-accent, #2563eb)" }}
+        style={{ accentColor: "var(--panel-accent, #8b5cf6)" }}
       />
-      <div className="flex justify-between text-[10px] text-slate-400">
+      <div className="flex justify-between text-[10px]" style={{ color: '#334155' }}>
         <span>{min}{unit}</span><span>{max}{unit}</span>
       </div>
     </div>
@@ -69,7 +69,7 @@ function Slider({
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3">
+    <h3 className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: '#475569' }}>
       {children}
     </h3>
   );
@@ -89,56 +89,57 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
   const update = (patch: Partial<GlobalSettings>) =>
     setGlobalSettings({ ...gs, ...patch });
 
-  // Parsed numeric values for sliders
-  const fontSize    = parseInt(gs.font_size)    || 13;
-  const lineHeight  = parseFloat(gs.line_height) || 1.5;
-  const marginH     = parseInt(gs.margin_h)     || 64;
-  const marginV     = parseInt(gs.margin_v)     || 48;
-  const entrySpacing = parseInt(gs.entry_spacing) || 20;
-  const colWidth    = parseInt(gs.col_left_width) || 65;
+  const fontSize     = parseInt(gs.font_size)     || 13;
+  const lineHeight   = parseFloat(gs.line_height)  || 1.5;
+  const marginH      = parseInt(gs.margin_h)       || 64;
+  const marginV      = parseInt(gs.margin_v)       || 48;
+  const entrySpacing = parseInt(gs.entry_spacing)  || 20;
+  const colWidth     = parseInt(gs.col_left_width) || 65;
 
   const TABS: { key: Tab; label: string; icon: string }[] = [
-    { key: "design",     label: "Design",      icon: "🎨" },
-    { key: "typography", label: "Typography",   icon: "Aa" },
-    { key: "spacing",    label: "Spacing",      icon: "⬜" },
-    { key: "layout",     label: "Layout",       icon: "◫" },
+    { key: "design",     label: "Design",     icon: "🎨" },
+    { key: "typography", label: "Typography",  icon: "Aa" },
+    { key: "spacing",    label: "Spacing",     icon: "⬜" },
+    { key: "layout",     label: "Layout",      icon: "◫" },
   ];
 
   return (
     <>
       {open && (
-        <div className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px]" onClick={onClose} />
+        <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-[3px]" onClick={onClose} />
       )}
 
       <aside
-        className={`fixed top-0 right-0 h-full z-50 w-80 bg-white border-l border-slate-200 shadow-2xl
-          flex flex-col transition-transform duration-300 ease-in-out
+        className={`fixed top-0 right-0 h-full z-50 w-80 flex flex-col transition-transform duration-300 ease-in-out
           ${open ? "translate-x-0" : "translate-x-full"}`}
+        style={{ background: 'rgba(10,15,26,0.97)', borderLeft: '1px solid rgba(255,255,255,0.08)', boxShadow: '-8px 0 40px rgba(0,0,0,0.6)' }}
         aria-label="Style panel"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b shrink-0">
+        <div className="flex items-center justify-between px-5 py-3.5 shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
           <div className="flex items-center gap-2">
             <span className="text-base">🎨</span>
-            <h2 className="text-sm font-semibold text-slate-800">Design Studio</h2>
+            <h2 className="text-sm font-semibold" style={{ color: '#f1f5f9', fontFamily: 'var(--font-space)' }}>Design Studio</h2>
           </div>
           <button
             onClick={onClose}
-            className="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors text-sm"
+            className="w-7 h-7 flex items-center justify-center rounded-md text-sm transition-colors"
+            style={{ color: '#475569' }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#e2e8f0')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#475569')}
           >✕</button>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b shrink-0">
+        <div className="flex shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
           {TABS.map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`flex-1 py-2.5 text-[11px] font-semibold transition-colors flex flex-col items-center gap-0.5
-                ${tab === t.key
-                  ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50/50"
-                  : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
-                }`}
+              className="flex-1 py-2.5 text-[11px] font-semibold transition-colors flex flex-col items-center gap-0.5"
+              style={tab === t.key
+                ? { color: '#a78bfa', borderBottom: '2px solid #8b5cf6', background: 'rgba(139,92,246,0.06)' }
+                : { color: '#475569', borderBottom: '2px solid transparent' }}
             >
               <span className="text-sm leading-none">{t.icon}</span>
               {t.label}
@@ -160,12 +161,15 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                       key={c.value}
                       title={c.label}
                       onClick={() => update({ primary_color: c.value })}
-                      className={`h-8 rounded-lg border-2 transition-all ${
-                        gs.primary_color === c.value
-                          ? "border-slate-800 scale-95"
-                          : "border-transparent hover:scale-95"
-                      }`}
-                      style={{ background: c.value }}
+                      className="h-8 rounded-lg transition-all"
+                      style={{
+                        background: c.value,
+                        border: gs.primary_color === c.value
+                          ? '2px solid #f1f5f9'
+                          : '2px solid transparent',
+                        transform: gs.primary_color === c.value ? 'scale(0.92)' : undefined,
+                        boxShadow: gs.primary_color === c.value ? `0 0 12px ${c.value}80` : undefined,
+                      }}
                     />
                   ))}
                 </div>
@@ -173,7 +177,8 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                   <input
                     type="color" value={gs.primary_color}
                     onChange={(e) => update({ primary_color: e.target.value })}
-                    className="w-8 h-8 rounded-md border border-slate-200 cursor-pointer"
+                    className="w-8 h-8 rounded-md cursor-pointer"
+                    style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'transparent' }}
                     title="Custom color"
                   />
                   <input
@@ -182,7 +187,13 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                       if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value))
                         update({ primary_color: e.target.value });
                     }}
-                    className="flex-1 h-8 px-2 text-xs font-mono border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-400"
+                    className="flex-1 h-8 px-2 text-xs rounded-md focus:outline-none"
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      color: '#e2e8f0',
+                    }}
                   />
                 </div>
               </section>
@@ -194,14 +205,14 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                     <button
                       key={f.value}
                       onClick={() => update({ font_family: f.value })}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors border ${
-                        gs.font_family === f.value
-                          ? "bg-blue-50 border-blue-200 text-blue-700 font-medium"
-                          : "bg-slate-50 border-transparent text-slate-600 hover:bg-slate-100"
-                      }`}
-                      style={{ fontFamily: `'${f.value}', sans-serif` }}
+                      className="w-full text-left px-3 py-2 rounded-lg text-sm transition-all"
+                      style={gs.font_family === f.value
+                        ? { background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)', color: '#c4b5fd', fontWeight: 600 }
+                        : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', color: '#64748b' }}
+                      onMouseEnter={e => { if (gs.font_family !== f.value) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; }}
+                      onMouseLeave={e => { if (gs.font_family !== f.value) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'; }}
                     >
-                      {f.label}
+                      <span style={{ fontFamily: `'${f.value}', sans-serif` }}>{f.label}</span>
                     </button>
                   ))}
                 </div>
@@ -214,19 +225,14 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
             <>
               <section>
                 <SectionLabel>Font Size</SectionLabel>
-                <Slider
-                  label="Base size" min={9} max={15} value={fontSize} unit="px"
-                  onChange={(v) => update({ font_size: `${v}px` })}
-                />
+                <Slider label="Base size" min={9} max={15} value={fontSize} unit="px"
+                  onChange={(v) => update({ font_size: `${v}px` })} />
               </section>
-
               <section>
                 <SectionLabel>Line Height</SectionLabel>
-                <Slider
-                  label="Line spacing" min={1.0} max={2.0} step={0.05}
+                <Slider label="Line spacing" min={1.0} max={2.0} step={0.05}
                   value={lineHeight} unit="x"
-                  onChange={(v) => update({ line_height: String(v.toFixed(2)) })}
-                />
+                  onChange={(v) => update({ line_height: String(v.toFixed(2)) })} />
               </section>
             </>
           )}
@@ -235,27 +241,19 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
           {tab === "spacing" && (
             <>
               <section>
-                <SectionLabel>Horizontal Margin (Left & Right)</SectionLabel>
-                <Slider
-                  label="Left & Right" min={16} max={96} value={marginH} unit="px"
-                  onChange={(v) => update({ margin_h: `${v}px` })}
-                />
+                <SectionLabel>Horizontal Margin (Left &amp; Right)</SectionLabel>
+                <Slider label="Left &amp; Right" min={16} max={96} value={marginH} unit="px"
+                  onChange={(v) => update({ margin_h: `${v}px` })} />
               </section>
-
               <section>
-                <SectionLabel>Vertical Margin (Top & Bottom)</SectionLabel>
-                <Slider
-                  label="Top & Bottom" min={12} max={80} value={marginV} unit="px"
-                  onChange={(v) => update({ margin_v: `${v}px` })}
-                />
+                <SectionLabel>Vertical Margin (Top &amp; Bottom)</SectionLabel>
+                <Slider label="Top &amp; Bottom" min={12} max={80} value={marginV} unit="px"
+                  onChange={(v) => update({ margin_v: `${v}px` })} />
               </section>
-
               <section>
                 <SectionLabel>Space Between Entries</SectionLabel>
-                <Slider
-                  label="Entry spacing" min={4} max={36} value={entrySpacing} unit="px"
-                  onChange={(v) => update({ entry_spacing: `${v}px` })}
-                />
+                <Slider label="Entry spacing" min={4} max={36} value={entrySpacing} unit="px"
+                  onChange={(v) => update({ entry_spacing: `${v}px` })} />
               </section>
             </>
           )}
@@ -263,60 +261,54 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
           {/* ── LAYOUT tab ────────────────────────────────────────────── */}
           {tab === "layout" && (
             <>
-              {/* Template selector */}
               <section>
                 <SectionLabel>Template</SectionLabel>
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { id: "modern",  label: "Modern", desc: "2 cols · spacious", icon: "🗂" },
-                    { id: "compact", label: "Compact", desc: "1 page · dense",   icon: "📄" },
+                    { id: "modern",  label: "Modern",  desc: "2 cols · spacious", icon: "🗂" },
+                    { id: "compact", label: "Compact", desc: "1 page · dense",    icon: "📄" },
                   ].map((t) => (
                     <button
                       key={t.id}
                       onClick={() => update({ template_id: t.id })}
-                      className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all text-center ${
-                        gs.template_id === t.id
-                          ? "border-blue-500 bg-blue-50"
-                          : "border-slate-200 hover:border-slate-300 bg-white"
-                      }`}
+                      className="flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all text-center"
+                      style={gs.template_id === t.id
+                        ? { border: '2px solid #8b5cf6', background: 'rgba(139,92,246,0.12)', boxShadow: '0 0 16px rgba(139,92,246,0.15)' }
+                        : { border: '2px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}
                     >
                       <span className="text-2xl">{t.icon}</span>
-                      <span className={`text-xs font-semibold ${gs.template_id === t.id ? "text-blue-700" : "text-slate-700"}`}>
+                      <span className="text-xs font-semibold" style={{ color: gs.template_id === t.id ? '#c4b5fd' : '#64748b' }}>
                         {t.label}
                       </span>
-                      <span className="text-[10px] text-slate-400">{t.desc}</span>
+                      <span className="text-[10px]" style={{ color: '#334155' }}>{t.desc}</span>
                     </button>
                   ))}
                 </div>
               </section>
 
-              {/* Column width */}
               <section>
                 <SectionLabel>Left Column Width</SectionLabel>
-                <Slider
-                  label="Width" min={40} max={75} value={colWidth} unit="%"
-                  onChange={(v) => update({ col_left_width: String(v) })}
-                />
-                <p className="text-[10px] text-slate-400 mt-1">
+                <Slider label="Width" min={40} max={75} value={colWidth} unit="%"
+                  onChange={(v) => update({ col_left_width: String(v) })} />
+                <p className="text-[10px] mt-1" style={{ color: '#334155' }}>
                   Right column takes remaining {100 - colWidth}%
                 </p>
               </section>
 
-              {/* Swap columns */}
               <section>
                 <SectionLabel>Column Order</SectionLabel>
-                <div className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3 border border-slate-200">
+                <div className="flex items-center justify-between rounded-xl px-4 py-3"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
                   <div>
-                    <p className="text-xs font-semibold text-slate-700">Swap Columns</p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">
+                    <p className="text-xs font-semibold" style={{ color: '#cbd5e1' }}>Swap Columns</p>
+                    <p className="text-[10px] mt-0.5" style={{ color: '#475569' }}>
                       {gs.col_swap === "true" ? "Skills on left, Experience on right" : "Experience on left (default)"}
                     </p>
                   </div>
                   <button
                     onClick={() => update({ col_swap: gs.col_swap === "true" ? "false" : "true" })}
-                    className={`relative w-11 h-6 rounded-full transition-colors ${
-                      gs.col_swap === "true" ? "bg-blue-600" : "bg-slate-300"
-                    }`}
+                    className="relative w-11 h-6 rounded-full transition-colors"
+                    style={{ background: gs.col_swap === "true" ? '#7c3aed' : 'rgba(255,255,255,0.12)' }}
                   >
                     <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
                       gs.col_swap === "true" ? "translate-x-5" : "translate-x-0.5"
@@ -330,10 +322,13 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 border-t shrink-0">
+        <div className="px-5 py-3 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
           <button
             onClick={() => update(DEFAULTS)}
-            className="w-full py-2 text-xs font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+            className="w-full py-2 text-xs font-medium rounded-lg transition-colors"
+            style={{ color: '#475569' }}
+            onMouseEnter={e => { (e.currentTarget.style.color = '#94a3b8'); (e.currentTarget.style.background = 'rgba(255,255,255,0.05)'); }}
+            onMouseLeave={e => { (e.currentTarget.style.color = '#475569'); (e.currentTarget.style.background = 'transparent'); }}
           >
             ↺ Reset to defaults
           </button>

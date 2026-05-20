@@ -1,9 +1,21 @@
 """Crew orchestration for the Mindris AI intelligence pipeline."""
 
+import asyncio
+import json
+import logging
+
 from crewai import Crew, CrewOutput, Process
+from database.models import JobOffer, JobOfferExtract
 
 from .agents import MindrisAgents
 from .tasks import MindrisTasks
+
+logger = logging.getLogger(__name__)
+
+# Guard: never forward more than this many chars of markdown to the LLM.
+# tasks.py truncates at _MAX_MARKDOWN_CHARS but this ensures the upstream
+# caller also never over-inflates the payload.
+_MAX_CONTENT_CHARS = 6_000
 
 
 class MindrisIntelligence:
@@ -58,3 +70,87 @@ class MindrisIntelligence:
         )
 
         return crew.kickoff()
+
+
+async def analyze_job_offer(
+    markdown_content: str,
+    url: str,
+    provider: str = "groq",
+    model_name: str = "llama-3.3-70b-versatile",
+) -> JobOffer | None:
+    """Async wrapper: parse scraped Markdown into a structured JobOffer.
+
+    Runs the synchronous CrewAI crew in a thread executor so it does not
+    block the FastAPI event loop.  The raw LLM output is coerced into a
+    :class:`~database.models.JobOffer` Pydantic model; the ``url`` and
+    ``description_markdown`` fields are injected after parsing.
+
+    Args:
+        markdown_content: Clean Markdown of the scraped job-offer page.
+        url: Original source URL of the job offer.
+        provider: LLM provider to use for extraction.
+        model_name: Model identifier for the chosen provider.
+
+    Returns:
+        A validated :class:`~database.models.JobOffer` instance, or ``None``
+        if parsing fails entirely.
+    """
+    logger.info("🧠 Analyzing job offer from %s with %s/%s", url, provider, model_name)
+
+    # Truncate markdown upstream to protect against Groq TPM limits.
+    # tasks.py also truncates, but this guard ensures no accidental bypass.
+    safe_markdown = markdown_content[:_MAX_CONTENT_CHARS]
+    if len(markdown_content) > _MAX_CONTENT_CHARS:
+        logger.info(
+            "✂️  Markdown truncated: %d → %d chars (Groq TPM guard)",
+            len(markdown_content),
+            _MAX_CONTENT_CHARS,
+        )
+
+    try:
+        intelligence = MindrisIntelligence(provider=provider, model_name=model_name)
+
+        # Run synchronous CrewAI in a thread to avoid blocking the event loop
+        loop = asyncio.get_running_loop()
+        result: CrewOutput = await loop.run_in_executor(
+            None, intelligence.analyze_job, safe_markdown, url
+        )
+
+
+        # ── Try Pydantic output first (output_pydantic=JobOfferExtract) ───────
+        if hasattr(result, "pydantic") and result.pydantic:
+            extract: JobOfferExtract = result.pydantic
+            job_offer = JobOffer.from_extract(
+                extract, url=url, description_markdown=markdown_content[:2000]
+            )
+            logger.info(
+                "✅ JobOffer extracted: '%s' @ '%s' — %d hard skills",
+                job_offer.title,
+                job_offer.company,
+                len(job_offer.hard_skills),
+            )
+            return job_offer
+
+        # ── Fallback: parse raw JSON string ─────────────────────────────────
+        raw = str(result.raw).strip()
+        start = raw.find("{")
+        end = raw.rfind("}") + 1
+        if start != -1 and end > start:
+            data = json.loads(raw[start:end])
+            extract = JobOfferExtract.model_validate(data)
+            job_offer = JobOffer.from_extract(
+                extract, url=url, description_markdown=markdown_content[:2000]
+            )
+            logger.info(
+                "✅ JobOffer parsed from raw JSON: '%s' @ '%s'",
+                job_offer.title,
+                job_offer.company,
+            )
+            return job_offer
+
+        logger.warning("⚠️ Could not extract JobOffer — no valid JSON in LLM output.")
+        return None
+
+    except Exception:
+        logger.exception("❌ analyze_job_offer() failed for %s", url)
+        return None

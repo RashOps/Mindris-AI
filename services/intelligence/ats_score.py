@@ -6,30 +6,65 @@ and returns a detailed enterprise-grade ATS report using Pydantic output.
 
 from __future__ import annotations
 
-from typing import List
-from pydantic import BaseModel, Field
+import asyncio
+import logging
+
 from crewai import Agent, Crew, Process, Task
+from pydantic import BaseModel, Field
+
 from intelligence.llm_config import get_llm
+
+logger = logging.getLogger(__name__)
+
+
+# ── Pydantic models ───────────────────────────────────────────────────────────
 
 
 class KeywordStatus(BaseModel):
     """Analysis of a single keyword from the job requirements."""
+
     keyword: str = Field(description="The keyword being analyzed")
-    found: bool = Field(description="Whether the keyword or a close semantic match was found in the CV")
-    density: str = Field(description="How many times it was mentioned, or 'Not found'")
-    severity: str = Field(description="Impact if missing: 'high' (blocking), 'medium' (important), or 'low' (bonus)")
+    found: bool = Field(
+        description="Whether the keyword or a close semantic match was found in the CV"
+    )
+    density: str = Field(
+        description="How many times it was mentioned, or 'Not found'"
+    )
+    severity: str = Field(
+        description=(
+            "Impact if missing: 'high' (blocking), "
+            "'medium' (important), or 'low' (bonus)"
+        )
+    )
 
 
 class AtsReport(BaseModel):
     """Detailed ATS evaluation report."""
+
     score: int = Field(description="Overall ATS match score between 0 and 100")
-    summary: str = Field(description="A 2-3 sentence executive summary of the candidate's fit")
-    keyword_analysis: List[KeywordStatus] = Field(description="Detailed analysis of required hard and soft skills")
-    recommendations: List[str] = Field(description="Actionable steps the candidate can take to improve the CV")
+    summary: str = Field(
+        description="A 2-3 sentence executive summary of the candidate's fit"
+    )
+    keyword_analysis: list[KeywordStatus] = Field(
+        description="Detailed analysis of required hard and soft skills"
+    )
+    recommendations: list[str] = Field(
+        description="Actionable steps the candidate can take to improve the CV"
+    )
+
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
 
 def _build_cv_text(cv_data: dict) -> str:
-    """Extract a plain text representation of the CV for scoring."""
+    """Extract a plain text representation of the CV for scoring.
+
+    Args:
+        cv_data: Full CVData JSON dictionary.
+
+    Returns:
+        Flat text string suitable for the ATS agent prompt.
+    """
     profile = cv_data.get("profile", {})
     text = []
 
@@ -44,29 +79,57 @@ def _build_cv_text(cv_data: dict) -> str:
             text.append(exp["description_markdown"])
 
     for skill_group in cv_data.get("skills", []):
-        text.append(f"Skills ({skill_group.get('category')}): {', '.join(skill_group.get('skills', []))}")
+        cat = skill_group.get("category")
+        skills = ", ".join(skill_group.get("skills", []))
+        text.append(f"Skills ({cat}): {skills}")
 
     return "\n".join(text)
 
 
-async def calculate_ats_score(cv_data: dict, job_insights: dict, provider: str, model_name: str) -> dict:
-    """Calculate the detailed ATS report for a CV against a job offer."""
+# ── Public API ────────────────────────────────────────────────────────────────
 
+
+async def calculate_ats_score(
+    cv_data: dict,
+    job_insights: dict,
+    provider: str,
+    model_name: str,
+) -> dict:
+    """Calculate the detailed ATS report for a CV against a job offer.
+
+    Args:
+        cv_data:      Full CVData JSON from the frontend store.
+        job_insights: Structured job data (title, company, skills, bullets).
+        provider:     LLM provider identifier.
+        model_name:   Model name for the selected provider.
+
+    Returns:
+        Dictionary matching :class:`AtsReport` schema.
+    """
+    logger.info("🎯 Calculating ATS score via %s/%s", provider, model_name)
     cv_text = _build_cv_text(cv_data)
 
     job_title = job_insights.get("job_title", "Unknown")
     hard_skills = job_insights.get("hard_skills", [])
     soft_skills = job_insights.get("soft_skills", [])
 
-    job_text = f"Job Title: {job_title}\nRequired Hard Skills: {', '.join(hard_skills)}\nRequired Soft Skills: {', '.join(soft_skills)}"
+    job_text = (
+        f"Job Title: {job_title}\n"
+        f"Required Hard Skills: {', '.join(hard_skills)}\n"
+        f"Required Soft Skills: {', '.join(soft_skills)}"
+    )
 
     llm = get_llm(provider=provider, model_name=model_name)
 
     ats_scorer = Agent(
         role="Senior ATS & Recruitment Scanner",
-        goal="Audit the candidate's CV against the job requirements and generate a detailed report.",
+        goal=(
+            "Audit the candidate's CV against the job requirements "
+            "and generate a detailed report."
+        ),
         backstory=(
-            "You are a strict but fair Enterprise-Grade Applicant Tracking System (ATS). "
+            "You are a strict but fair Enterprise-Grade "
+            "Applicant Tracking System (ATS). "
             "You perform deep keyword density analysis, evaluate skill relevance, "
             "and provide actionable insights for candidates."
         ),
@@ -79,11 +142,14 @@ async def calculate_ats_score(cv_data: dict, job_insights: dict, provider: str, 
         description=(
             f"=== JOB REQUIREMENTS ===\n{job_text}\n\n"
             f"=== CANDIDATE CV ===\n{cv_text}\n\n"
-            "Task: Perform a deep ATS audit of the candidate's CV against the job requirements.\n"
+            "Task: Perform a deep ATS audit of the candidate's CV "
+            "against the job requirements.\n"
             "1. Calculate an overall match score (0-100).\n"
             "2. Write a brief executive summary.\n"
-            "3. Analyze EACH required hard and soft skill. Determine if it was found, its density (e.g., 'Mentioned 2 times'), and the severity if it's missing.\n"
-            "4. Provide 3-5 specific, actionable recommendations to improve the CV for this specific job."
+            "3. Analyze EACH required hard and soft skill. Determine if it was found, "
+            "its density (e.g., 'Mentioned 2 times'), and the severity if missing.\n"
+            "4. Provide 3-5 specific, actionable recommendations to improve the CV "
+            "for this specific job."
         ),
         expected_output="A structured JSON object containing the ATS report.",
         output_pydantic=AtsReport,
@@ -91,17 +157,19 @@ async def calculate_ats_score(cv_data: dict, job_insights: dict, provider: str, 
     )
 
     crew = Crew(agents=[ats_scorer], tasks=[task], process=Process.sequential)
-    result = crew.kickoff()
+
+    # CrewAI kickoff is synchronous — run in executor to avoid blocking FastAPI
+    loop = asyncio.get_running_loop()
+    result = await loop.run_in_executor(None, crew.kickoff)
 
     try:
-        # CrewAI 1.14.3 with output_pydantic returns a pydantic object in result.pydantic
+        # CrewAI with output_pydantic returns the model in result.pydantic
         if hasattr(result, "pydantic") and result.pydantic:
+            logger.info("✅ ATS report generated (score=%s)", result.pydantic.score)
             return result.pydantic.model_dump()
-        else:
-            raise ValueError("No pydantic output found")
+        raise ValueError("No pydantic output found")
     except Exception as e:
-        print(f"Error parsing ATS Pydantic output: {e}")
-        # Fallback
+        logger.error("Error parsing ATS Pydantic output: %s", e)
         return {
             "score": 50,
             "summary": "Error generating detailed report.",
