@@ -13,6 +13,7 @@ dependencies = [
     "database",
     "intelligence",
     "scraper",
+    "crewai[google-genai]>=1.14.3",
 ]
 
 [tool.uv.sources]

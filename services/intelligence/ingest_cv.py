@@ -14,62 +14,111 @@ from utils.config import settings
 def chunk_cv_data(cv_data: dict) -> list[dict]:
     """Break down the CV JSON into embeddable chunks.
 
+    Supports the Mindris AI schema v2 (cv_schema.json).
     Returns a list of dicts, each with 'text' and 'metadata'.
     """
     chunks = []
 
     # 1. Profile Summary
-    if "profile" in cv_data:
+    profile = cv_data.get("profile", {})
+    if isinstance(profile, dict):
+        name = profile.get("full_name", "")
+        title = profile.get("title", "")
+        summary = profile.get("text_markdown", "")
+        text = f"Profile: {name} — {title}.\n{summary}".strip()
+        if text:
+            chunks.append({
+                "text": text,
+                "metadata": {"type": "profile", "name": name},
+            })
+    elif isinstance(profile, str) and profile:
+        # Legacy fallback: profile was a plain string
         chunks.append({
-            "text": f"Profile Summary: {cv_data['profile']}",
+            "text": f"Profile Summary: {profile}",
             "metadata": {"type": "summary", "category": "profile"},
         })
 
     # 2. Work Experience
     for exp in cv_data.get("experience", []):
-        text = (
-            f"Experience: {exp.get('title')} at {exp.get('company')} "
-            f"({exp.get('start_date')} to {exp.get('end_date')}).\n"
-            f"Description: {exp.get('description')}\n"
+        role = exp.get("role") or exp.get("title", "")  # support both schemas
+        period = exp.get("period") or (
+            f"{exp.get('start_date', '')} - {exp.get('end_date', '')}".strip(" -")
         )
-        if exp.get("achievements"):
-            text += f"Achievements: {', '.join(exp['achievements'])}"
+        description = exp.get("description_markdown") or exp.get("description", "")
+        keywords = exp.get("keywords") or exp.get("achievements", [])
+
+        text = (
+            f"Experience: {role} at {exp.get('company', '')} ({period}).\n"
+            f"{description}"
+        )
+        if keywords:
+            text += f"\nKeywords: {', '.join(keywords)}"
 
         chunks.append({
             "text": text,
             "metadata": {
                 "type": "experience",
-                "company": exp.get("company"),
-                "role": exp.get("title"),
+                "company": exp.get("company", ""),
+                "role": role,
             },
         })
 
     # 3. Education
     for edu in cv_data.get("education", []):
-        text = (
-            f"Education: {edu.get('degree')} in {edu.get('field')} "
-            f"at {edu.get('institution')} ({edu.get('start_date')} to {edu.get('end_date')})."
+        period = edu.get("period") or (
+            f"{edu.get('start_date', '')} - {edu.get('end_date', '')}".strip(" -")
         )
+        text = (
+            f"Education: {edu.get('degree', '')} at {edu.get('institution', '')} "
+            f"({period}). {edu.get('location', '')}. {edu.get('description_markdown', '')}"
+        ).strip()
         chunks.append({
             "text": text,
             "metadata": {
                 "type": "education",
-                "institution": edu.get("institution"),
+                "institution": edu.get("institution", ""),
             },
         })
 
     # 4. Skills
     for skill_cat in cv_data.get("skills", []):
-        text = f"Skills in {skill_cat.get('category')}: {', '.join(skill_cat.get('items', []))}"
+        # new schema: skills[], old schema: items[]
+        skill_list = skill_cat.get("skills") or skill_cat.get("items", [])
+        text = f"Skills — {skill_cat.get('category', '')}: {', '.join(skill_list)}"
         chunks.append({
             "text": text,
             "metadata": {
                 "type": "skills",
-                "category": skill_cat.get("category"),
+                "category": skill_cat.get("category", ""),
             },
         })
 
+    # 5. Projects
+    for proj in cv_data.get("projects", []):
+        tech = ", ".join(proj.get("tech_stack", []))
+        text = (
+            f"Project: {proj.get('name', '')}. "
+            f"{proj.get('description_markdown', '')} "
+            f"Tech: {tech}"
+        ).strip()
+        chunks.append({
+            "text": text,
+            "metadata": {"type": "project", "name": proj.get("name", "")},
+        })
+
+    # 6. Languages
+    lang_texts = [
+        f"{l.get('language', '')} ({l.get('level', '')})"
+        for l in cv_data.get("languages", [])
+    ]
+    if lang_texts:
+        chunks.append({
+            "text": f"Languages: {', '.join(lang_texts)}",
+            "metadata": {"type": "languages"},
+        })
+
     return chunks
+
 
 
 def ingest_cv_data(cv_data: dict) -> None:

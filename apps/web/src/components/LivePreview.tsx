@@ -12,12 +12,13 @@ export function LivePreview() {
     const fetchRender = async () => {
       setIsLoading(true);
       try {
+        const templateId = cvData.global_settings.template_id ?? "modern";
         const res = await fetch("http://localhost:4000/render/pdf", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             cv_data: cvData,
-            template_id: "modern",
+            template_id: templateId,
             return_html: true,
           }),
         });

@@ -1,18 +1,83 @@
-"""LLM factory for Mindris AI CrewAI pipelines.
+"""LLM factory for Mindris AI — multi-provider, multi-task support.
 
-Reads configuration from the central :mod:`utils.config` settings object and
-returns a fully initialised :class:`crewai.LLM` instance depending on the provider.
+Supported providers : ollama | groq | gemini | openai | mistral
+
+Default LLMs per task
+---------------------
+- optimize     : Groq  — llama-3.3-70b-versatile  (fast, high quality)
+- cover_letter : Gemini — gemini-2.0-flash         (creative writing)
+- ats_score    : Groq  — llama-3.1-8b-instant      (lightweight scoring)
+- patch        : Groq  — llama-3.3-70b-versatile
+
+These can be overridden at runtime by passing provider/model_name.
 """
 
 from crewai import LLM
 from utils.config import settings
 
+# ── Per-task defaults ─────────────────────────────────────────────────────────
 
-def get_llm(provider: str = "ollama", model_name: str = "gemma4:32k") -> LLM:
+TASK_DEFAULTS: dict[str, dict[str, str]] = {
+    "optimize": {
+        "provider":   "groq",
+        "model_name": "llama-3.3-70b-versatile",
+    },
+    "cover_letter": {
+        "provider":   "groq",
+        "model_name": "llama-3.3-70b-versatile",  # Gemini when quota available
+    },
+    "ats_score": {
+        "provider":   "groq",
+        "model_name": "llama-3.1-8b-instant",
+    },
+    "patch": {
+        "provider":   "groq",
+        "model_name": "llama-3.3-70b-versatile",
+    },
+}
+
+# ── Model catalogue (for frontend selectors) ──────────────────────────────────
+
+MODEL_CATALOGUE: dict[str, list[dict[str, str]]] = {
+    "groq": [
+        {"id": "llama-3.3-70b-versatile", "label": "Llama 3.3 70B"},
+        {"id": "llama-3.1-8b-instant",    "label": "Llama 3.1 8B (fast)"},
+        {"id": "mixtral-8x7b-32768",      "label": "Mixtral 8x7B"},
+        {"id": "gemma2-9b-it",            "label": "Gemma 2 9B"},
+    ],
+    "gemini": [
+        {"id": "gemini-2.0-flash",        "label": "Gemini 2.0 Flash"},
+        {"id": "gemini-1.5-pro",          "label": "Gemini 1.5 Pro"},
+        {"id": "gemini-1.5-flash",        "label": "Gemini 1.5 Flash"},
+    ],
+    "openai": [
+        {"id": "gpt-4o",                  "label": "GPT-4o"},
+        {"id": "gpt-4o-mini",             "label": "GPT-4o Mini"},
+        {"id": "gpt-4-turbo",             "label": "GPT-4 Turbo"},
+    ],
+    "mistral": [
+        {"id": "mistral-large-latest",    "label": "Mistral Large"},
+        {"id": "mistral-small-latest",    "label": "Mistral Small"},
+        {"id": "open-mistral-7b",         "label": "Mistral 7B (open)"},
+    ],
+    "ollama": [
+        {"id": "gemma4:32k",              "label": "Gemma4 32K (local)"},
+        {"id": "llama3.2",                "label": "Llama 3.2 (local)"},
+        {"id": "phi4",                    "label": "Phi-4 (local)"},
+    ],
+}
+
+
+# ── Factory ───────────────────────────────────────────────────────────────────
+
+def get_llm(
+    provider: str = "groq",
+    model_name: str = "llama-3.3-70b-versatile",
+) -> LLM:
     """Build and return the LLM configured for the specified provider.
 
     Args:
-        provider: The LLM provider (e.g., "ollama", "groq", "gemini", "openai").
+        provider:   The LLM provider (ollama | groq | gemini | openai | mistral).
         model_name: The specific model name for the provider.
 
     Returns:
@@ -22,44 +87,42 @@ def get_llm(provider: str = "ollama", model_name: str = "gemma4:32k") -> LLM:
         ValueError: If an unsupported provider is specified.
     """
     if provider == "ollama":
-        name = model_name
-        if not name.startswith("ollama/"):
-            name = f"ollama/{name}"
+        name = model_name if model_name.startswith("ollama/") else f"ollama/{model_name}"
         return LLM(
             model=name,
             base_url=settings.ollama_api_base,
-            # Inject num_ctx via extra_body: the only way that works through
-            # the OpenAI-compatible endpoint without crashing the SDK parser.
             extra_body={"options": {"num_ctx": settings.llm_num_ctx}},
-            # Local GPU models can be slow — 10 minutes before giving up.
             timeout=600,
         )
 
-    elif provider == "groq":
-        name = model_name
-        if not name.startswith("groq/"):
-            name = f"groq/{name}"
+    if provider == "groq":
+        name = model_name if model_name.startswith("groq/") else f"groq/{model_name}"
         api_key = settings.groq_api_key
-        return LLM(
-            model=name,
-            api_key=api_key.get_secret_value() if api_key else None,
-        )
+        return LLM(model=name, api_key=api_key.get_secret_value() if api_key else None)
 
-    elif provider == "gemini":
-        name = model_name
-        if not name.startswith("gemini/"):
-            name = f"gemini/{name}"
+    if provider == "gemini":
+        name = model_name if model_name.startswith("gemini/") else f"gemini/{model_name}"
         api_key = settings.gemini_api_key
-        return LLM(
-            model=name,
-            api_key=api_key.get_secret_value() if api_key else None,
-        )
+        return LLM(model=name, api_key=api_key.get_secret_value() if api_key else None)
 
-    elif provider == "openai":
+    if provider == "openai":
         api_key = settings.openai_api_key
-        return LLM(
-            model=model_name,
-            api_key=api_key.get_secret_value() if api_key else None,
-        )
+        return LLM(model=model_name, api_key=api_key.get_secret_value() if api_key else None)
 
-    raise ValueError(f"Provider not supported: {provider}")
+    if provider == "mistral":
+        name = model_name if model_name.startswith("mistral/") else f"mistral/{model_name}"
+        api_key = settings.mistral_api_key
+        return LLM(model=name, api_key=api_key.get_secret_value() if api_key else None)
+
+    raise ValueError(f"Unsupported LLM provider: '{provider}'. "
+                     f"Choose from: {list(MODEL_CATALOGUE.keys())}")
+
+
+def get_task_llm(task: str) -> LLM:
+    """Return the default LLM for a given Mindris task.
+
+    Args:
+        task: One of 'optimize', 'cover_letter', 'ats_score', 'patch'.
+    """
+    cfg = TASK_DEFAULTS.get(task, TASK_DEFAULTS["optimize"])
+    return get_llm(provider=cfg["provider"], model_name=cfg["model_name"])
