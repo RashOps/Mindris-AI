@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { arrayMove } from '@dnd-kit/sortable';
 
 // ── Types aligned with cv_schema.json ────────────────────────────────────────
@@ -287,9 +288,11 @@ const initialCV: CVData = {
 
 // ── Store ─────────────────────────────────────────────────────────────────────
 
-export const useCVStore = create<CVStore>((set, get) => ({
-  cvData: initialCV,
-  isOptimizing: false,
+export const useCVStore = create<CVStore>()(
+  persist(
+    (set, get) => ({
+      cvData: initialCV,
+      isOptimizing: false,
 
   // ── Job Insights ────────────────────────────────────────────────────────────
   jobInsights: null,
@@ -514,7 +517,19 @@ export const useCVStore = create<CVStore>((set, get) => ({
       cvData: { ...state.cvData, languages: state.cvData.languages.filter((l) => l.id !== id) },
     })),
 
-  // ── Full replace ───────────────────────────────────────────────────────────
-  replaceCVData: (data) =>
-    set((state) => ({ cvData: { ...state.cvData, ...data } })),
-}));
+      // ── Full replace ─────────────────────────────────────────────────────────
+      replaceCVData: (data) =>
+        set((state) => ({ cvData: { ...state.cvData, ...data } })),
+    }),
+    {
+      name: 'mindris-cv-store',
+      storage: createJSONStorage(() => localStorage),
+      // Only persist data we want to survive a page refresh.
+      // Transient UI state (isOptimizing, jobInsights) is intentionally excluded.
+      partialize: (state) => ({
+        cvData: state.cvData,
+        appSettings: state.appSettings,
+      }),
+    }
+  )
+);

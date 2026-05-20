@@ -2,12 +2,13 @@
 
 import asyncio
 import json
+import logging
 import os
 from contextlib import asynccontextmanager
 
-from database.models import JobOffer
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from intelligence.crew import analyze_job_offer
 from intelligence.event_bus import create_job_queue, emit, stream_events
 from intelligence.ingest_cv import ingest_cv_data
 from intelligence.llm_config import MODEL_CATALOGUE, TASK_DEFAULTS, get_llm
@@ -17,13 +18,16 @@ from pydantic import AnyHttpUrl, BaseModel
 from scraper.core import BaseScraper
 from sse_starlette.sse import EventSourceResponse
 
+logger = logging.getLogger(__name__)
+
 
 # ── Lifespan ─────────────────────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("🚀 Mindris AI Gateway starting...")
+    """Manage the API Gateway startup and shutdown lifecycle."""
+    logger.info("🚀 Mindris AI Gateway starting...")
     yield
-    print("🛑 Mindris AI Gateway shutting down...")
+    logger.info("🛑 Mindris AI Gateway shutting down...")
 
 
 # ── App ───────────────────────────────────────────────────────────────────────
@@ -45,6 +49,8 @@ app.add_middleware(
 
 # ── Models ────────────────────────────────────────────────────────────────────
 class OptimizeRequest(BaseModel):
+    """Request body for POST /api/v1/optimize."""
+
     job_url: AnyHttpUrl
     # Per-task LLM override — falls back to TASK_DEFAULTS["optimize"] if not set
     provider: str = TASK_DEFAULTS["optimize"]["provider"]
@@ -52,6 +58,8 @@ class OptimizeRequest(BaseModel):
 
 
 class OptimizationResponse(BaseModel):
+    """Response body for POST /api/v1/optimize."""
+
     status: str
     message: str
     job_id: str
@@ -86,6 +94,7 @@ class ScoreRequest(BaseModel):
 # ── Health ────────────────────────────────────────────────────────────────────
 @app.get("/")
 def health_check() -> dict:
+    """Return the health status of the API Gateway."""
     return {"status": "healthy", "service": "Mindris AI Gateway"}
 
 
@@ -273,17 +282,29 @@ async def run_intelligence_pipeline(
             "message": f"Job page scraped ({len(markdown_content)} chars).",
         })
 
-        # 2. Build simulated JobOffer from scraped content
-        job_offer = JobOffer(
+        # 2. Analyse the scraped content into a real JobOffer via LLM
+        emit(job_id, "node_start", {
+            "node": "analyze",
+            "icon": "🧠",
+            "message": "Extracting job requirements with AI…",
+        })
+        job_offer = await analyze_job_offer(
+            markdown_content=markdown_content,
             url=job_url,
-            title="Target Role",
-            company="Target Company",
-            location="Remote",
-            description_markdown=markdown_content[:1000],
-            hard_skills=["Python", "Machine Learning", "Next.js"],
-            soft_skills=["Communication", "Teamwork"],
-            experience_level="Mid-Level",
+            provider=provider,
+            model_name=model_name,
         )
+        if not job_offer:
+            emit(job_id, "error", {"message": "Job offer analysis failed — LLM could not extract structured data."})
+            logger.error("[%s] analyze_job_offer returned None for %s", job_id, job_url)
+            return
+
+        emit(job_id, "node_done", {
+            "node": "analyze",
+            "icon": "✅",
+            "message": f"Extracted: '{job_offer.title}' @ {job_offer.company} — {len(job_offer.hard_skills)} skills.",
+        })
+        logger.info("[%s] JobOffer: %s @ %s", job_id, job_offer.title, job_offer.company)
 
         # 3. Run the RAG workflow (with SSE events)
         workflow = create_rag_workflow(job_id=job_id)
@@ -299,7 +320,7 @@ async def run_intelligence_pipeline(
         }
 
         # Run in a thread so async event loop isn't blocked
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         await loop.run_in_executor(None, workflow.invoke, initial_state)
 
         emit(job_id, "done", {
