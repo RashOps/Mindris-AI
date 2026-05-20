@@ -5,12 +5,17 @@ import json
 import logging
 
 from crewai import Crew, CrewOutput, Process
-from database.models import JobOffer
+from database.models import JobOffer, JobOfferExtract
 
 from .agents import MindrisAgents
 from .tasks import MindrisTasks
 
 logger = logging.getLogger(__name__)
+
+# Guard: never forward more than this many chars of markdown to the LLM.
+# tasks.py truncates at _MAX_MARKDOWN_CHARS but this ensures the upstream
+# caller also never over-inflates the payload.
+_MAX_CONTENT_CHARS = 6_000
 
 
 class MindrisIntelligence:
@@ -92,20 +97,32 @@ async def analyze_job_offer(
     """
     logger.info("🧠 Analyzing job offer from %s with %s/%s", url, provider, model_name)
 
+    # Truncate markdown upstream to protect against Groq TPM limits.
+    # tasks.py also truncates, but this guard ensures no accidental bypass.
+    safe_markdown = markdown_content[:_MAX_CONTENT_CHARS]
+    if len(markdown_content) > _MAX_CONTENT_CHARS:
+        logger.info(
+            "✂️  Markdown truncated: %d → %d chars (Groq TPM guard)",
+            len(markdown_content),
+            _MAX_CONTENT_CHARS,
+        )
+
     try:
         intelligence = MindrisIntelligence(provider=provider, model_name=model_name)
 
         # Run synchronous CrewAI in a thread to avoid blocking the event loop
         loop = asyncio.get_running_loop()
         result: CrewOutput = await loop.run_in_executor(
-            None, intelligence.analyze_job, markdown_content, url
+            None, intelligence.analyze_job, safe_markdown, url
         )
 
-        # ── Try Pydantic output first (output_json=JobOffer) ─────────────────
+
+        # ── Try Pydantic output first (output_pydantic=JobOfferExtract) ───────
         if hasattr(result, "pydantic") and result.pydantic:
-            job_offer: JobOffer = result.pydantic
-            job_offer.url = url
-            job_offer.description_markdown = markdown_content[:2000]
+            extract: JobOfferExtract = result.pydantic
+            job_offer = JobOffer.from_extract(
+                extract, url=url, description_markdown=markdown_content[:2000]
+            )
             logger.info(
                 "✅ JobOffer extracted: '%s' @ '%s' — %d hard skills",
                 job_offer.title,
@@ -114,15 +131,16 @@ async def analyze_job_offer(
             )
             return job_offer
 
-        # ── Fallback: parse raw JSON string ──────────────────────────────────
+        # ── Fallback: parse raw JSON string ─────────────────────────────────
         raw = str(result.raw).strip()
         start = raw.find("{")
         end = raw.rfind("}") + 1
         if start != -1 and end > start:
             data = json.loads(raw[start:end])
-            data["url"] = url
-            data["description_markdown"] = markdown_content[:2000]
-            job_offer = JobOffer.model_validate(data)
+            extract = JobOfferExtract.model_validate(data)
+            job_offer = JobOffer.from_extract(
+                extract, url=url, description_markdown=markdown_content[:2000]
+            )
             logger.info(
                 "✅ JobOffer parsed from raw JSON: '%s' @ '%s'",
                 job_offer.title,

@@ -1,13 +1,14 @@
 """CrewAI task definitions for Mindris AI intelligence pipeline."""
 
 from crewai import Agent, Task
-from database.models import JobOffer
+from database.models import JobOfferExtract
 
-# Maximum number of Markdown characters passed to the LLM.
-# At ~4 chars/token this is ≈3 000 tokens, leaving plenty of room for
-# the system prompt, agent backstory, JSON schema, and the LLM response
-# within a 32 768-token context window.
-_MAX_MARKDOWN_CHARS = 12_000
+# Maximum characters of Markdown passed to the LLM.
+# Groq free tier: 12 000 TPM limit.
+# At ~4 chars/token: 6 000 chars ≈ 1 500 tokens for content.
+# The remaining ~10 500 tokens cover the system prompt, backstory,
+# JSON schema, and the LLM response comfortably.
+_MAX_MARKDOWN_CHARS = 6_000
 
 
 class MindrisTasks:
@@ -56,5 +57,5 @@ class MindrisTasks:
                 "remote_policy, salary_range."
             ),
             agent=agent,
-            output_json=JobOffer,
+            output_pydantic=JobOfferExtract,
         )
