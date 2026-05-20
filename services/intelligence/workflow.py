@@ -7,6 +7,7 @@ Each node emits SSE events via the event_bus so the frontend Ghost Mode
 terminal can display real-time progress.
 """
 
+import logging
 from typing import TypedDict
 
 from crewai import Agent, Crew, Process, Task
@@ -17,23 +18,26 @@ from langgraph.graph import END, StateGraph
 from intelligence.agents import MindrisAgents
 from intelligence.event_bus import emit
 
+logger = logging.getLogger(__name__)
+
 # ── State Definition ─────────────────────────────────────────────────────────
 
 class GraphState(TypedDict):
     """Represents the state of our RAG workflow."""
-    job_offer: JobOffer           # The analyzed job offer
-    provider: str                 # LLM Provider to use
-    model_name: str               # LLM Model name
-    retrieved_context: str        # Relevant chunks from the CV
-    drafted_cv: str               # The drafted/tailored CV sections
-    score: int                    # ATS/Matching score (0-100)
-    iterations: int               # Number of drafting iterations
-    job_id: str                   # SSE job identifier
+
+    job_offer: JobOffer        # The analyzed job offer
+    provider: str              # LLM Provider to use
+    model_name: str            # LLM Model name
+    retrieved_context: str     # Relevant chunks from the CV
+    drafted_cv: str            # The drafted/tailored CV sections
+    score: int                 # ATS/Matching score (0-100)
+    iterations: int            # Number of drafting iterations
+    job_id: str                # SSE job identifier
 
 
 # ── Node factory (receives job_id via closure) ────────────────────────────────
 
-def make_nodes(job_id: str):
+def make_nodes(job_id: str) -> tuple:
     """Return node functions bound to a specific SSE job_id."""
 
     def retrieve_context(state: GraphState) -> GraphState:
@@ -207,6 +211,9 @@ def create_rag_workflow(job_id: str = "") -> StateGraph:
     Args:
         job_id: SSE job identifier. If provided, each node will emit
                 real-time events to the frontend Ghost Mode terminal.
+
+    Returns:
+        A compiled :class:`langgraph.graph.StateGraph` ready to be invoked.
     """
     retrieve_context, draft_cv, score_cv = make_nodes(job_id)
 

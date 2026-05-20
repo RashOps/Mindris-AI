@@ -111,8 +111,8 @@ def chunk_cv_data(cv_data: dict) -> list[dict]:
 
     # 6. Languages
     lang_texts = [
-        f"{l.get('language', '')} ({l.get('level', '')})"
-        for l in cv_data.get("languages", [])
+        f"{lang.get('language', '')} ({lang.get('level', '')})"
+        for lang in cv_data.get("languages", [])
     ]
     if lang_texts:
         chunks.append({

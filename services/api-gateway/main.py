@@ -9,7 +9,12 @@ from contextlib import asynccontextmanager
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from intelligence.crew import analyze_job_offer
-from intelligence.event_bus import create_job_queue, emit, stream_events
+from intelligence.event_bus import (
+    cleanup_stale_queues,
+    create_job_queue,
+    emit,
+    stream_events,
+)
 from intelligence.ingest_cv import ingest_cv_data
 from intelligence.llm_config import MODEL_CATALOGUE, TASK_DEFAULTS, get_llm
 from intelligence.pdf_parser import parse_pdf_cv
@@ -26,8 +31,21 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Manage the API Gateway startup and shutdown lifecycle."""
     logger.info("🚀 Mindris AI Gateway starting...")
-    yield
-    logger.info("🛑 Mindris AI Gateway shutting down...")
+
+    async def _queue_cleanup_loop() -> None:
+        """Evict orphaned SSE queues every 5 minutes."""
+        while True:
+            await asyncio.sleep(300)
+            removed = cleanup_stale_queues()
+            if removed:
+                logger.info("Periodic cleanup: removed %d stale SSE queue(s).", removed)
+
+    task = asyncio.create_task(_queue_cleanup_loop())
+    try:
+        yield
+    finally:
+        task.cancel()
+        logger.info("🛑 Mindris AI Gateway shutting down...")
 
 
 # ── App ───────────────────────────────────────────────────────────────────────
