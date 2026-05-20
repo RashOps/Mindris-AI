@@ -127,7 +127,7 @@ async def generate_cover_letter_route(request: CoverLetterRequest) -> dict:
         )
         return {"status": "success", "markdown": markdown}
     except Exception as e:
-        print(f"❌ Cover letter generation failed: {e}")
+        logger.error("❌ Cover letter generation failed: %s", e)
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
@@ -145,7 +145,7 @@ async def calculate_ats_score_route(request: ScoreRequest) -> dict:
         )
         return {"status": "success", "report": report}
     except Exception as e:
-        print(f"❌ ATS score calculation failed: {e}")
+        logger.error("❌ ATS score calculation failed: %s", e)
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
@@ -207,7 +207,7 @@ async def patch_cv_from_bullets(request: PatchRequest) -> dict:
         return {"status": "success", "patch": patch}
 
     except Exception as e:
-        print(f"❌ Patch failed: {e}")
+        logger.error("❌ Patch failed: %s", e)
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
@@ -218,7 +218,7 @@ async def upload_cv(cv_data: dict) -> dict:
         ingest_cv_data(cv_data)
         return {"status": "success", "message": "CV successfully uploaded and embedded."}
     except Exception as e:
-        print(f"❌ Error during CV upload: {e}")
+        logger.error("❌ Error during CV upload: %s", e)
         return {"status": "error", "message": str(e)}
 
 
@@ -235,7 +235,7 @@ async def upload_pdf_cv(
 
     try:
         pdf_bytes = await file.read()
-        print(f"📄 Received PDF: {file.filename} ({len(pdf_bytes)} bytes)")
+        logger.info("📄 Received PDF: %s (%d bytes)", file.filename, len(pdf_bytes))
         cv_json = await parse_pdf_cv(pdf_bytes, provider=provider, model_name=model_name)
         ingest_cv_data(cv_json)
         return {
@@ -246,7 +246,7 @@ async def upload_pdf_cv(
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
     except Exception as e:
-        print(f"❌ PDF upload failed: {e}")
+        logger.error("❌ PDF upload failed: %s", e)
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
@@ -255,7 +255,7 @@ async def run_intelligence_pipeline(
     job_id: str, job_url: str, provider: str, model_name: str
 ) -> None:
     """Background task: scrape → LangGraph RAG → emit SSE done."""
-    print(f"⚙️  [{job_id}] Starting pipeline for {job_url}…")
+    logger.info("⚙️  [%s] Starting pipeline for %s…", job_id, job_url)
 
     emit(job_id, "pipeline_start", {
         "icon": "🚀",
@@ -333,10 +333,10 @@ async def run_intelligence_pipeline(
             "icon": "🎉",
             "message": "Pipeline complete! Your CV has been tailored.",
         })
-        print(f"✅ [{job_id}] Pipeline completed.")
+        logger.info("✅ [%s] Pipeline completed.", job_id)
 
     except Exception as e:
-        print(f"❌ [{job_id}] Pipeline error: {e}")
+        logger.error("❌ [%s] Pipeline error: %s", job_id, e)
         emit(job_id, "error", {"message": str(e)})
 
 

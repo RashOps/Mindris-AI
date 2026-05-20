@@ -11,7 +11,6 @@ from crewai import Agent, Crew, Process, Task
 
 from intelligence.llm_config import get_llm
 
-
 # ── Prompt builders ───────────────────────────────────────────────────────────
 
 def _build_cv_summary(cv_data: dict) -> str:

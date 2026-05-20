@@ -17,7 +17,6 @@ from langgraph.graph import END, StateGraph
 from intelligence.agents import MindrisAgents
 from intelligence.event_bus import emit
 
-
 # ── State Definition ─────────────────────────────────────────────────────────
 
 class GraphState(TypedDict):

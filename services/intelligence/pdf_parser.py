@@ -7,12 +7,15 @@ This module handles PDF CV ingestion:
 """
 
 import json
+import logging
 import re
 import tempfile
 from pathlib import Path
 
 from llama_cloud import AsyncLlamaCloud
 from utils.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 # ── LlamaParse Configuration ──────────────────────────────────────────────────
@@ -52,7 +55,7 @@ async def pdf_to_markdown(pdf_bytes: bytes, filename: str = "cv.pdf") -> str:
         tmp_path = Path(tmp.name)
 
     try:
-        print(f"📤 Uploading {filename} to LlamaCloud for parsing...")
+        logger.info("📤 Uploading %s to LlamaCloud for parsing...", filename)
         with tmp_path.open("rb") as f:
             result = await client.parsing.parse(
                 upload_file=(filename, f, "application/pdf"),
@@ -62,7 +65,7 @@ async def pdf_to_markdown(pdf_bytes: bytes, filename: str = "cv.pdf") -> str:
             )
 
         markdown_content = str(result.markdown) if result.markdown else ""
-        print(f"LlamaCloud parsing complete ({len(markdown_content)} chars).")
+        logger.info("LlamaCloud parsing complete (%d chars).", len(markdown_content))
     finally:
         tmp_path.unlink(missing_ok=True)
 
@@ -161,7 +164,7 @@ def markdown_to_cv_json(
     import litellm  # noqa: PLC0415
 
     full_model = f"{provider}/{model_name}"
-    print(f"🤖 Structuring CV with {full_model}...")
+    logger.info("🤖 Structuring CV with %s...", full_model)
 
     response = litellm.completion(
         model=full_model,
@@ -206,10 +209,10 @@ async def parse_pdf_cv(
     Returns:
         Structured CV dictionary ready for ChromaDB ingestion.
     """
-    print("📄 Starting PDF parsing pipeline...")
+    logger.info("📄 Starting PDF parsing pipeline...")
     markdown = await pdf_to_markdown(pdf_bytes, filename=filename)
 
     cv_json = markdown_to_cv_json(markdown, provider=provider, model_name=model_name)
 
-    print("✅ PDF CV successfully parsed and structured.")
+    logger.info("✅ PDF CV successfully parsed and structured.")
     return cv_json

@@ -5,7 +5,7 @@ Nodes push events into the queue; the SSE route drains it.
 """
 
 import asyncio
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 # job_id → asyncio.Queue of SSE event dicts
 _queues: dict[str, asyncio.Queue] = {}
@@ -54,7 +54,7 @@ async def stream_events(job_id: str, timeout: float = 300.0) -> AsyncGenerator[d
             yield item
             if item.get("event") in ("done", "error"):
                 break
-        except asyncio.TimeoutError:
+        except TimeoutError:
             # Send a heartbeat to keep the connection alive
             yield {"event": "ping", "data": {}}
 

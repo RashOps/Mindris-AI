@@ -1,10 +1,16 @@
 """End-to-end Mindris AI pipeline: scrape a job offer and analyse it with CrewAI."""
 
 import asyncio
+import logging
 import pprint
 
-from intelligence.crew import MindrisIntelligence
-from scraper.core import BaseScraper
+from intelligence.crew import analyze_job_offer
+from scraper.smart_scraper import ScraperExhaustedError, SmartScraper
+from utils.logger import get_logger
+
+# Initialise logging for the CLI entry point
+get_logger("mindris")
+logger = logging.getLogger(__name__)
 
 
 async def run_pipeline(
@@ -15,8 +21,8 @@ async def run_pipeline(
 ) -> None:
     """Scrape a job offer URL and run the AI analysis pipeline.
 
-    Phase 1 — Playwright scrapes the page and converts it to clean Markdown.
-    Phase 2 — CrewAI / Ollama extracts structured fields from the Markdown.
+    Phase 1 — SmartScraper fetches the page and converts it to clean Markdown.
+    Phase 2 — CrewAI / LLM extracts structured fields from the Markdown.
 
     The URL and full Markdown body are injected into the Pydantic result after
     the LLM finishes, so the model only needs to handle lightweight extraction
@@ -29,41 +35,45 @@ async def run_pipeline(
         provider: The LLM provider (e.g., "ollama", "groq", "gemini", "openai").
         model_name: The specific model name for the provider.
     """
-    print(f"🚀 Starting Mindris AI pipeline for: {url}")
-    print(f"🤖 Using LLM: {provider} ({model_name})")
+    logger.info("🚀 Starting Mindris AI pipeline for: %s", url)
+    logger.info("🤖 Using LLM: %s (%s)", provider, model_name)
 
     # ── Phase 1: Scraping ─────────────────────────────────────────────────────
-    async with BaseScraper() as scraper:
-        print("🔍 Phase 1: Scraping and Markdown conversion…")
-        markdown_content = await scraper.get_cleaned_content(url, selector=selector)
-
-    if not markdown_content:
-        print("❌ Scraping failed — aborting pipeline.")
+    logger.info("🔍 Phase 1: Scraping and Markdown conversion…")
+    try:
+        async with SmartScraper() as scraper:
+            markdown_content = await scraper.get_cleaned_content(url, selector=selector)
+    except ScraperExhaustedError:
+        logger.error("❌ All scraping providers exhausted — aborting pipeline.")
         return
 
-    print(f"✅ Markdown ready ({len(markdown_content)} chars).")
+    if not markdown_content:
+        logger.error("❌ Scraping returned empty content — aborting pipeline.")
+        return
+
+    logger.info("✅ Markdown ready (%d chars).", len(markdown_content))
 
     # ── Phase 2: AI analysis ──────────────────────────────────────────────────
-    print(f"🧠 Phase 2: AI analysis ({provider}/{model_name})…")
-    intelligence = MindrisIntelligence(provider=provider, model_name=model_name)
+    logger.info("🧠 Phase 2: AI analysis (%s/%s)…", provider, model_name)
 
     try:
-        result = intelligence.analyze_job(markdown_content, url)
+        job_offer = await analyze_job_offer(
+            markdown_content=markdown_content,
+            url=url,
+            provider=provider,
+            model_name=model_name,
+        )
 
-        print("\n" + "=" * 40)
-        print("🎯 ANALYSIS RESULT")
-        print("=" * 40)
-
-        if hasattr(result, "pydantic") and result.pydantic:
-            # Inject fields that the LLM was not asked to produce
-            result.pydantic.url = url
-            result.pydantic.description_markdown = markdown_content
-            pprint.pprint(result.pydantic.model_dump())
+        if job_offer:
+            logger.info("\n" + "=" * 40)
+            logger.info("🎯 ANALYSIS RESULT")
+            logger.info("=" * 40)
+            pprint.pprint(job_offer.model_dump())
         else:
-            print(result)
+            logger.error("❌ AI analysis returned no structured output.")
 
     except Exception as e:
-        print(f"❌ AI analysis error: {e}")
+        logger.exception("❌ AI analysis error: %s", e)
 
 
 if __name__ == "__main__":

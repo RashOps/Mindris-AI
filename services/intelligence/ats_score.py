@@ -6,10 +6,14 @@ and returns a detailed enterprise-grade ATS report using Pydantic output.
 
 from __future__ import annotations
 
-from typing import List
-from pydantic import BaseModel, Field
+import logging
+
 from crewai import Agent, Crew, Process, Task
+from pydantic import BaseModel, Field
+
 from intelligence.llm_config import get_llm
+
+logger = logging.getLogger(__name__)
 
 
 class KeywordStatus(BaseModel):
@@ -24,8 +28,8 @@ class AtsReport(BaseModel):
     """Detailed ATS evaluation report."""
     score: int = Field(description="Overall ATS match score between 0 and 100")
     summary: str = Field(description="A 2-3 sentence executive summary of the candidate's fit")
-    keyword_analysis: List[KeywordStatus] = Field(description="Detailed analysis of required hard and soft skills")
-    recommendations: List[str] = Field(description="Actionable steps the candidate can take to improve the CV")
+    keyword_analysis: list[KeywordStatus] = Field(description="Detailed analysis of required hard and soft skills")
+    recommendations: list[str] = Field(description="Actionable steps the candidate can take to improve the CV")
 
 
 def _build_cv_text(cv_data: dict) -> str:
@@ -51,7 +55,6 @@ def _build_cv_text(cv_data: dict) -> str:
 
 async def calculate_ats_score(cv_data: dict, job_insights: dict, provider: str, model_name: str) -> dict:
     """Calculate the detailed ATS report for a CV against a job offer."""
-
     cv_text = _build_cv_text(cv_data)
 
     job_title = job_insights.get("job_title", "Unknown")
@@ -100,7 +103,7 @@ async def calculate_ats_score(cv_data: dict, job_insights: dict, provider: str, 
         else:
             raise ValueError("No pydantic output found")
     except Exception as e:
-        print(f"Error parsing ATS Pydantic output: {e}")
+        logger.error("Error parsing ATS Pydantic output: %s", e)
         # Fallback
         return {
             "score": 50,
