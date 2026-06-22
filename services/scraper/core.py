@@ -13,7 +13,6 @@ job-board pages protected by Cloudflare Turnstile / Bot-Management by:
 
 import asyncio
 import contextlib
-import logging
 import random
 from pathlib import Path
 
@@ -21,8 +20,9 @@ from markdownify import markdownify as md
 from playwright.async_api import BrowserContext, Page, async_playwright
 from playwright_stealth import Stealth
 from utils.config import settings
+from utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ── User-agents (updated to Chrome 125 / 2025) ────────────────────────────────
 USER_AGENT_WINDOWS = (

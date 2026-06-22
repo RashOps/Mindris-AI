@@ -23,16 +23,16 @@ Usage::
         markdown = await scraper.get_cleaned_content("https://example.com/job")
 """
 
-import logging
 from types import TracebackType
 from typing import Literal
 
 from utils.config import settings
+from utils.logger import get_logger
 
 from .core import BaseScraper
 from .proxy_scraper import ScrapeDoProvider, ScrapingBeeProvider
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ── Exceptions ────────────────────────────────────────────────────────────────
 

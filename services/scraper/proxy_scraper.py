@@ -9,13 +9,13 @@ These classes are consumed by :class:`scraper.smart_scraper.SmartScraper`
 and should **never** be used directly in application code.
 """
 
-import logging
 
 import httpx
 from markdownify import markdownify as md
 from utils.config import settings
+from utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ── Shared HTML-to-Markdown helper ────────────────────────────────────────────
 
