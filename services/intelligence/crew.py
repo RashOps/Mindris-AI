@@ -2,15 +2,15 @@
 
 import asyncio
 import json
-import logging
 
 from crewai import Crew, CrewOutput, Process
 from database.models import JobOffer, JobOfferExtract
 
 from .agents import MindrisAgents
 from .tasks import MindrisTasks
+from utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Guard: never forward more than this many chars of markdown to the LLM.
 # tasks.py truncates at _MAX_MARKDOWN_CHARS but this ensures the upstream

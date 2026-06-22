@@ -7,15 +7,15 @@ This module handles PDF CV ingestion:
 """
 
 import json
-import logging
 import re
 import tempfile
 from pathlib import Path
 
 from llama_cloud import AsyncLlamaCloud
 from utils.config import settings
+from utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 # ── LlamaParse Configuration ──────────────────────────────────────────────────

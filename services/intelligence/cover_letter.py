@@ -8,13 +8,13 @@ writing instructions, and an optional example letter for style guidance.
 from __future__ import annotations
 
 import asyncio
-import logging
 
 from crewai import Agent, Crew, Process, Task
 
 from intelligence.llm_config import get_llm
+from utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ── Prompt builders ───────────────────────────────────────────────────────────
 

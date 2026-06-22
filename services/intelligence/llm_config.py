@@ -12,12 +12,12 @@ Default LLMs per task
 These can be overridden at runtime by passing provider/model_name.
 """
 
-import logging
 
 from crewai import LLM
 from utils.config import settings
+from utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ── Per-task defaults ─────────────────────────────────────────────────────────
 

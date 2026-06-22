@@ -7,7 +7,6 @@ Each node emits SSE events via the event_bus so the frontend Ghost Mode
 terminal can display real-time progress.
 """
 
-import logging
 from typing import TypedDict
 
 from crewai import Agent, Crew, Process, Task
@@ -17,8 +16,9 @@ from langgraph.graph import END, StateGraph
 
 from intelligence.agents import MindrisAgents
 from intelligence.event_bus import emit
+from utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ── State Definition ─────────────────────────────────────────────────────────
 

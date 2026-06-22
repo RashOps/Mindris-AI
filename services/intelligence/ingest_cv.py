@@ -5,13 +5,13 @@ using local Hugging Face embeddings (sentence-transformers).
 """
 
 import json
-import logging
 from pathlib import Path
 
 from database.vector_store import MindrisVectorStore
 from utils.config import settings
+from utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def chunk_cv_data(cv_data: dict) -> list[dict]:
