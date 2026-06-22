@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { arrayMove } from '@dnd-kit/sortable';
+import { apiUrl, jsonHeaders } from '@/lib/api';
 
 // ── Types aligned with cv_schema.json ────────────────────────────────────────
 
@@ -90,9 +91,29 @@ export interface KeywordStatus {
   severity: "high" | "medium" | "low";
 }
 
+export interface ScoringCriteria {
+  criterion: string;
+  weight: number;
+  score: number;
+  max_score: number;
+  explanation: string;
+}
+
+export interface CompanyInsight {
+  name: string;
+  industry: string;
+  size: string;
+  culture_values: string[];
+  recent_news: string[];
+  glassdoor_summary?: string | null;
+  tech_stack_known: string[];
+  unavailable_reason?: string | null;
+}
+
 export interface AtsReport {
   score: number;
   summary: string;
+  scoring_breakdown: ScoringCriteria[];
   keyword_analysis: KeywordStatus[];
   recommendations: string[];
 }
@@ -106,6 +127,7 @@ export interface JobInsights {
   raw_markdown: string;
   score: number;
   ats_report?: AtsReport;      // populated by on-demand detailed scoring
+  company_insight?: CompanyInsight;
 }
 
 // ── Multi-LLM per task ────────────────────────────────────────────────────────
@@ -302,14 +324,14 @@ export const useCVStore = create<CVStore>()(
     const { cvData, jobInsights, appSettings } = get();
     if (!jobInsights) return;
     try {
-      const res = await fetch("http://localhost:8000/api/v1/cv/score", {
+      const res = await fetch(apiUrl("/api/v1/cv/score"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: jsonHeaders(),
         body: JSON.stringify({
           cv_data: cvData,
           job_insights: jobInsights,
-          provider: appSettings.patch_llm.provider,
-          model_name: appSettings.patch_llm.model_name,
+          provider: appSettings.ats_llm.provider,
+          model_name: appSettings.ats_llm.model_name,
         }),
       });
       if (res.ok) {

@@ -82,7 +82,7 @@ Converts Markdown to a PDF document.
 `,
 };
 
-const RENDERER_URL = "http://localhost:4000";
+
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 
@@ -125,9 +125,9 @@ export default function MarkdownToolPage() {
     if (!md.trim()) { setPreviewHtml(""); return; }
     setIsLoadingPreview(true);
     try {
-      const res = await fetch(`${RENDERER_URL}/render/markdown/preview`, {
+      const res = await fetch(rendererUrl("/render/markdown/preview"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: jsonHeaders(),
         body: JSON.stringify({ markdown: md, style: s, title: t }),
       });
       if (res.ok) setPreviewHtml(await res.text());
@@ -150,9 +150,9 @@ export default function MarkdownToolPage() {
     setIsExporting(true);
     setStatus(null);
     try {
-      const res = await fetch(`${RENDERER_URL}/render/markdown`, {
+      const res = await fetch(rendererUrl("/render/markdown"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: jsonHeaders(),
         body: JSON.stringify({ markdown, style, title }),
       });
 
@@ -345,7 +345,7 @@ export default function MarkdownToolPage() {
           Style: <span className="font-medium capitalize" style={{ color: '#64748b' }}>{style}</span>
         </span>
         <span className="text-xs" style={{ color: '#334155' }}>
-          Renderer: <span className="font-medium" style={{ color: '#64748b' }}>localhost:4000</span>
+          Renderer: <span className="font-medium" style={{ color: '#64748b' }}>{RENDERER_URL}</span>
         </span>
         <span className="text-xs ml-auto" style={{ color: '#1e293b' }}>
           Mindris AI · Markdown Converter

@@ -9,9 +9,11 @@ import {
 import { useCVStore } from '@/store/useCVStore';
 import type { AtsReport, KeywordStatus } from '@/store/useCVStore';
 import { CVUploadZone } from '@/components/CVUploadZone';
+import { LLMSelector } from '@/components/LLMSelector';
 import Link from 'next/link';
+import { apiUrl, eventSourceUrl, jsonHeaders } from '@/lib/api';
 
-const API = 'http://localhost:8000';
+
 
 // ── Color helpers ─────────────────────────────────────────────────────────────
 
@@ -349,6 +351,8 @@ function AtsHero({ jobUrl, setJobUrl, onAnalyze, isAnalyzing, cvLoaded, onCvLoad
           </div>
         </div>
 
+        <LLMSelector taskKey="ats_llm" label="ATS Model" />
+
         {/* Analyze button */}
         <button
           id="ats-analyze-btn"
@@ -435,9 +439,9 @@ export default function AtsScorePage() {
 
     try {
       // 1. Start the pipeline (scrape + analyze job)
-      const startRes = await fetch(`${API}/api/v1/optimize`, {
+      const startRes = await fetch(apiUrl("/api/v1/optimize"), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: jsonHeaders(),
         body: JSON.stringify({
           job_url:    jobUrl,
           provider:   appSettings.optimize_llm.provider,
@@ -449,7 +453,7 @@ export default function AtsScorePage() {
       jobIdRef.current = job_id;
 
       // 2. Listen to SSE stream
-      const sse = new EventSource(`${API}/api/v1/stream/${job_id}`);
+      const sse = new EventSource(eventSourceUrl(`/api/v1/stream/${job_id}`));
 
       sse.addEventListener('progress', (e) => {
         try {
@@ -464,9 +468,9 @@ export default function AtsScorePage() {
           setSseMessages(prev => [...prev, `✓ Job analyzed: ${insights.job_title}`]);
 
           // 3. Request detailed ATS score
-          const scoreRes = await fetch(`${API}/api/v1/cv/score`, {
+          const scoreRes = await fetch(apiUrl("/api/v1/cv/score"), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: jsonHeaders(),
             body: JSON.stringify({
               cv_data:      cvData,
               job_insights: insights,
@@ -615,6 +619,30 @@ export default function AtsScorePage() {
             </div>
           </div>
 
+
+          {/* ── Scoring breakdown ── */}
+          {report.scoring_breakdown?.length > 0 && (
+            <div
+              className="p-6 rounded-2xl"
+              style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(255,255,255,0.07)', backdropFilter: 'blur(20px)' }}
+            >
+              <p className="text-[10px] font-bold uppercase tracking-widest mb-4" style={{ color: '#475569' }}>
+                Scoring Method
+              </p>
+              <div className="grid gap-3 md:grid-cols-5">
+                {report.scoring_breakdown.map((criterion) => (
+                  <div key={criterion.criterion} className="rounded-xl border p-3" style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}>
+                    <p className="text-xs font-semibold" style={{ color: '#e2e8f0' }}>{criterion.criterion}</p>
+                    <p className="mt-2 text-xl font-black" style={{ color: scoreColor(Math.round((criterion.score / criterion.max_score) * 100)), fontFamily: 'var(--font-space)' }}>
+                      {criterion.score}/{criterion.max_score}
+                    </p>
+                    <p className="mt-1 text-[10px]" style={{ color: '#64748b' }}>Weight {criterion.weight}%</p>
+                    <p className="mt-2 text-[11px] leading-relaxed" style={{ color: '#94a3b8' }}>{criterion.explanation}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {/* ── Row 3: Full keyword table ── */}
           <div
             className="p-6 rounded-2xl"
