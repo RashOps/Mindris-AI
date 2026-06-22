@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { eventSourceUrl } from "@/lib/api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -19,13 +20,14 @@ interface GhostModeProps {
   onDone?: () => void;
   onError?: () => void;
   onJobResult?: (data: any) => void;  // Called when job_result SSE event arrives
+  onCompanyResult?: (data: any) => void;
 }
 
-const API = "http://localhost:8000";
+
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function GhostMode({ jobId, onDone, onError, onJobResult }: GhostModeProps) {
+export function GhostMode({ jobId, onDone, onError, onJobResult, onCompanyResult }: GhostModeProps) {
   const [events, setEvents] = useState<GhostEvent[]>([]);
   const [status, setStatus] = useState<"idle" | "running" | "done" | "error">("idle");
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -35,9 +37,11 @@ export function GhostMode({ jobId, onDone, onError, onJobResult }: GhostModeProp
   const onDoneRef = useRef(onDone);
   const onErrorRef = useRef(onError);
   const onJobResultRef = useRef(onJobResult);
+  const onCompanyResultRef = useRef(onCompanyResult);
   onDoneRef.current = onDone;
   onErrorRef.current = onError;
   onJobResultRef.current = onJobResult;
+  onCompanyResultRef.current = onCompanyResult;
 
   // ── Connect SSE only when jobId changes ────────────────────────────────────
   useEffect(() => {
@@ -48,7 +52,7 @@ export function GhostMode({ jobId, onDone, onError, onJobResult }: GhostModeProp
     setStatus("running");
     esRef.current?.close();
 
-    const es = new EventSource(`${API}/api/v1/optimize/stream?job_id=${jobId}`);
+    const es = new EventSource(eventSourceUrl(`/api/v1/optimize/stream?job_id=${jobId}`));
     esRef.current = es;
 
     const handleEvent = (evt: MessageEvent, eventType: string) => {
@@ -68,6 +72,10 @@ export function GhostMode({ jobId, onDone, onError, onJobResult }: GhostModeProp
 
         setEvents((prev) => [...prev, entry]);
 
+        if (eventType === "company_result") {
+          onCompanyResultRef.current?.(data);
+          return;
+        }
         if (eventType === "job_result") {
           // Forward structured data to parent without displaying in terminal
           onJobResultRef.current?.(data);
@@ -88,7 +96,7 @@ export function GhostMode({ jobId, onDone, onError, onJobResult }: GhostModeProp
       }
     };
 
-    const eventTypes = ["pipeline_start", "node_start", "node_done", "done", "error", "ping", "job_result"];
+    const eventTypes = ["pipeline_start", "node_start", "node_done", "done", "error", "ping", "job_result", "company_result"];
     eventTypes.forEach((type) => {
       es.addEventListener(type, (evt) => handleEvent(evt as MessageEvent, type));
     });

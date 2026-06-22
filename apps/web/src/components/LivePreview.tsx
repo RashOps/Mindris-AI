@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useCVStore } from "@/store/useCVStore";
+import { rendererUrl, jsonHeaders } from "@/lib/api";
 
 export function LivePreview() {
   const { cvData, isOptimizing } = useCVStore();
@@ -13,9 +14,9 @@ export function LivePreview() {
       setIsLoading(true);
       try {
         const templateId = cvData.global_settings.template_id ?? "modern";
-        const res = await fetch("http://localhost:4000/render/pdf", {
+        const res = await fetch(rendererUrl("/render/pdf"), {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: jsonHeaders(),
           body: JSON.stringify({
             cv_data: cvData,
             template_id: templateId,

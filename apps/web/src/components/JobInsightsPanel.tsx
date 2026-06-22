@@ -5,8 +5,9 @@ import { useDraggable } from "@dnd-kit/core";
 import { useCVStore } from "@/store/useCVStore";
 import type { JobInsights } from "@/store/useCVStore";
 import { AtsScoreWidget } from "@/components/ats/AtsScoreWidget";
+import { apiUrl, jsonHeaders } from "@/lib/api";
 
-const API = "http://localhost:8000";
+
 
 // ── Draggable Skill Tag ────────────────────────────────────────────────────────
 
@@ -105,9 +106,9 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
     setIsPatchLoading(true);
     setPatchStatus(null);
     try {
-      const res = await fetch(`${API}/api/v1/cv/patch-from-bullets`, {
+      const res = await fetch(apiUrl("/api/v1/cv/patch-from-bullets"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: jsonHeaders(),
         body: JSON.stringify({
           drafted_bullets: bullets,
           cv_data: cvData,
@@ -268,6 +269,22 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
               {patchStatus && <p className="text-xs text-center mt-1.5" style={{ color: '#64748b' }}>{patchStatus}</p>}
             </div>
 
+
+            {/* Company Intel */}
+            {jobInsights.company_insight && (
+              <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: '#475569' }}>
+                  🏢 Company Intel
+                </p>
+                <div className="space-y-1 text-xs" style={{ color: '#94a3b8' }}>
+                  <p><span style={{ color: '#cbd5e1' }}>Industry:</span> {jobInsights.company_insight.industry}</p>
+                  <p><span style={{ color: '#cbd5e1' }}>Size:</span> {jobInsights.company_insight.size}</p>
+                  {jobInsights.company_insight.unavailable_reason && <p>{jobInsights.company_insight.unavailable_reason}</p>}
+                  {jobInsights.company_insight.culture_values?.length > 0 && <p>Values: {jobInsights.company_insight.culture_values.join(', ')}</p>}
+                  {jobInsights.company_insight.tech_stack_known?.length > 0 && <p>Known stack: {jobInsights.company_insight.tech_stack_known.join(', ')}</p>}
+                </div>
+              </div>
+            )}
             {/* Hard Skills */}
             {jobInsights.hard_skills.length > 0 && (
               <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
