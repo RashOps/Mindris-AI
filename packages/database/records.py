@@ -1,0 +1,103 @@
+"""SQLite persistence records for Mindris AI."""
+
+from datetime import datetime
+
+from sqlalchemy import DateTime, ForeignKey, Text
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+
+class Base(DeclarativeBase):
+    """Base class for SQLAlchemy records."""
+
+
+class CVDocumentRecord(Base):
+    """Persisted CV document used as the backend source of truth."""
+
+    __tablename__ = "cvdocumentrecord"
+
+    id: Mapped[int | None] = mapped_column(primary_key=True, default=None)
+    name: Mapped[str] = mapped_column(default="current", index=True)
+    data_json: Mapped[str] = mapped_column(Text)
+    source: Mapped[str] = mapped_column(default="json")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+
+class ScrapedJobRecord(Base):
+    """History of scraped and analyzed job offers."""
+
+    __tablename__ = "scrapedjobrecord"
+
+    id: Mapped[int | None] = mapped_column(primary_key=True, default=None)
+    url: Mapped[str] = mapped_column(Text, unique=True)
+    title: Mapped[str]
+    company: Mapped[str]
+    location: Mapped[str] = mapped_column(default="")
+    hard_skills: Mapped[str] = mapped_column(Text, default="[]")
+    soft_skills: Mapped[str] = mapped_column(Text, default="[]")
+    description_markdown: Mapped[str] = mapped_column(Text, default="")
+    company_insight_json: Mapped[str | None] = mapped_column(Text, default=None)
+    scraped_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+
+class CoverLetterRecord(Base):
+    """History of generated cover letters."""
+
+    __tablename__ = "coverletterrecord"
+
+    id: Mapped[int | None] = mapped_column(primary_key=True, default=None)
+    job_id: Mapped[int | None] = mapped_column(ForeignKey("scrapedjobrecord.id"), default=None)
+    markdown_content: Mapped[str] = mapped_column(Text)
+    provider: Mapped[str]
+    model_name: Mapped[str]
+    generated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+
+class AtsReportRecord(Base):
+    """History of ATS reports."""
+
+    __tablename__ = "atsreportrecord"
+
+    id: Mapped[int | None] = mapped_column(primary_key=True, default=None)
+    job_id: Mapped[int | None] = mapped_column(ForeignKey("scrapedjobrecord.id"), default=None)
+    score: Mapped[int]
+    summary: Mapped[str] = mapped_column(Text, default="")
+    keyword_analysis: Mapped[str] = mapped_column(Text, default="[]")
+    scoring_breakdown: Mapped[str] = mapped_column(Text, default="[]")
+    recommendations: Mapped[str] = mapped_column(Text, default="[]")
+    provider: Mapped[str]
+    model_name: Mapped[str]
+    generated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+
+class CompanyInsightRecord(Base):
+    """Cached company intelligence results."""
+
+    __tablename__ = "companyinsightrecord"
+
+    id: Mapped[int | None] = mapped_column(primary_key=True, default=None)
+    company_name: Mapped[str] = mapped_column(index=True)
+    insight_json: Mapped[str] = mapped_column(Text)
+    provider: Mapped[str] = mapped_column(default="")
+    model_name: Mapped[str] = mapped_column(default="")
+    generated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+
+class ApplicationRecord(Base):
+    """Application tracker item."""
+
+    __tablename__ = "applicationrecord"
+
+    id: Mapped[int | None] = mapped_column(primary_key=True, default=None)
+    job_id: Mapped[int | None] = mapped_column(ForeignKey("scrapedjobrecord.id"), default=None)
+    status: Mapped[str] = mapped_column(default="wishlist", index=True)
+    position: Mapped[int] = mapped_column(default=0)
+    company: Mapped[str]
+    role: Mapped[str]
+    url: Mapped[str | None] = mapped_column(Text, default=None)
+    notes: Mapped[str] = mapped_column(Text, default="")
+    applied_at: Mapped[datetime | None] = mapped_column(DateTime, default=None)
+    cover_letter_id: Mapped[int | None] = mapped_column(ForeignKey("coverletterrecord.id"), default=None)
+    ats_report_id: Mapped[int | None] = mapped_column(ForeignKey("atsreportrecord.id"), default=None)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
