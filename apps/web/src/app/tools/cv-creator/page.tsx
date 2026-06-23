@@ -58,6 +58,8 @@ export default function AppPage() {
     resumes, activeResumeId, setActiveResume,
     createResume, duplicateResume, deleteResume,
     renameResume, exportActiveResume,
+    flushResumeSave, retryResumeSave,
+    resumeSaveStatus, resumeSaveError, lastResumeSavedAt,
   } = useCVStore();
 
   const [jobUrl, setJobUrl]       = useState("");
@@ -84,6 +86,22 @@ export default function AppPage() {
   }, [loadResumes]);
 
   const activeResume = resumes.find((resume) => resume.id === activeResumeId);
+  const saveStatusText =
+    resumeSaveStatus === "dirty"
+      ? "Unsaved changes"
+      : resumeSaveStatus === "saving"
+        ? "Saving..."
+        : resumeSaveStatus === "error"
+          ? "Save failed"
+          : lastResumeSavedAt
+            ? "Saved"
+            : "Loaded";
+  const saveStatusColor =
+    resumeSaveStatus === "error"
+      ? "#fca5a5"
+      : resumeSaveStatus === "dirty" || resumeSaveStatus === "saving"
+        ? "#fcd34d"
+        : "#86efac";
 
   // ── dnd-kit sensors ────────────────────────────────────────────────────────
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
@@ -157,6 +175,14 @@ export default function AppPage() {
       if (!res.ok) { const err = await res.json(); throw new Error(err.detail ?? "Upload failed"); }
       const data = await res.json();
       if (data.cv_data) replaceCVData(data.cv_data);
+      await fetch(apiUrl("/api/v1/cv/current"), {
+        method: "PUT",
+        headers: jsonHeaders(),
+        body: JSON.stringify({
+          cv_data: data.cv_data,
+          source: "pdf",
+        }),
+      }).catch(() => undefined);
       showToast("✅ PDF indexed! Editor and RAG updated.");
     } catch (err: unknown) {
       showToast(`❌ ${errorMessage(err, "Upload failed")}`, 6000);
@@ -178,10 +204,13 @@ export default function AppPage() {
       replaceCVData(importedCV);
       const importedName = resumeNameFromImport(jsonData);
       if (importedName) renameResume(activeResumeId, importedName);
-      await fetch(apiUrl("/api/v1/cv/upload"), {
-        method: "POST",
+      await fetch(apiUrl("/api/v1/cv/current"), {
+        method: "PUT",
         headers: jsonHeaders(),
-        body: JSON.stringify(importedCV),
+        body: JSON.stringify({
+          cv_data: importedCV,
+          source: "json",
+        }),
       });
       showToast("✅ JSON CV indexed!");
     } catch (err: unknown) {
@@ -207,10 +236,15 @@ export default function AppPage() {
   const handleExportPDF = async () => {
     showToast("⏳ Generating PDF…", 30000);
     try {
+      await flushResumeSave();
       const res = await fetch(rendererUrl("/render/pdf"), {
         method: "POST",
         headers: jsonHeaders(),
-        body: JSON.stringify({ cv_data: cvData, template_id: "modern", return_buffer: true }),
+        body: JSON.stringify({
+          cv_data: cvData,
+          template_id: cvData.global_settings.template_id || "modern",
+          return_buffer: true,
+        }),
       });
       if (!res.ok) throw new Error("Render failed");
       const blob = await res.blob();
@@ -344,6 +378,25 @@ export default function AppPage() {
           </div>
 
           <LLMSelector taskKey="optimize_llm" label="Optimize" />
+          <button
+            onClick={() => {
+              if (resumeSaveStatus === "error") {
+                void retryResumeSave().catch((err: unknown) => {
+                  showToast(`❌ ${errorMessage(err, "Save retry failed")}`, 6000);
+                });
+              }
+            }}
+            className="h-8 rounded-lg border px-2 text-xs"
+            style={{
+              borderColor: resumeSaveStatus === "error" ? "rgba(248,113,113,0.35)" : "rgba(255,255,255,0.08)",
+              background: "rgba(255,255,255,0.04)",
+              color: saveStatusColor,
+              cursor: resumeSaveStatus === "error" ? "pointer" : "default",
+            }}
+            title={resumeSaveError ?? "Backend save status"}
+          >
+            {saveStatusText}
+          </button>
           {/* Job URL */}
           <div className="flex items-center gap-2 flex-1 max-w-md mx-4">
             <Input

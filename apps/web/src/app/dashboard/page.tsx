@@ -22,37 +22,55 @@ import {
   type CVData,
 } from "@/store/useCVStore";
 import { apiHeaders, apiUrl, jsonHeaders } from "@/lib/api";
+import { fetchResumeTemplates, type ResumeTemplate } from "@/lib/templates";
 
-const TEMPLATE_STARTERS = [
+const FALLBACK_TEMPLATES: ResumeTemplate[] = [
   {
     id: "modern",
     name: "Modern",
     description: "Balanced two-column layout for tech, product, and business profiles.",
     status: "ready",
+    category: "tech",
     accent: "#2563eb",
+    layout: "two-column",
   },
   {
     id: "compact",
     name: "Compact",
     description: "Dense one-page format for experienced profiles and long histories.",
     status: "ready",
+    category: "senior",
     accent: "#0f766e",
+    layout: "two-column",
   },
   {
     id: "ats",
     name: "ATS Strict",
-    description: "Single-column, low-decoration template planned for phase 3.",
-    status: "planned",
+    description: "Single-column, low-decoration template for ATS-friendly CVs.",
+    status: "ready",
+    category: "ats",
     accent: "#475569",
+    layout: "single",
   },
   {
     id: "student",
     name: "Student",
-    description: "Education-first template planned for early career profiles.",
-    status: "planned",
+    description: "Education-first template for internships and first roles.",
+    status: "ready",
+    category: "student",
     accent: "#7c3aed",
+    layout: "single",
   },
-] as const;
+  {
+    id: "creative",
+    name: "Creative",
+    description: "Editorial template for marketing, design, and content roles.",
+    status: "ready",
+    category: "creative",
+    accent: "#e11d48",
+    layout: "two-column",
+  },
+];
 
 const NAV_ITEMS = [
   { label: "Resumes", href: "/dashboard", active: true },
@@ -105,20 +123,43 @@ export default function DashboardPage() {
     deleteResume,
     renameResume,
     setActiveResume,
+    retryResumeSave,
+    resumeSaveStatus,
+    resumeSaveError,
   } = useCVStore();
   const [status, setStatus] = useState<string | null>(null);
   const [isImportingPdf, setIsImportingPdf] = useState(false);
+  const [templates, setTemplates] = useState<ResumeTemplate[]>(FALLBACK_TEMPLATES);
 
   const showStatus = (message: string) => {
     setStatus(message);
     window.setTimeout(() => setStatus(null), 3500);
   };
 
+  const saveStatusText =
+    resumeSaveStatus === "dirty"
+      ? "Unsaved changes"
+      : resumeSaveStatus === "saving"
+        ? "Saving..."
+        : resumeSaveStatus === "error"
+          ? "Save failed"
+          : "Saved";
+
   useEffect(() => {
     void loadResumes().catch((err: unknown) => {
       showStatus(err instanceof Error ? err.message : "Resume loading failed");
     });
   }, [loadResumes]);
+
+  useEffect(() => {
+    void fetchResumeTemplates()
+      .then((items) => {
+        if (items.length > 0) setTemplates(items);
+      })
+      .catch((err: unknown) => {
+        showStatus(err instanceof Error ? err.message : "Template loading failed");
+      });
+  }, []);
 
   const openResume = (id: string) => {
     setActiveResume(id);
@@ -132,10 +173,13 @@ export default function DashboardPage() {
 
   const importCVData = async (cvData: CVData, name: string) => {
     const id = await importResume(name, cvData, "json");
-    await fetch(apiUrl("/api/v1/cv/upload"), {
-      method: "POST",
+    await fetch(apiUrl("/api/v1/cv/current"), {
+      method: "PUT",
       headers: jsonHeaders(),
-      body: JSON.stringify(cvData),
+      body: JSON.stringify({
+        cv_data: cvData,
+        source: "json",
+      }),
     }).catch(() => undefined);
     openResume(id);
   };
@@ -217,6 +261,19 @@ export default function DashboardPage() {
               <h1 className="text-xl font-semibold tracking-tight">Resume Library</h1>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  if (resumeSaveStatus === "error") {
+                    void retryResumeSave().catch((err: unknown) => {
+                      showStatus(err instanceof Error ? err.message : "Save retry failed");
+                    });
+                  }
+                }}
+                className="hidden h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 shadow-sm sm:inline-flex sm:items-center"
+                title={resumeSaveError ?? "Backend save status"}
+              >
+                {saveStatusText}
+              </button>
               <input
                 ref={jsonInputRef}
                 type="file"
@@ -381,12 +438,12 @@ export default function DashboardPage() {
                 <div className="mb-4 flex items-center justify-between">
                   <div>
                     <h2 className="text-base font-semibold">Start from a template</h2>
-                    <p className="text-sm text-slate-500">Template gallery foundation for phase 3.</p>
+                    <p className="text-sm text-slate-500">Five backend-owned templates ready for MVP1.</p>
                   </div>
                   <LayoutTemplate className="text-slate-400" size={20} />
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
-                  {TEMPLATE_STARTERS.map((template) => {
+                  {templates.map((template) => {
                     const ready = template.status === "ready";
                     return (
                       <button
@@ -438,8 +495,8 @@ export default function DashboardPage() {
                   <div className="flex items-start gap-3">
                     <LayoutTemplate size={16} className="mt-0.5 text-indigo-600" />
                     <div>
-                      <p className="font-medium">Template gallery seed</p>
-                      <p className="text-xs leading-5 text-slate-500">Ready templates are usable now; planned templates define phase 3 scope.</p>
+                      <p className="font-medium">Template gallery</p>
+                      <p className="text-xs leading-5 text-slate-500">Five ready templates are exposed by the backend and reused by the renderer.</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">

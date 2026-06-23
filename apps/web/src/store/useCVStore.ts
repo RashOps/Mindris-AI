@@ -173,6 +173,8 @@ export interface ResumeDocument {
   updatedAt: string;
 }
 
+export type ResumeSaveStatus = 'idle' | 'dirty' | 'saving' | 'saved' | 'error';
+
 export function cvDataFromImport(data: unknown): CVData | null {
   if (!data || typeof data !== 'object') return null;
   const candidate = data as Partial<CVData> & { cvData?: CVData };
@@ -203,6 +205,9 @@ interface CVStore {
   resumes: ResumeDocument[];
   activeResumeId: string;
   isResumeLibraryLoading: boolean;
+  resumeSaveStatus: ResumeSaveStatus;
+  resumeSaveError: string | null;
+  lastResumeSavedAt: string | null;
   isOptimizing: boolean;
 
   // Resume library
@@ -214,6 +219,8 @@ interface CVStore {
   renameResume: (id: string, name: string) => void;
   setActiveResume: (id: string) => void;
   exportActiveResume: () => Promise<ResumeDocument>;
+  flushResumeSave: () => Promise<void>;
+  retryResumeSave: () => Promise<void>;
 
   // Job Insights
   jobInsights: JobInsights | null;
@@ -385,6 +392,10 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Resume save failed';
+}
+
 function createResumeDocument(name: string, cvData: CVData): ResumeDocument {
   const timestamp = nowIso();
   return {
@@ -418,7 +429,7 @@ function syncActiveResume(state: CVStore, cvData: CVData): Pick<CVStore, 'cvData
     updatedAt: timestamp,
   };
 
-  void persistResume(activeResume.id, {
+  schedulePersistResume(activeResume.id, {
     name: updatedResume.name,
     cvData: updatedResume.cvData,
     templateId: updatedResume.templateId,
@@ -448,7 +459,7 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 async function persistResume(resumeId: string, patch: Partial<ResumeDocument>) {
-  await requestJson<{ item: ResumeDocument }>(`/api/v1/resumes/${resumeId}`, {
+  return requestJson<{ item: ResumeDocument }>(`/api/v1/resumes/${resumeId}`, {
     method: 'PATCH',
     body: JSON.stringify({
       name: patch.name,
@@ -457,9 +468,94 @@ async function persistResume(resumeId: string, patch: Partial<ResumeDocument>) {
       locale: patch.locale,
       source: 'editor',
     }),
-  }).catch((error: unknown) => {
-    console.error('Resume save failed', error);
   });
+}
+
+const RESUME_SAVE_DEBOUNCE_MS = 900;
+
+type PendingResumeSave = {
+  resumeId: string;
+  patch: Partial<ResumeDocument>;
+  revision: number;
+};
+
+let resumeSaveTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingResumeSave: PendingResumeSave | null = null;
+let lastFailedResumeSave: PendingResumeSave | null = null;
+let resumeSaveRevision = 0;
+
+function schedulePersistResume(resumeId: string, patch: Partial<ResumeDocument>) {
+  resumeSaveRevision += 1;
+  pendingResumeSave = {
+    resumeId,
+    patch,
+    revision: resumeSaveRevision,
+  };
+  lastFailedResumeSave = null;
+  if (resumeSaveTimer) clearTimeout(resumeSaveTimer);
+  useCVStore.setState({
+    resumeSaveStatus: 'dirty',
+    resumeSaveError: null,
+  });
+  resumeSaveTimer = setTimeout(() => {
+    void flushPendingResumeSave();
+  }, RESUME_SAVE_DEBOUNCE_MS);
+}
+
+async function saveResumeSnapshot(snapshot: PendingResumeSave) {
+  useCVStore.setState({
+    resumeSaveStatus: 'saving',
+    resumeSaveError: null,
+  });
+  try {
+    const data = await persistResume(snapshot.resumeId, snapshot.patch);
+    if (snapshot.revision === resumeSaveRevision) {
+      useCVStore.setState((state) => ({
+        resumes: state.resumes.map((resume) =>
+          resume.id === data.item.id ? data.item : resume
+        ),
+        cvData:
+          state.activeResumeId === data.item.id ? data.item.cvData : state.cvData,
+        resumeSaveStatus: 'saved',
+        resumeSaveError: null,
+        lastResumeSavedAt: nowIso(),
+      }));
+    }
+  } catch (error: unknown) {
+    lastFailedResumeSave = snapshot;
+    if (snapshot.revision === resumeSaveRevision) {
+      useCVStore.setState({
+        resumeSaveStatus: 'error',
+        resumeSaveError: errorMessage(error),
+      });
+    }
+  }
+}
+
+async function flushPendingResumeSave() {
+  if (resumeSaveTimer) {
+    clearTimeout(resumeSaveTimer);
+    resumeSaveTimer = null;
+  }
+  const snapshot = pendingResumeSave;
+  pendingResumeSave = null;
+  if (!snapshot) return;
+  await saveResumeSnapshot(snapshot);
+}
+
+async function retryLastResumeSave() {
+  if (pendingResumeSave) {
+    await flushPendingResumeSave();
+    return;
+  }
+  if (!lastFailedResumeSave) return;
+  resumeSaveRevision += 1;
+  const snapshot = {
+    ...lastFailedResumeSave,
+    revision: resumeSaveRevision,
+  };
+  lastFailedResumeSave = null;
+  await saveResumeSnapshot(snapshot);
 }
 
 // ── Store ─────────────────────────────────────────────────────────────────────
@@ -469,6 +565,9 @@ export const useCVStore = create<CVStore>()((set, get) => ({
   resumes: [initialResume],
   activeResumeId: initialResume.id,
   isResumeLibraryLoading: false,
+  resumeSaveStatus: 'idle',
+  resumeSaveError: null,
+  lastResumeSavedAt: null,
   isOptimizing: false,
 
   // ── Resume library ────────────────────────────────────────────────────────
@@ -489,6 +588,8 @@ export const useCVStore = create<CVStore>()((set, get) => ({
         activeResumeId: activeResume.id,
         cvData: activeResume.cvData,
         jobInsights: null,
+        resumeSaveStatus: 'idle',
+        resumeSaveError: null,
       });
     } finally {
       set({ isResumeLibraryLoading: false });
@@ -512,6 +613,9 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       activeResumeId: data.item.id,
       cvData: data.item.cvData,
       jobInsights: null,
+      resumeSaveStatus: 'saved',
+      resumeSaveError: null,
+      lastResumeSavedAt: nowIso(),
     }));
     return data.item.id;
   },
@@ -530,6 +634,9 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       activeResumeId: data.item.id,
       cvData: data.item.cvData,
       jobInsights: null,
+      resumeSaveStatus: 'saved',
+      resumeSaveError: null,
+      lastResumeSavedAt: nowIso(),
     }));
     return data.item.id;
   },
@@ -545,6 +652,9 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       activeResumeId: data.item.id,
       cvData: data.item.cvData,
       jobInsights: null,
+      resumeSaveStatus: 'saved',
+      resumeSaveError: null,
+      lastResumeSavedAt: nowIso(),
     }));
     return data.item.id;
   },
@@ -564,6 +674,9 @@ export const useCVStore = create<CVStore>()((set, get) => ({
         activeResumeId: activeResume.id,
         cvData: activeResume.cvData,
         jobInsights: id === current.activeResumeId ? null : current.jobInsights,
+        resumeSaveStatus: 'saved',
+        resumeSaveError: null,
+        lastResumeSavedAt: nowIso(),
       };
     });
   },
@@ -575,7 +688,7 @@ export const useCVStore = create<CVStore>()((set, get) => ({
         resume.id === id ? { ...resume, name: nextName, updatedAt: nowIso() } : resume
       ),
     }));
-    void persistResume(id, { name: nextName });
+    schedulePersistResume(id, { name: nextName });
   },
 
   setActiveResume: (id) =>
@@ -590,11 +703,15 @@ export const useCVStore = create<CVStore>()((set, get) => ({
     }),
 
   exportActiveResume: async () => {
+    await flushPendingResumeSave();
     const state = get();
     return requestJson<ResumeDocument>(
       `/api/v1/resumes/${state.activeResumeId}/export-json`
     );
   },
+
+  flushResumeSave: () => flushPendingResumeSave(),
+  retryResumeSave: () => retryLastResumeSave(),
 
   // ── Job Insights ────────────────────────────────────────────────────────────
   jobInsights: null,

@@ -47,10 +47,13 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
       const importedCV = cvDataFromImport(data);
       if (!importedCV) throw new Error('Invalid CV JSON');
       replaceCVData(importedCV);
-      await fetch(apiUrl("/api/v1/cv/upload"), {
-        method: 'POST',
+      await fetch(apiUrl("/api/v1/cv/current"), {
+        method: 'PUT',
         headers: jsonHeaders(),
-        body: JSON.stringify(importedCV),
+        body: JSON.stringify({
+          cv_data: importedCV,
+          source: 'json',
+        }),
       });
       onCvLoaded?.(importedCV);
       showStatus('✅ JSON CV loaded!');
@@ -73,6 +76,14 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
       const data = await res.json();
       if (data.cv_data) {
         replaceCVData(data.cv_data);
+        await fetch(apiUrl("/api/v1/cv/current"), {
+          method: 'PUT',
+          headers: jsonHeaders(),
+          body: JSON.stringify({
+            cv_data: data.cv_data,
+            source: 'pdf',
+          }),
+        }).catch(() => undefined);
         onCvLoaded?.(data.cv_data);
       }
       showStatus('✅ PDF parsed & indexed!');

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useCVStore } from "@/store/useCVStore";
 import type { GlobalSettings } from "@/store/useCVStore";
+import { fetchResumeTemplates, type ResumeTemplate } from "@/lib/templates";
 
 // ── Options ───────────────────────────────────────────────────────────────────
 
@@ -24,6 +25,54 @@ const PALETTE = [
   { label: "Slate",   value: "#334155" },
   { label: "Amber",   value: "#d97706" },
   { label: "Cyan",    value: "#0891b2" },
+];
+
+const FALLBACK_TEMPLATES: ResumeTemplate[] = [
+  {
+    id: "modern",
+    name: "Modern",
+    description: "2 cols · spacious",
+    status: "ready",
+    category: "tech",
+    accent: "#2563eb",
+    layout: "two-column",
+  },
+  {
+    id: "compact",
+    name: "Compact",
+    description: "1 page · dense",
+    status: "ready",
+    category: "senior",
+    accent: "#0f766e",
+    layout: "two-column",
+  },
+  {
+    id: "ats",
+    name: "ATS Strict",
+    description: "single column · ats-friendly",
+    status: "ready",
+    category: "ats",
+    accent: "#475569",
+    layout: "single",
+  },
+  {
+    id: "student",
+    name: "Student",
+    description: "education first · entry level",
+    status: "ready",
+    category: "student",
+    accent: "#7c3aed",
+    layout: "single",
+  },
+  {
+    id: "creative",
+    name: "Creative",
+    description: "editorial · portfolio-led",
+    status: "ready",
+    category: "creative",
+    accent: "#e11d48",
+    layout: "two-column",
+  },
 ];
 
 const DEFAULTS: GlobalSettings = {
@@ -85,6 +134,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
   const { cvData, setGlobalSettings } = useCVStore();
   const gs = cvData.global_settings;
   const [tab, setTab] = useState<Tab>("design");
+  const [templates, setTemplates] = useState<ResumeTemplate[]>(FALLBACK_TEMPLATES);
 
   const update = (patch: Partial<GlobalSettings>) =>
     setGlobalSettings({ ...gs, ...patch });
@@ -95,6 +145,16 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
   const marginV      = parseInt(gs.margin_v)       || 48;
   const entrySpacing = parseInt(gs.entry_spacing)  || 20;
   const colWidth     = parseInt(gs.col_left_width) || 65;
+  const readyTemplates = templates.filter((template) => template.status === "ready");
+
+  useEffect(() => {
+    void fetchResumeTemplates()
+      .then((items) => {
+        const ready = items.filter((template) => template.status === "ready");
+        if (ready.length > 0) setTemplates(ready);
+      })
+      .catch(() => undefined);
+  }, []);
 
   const TABS: { key: Tab; label: string; icon: string }[] = [
     { key: "design",     label: "Design",     icon: "🎨" },
@@ -264,10 +324,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
               <section>
                 <SectionLabel>Template</SectionLabel>
                 <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { id: "modern",  label: "Modern",  desc: "2 cols · spacious", icon: "🗂" },
-                    { id: "compact", label: "Compact", desc: "1 page · dense",    icon: "📄" },
-                  ].map((t) => (
+                  {readyTemplates.map((t) => (
                     <button
                       key={t.id}
                       onClick={() => update({ template_id: t.id })}
@@ -276,11 +333,11 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                         ? { border: '2px solid #8b5cf6', background: 'rgba(139,92,246,0.12)', boxShadow: '0 0 16px rgba(139,92,246,0.15)' }
                         : { border: '2px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}
                     >
-                      <span className="text-2xl">{t.icon}</span>
+                      <span className="text-2xl">{t.layout === "single" ? "📄" : "🗂"}</span>
                       <span className="text-xs font-semibold" style={{ color: gs.template_id === t.id ? '#c4b5fd' : '#64748b' }}>
-                        {t.label}
+                        {t.name}
                       </span>
-                      <span className="text-[10px]" style={{ color: '#334155' }}>{t.desc}</span>
+                      <span className="text-[10px]" style={{ color: '#334155' }}>{t.category}</span>
                     </button>
                   ))}
                 </div>
