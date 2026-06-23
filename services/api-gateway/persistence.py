@@ -8,7 +8,9 @@ from database.records import (
     AtsReportRecord,
     CoverLetterRecord,
     CVDocumentRecord,
+    ResumeRecord,
     ScrapedJobRecord,
+    WorkspaceDraftRecord,
 )
 from database.session import Session
 from sqlalchemy import select
@@ -61,6 +63,117 @@ def get_current_cv(session: Session) -> dict | None:
         select(CVDocumentRecord).where(CVDocumentRecord.name == "current")
     ).first()
     return load_json(record.data_json, None) if record else None
+
+
+def serialize_resume(record: ResumeRecord) -> dict:
+    """Convert a resume record to the public API shape."""
+    cv_data = load_json(record.data_json, {})
+    return {
+        "id": str(record.id),
+        "name": record.name,
+        "cvData": cv_data,
+        "templateId": record.template_id,
+        "locale": record.locale,
+        "source": record.source,
+        "createdAt": record.created_at.isoformat(),
+        "updatedAt": record.updated_at.isoformat(),
+    }
+
+
+def create_resume(
+    session: Session,
+    *,
+    name: str,
+    cv_data: dict,
+    template_id: str = "modern",
+    locale: str = "fr",
+    source: str = "manual",
+) -> ResumeRecord:
+    """Create a persisted resume document."""
+    now = datetime.now()
+    record = ResumeRecord(
+        name=name,
+        data_json=dump_json(cv_data),
+        template_id=template_id,
+        locale=locale,
+        source=source,
+        created_at=now,
+        updated_at=now,
+    )
+    session.add(record)
+    session.commit()
+    session.refresh(record)
+    return record
+
+
+def update_resume(
+    session: Session,
+    record: ResumeRecord,
+    *,
+    name: str | None = None,
+    cv_data: dict | None = None,
+    template_id: str | None = None,
+    locale: str | None = None,
+    source: str | None = None,
+) -> ResumeRecord:
+    """Patch a persisted resume document."""
+    if name is not None:
+        record.name = name
+    if cv_data is not None:
+        record.data_json = dump_json(cv_data)
+        record.template_id = template_id or cv_data.get("global_settings", {}).get(
+            "template_id", record.template_id
+        )
+    elif template_id is not None:
+        record.template_id = template_id
+    if locale is not None:
+        record.locale = locale
+    if source is not None:
+        record.source = source
+    record.updated_at = datetime.now()
+    session.add(record)
+    session.commit()
+    session.refresh(record)
+    return record
+
+
+def serialize_draft(record: WorkspaceDraftRecord) -> dict:
+    """Convert a workspace draft to its API representation."""
+    return {
+        "key": record.draft_key,
+        "data": load_json(record.data_json, {}),
+        "createdAt": record.created_at.isoformat(),
+        "updatedAt": record.updated_at.isoformat(),
+    }
+
+
+def upsert_workspace_draft(
+    session: Session,
+    *,
+    draft_key: str,
+    data: dict,
+) -> WorkspaceDraftRecord:
+    """Create or replace a cross-page UI draft in the backend."""
+    now = datetime.now()
+    record = session.exec(
+        select(WorkspaceDraftRecord).where(
+            WorkspaceDraftRecord.draft_key == draft_key
+        )
+    ).first()
+    if record:
+        record.data_json = dump_json(data)
+        record.updated_at = now
+    else:
+        record = WorkspaceDraftRecord(
+            draft_key=draft_key,
+            data_json=dump_json(data),
+            created_at=now,
+            updated_at=now,
+        )
+    session.add(record)
+    session.commit()
+    session.refresh(record)
+    return record
 
 
 def save_job_offer(session: Session, job_offer: Any) -> ScrapedJobRecord:

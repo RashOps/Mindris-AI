@@ -99,6 +99,41 @@ class CVDocumentRequest(BaseModel):
     source: str = "json"
 
 
+class ResumeCreateRequest(BaseModel):
+    """Create a resume in the backend library."""
+
+    name: str = Field(default="Untitled CV", min_length=1)
+    cv_data: dict[str, Any]
+    template_id: str = "modern"
+    locale: str = "fr"
+    source: str = "manual"
+
+
+class ResumeUpdateRequest(BaseModel):
+    """Patch a resume in the backend library."""
+
+    name: str | None = Field(default=None, min_length=1)
+    cv_data: dict[str, Any] | None = None
+    template_id: str | None = None
+    locale: str | None = None
+    source: str | None = None
+
+
+class ResumeImportRequest(BaseModel):
+    """Import a JSON resume document or raw CV data."""
+
+    name: str | None = None
+    cv_data: dict[str, Any] | None = None
+    resume: dict[str, Any] | None = None
+    source: str = "json"
+
+
+class DraftUpsertRequest(BaseModel):
+    """Upsert a backend-owned cross-page draft."""
+
+    data: dict[str, Any]
+
+
 class CompanyAnalyzeRequest(LLMRequest):
     """Request body for company intelligence."""
 
