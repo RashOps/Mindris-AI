@@ -10,6 +10,7 @@ sys.path.insert(0, str(ROOT / "services" / "api-gateway"))
 sys.path.insert(0, str(ROOT / "services"))
 sys.path.insert(0, str(ROOT / "packages"))
 
+from database.session import init_db  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 from main import app  # noqa: E402
 from utils.config import settings  # noqa: E402
@@ -22,4 +23,5 @@ def auth_headers() -> dict[str, str]:
 
 def client() -> TestClient:
     """Return a FastAPI test client."""
+    init_db()
     return TestClient(app)

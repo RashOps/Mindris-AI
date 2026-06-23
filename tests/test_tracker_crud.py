@@ -10,10 +10,16 @@ def test_tracker_create_list_move_delete() -> None:
     created = api.post(
         "/api/v1/tracker/applications",
         headers=headers,
-        json={"company": "Acme", "role": "AI Engineer", "status": "wishlist"},
+        json={
+            "company": "Acme",
+            "role": "AI Engineer",
+            "status": "wishlist",
+            "url": "https://example.com/job",
+        },
     )
     assert created.status_code == 200
     item = created.json()["item"]
+    assert item["url"] == "https://example.com/job"
 
     listed = api.get("/api/v1/tracker/applications", headers=headers)
     assert listed.status_code == 200
@@ -29,3 +35,13 @@ def test_tracker_create_list_move_delete() -> None:
 
     deleted = api.delete(f"/api/v1/tracker/applications/{item['id']}", headers=headers)
     assert deleted.status_code == 200
+
+
+def test_tracker_rejects_invalid_url() -> None:
+    api = client()
+    response = api.post(
+        "/api/v1/tracker/applications",
+        headers=auth_headers(),
+        json={"company": "Acme", "role": "AI Engineer", "url": "not-a-url"},
+    )
+    assert response.status_code == 422
