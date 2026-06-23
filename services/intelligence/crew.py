@@ -5,10 +5,10 @@ import json
 
 from crewai import Crew, CrewOutput, Process
 from database.models import JobOffer, JobOfferExtract
+from utils.logger import get_logger
 
 from .agents import MindrisAgents
 from .tasks import MindrisTasks
-from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -115,7 +115,6 @@ async def analyze_job_offer(
         result: CrewOutput = await loop.run_in_executor(
             None, intelligence.analyze_job, safe_markdown, url
         )
-
 
         # ── Try Pydantic output first (output_pydantic=JobOfferExtract) ───────
         if hasattr(result, "pydantic") and result.pydantic:

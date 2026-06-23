@@ -30,16 +30,20 @@ def chunk_cv_data(cv_data: dict) -> list[dict]:
         summary = profile.get("text_markdown", "")
         text = f"Profile: {name} — {title}.\n{summary}".strip()
         if text:
-            chunks.append({
-                "text": text,
-                "metadata": {"type": "profile", "name": name},
-            })
+            chunks.append(
+                {
+                    "text": text,
+                    "metadata": {"type": "profile", "name": name},
+                }
+            )
     elif isinstance(profile, str) and profile:
         # Legacy fallback: profile was a plain string
-        chunks.append({
-            "text": f"Profile Summary: {profile}",
-            "metadata": {"type": "summary", "category": "profile"},
-        })
+        chunks.append(
+            {
+                "text": f"Profile Summary: {profile}",
+                "metadata": {"type": "summary", "category": "profile"},
+            }
+        )
 
     # 2. Work Experience
     for exp in cv_data.get("experience", []):
@@ -51,20 +55,21 @@ def chunk_cv_data(cv_data: dict) -> list[dict]:
         keywords = exp.get("keywords") or exp.get("achievements", [])
 
         text = (
-            f"Experience: {role} at {exp.get('company', '')} ({period}).\n"
-            f"{description}"
+            f"Experience: {role} at {exp.get('company', '')} ({period}).\n{description}"
         )
         if keywords:
             text += f"\nKeywords: {', '.join(keywords)}"
 
-        chunks.append({
-            "text": text,
-            "metadata": {
-                "type": "experience",
-                "company": exp.get("company", ""),
-                "role": role,
-            },
-        })
+        chunks.append(
+            {
+                "text": text,
+                "metadata": {
+                    "type": "experience",
+                    "company": exp.get("company", ""),
+                    "role": role,
+                },
+            }
+        )
 
     # 3. Education
     for edu in cv_data.get("education", []):
@@ -75,26 +80,30 @@ def chunk_cv_data(cv_data: dict) -> list[dict]:
             f"Education: {edu.get('degree', '')} at {edu.get('institution', '')} "
             f"({period}). {edu.get('location', '')}. {edu.get('description_markdown', '')}"
         ).strip()
-        chunks.append({
-            "text": text,
-            "metadata": {
-                "type": "education",
-                "institution": edu.get("institution", ""),
-            },
-        })
+        chunks.append(
+            {
+                "text": text,
+                "metadata": {
+                    "type": "education",
+                    "institution": edu.get("institution", ""),
+                },
+            }
+        )
 
     # 4. Skills
     for skill_cat in cv_data.get("skills", []):
         # new schema: skills[], old schema: items[]
         skill_list = skill_cat.get("skills") or skill_cat.get("items", [])
         text = f"Skills — {skill_cat.get('category', '')}: {', '.join(skill_list)}"
-        chunks.append({
-            "text": text,
-            "metadata": {
-                "type": "skills",
-                "category": skill_cat.get("category", ""),
-            },
-        })
+        chunks.append(
+            {
+                "text": text,
+                "metadata": {
+                    "type": "skills",
+                    "category": skill_cat.get("category", ""),
+                },
+            }
+        )
 
     # 5. Projects
     for proj in cv_data.get("projects", []):
@@ -104,10 +113,12 @@ def chunk_cv_data(cv_data: dict) -> list[dict]:
             f"{proj.get('description_markdown', '')} "
             f"Tech: {tech}"
         ).strip()
-        chunks.append({
-            "text": text,
-            "metadata": {"type": "project", "name": proj.get("name", "")},
-        })
+        chunks.append(
+            {
+                "text": text,
+                "metadata": {"type": "project", "name": proj.get("name", "")},
+            }
+        )
 
     # 6. Languages
     lang_texts = [
@@ -115,13 +126,14 @@ def chunk_cv_data(cv_data: dict) -> list[dict]:
         for lang in cv_data.get("languages", [])
     ]
     if lang_texts:
-        chunks.append({
-            "text": f"Languages: {', '.join(lang_texts)}",
-            "metadata": {"type": "languages"},
-        })
+        chunks.append(
+            {
+                "text": f"Languages: {', '.join(lang_texts)}",
+                "metadata": {"type": "languages"},
+            }
+        )
 
     return chunks
-
 
 
 def ingest_cv_data(cv_data: dict) -> None:
@@ -140,7 +152,9 @@ def ingest_cv_data(cv_data: dict) -> None:
     texts = [c["text"] for c in chunks]
     metadatas = [c["metadata"] for c in chunks]
 
-    logger.info("🧠 Generating embeddings for %d chunks and saving to ChromaDB...", len(chunks))
+    logger.info(
+        "🧠 Generating embeddings for %d chunks and saving to ChromaDB...", len(chunks)
+    )
 
     # Clear existing vectors to avoid duplicates / dead data
     store.clear()
@@ -174,7 +188,9 @@ if __name__ == "__main__":
     # Create a dummy CV for testing if it doesn't exist
     dummy_cv_path = settings.storage_dir / "master_cv.json"
     if not dummy_cv_path.exists():
-        logger.warning("⚠️ No master_cv.json found. Creating a sample one in storage/...")
+        logger.warning(
+            "⚠️ No master_cv.json found. Creating a sample one in storage/..."
+        )
         sample_data = {
             "profile": "Data Analyst and AI Engineer passionate about building smart systems.",
             "experience": [
@@ -184,7 +200,10 @@ if __name__ == "__main__":
                     "start_date": "2023",
                     "end_date": "Present",
                     "description": "Analyzed large datasets to improve insurance models.",
-                    "achievements": ["Increased model accuracy by 15%", "Automated daily reporting in Python"]
+                    "achievements": [
+                        "Increased model accuracy by 15%",
+                        "Automated daily reporting in Python",
+                    ],
                 }
             ],
             "education": [
@@ -193,15 +212,15 @@ if __name__ == "__main__":
                     "field": "Data Science",
                     "institution": "University of Paris",
                     "start_date": "2021",
-                    "end_date": "2023"
+                    "end_date": "2023",
                 }
             ],
             "skills": [
                 {
                     "category": "Data",
-                    "items": ["Python", "SQL", "Power BI", "R", "Machine Learning"]
+                    "items": ["Python", "SQL", "Power BI", "R", "Machine Learning"],
                 }
-            ]
+            ],
         }
         with dummy_cv_path.open("w", encoding="utf-8") as f:
             json.dump(sample_data, f, indent=2)

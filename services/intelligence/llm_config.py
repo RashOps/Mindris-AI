@@ -12,7 +12,6 @@ Default LLMs per task
 These can be overridden at runtime by passing provider/model_name.
 """
 
-
 from crewai import LLM
 from utils.config import settings
 from utils.logger import get_logger
@@ -23,19 +22,19 @@ logger = get_logger(__name__)
 
 TASK_DEFAULTS: dict[str, dict[str, str]] = {
     "optimize": {
-        "provider":   "groq",
+        "provider": "groq",
         "model_name": "llama-3.3-70b-versatile",
     },
     "cover_letter": {
-        "provider":   "groq",
+        "provider": "groq",
         "model_name": "llama-3.3-70b-versatile",  # Gemini when quota available
     },
     "ats_score": {
-        "provider":   "groq",
+        "provider": "groq",
         "model_name": "llama-3.1-8b-instant",
     },
     "patch": {
-        "provider":   "groq",
+        "provider": "groq",
         "model_name": "llama-3.3-70b-versatile",
     },
 }
@@ -45,34 +44,35 @@ TASK_DEFAULTS: dict[str, dict[str, str]] = {
 MODEL_CATALOGUE: dict[str, list[dict[str, str]]] = {
     "groq": [
         {"id": "llama-3.3-70b-versatile", "label": "Llama 3.3 70B"},
-        {"id": "llama-3.1-8b-instant",    "label": "Llama 3.1 8B (fast)"},
-        {"id": "mixtral-8x7b-32768",      "label": "Mixtral 8x7B"},
-        {"id": "gemma2-9b-it",            "label": "Gemma 2 9B"},
+        {"id": "llama-3.1-8b-instant", "label": "Llama 3.1 8B (fast)"},
+        {"id": "mixtral-8x7b-32768", "label": "Mixtral 8x7B"},
+        {"id": "gemma2-9b-it", "label": "Gemma 2 9B"},
     ],
     "gemini": [
-        {"id": "gemini-2.0-flash",        "label": "Gemini 2.0 Flash"},
-        {"id": "gemini-1.5-pro",          "label": "Gemini 1.5 Pro"},
-        {"id": "gemini-1.5-flash",        "label": "Gemini 1.5 Flash"},
+        {"id": "gemini-2.0-flash", "label": "Gemini 2.0 Flash"},
+        {"id": "gemini-1.5-pro", "label": "Gemini 1.5 Pro"},
+        {"id": "gemini-1.5-flash", "label": "Gemini 1.5 Flash"},
     ],
     "openai": [
-        {"id": "gpt-4o",                  "label": "GPT-4o"},
-        {"id": "gpt-4o-mini",             "label": "GPT-4o Mini"},
-        {"id": "gpt-4-turbo",             "label": "GPT-4 Turbo"},
+        {"id": "gpt-4o", "label": "GPT-4o"},
+        {"id": "gpt-4o-mini", "label": "GPT-4o Mini"},
+        {"id": "gpt-4-turbo", "label": "GPT-4 Turbo"},
     ],
     "mistral": [
-        {"id": "mistral-large-latest",    "label": "Mistral Large"},
-        {"id": "mistral-small-latest",    "label": "Mistral Small"},
-        {"id": "open-mistral-7b",         "label": "Mistral 7B (open)"},
+        {"id": "mistral-large-latest", "label": "Mistral Large"},
+        {"id": "mistral-small-latest", "label": "Mistral Small"},
+        {"id": "open-mistral-7b", "label": "Mistral 7B (open)"},
     ],
     "ollama": [
-        {"id": "gemma4:32k",              "label": "Gemma4 32K (local)"},
-        {"id": "llama3.2",                "label": "Llama 3.2 (local)"},
-        {"id": "phi4",                    "label": "Phi-4 (local)"},
+        {"id": "gemma4:32k", "label": "Gemma4 32K (local)"},
+        {"id": "llama3.2", "label": "Llama 3.2 (local)"},
+        {"id": "phi4", "label": "Phi-4 (local)"},
     ],
 }
 
 
 # ── Factory ───────────────────────────────────────────────────────────────────
+
 
 def get_llm(
     provider: str = "groq",
@@ -92,9 +92,7 @@ def get_llm(
     """
     if provider == "ollama":
         name = (
-            model_name
-            if model_name.startswith("ollama/")
-            else f"ollama/{model_name}"
+            model_name if model_name.startswith("ollama/") else f"ollama/{model_name}"
         )
         return LLM(
             model=name,
@@ -110,9 +108,7 @@ def get_llm(
 
     if provider == "gemini":
         name = (
-            model_name
-            if model_name.startswith("gemini/")
-            else f"gemini/{model_name}"
+            model_name if model_name.startswith("gemini/") else f"gemini/{model_name}"
         )
         api_key = settings.gemini_api_key
         return LLM(model=name, api_key=api_key.get_secret_value() if api_key else None)
@@ -126,9 +122,7 @@ def get_llm(
 
     if provider == "mistral":
         name = (
-            model_name
-            if model_name.startswith("mistral/")
-            else f"mistral/{model_name}"
+            model_name if model_name.startswith("mistral/") else f"mistral/{model_name}"
         )
         api_key = settings.mistral_api_key
         return LLM(model=name, api_key=api_key.get_secret_value() if api_key else None)

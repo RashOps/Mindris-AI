@@ -20,11 +20,13 @@ logger = get_logger(__name__)
 
 # ── LlamaParse Configuration ──────────────────────────────────────────────────
 
+
 def _get_api_key() -> str:
     """Get the LlamaCloud API key from settings."""
     api_key = (
         settings.llama_cloud_api_key.get_secret_value()
-        if settings.llama_cloud_api_key else None
+        if settings.llama_cloud_api_key
+        else None
     )
     if not api_key:
         raise ValueError(
@@ -35,6 +37,7 @@ def _get_api_key() -> str:
 
 
 # ── PDF → Markdown ─────────────────────────────────────────────────────────────
+
 
 async def pdf_to_markdown(pdf_bytes: bytes, filename: str = "cv.pdf") -> str:
     """Parse a PDF file bytes to Markdown using the LlamaCloud parsing API.
@@ -191,6 +194,7 @@ def markdown_to_cv_json(
 
 
 # ── Main Convenience Function ─────────────────────────────────────────────────
+
 
 async def parse_pdf_cv(
     pdf_bytes: bytes,

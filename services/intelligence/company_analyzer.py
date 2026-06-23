@@ -45,7 +45,8 @@ async def analyze_company(
             role="Company Research Analyst",
             goal="Summarize practical company intelligence for a job candidate.",
             backstory=(
-                "You create concise, useful company briefings from your general knowledge. "
+                "You create concise, useful company briefings from your "
+                "general knowledge. "
                 "If recent facts are uncertain, say so instead of inventing details."
             ),
             llm=llm,
@@ -55,8 +56,10 @@ async def analyze_company(
         task = Task(
             description=(
                 f"Company: {name}\n\n"
-                "Return a compact candidate-facing company briefing. Use only high-confidence information. "
-                "If exact size, news, Glassdoor sentiment, or tech stack are unknown, use 'Unknown' or empty arrays."
+                "Return a compact candidate-facing company briefing. "
+                "Use only high-confidence information. "
+                "If exact size, news, Glassdoor sentiment, or tech stack "
+                "are unknown, use 'Unknown' or empty arrays."
             ),
             expected_output="A structured CompanyInsight JSON object.",
             output_pydantic=CompanyInsight,
@@ -72,5 +75,7 @@ async def analyze_company(
 
     return CompanyInsight(
         name=name,
-        unavailable_reason="Company intel unavailable without a successful LLM/search response.",
+        unavailable_reason=(
+            "Company intel unavailable without a successful LLM/search response."
+        ),
     ).model_dump()

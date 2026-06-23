@@ -42,7 +42,7 @@ class MindrisTasks:
                 "2. Use EXACTLY these English keys: "
                 '"title", "company", "location", "hard_skills", "soft_skills", '
                 '"experience_level", "remote_policy", "salary_range".\n'
-                "3. NEVER translate keys (use \"company\", NOT \"entreprise\").\n"
+                '3. NEVER translate keys (use "company", NOT "entreprise").\n'
                 "4. Extract as many hard_skills (technical) and soft_skills "
                 "(interpersonal) as possible — return them as JSON arrays.\n"
                 '5. Do NOT include "url" or "description_markdown" keys.\n\n'
