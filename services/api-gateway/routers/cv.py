@@ -1,10 +1,11 @@
 """CV, cover letter, patch, and ATS routes."""
 
 import json
+from typing import Annotated
 
 from crewai import Agent, Crew, Process, Task
-from database.session import get_session
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from database.session import Session, get_session
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from intelligence.ats_score import calculate_ats_score
 from intelligence.cover_letter import generate_cover_letter
 from intelligence.ingest_cv import ingest_cv_data
@@ -16,16 +17,23 @@ from persistence import (
     save_cover_letter,
     save_current_cv,
 )
-from schemas import CVDocumentRequest, CoverLetterRequest, PatchRequest, ScoreRequest
-from database.session import Session
+from schemas import (
+    CoverLetterRequest,
+    CVDocumentRequest,
+    PatchRequest,
+    ScoreRequest,
+    validate_llm_selection,
+)
+from utils.config import settings
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["cv"])
+SessionDep = Annotated[Session, Depends(get_session)]
 
 
 @router.get("/cv/current")
-def current_cv(session: Session = Depends(get_session)) -> dict:
+def current_cv(session: SessionDep) -> dict:
     """Return the current persisted CV."""
     cv_data = get_current_cv(session)
     if not cv_data:
@@ -34,9 +42,7 @@ def current_cv(session: Session = Depends(get_session)) -> dict:
 
 
 @router.put("/cv/current")
-def put_current_cv(
-    request: CVDocumentRequest, session: Session = Depends(get_session)
-) -> dict:
+def put_current_cv(request: CVDocumentRequest, session: SessionDep) -> dict:
     """Persist and re-index the current CV."""
     save_current_cv(session, request.cv_data, source=request.source)
     ingest_cv_data(request.cv_data)
@@ -44,7 +50,7 @@ def put_current_cv(
 
 
 @router.post("/cv/import-json")
-def import_json_cv(cv_data: dict, session: Session = Depends(get_session)) -> dict:
+def import_json_cv(cv_data: dict, session: SessionDep) -> dict:
     """Import a CV JSON object, persist it, and index it."""
     save_current_cv(session, cv_data, source="json")
     ingest_cv_data(cv_data)
@@ -52,7 +58,7 @@ def import_json_cv(cv_data: dict, session: Session = Depends(get_session)) -> di
 
 
 @router.post("/cv/upload")
-def upload_cv(cv_data: dict, session: Session = Depends(get_session)) -> dict:
+def upload_cv(cv_data: dict, session: SessionDep) -> dict:
     """Backward-compatible CV upload endpoint."""
     return import_json_cv(cv_data, session)
 
@@ -60,15 +66,26 @@ def upload_cv(cv_data: dict, session: Session = Depends(get_session)) -> dict:
 @router.post("/cv/upload-pdf")
 async def upload_pdf_cv(
     file: UploadFile,
+    session: SessionDep,
     provider: str = "groq",
     model_name: str = "llama-3.3-70b-versatile",
-    session: Session = Depends(get_session),
 ) -> dict:
     """Upload a PDF CV, parse it, persist it, and index it."""
+    try:
+        validate_llm_selection(provider, model_name)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
     if file.content_type not in ("application/pdf", "application/octet-stream"):
         raise HTTPException(status_code=400, detail="Only PDF files are accepted.")
 
     pdf_bytes = await file.read()
+    if len(pdf_bytes) > settings.max_pdf_upload_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="PDF file is too large.",
+        )
+
     logger.info("Received PDF: %s (%d bytes)", file.filename, len(pdf_bytes))
     cv_json = await parse_pdf_cv(pdf_bytes, provider=provider, model_name=model_name)
     save_current_cv(session, cv_json, source="pdf")
@@ -81,9 +98,7 @@ async def upload_pdf_cv(
 
 
 @router.post("/cv/score")
-async def calculate_ats_score_route(
-    request: ScoreRequest, session: Session = Depends(get_session)
-) -> dict:
+async def calculate_ats_score_route(request: ScoreRequest, session: SessionDep) -> dict:
     """Calculate and persist the ATS score for a CV against job insights."""
     report = await calculate_ats_score(
         cv_data=request.cv_data,
@@ -97,7 +112,7 @@ async def calculate_ats_score_route(
 
 @router.post("/cover-letter")
 async def generate_cover_letter_route(
-    request: CoverLetterRequest, session: Session = Depends(get_session)
+    request: CoverLetterRequest, session: SessionDep
 ) -> dict:
     """Generate and persist a tailored cover letter in Markdown."""
     markdown = await generate_cover_letter(
@@ -121,7 +136,7 @@ def patch_cv_from_bullets(request: PatchRequest) -> dict:
         f"  - id: {e.get('id')}, role: {e.get('role')}, company: {e.get('company')}"
         for e in experiences
     )
-    bullets_text = "\n".join(f"  - {b}" for b in request.drafted_bullets)
+    bullets_text = "\n".join(f"  - {bullet}" for bullet in request.drafted_bullets)
 
     patcher = Agent(
         role="CV Data Architect",
@@ -148,5 +163,12 @@ def patch_cv_from_bullets(request: PatchRequest) -> dict:
     raw = str(result.raw).strip()
     start = raw.find("{")
     end = raw.rfind("}") + 1
-    patch = json.loads(raw[start:end]) if start != -1 and end > start else {}
+    if start == -1 or end <= start:
+        raise HTTPException(status_code=502, detail="LLM did not return JSON.")
+    try:
+        patch = json.loads(raw[start:end])
+    except json.JSONDecodeError as exc:
+        raise HTTPException(
+            status_code=502, detail="LLM returned invalid JSON."
+        ) from exc
     return {"status": "success", "patch": patch}

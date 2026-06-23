@@ -63,7 +63,11 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
     logger.exception("Unhandled API error on %s", request.url.path)
     return JSONResponse(
         status_code=500,
-        content={"status": "error", "message": "Internal server error", "detail": str(exc)},
+        content={
+            "status": "error",
+            "message": "Internal server error",
+            "detail": str(exc),
+        },
     )
 
 

@@ -1,17 +1,27 @@
 """Application tracker routes."""
 
 from datetime import datetime
+from typing import Annotated
 
-from database.records import ApplicationRecord, AtsReportRecord, CoverLetterRecord, ScrapedJobRecord
-from database.session import get_session
+from database.records import (
+    ApplicationRecord,
+    AtsReportRecord,
+    CoverLetterRecord,
+    ScrapedJobRecord,
+)
+from database.session import Session, get_session
 from fastapi import APIRouter, Depends, HTTPException
 from persistence import serialize_ats, serialize_cover_letter, serialize_job
-from schemas import ApplicationCreateRequest, ApplicationMoveRequest, ApplicationUpdateRequest
+from schemas import (
+    ApplicationCreateRequest,
+    ApplicationMoveRequest,
+    ApplicationUpdateRequest,
+)
 from sqlalchemy import select
-from database.session import Session
 
 router = APIRouter(prefix="/api/v1/tracker", tags=["tracker"])
 STATUSES = ("wishlist", "applied", "interview", "offer", "rejected")
+SessionDep = Annotated[Session, Depends(get_session)]
 
 
 def serialize_application(row: ApplicationRecord) -> dict:
@@ -38,22 +48,34 @@ def _ensure_status(status: str) -> None:
         raise HTTPException(status_code=422, detail=f"Invalid status: {status}")
 
 
+def _application_payload(request: ApplicationCreateRequest) -> dict:
+    payload = request.model_dump()
+    if payload.get("url") is not None:
+        payload["url"] = str(payload["url"])
+    return payload
+
+
 @router.get("/applications")
-def list_applications(session: Session = Depends(get_session)) -> dict:
+def list_applications(session: SessionDep) -> dict:
     """Return applications grouped by status."""
     rows = session.exec(
-        select(ApplicationRecord).order_by(ApplicationRecord.status, ApplicationRecord.position)
+        select(ApplicationRecord).order_by(
+            ApplicationRecord.status,
+            ApplicationRecord.position,
+        )
     ).all()
     grouped = {status: [] for status in STATUSES}
     for row in rows:
         grouped.setdefault(row.status, []).append(serialize_application(row))
-    return {"status": "success", "items": [serialize_application(row) for row in rows], "columns": grouped}
+    return {
+        "status": "success",
+        "items": [serialize_application(row) for row in rows],
+        "columns": grouped,
+    }
 
 
 @router.post("/applications")
-def create_application(
-    request: ApplicationCreateRequest, session: Session = Depends(get_session)
-) -> dict:
+def create_application(request: ApplicationCreateRequest, session: SessionDep) -> dict:
     """Create an application tracker item."""
     _ensure_status(request.status)
     max_pos = len(
@@ -62,7 +84,7 @@ def create_application(
         ).all()
     )
     row = ApplicationRecord(
-        **request.model_dump(),
+        **_application_payload(request),
         position=max_pos,
         applied_at=datetime.now() if request.status == "applied" else None,
     )
@@ -76,16 +98,22 @@ def create_application(
 def update_application(
     application_id: int,
     request: ApplicationUpdateRequest,
-    session: Session = Depends(get_session),
+    session: SessionDep,
 ) -> dict:
     """Patch an application tracker item."""
     row = session.get(ApplicationRecord, application_id)
     if not row:
         raise HTTPException(status_code=404, detail="Application not found.")
     data = request.model_dump(exclude_unset=True)
+    if data.get("url") is not None:
+        data["url"] = str(data["url"])
     if "status" in data and data["status"] is not None:
         _ensure_status(data["status"])
-        if row.status != data["status"] and data["status"] == "applied" and not row.applied_at:
+        if (
+            row.status != data["status"]
+            and data["status"] == "applied"
+            and not row.applied_at
+        ):
             row.applied_at = datetime.now()
     for key, value in data.items():
         setattr(row, key, value)
@@ -100,7 +128,7 @@ def update_application(
 def move_application(
     application_id: int,
     request: ApplicationMoveRequest,
-    session: Session = Depends(get_session),
+    session: SessionDep,
 ) -> dict:
     """Move an application between Kanban columns."""
     _ensure_status(request.status)
@@ -119,7 +147,7 @@ def move_application(
 
 
 @router.delete("/applications/{application_id}")
-def delete_application(application_id: int, session: Session = Depends(get_session)) -> dict:
+def delete_application(application_id: int, session: SessionDep) -> dict:
     """Delete an application tracker item."""
     row = session.get(ApplicationRecord, application_id)
     if not row:
@@ -130,14 +158,18 @@ def delete_application(application_id: int, session: Session = Depends(get_sessi
 
 
 @router.get("/applications/{application_id}/full")
-def get_application_full(application_id: int, session: Session = Depends(get_session)) -> dict:
+def get_application_full(application_id: int, session: SessionDep) -> dict:
     """Return an application with linked job, ATS report, and cover letter."""
     row = session.get(ApplicationRecord, application_id)
     if not row:
         raise HTTPException(status_code=404, detail="Application not found.")
     job = session.get(ScrapedJobRecord, row.job_id) if row.job_id else None
     ats = session.get(AtsReportRecord, row.ats_report_id) if row.ats_report_id else None
-    letter = session.get(CoverLetterRecord, row.cover_letter_id) if row.cover_letter_id else None
+    letter = (
+        session.get(CoverLetterRecord, row.cover_letter_id)
+        if row.cover_letter_id
+        else None
+    )
     return {
         "status": "success",
         "application": serialize_application(row),

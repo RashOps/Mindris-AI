@@ -1,19 +1,19 @@
 """History routes."""
 
+from typing import Annotated
+
 from database.records import AtsReportRecord, CoverLetterRecord, ScrapedJobRecord
-from database.session import get_session
+from database.session import Session, get_session
 from fastapi import APIRouter, Depends, HTTPException
 from persistence import serialize_ats, serialize_cover_letter, serialize_job
 from sqlalchemy import select
-from database.session import Session
 
 router = APIRouter(prefix="/api/v1/history", tags=["history"])
+SessionDep = Annotated[Session, Depends(get_session)]
 
 
 @router.get("/jobs")
-def list_jobs(
-    limit: int = 50, offset: int = 0, session: Session = Depends(get_session)
-) -> dict:
+def list_jobs(session: SessionDep, limit: int = 50, offset: int = 0) -> dict:
     """List scraped jobs."""
     rows = session.exec(
         select(ScrapedJobRecord)
@@ -25,7 +25,7 @@ def list_jobs(
 
 
 @router.get("/jobs/{job_id}")
-def get_job(job_id: int, session: Session = Depends(get_session)) -> dict:
+def get_job(job_id: int, session: SessionDep) -> dict:
     """Return one job with linked reports and letters."""
     job = session.get(ScrapedJobRecord, job_id)
     if not job:
@@ -45,7 +45,7 @@ def get_job(job_id: int, session: Session = Depends(get_session)) -> dict:
 
 
 @router.get("/cover-letters")
-def list_cover_letters(session: Session = Depends(get_session)) -> dict:
+def list_cover_letters(session: SessionDep) -> dict:
     """List generated cover letters."""
     rows = session.exec(
         select(CoverLetterRecord).order_by(CoverLetterRecord.generated_at.desc())
@@ -54,7 +54,7 @@ def list_cover_letters(session: Session = Depends(get_session)) -> dict:
 
 
 @router.get("/ats-reports")
-def list_ats_reports(session: Session = Depends(get_session)) -> dict:
+def list_ats_reports(session: SessionDep) -> dict:
     """List ATS reports."""
     rows = session.exec(
         select(AtsReportRecord).order_by(AtsReportRecord.generated_at.desc())
@@ -63,14 +63,16 @@ def list_ats_reports(session: Session = Depends(get_session)) -> dict:
 
 
 @router.delete("/jobs/{job_id}")
-def delete_job(job_id: int, session: Session = Depends(get_session)) -> dict:
+def delete_job(job_id: int, session: SessionDep) -> dict:
     """Delete a job and dependent records."""
     job = session.get(ScrapedJobRecord, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found.")
-    for row in session.exec(select(AtsReportRecord).where(AtsReportRecord.job_id == job_id)).all():
+    ats_query = select(AtsReportRecord).where(AtsReportRecord.job_id == job_id)
+    letter_query = select(CoverLetterRecord).where(CoverLetterRecord.job_id == job_id)
+    for row in session.exec(ats_query).all():
         session.delete(row)
-    for row in session.exec(select(CoverLetterRecord).where(CoverLetterRecord.job_id == job_id)).all():
+    for row in session.exec(letter_query).all():
         session.delete(row)
     session.delete(job)
     session.commit()

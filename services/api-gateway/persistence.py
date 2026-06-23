@@ -6,12 +6,12 @@ from typing import Any
 
 from database.records import (
     AtsReportRecord,
-    CVDocumentRecord,
     CoverLetterRecord,
+    CVDocumentRecord,
     ScrapedJobRecord,
 )
-from sqlalchemy import select
 from database.session import Session
+from sqlalchemy import select
 
 
 def dump_json(value: Any) -> str:
@@ -29,7 +29,9 @@ def load_json(value: str | None, fallback: Any) -> Any:
         return fallback
 
 
-def save_current_cv(session: Session, cv_data: dict, source: str = "json") -> CVDocumentRecord:
+def save_current_cv(
+    session: Session, cv_data: dict, source: str = "json"
+) -> CVDocumentRecord:
     """Upsert the current CV document."""
     record = session.exec(
         select(CVDocumentRecord).where(CVDocumentRecord.name == "current")
