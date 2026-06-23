@@ -11,7 +11,7 @@ import { useCVStore } from "@/store/useCVStore";
 import { cvDataFromImport, resumeNameFromImport, type CompanyInsight, type JobInsights } from "@/store/useCVStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { apiUrl, rendererUrl, apiHeaders, jsonHeaders } from "@/lib/api";
 import Link from "next/link";
 import {
@@ -54,6 +54,7 @@ export default function AppPage() {
     setJobInsights, jobInsights,
     updateSkillGroup, updateExperience,
     appSettings,
+    loadResumes,
     resumes, activeResumeId, setActiveResume,
     createResume, duplicateResume, deleteResume,
     renameResume, exportActiveResume,
@@ -75,6 +76,12 @@ export default function AppPage() {
     setToast(msg);
     setTimeout(() => setToast(null), ms);
   };
+
+  useEffect(() => {
+    void loadResumes().catch((err: unknown) => {
+      showToast(`❌ ${errorMessage(err, "Failed to load resumes")}`, 6000);
+    });
+  }, [loadResumes]);
 
   const activeResume = resumes.find((resume) => resume.id === activeResumeId);
 
@@ -184,8 +191,8 @@ export default function AppPage() {
     }
   };
 
-  const handleExportJSON = () => {
-    const resume = exportActiveResume();
+  const handleExportJSON = async () => {
+    const resume = await exportActiveResume();
     const blob = new Blob([JSON.stringify(resume, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -293,8 +300,11 @@ export default function AppPage() {
             />
             <button
               onClick={() => {
-                createResume("Untitled CV");
-                showToast("✅ New blank CV created");
+                void createResume("Untitled CV")
+                  .then(() => showToast("✅ New blank CV created"))
+                  .catch((err: unknown) => {
+                    showToast(`❌ ${errorMessage(err, "Create failed")}`, 6000);
+                  });
               }}
               className="h-8 px-2 rounded-lg text-xs border"
               style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}
@@ -304,8 +314,11 @@ export default function AppPage() {
             </button>
             <button
               onClick={() => {
-                duplicateResume();
-                showToast("✅ CV duplicated");
+                void duplicateResume()
+                  .then(() => showToast("✅ CV duplicated"))
+                  .catch((err: unknown) => {
+                    showToast(`❌ ${errorMessage(err, "Duplicate failed")}`, 6000);
+                  });
               }}
               className="h-8 px-2 rounded-lg text-xs border"
               style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}
@@ -315,8 +328,11 @@ export default function AppPage() {
             </button>
             <button
               onClick={() => {
-                deleteResume(activeResumeId);
-                showToast(resumes.length > 1 ? "✅ CV deleted" : "Keep at least one CV");
+                void deleteResume(activeResumeId)
+                  .then(() => showToast(resumes.length > 1 ? "✅ CV deleted" : "Keep at least one CV"))
+                  .catch((err: unknown) => {
+                    showToast(`❌ ${errorMessage(err, "Delete failed")}`, 6000);
+                  });
               }}
               disabled={resumes.length <= 1}
               className="h-8 px-2 rounded-lg text-xs border disabled:opacity-40"
@@ -368,7 +384,9 @@ export default function AppPage() {
               ↑ JSON
             </button>
 
-            <button onClick={handleExportJSON}
+            <button onClick={() => void handleExportJSON().catch((err: unknown) => {
+              showToast(`❌ ${errorMessage(err, "JSON export failed")}`, 6000);
+            })}
               className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
               style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}>
               ↓ JSON

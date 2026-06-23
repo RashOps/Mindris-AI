@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
 import { arrayMove } from '@dnd-kit/sortable';
 import { apiUrl, jsonHeaders } from '@/lib/api';
 
@@ -203,15 +202,18 @@ interface CVStore {
   cvData: CVData;
   resumes: ResumeDocument[];
   activeResumeId: string;
+  isResumeLibraryLoading: boolean;
   isOptimizing: boolean;
 
   // Resume library
-  createResume: (name?: string, templateId?: string) => string;
-  duplicateResume: (id?: string) => string;
-  deleteResume: (id: string) => void;
+  loadResumes: () => Promise<void>;
+  createResume: (name?: string, templateId?: string) => Promise<string>;
+  importResume: (name: string, cvData: CVData, source?: string) => Promise<string>;
+  duplicateResume: (id?: string) => Promise<string>;
+  deleteResume: (id: string) => Promise<void>;
   renameResume: (id: string, name: string) => void;
   setActiveResume: (id: string) => void;
-  exportActiveResume: () => ResumeDocument;
+  exportActiveResume: () => Promise<ResumeDocument>;
 
   // Job Insights
   jobInsights: JobInsights | null;
@@ -403,117 +405,178 @@ function syncActiveResume(state: CVStore, cvData: CVData): Pick<CVStore, 'cvData
   const activeResume = state.resumes.find((resume) => resume.id === state.activeResumeId);
 
   if (!activeResume) {
-    const fallback = createResumeDocument('CV principal', cvData);
     return {
       cvData,
-      resumes: [fallback],
+      resumes: state.resumes,
     };
   }
+
+  const updatedResume = {
+    ...activeResume,
+    cvData: cloneCVData(cvData),
+    templateId: cvData.global_settings.template_id || activeResume.templateId,
+    updatedAt: timestamp,
+  };
+
+  void persistResume(activeResume.id, {
+    name: updatedResume.name,
+    cvData: updatedResume.cvData,
+    templateId: updatedResume.templateId,
+    locale: updatedResume.locale,
+  });
 
   return {
     cvData,
     resumes: state.resumes.map((resume) =>
-      resume.id === state.activeResumeId
-        ? {
-            ...resume,
-            cvData: cloneCVData(cvData),
-            templateId: cvData.global_settings.template_id || resume.templateId,
-            updatedAt: timestamp,
-          }
-        : resume
+      resume.id === state.activeResumeId ? updatedResume : resume
     ),
   };
 }
 
-type PersistedCVStore = Partial<{
-  cvData: CVData;
-  resumes: ResumeDocument[];
-  activeResumeId: string;
-  appSettings: AppSettings;
-}>;
+async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(apiUrl(path), {
+    ...init,
+    headers: {
+      ...(init?.body instanceof FormData ? {} : jsonHeaders()),
+      ...init?.headers,
+    },
+  });
+  if (!response.ok) {
+    throw new Error(`API request failed: ${response.status}`);
+  }
+  return response.json() as Promise<T>;
+}
 
-function normalizePersistedStore(persisted: unknown): PersistedCVStore {
-  if (!persisted || typeof persisted !== 'object') return {};
-
-  const state = persisted as PersistedCVStore;
-  const cvData = state.cvData ?? initialCV;
-  const resumes =
-    Array.isArray(state.resumes) && state.resumes.length > 0
-      ? state.resumes
-      : [createResumeDocument('CV principal', cvData)];
-  const activeResumeId = resumes.some((resume) => resume.id === state.activeResumeId)
-    ? state.activeResumeId!
-    : resumes[0].id;
-  const activeResume = resumes.find((resume) => resume.id === activeResumeId) ?? resumes[0];
-
-  return {
-    ...state,
-    resumes,
-    activeResumeId,
-    cvData: activeResume.cvData,
-  };
+async function persistResume(resumeId: string, patch: Partial<ResumeDocument>) {
+  await requestJson<{ item: ResumeDocument }>(`/api/v1/resumes/${resumeId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      name: patch.name,
+      cv_data: patch.cvData,
+      template_id: patch.templateId,
+      locale: patch.locale,
+      source: 'editor',
+    }),
+  }).catch((error: unknown) => {
+    console.error('Resume save failed', error);
+  });
 }
 
 // ── Store ─────────────────────────────────────────────────────────────────────
 
-export const useCVStore = create<CVStore>()(
-  persist(
-    (set, get) => ({
-      cvData: initialResume.cvData,
-      resumes: [initialResume],
-      activeResumeId: initialResume.id,
-      isOptimizing: false,
+export const useCVStore = create<CVStore>()((set, get) => ({
+  cvData: initialResume.cvData,
+  resumes: [initialResume],
+  activeResumeId: initialResume.id,
+  isResumeLibraryLoading: false,
+  isOptimizing: false,
 
   // ── Resume library ────────────────────────────────────────────────────────
-  createResume: (name = 'Untitled CV', templateId = 'modern') => {
-    const resume = createResumeDocument(name, createBlankCVData(templateId));
-    set((state) => ({
-      resumes: [...state.resumes, resume],
-      activeResumeId: resume.id,
-      cvData: resume.cvData,
-      jobInsights: null,
-    }));
-    return resume.id;
-  },
-
-  duplicateResume: (id) => {
-    const state = get();
-    const source = state.resumes.find((resume) => resume.id === (id ?? state.activeResumeId));
-    const resume = createResumeDocument(
-      `${source?.name ?? 'CV'} copy`,
-      source?.cvData ?? state.cvData
-    );
-    set((current) => ({
-      resumes: [...current.resumes, resume],
-      activeResumeId: resume.id,
-      cvData: resume.cvData,
-      jobInsights: null,
-    }));
-    return resume.id;
-  },
-
-  deleteResume: (id) =>
-    set((state) => {
-      if (state.resumes.length <= 1) return state;
-      const resumes = state.resumes.filter((resume) => resume.id !== id);
+  loadResumes: async () => {
+    set({ isResumeLibraryLoading: true });
+    try {
+      const data = await requestJson<{ items: ResumeDocument[] }>('/api/v1/resumes');
+      if (data.items.length === 0) {
+        const id = await get().createResume('CV principal', 'modern');
+        get().setActiveResume(id);
+        return;
+      }
+      const activeId = get().activeResumeId;
       const activeResume =
-        id === state.activeResumeId
+        data.items.find((resume) => resume.id === activeId) ?? data.items[0];
+      set({
+        resumes: data.items,
+        activeResumeId: activeResume.id,
+        cvData: activeResume.cvData,
+        jobInsights: null,
+      });
+    } finally {
+      set({ isResumeLibraryLoading: false });
+    }
+  },
+
+  createResume: async (name = 'Untitled CV', templateId = 'modern') => {
+    const cvData = createBlankCVData(templateId);
+    const data = await requestJson<{ item: ResumeDocument }>('/api/v1/resumes', {
+      method: 'POST',
+      body: JSON.stringify({
+        name,
+        cv_data: cvData,
+        template_id: templateId,
+        locale: 'fr',
+        source: 'manual',
+      }),
+    });
+    set((state) => ({
+      resumes: [data.item, ...state.resumes],
+      activeResumeId: data.item.id,
+      cvData: data.item.cvData,
+      jobInsights: null,
+    }));
+    return data.item.id;
+  },
+
+  importResume: async (name, cvData, source = 'json') => {
+    const data = await requestJson<{ item: ResumeDocument }>('/api/v1/resumes/import-json', {
+      method: 'POST',
+      body: JSON.stringify({
+        name,
+        cv_data: cvData,
+        source,
+      }),
+    });
+    set((state) => ({
+      resumes: [data.item, ...state.resumes],
+      activeResumeId: data.item.id,
+      cvData: data.item.cvData,
+      jobInsights: null,
+    }));
+    return data.item.id;
+  },
+
+  duplicateResume: async (id) => {
+    const sourceId = id ?? get().activeResumeId;
+    const data = await requestJson<{ item: ResumeDocument }>(
+      `/api/v1/resumes/${sourceId}/duplicate`,
+      { method: 'POST' }
+    );
+    set((state) => ({
+      resumes: [data.item, ...state.resumes],
+      activeResumeId: data.item.id,
+      cvData: data.item.cvData,
+      jobInsights: null,
+    }));
+    return data.item.id;
+  },
+
+  deleteResume: async (id) => {
+    const state = get();
+    if (state.resumes.length <= 1) return;
+    await requestJson(`/api/v1/resumes/${id}`, { method: 'DELETE' });
+    set((current) => {
+      const resumes = current.resumes.filter((resume) => resume.id !== id);
+      const activeResume =
+        id === current.activeResumeId
           ? resumes[0]
-          : resumes.find((resume) => resume.id === state.activeResumeId) ?? resumes[0];
+          : resumes.find((resume) => resume.id === current.activeResumeId) ?? resumes[0];
       return {
         resumes,
         activeResumeId: activeResume.id,
         cvData: activeResume.cvData,
-        jobInsights: id === state.activeResumeId ? null : state.jobInsights,
+        jobInsights: id === current.activeResumeId ? null : current.jobInsights,
       };
-    }),
+    });
+  },
 
-  renameResume: (id, name) =>
+  renameResume: (id, name) => {
+    const nextName = name.trim() || 'Untitled CV';
     set((state) => ({
       resumes: state.resumes.map((resume) =>
-        resume.id === id ? { ...resume, name: name.trim() || 'Untitled CV', updatedAt: nowIso() } : resume
+        resume.id === id ? { ...resume, name: nextName, updatedAt: nowIso() } : resume
       ),
-    })),
+    }));
+    void persistResume(id, { name: nextName });
+  },
 
   setActiveResume: (id) =>
     set((state) => {
@@ -526,11 +589,11 @@ export const useCVStore = create<CVStore>()(
       };
     }),
 
-  exportActiveResume: () => {
+  exportActiveResume: async () => {
     const state = get();
-    const activeResume = state.resumes.find((resume) => resume.id === state.activeResumeId);
-    if (activeResume) return activeResume;
-    return createResumeDocument('CV export', state.cvData);
+    return requestJson<ResumeDocument>(
+      `/api/v1/resumes/${state.activeResumeId}/export-json`
+    );
   },
 
   // ── Job Insights ────────────────────────────────────────────────────────────
@@ -786,23 +849,7 @@ export const useCVStore = create<CVStore>()(
       })
     ),
 
-      // ── Full replace ─────────────────────────────────────────────────────────
-      replaceCVData: (data) =>
-        set((state) => syncActiveResume(state, { ...state.cvData, ...data })),
-    }),
-    {
-      name: 'mindris-cv-store',
-      version: 2,
-      storage: createJSONStorage(() => localStorage),
-      // Only persist data we want to survive a page refresh.
-      // Transient UI state (isOptimizing, jobInsights) is intentionally excluded.
-      partialize: (state) => ({
-        cvData: state.cvData,
-        resumes: state.resumes,
-        activeResumeId: state.activeResumeId,
-        appSettings: state.appSettings,
-      }),
-      migrate: normalizePersistedStore,
-    }
-  )
-);
+  // ── Full replace ─────────────────────────────────────────────────────────
+  replaceCVData: (data) =>
+    set((state) => syncActiveResume(state, { ...state.cvData, ...data })),
+}));

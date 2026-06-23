@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
@@ -20,7 +20,6 @@ import {
   resumeNameFromImport,
   useCVStore,
   type CVData,
-  type ResumeDocument,
 } from "@/store/useCVStore";
 import { apiHeaders, apiUrl, jsonHeaders } from "@/lib/api";
 
@@ -72,12 +71,16 @@ function formatDate(value: string): string {
   }).format(new Date(value));
 }
 
-function downloadResume(resume: ResumeDocument) {
-  const blob = new Blob([JSON.stringify(resume, null, 2)], { type: "application/json" });
+async function downloadResume(id: string, name: string) {
+  const response = await fetch(apiUrl(`/api/v1/resumes/${id}/export-json`), {
+    headers: apiHeaders(),
+  });
+  if (!response.ok) throw new Error("JSON export failed");
+  const blob = await response.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `${resume.name.replace(/\s+/g, "_") || "mindris_cv"}.json`;
+  a.download = `${name.replace(/\s+/g, "_") || "mindris_cv"}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -93,13 +96,15 @@ export default function DashboardPage() {
   const {
     resumes,
     activeResumeId,
+    isResumeLibraryLoading,
     appSettings,
+    loadResumes,
     createResume,
+    importResume,
     duplicateResume,
     deleteResume,
     renameResume,
     setActiveResume,
-    replaceCVData,
   } = useCVStore();
   const [status, setStatus] = useState<string | null>(null);
   const [isImportingPdf, setIsImportingPdf] = useState(false);
@@ -109,20 +114,24 @@ export default function DashboardPage() {
     window.setTimeout(() => setStatus(null), 3500);
   };
 
+  useEffect(() => {
+    void loadResumes().catch((err: unknown) => {
+      showStatus(err instanceof Error ? err.message : "Resume loading failed");
+    });
+  }, [loadResumes]);
+
   const openResume = (id: string) => {
     setActiveResume(id);
     router.push("/tools/cv-creator");
   };
 
-  const createFromTemplate = (templateId: string, name: string) => {
-    const id = createResume(`${name} CV`, templateId);
+  const createFromTemplate = async (templateId: string, name: string) => {
+    const id = await createResume(`${name} CV`, templateId);
     openResume(id);
   };
 
   const importCVData = async (cvData: CVData, name: string) => {
-    const id = createResume(name, cvData.global_settings.template_id || "modern");
-    replaceCVData(cvData);
-    renameResume(id, name);
+    const id = await importResume(name, cvData, "json");
     await fetch(apiUrl("/api/v1/cv/upload"), {
       method: "POST",
       headers: jsonHeaders(),
@@ -246,7 +255,7 @@ export default function DashboardPage() {
                 {isImportingPdf ? "Parsing..." : "PDF"}
               </button>
               <button
-                onClick={() => createFromTemplate("modern", "Untitled")}
+                onClick={() => void createFromTemplate("modern", "Untitled")}
                 className="inline-flex h-9 items-center gap-2 rounded-md bg-slate-950 px-3 text-sm font-semibold text-white shadow-sm"
               >
                 <Plus size={15} />
@@ -266,14 +275,16 @@ export default function DashboardPage() {
               <div className="mb-4 flex items-end justify-between gap-4">
                 <div>
                   <h2 className="text-base font-semibold">Your resumes</h2>
-                  <p className="text-sm text-slate-500">Local-first drafts stored in your browser.</p>
+                  <p className="text-sm text-slate-500">Drafts persisted by the backend API.</p>
                 </div>
-                <p className="text-sm text-slate-500">{resumes.length} saved</p>
+                <p className="text-sm text-slate-500">
+                  {isResumeLibraryLoading ? "Loading..." : `${resumes.length} saved`}
+                </p>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 <button
-                  onClick={() => createFromTemplate("modern", "Untitled")}
+                  onClick={() => void createFromTemplate("modern", "Untitled")}
                   className="flex min-h-52 flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white p-5 text-center transition-colors hover:border-slate-400"
                 >
                   <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
@@ -327,19 +338,33 @@ export default function DashboardPage() {
                         Open <ArrowRight size={13} />
                       </button>
                       <button
-                        onClick={() => duplicateResume(resume.id)}
+                        onClick={() => {
+                          void duplicateResume(resume.id).catch((err: unknown) => {
+                            showStatus(err instanceof Error ? err.message : "Duplicate failed");
+                          });
+                        }}
                         className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 px-2.5 text-xs font-medium text-slate-700"
                       >
                         <Copy size={13} /> Duplicate
                       </button>
                       <button
-                        onClick={() => downloadResume(resume)}
+                        onClick={() => {
+                          void downloadResume(resume.id, resume.name)
+                            .then(() => showStatus("JSON resume exported"))
+                            .catch((err: unknown) => {
+                              showStatus(err instanceof Error ? err.message : "JSON export failed");
+                            });
+                        }}
                         className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 px-2.5 text-xs font-medium text-slate-700"
                       >
                         <Download size={13} /> JSON
                       </button>
                       <button
-                        onClick={() => deleteResume(resume.id)}
+                        onClick={() => {
+                          void deleteResume(resume.id).catch((err: unknown) => {
+                            showStatus(err instanceof Error ? err.message : "Delete failed");
+                          });
+                        }}
                         disabled={resumes.length <= 1}
                         className="inline-flex h-8 items-center gap-1.5 rounded-md border border-red-100 px-2.5 text-xs font-medium text-red-600 disabled:opacity-40"
                       >
@@ -366,7 +391,9 @@ export default function DashboardPage() {
                     return (
                       <button
                         key={template.id}
-                        onClick={() => ready && createFromTemplate(template.id, template.name)}
+                        onClick={() => {
+                          if (ready) void createFromTemplate(template.id, template.name);
+                        }}
                         disabled={!ready}
                         className="rounded-lg border border-slate-200 bg-white p-4 text-left shadow-sm transition-colors enabled:hover:border-slate-300 disabled:opacity-60"
                       >
@@ -404,8 +431,8 @@ export default function DashboardPage() {
                   <div className="flex items-start gap-3">
                     <FileJson size={16} className="mt-0.5 text-emerald-600" />
                     <div>
-                      <p className="font-medium">Local resume library</p>
-                      <p className="text-xs leading-5 text-slate-500">Create, duplicate, import, export, and keep multiple CV drafts.</p>
+                      <p className="font-medium">API-backed resume library</p>
+                      <p className="text-xs leading-5 text-slate-500">Create, duplicate, import, export, and keep multiple CV drafts via backend endpoints.</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
