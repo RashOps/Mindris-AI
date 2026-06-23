@@ -12,7 +12,12 @@ from persistence import (
     serialize_resume,
     update_resume,
 )
-from schemas import ResumeCreateRequest, ResumeImportRequest, ResumeUpdateRequest
+from schemas import (
+    CVDataModel,
+    ResumeCreateRequest,
+    ResumeImportRequest,
+    ResumeUpdateRequest,
+)
 from sqlalchemy import select
 
 router = APIRouter(prefix="/api/v1/resumes", tags=["resumes"])
@@ -39,11 +44,12 @@ def _payload_from_import(request: ResumeImportRequest) -> tuple[str, dict[str, A
         cv_data = resume.get("cvData") or resume.get("cv_data")
         if not isinstance(cv_data, dict):
             raise HTTPException(status_code=422, detail="Invalid resume JSON.")
+        cv_data = CVDataModel.model_validate(cv_data).model_dump(mode="json")
         name = request.name or str(resume.get("name") or "Imported CV")
         return name, cv_data
 
     if request.cv_data:
-        return request.name or "Imported CV", request.cv_data
+        return request.name or "Imported CV", request.cv_data.model_dump(mode="json")
 
     raise HTTPException(status_code=422, detail="Missing cv_data or resume.")
 
@@ -60,11 +66,12 @@ def list_resumes(session: SessionDep) -> dict:
 @router.post("")
 def create_resume_route(request: ResumeCreateRequest, session: SessionDep) -> dict:
     """Create a new persisted resume."""
+    cv_data = request.cv_data.model_dump(mode="json")
     record = create_resume(
         session,
         name=request.name,
-        cv_data=request.cv_data,
-        template_id=request.template_id or _template_id(request.cv_data),
+        cv_data=cv_data,
+        template_id=request.template_id or _template_id(cv_data),
         locale=request.locale,
         source=request.source,
     )
@@ -87,11 +94,12 @@ def update_resume_route(
     session: SessionDep,
 ) -> dict:
     """Patch a persisted resume."""
+    cv_data = request.cv_data.model_dump(mode="json") if request.cv_data else None
     record = update_resume(
         session,
         _get_resume(session, resume_id),
         name=request.name,
-        cv_data=request.cv_data,
+        cv_data=cv_data,
         template_id=request.template_id,
         locale=request.locale,
         source=request.source,

@@ -19,6 +19,7 @@ from persistence import (
 )
 from schemas import (
     CoverLetterRequest,
+    CVDataModel,
     CVDocumentRequest,
     PatchRequest,
     ScoreRequest,
@@ -44,21 +45,23 @@ def current_cv(session: SessionDep) -> dict:
 @router.put("/cv/current")
 def put_current_cv(request: CVDocumentRequest, session: SessionDep) -> dict:
     """Persist and re-index the current CV."""
-    save_current_cv(session, request.cv_data, source=request.source)
-    ingest_cv_data(request.cv_data)
+    cv_data = request.cv_data.model_dump(mode="json")
+    save_current_cv(session, cv_data, source=request.source)
+    ingest_cv_data(cv_data)
     return {"status": "success", "message": "CV saved and indexed."}
 
 
 @router.post("/cv/import-json")
-def import_json_cv(cv_data: dict, session: SessionDep) -> dict:
+def import_json_cv(cv_data: CVDataModel, session: SessionDep) -> dict:
     """Import a CV JSON object, persist it, and index it."""
-    save_current_cv(session, cv_data, source="json")
-    ingest_cv_data(cv_data)
+    payload = cv_data.model_dump(mode="json")
+    save_current_cv(session, payload, source="json")
+    ingest_cv_data(payload)
     return {"status": "success", "message": "CV imported and indexed."}
 
 
 @router.post("/cv/upload")
-def upload_cv(cv_data: dict, session: SessionDep) -> dict:
+def upload_cv(cv_data: CVDataModel, session: SessionDep) -> dict:
     """Backward-compatible CV upload endpoint."""
     return import_json_cv(cv_data, session)
 
@@ -87,7 +90,8 @@ async def upload_pdf_cv(
         )
 
     logger.info("Received PDF: %s (%d bytes)", file.filename, len(pdf_bytes))
-    cv_json = await parse_pdf_cv(pdf_bytes, provider=provider, model_name=model_name)
+    parsed_cv = await parse_pdf_cv(pdf_bytes, provider=provider, model_name=model_name)
+    cv_json = CVDataModel.model_validate(parsed_cv).model_dump(mode="json")
     save_current_cv(session, cv_json, source="pdf")
     ingest_cv_data(cv_json)
     return {
