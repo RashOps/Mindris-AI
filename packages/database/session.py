@@ -3,7 +3,8 @@
 from collections.abc import Generator
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session as SQLAlchemySession, sessionmaker
+from sqlalchemy.orm import Session as SQLAlchemySession
+from sqlalchemy.orm import sessionmaker
 from utils.config import settings
 
 from .records import Base

@@ -13,7 +13,6 @@ from datetime import datetime
 
 from pydantic import AliasChoices, BaseModel, Field
 
-
 # ── LLM-facing extraction model ───────────────────────────────────────────────
 
 
