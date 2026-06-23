@@ -216,11 +216,20 @@ settings.scraper_headless  # → True
 # Unit/API tests; LLM smoke tests are skipped unless RUN_LLM_TESTS=1
 uv run pytest -q
 
-# Lint (0 errors expected)
+# Python lint and format checks
 uv run ruff check services packages tests run_pipeline.py test_llm.py test_ollama.py
-
-# Format
 uv run ruff format services packages tests run_pipeline.py test_llm.py test_ollama.py
+
+# Frontend checks
+cd apps/web
+bun run lint
+bun run typecheck
+bun run build
+
+# Renderer checks
+cd ../../services/renderer
+bun run typecheck
+bun run build
 ```
 
 **Active ruff rules:** `E` `F` `I` `N` `W` `B` `UP` `D` `ANN` `T20` `SIM` `C4`  
@@ -239,6 +248,7 @@ All major technical decisions are documented in [`docs/adr/`](docs/adr/):
 | [002](docs/adr/002-paradigme-de-programmation-hybride.md) | Hybrid Programming Paradigm |
 | [003](docs/adr/003-workspace-restructuring-best-practices.md) | Workspace Restructuring Best Practices |
 | [004](docs/adr/004-ai-scraping-pipeline-decisions.md) | AI Scraping Pipeline — 12 Technical Decisions |
+| [007](docs/adr/007-local-ci-stabilization.md) | Local and CI Stabilization |
 
 ---
 
