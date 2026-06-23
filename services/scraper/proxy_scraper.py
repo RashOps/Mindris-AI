@@ -9,7 +9,6 @@ These classes are consumed by :class:`scraper.smart_scraper.SmartScraper`
 and should **never** be used directly in application code.
 """
 
-
 import httpx
 from markdownify import markdownify as md
 from utils.config import settings
@@ -20,8 +19,18 @@ logger = get_logger(__name__)
 # ── Shared HTML-to-Markdown helper ────────────────────────────────────────────
 
 _STRIP_TAGS = [
-    "script", "style", "nav", "footer", "header",
-    "aside", "form", "svg", "noscript", "iframe", "button", "img",
+    "script",
+    "style",
+    "nav",
+    "footer",
+    "header",
+    "aside",
+    "form",
+    "svg",
+    "noscript",
+    "iframe",
+    "button",
+    "img",
 ]
 
 # Cloudflare challenge fingerprints — same list as core.py
@@ -67,6 +76,7 @@ def _check_cloudflare(content: str) -> bool:
 
 # ── Scrape.do provider ────────────────────────────────────────────────────────
 
+
 class ScrapeDoProvider:
     """Fetch pages via the Scrape.do API (JS rendering, geo-targeting).
 
@@ -95,17 +105,15 @@ class ScrapeDoProvider:
             ValueError: When SCRAPE_DO_API key is not configured.
         """
         if not settings.scrape_do_api_key:
-            raise ValueError(
-                "SCRAPE_DO_API is not set. Add it to your .env file."
-            )
+            raise ValueError("SCRAPE_DO_API is not set. Add it to your .env file.")
 
         api_key = settings.scrape_do_api_key.get_secret_value()
         params = {
             "token": api_key,
             "url": url,
-            "render": "true",          # JavaScript rendering enabled
-            "geoCode": "fr",           # French geo-targeting (relevant for job boards)
-            "super": "false",          # Residential proxies only when truly needed
+            "render": "true",  # JavaScript rendering enabled
+            "geoCode": "fr",  # French geo-targeting (relevant for job boards)
+            "super": "false",  # Residential proxies only when truly needed
         }
 
         logger.info("🌐 [Scrape.do] Fetching %s", url)
@@ -117,7 +125,8 @@ class ScrapeDoProvider:
         html = response.text
         logger.debug(
             "[Scrape.do] Response: %d bytes, status %d",
-            len(html), response.status_code,
+            len(html),
+            response.status_code,
         )
 
         if _check_cloudflare(html):
@@ -134,6 +143,7 @@ class ScrapeDoProvider:
 
 
 # ── ScrapingBee provider ──────────────────────────────────────────────────────
+
 
 class ScrapingBeeProvider:
     """Fetch pages via the ScrapingBee API (stealth proxies, JS rendering).
@@ -163,19 +173,17 @@ class ScrapingBeeProvider:
             ValueError: When SCRAPINGBEE_API key is not configured.
         """
         if not settings.scrapingbee_api_key:
-            raise ValueError(
-                "SCRAPINGBEE_API is not set. Add it to your .env file."
-            )
+            raise ValueError("SCRAPINGBEE_API is not set. Add it to your .env file.")
 
         api_key = settings.scrapingbee_api_key.get_secret_value()
         params = {
             "api_key": api_key,
             "url": url,
-            "render_js": "true",       # JavaScript rendering
-            "wait": "2000",            # Wait 2 s for dynamic content
+            "render_js": "true",  # JavaScript rendering
+            "wait": "2000",  # Wait 2 s for dynamic content
             "block_ads": "true",
-            "stealth_proxy": "true",   # Residential stealth proxies
-            "country_code": "fr",      # French IP (relevant for FR job boards)
+            "stealth_proxy": "true",  # Residential stealth proxies
+            "country_code": "fr",  # French IP (relevant for FR job boards)
             "premium_proxy": "false",  # Escalate to True only on repeated failures
         }
 
@@ -188,7 +196,8 @@ class ScrapingBeeProvider:
         html = response.text
         logger.debug(
             "[ScrapingBee] Response: %d bytes, status %d",
-            len(html), response.status_code,
+            len(html),
+            response.status_code,
         )
 
         if _check_cloudflare(html):

@@ -186,11 +186,14 @@ class BaseScraper:
             # Wait for the page to settle, then check for Cloudflare
             await self._human_delay(min_s=4, max_s=8)
             if await self._is_cloudflare_page(page):
-                logger.warning("⏳ Cloudflare detected — waiting 15 s for auto-resolution…")
+                logger.warning(
+                    "⏳ Cloudflare detected — waiting 15 s for auto-resolution…"
+                )
                 await asyncio.sleep(15)
                 if await self._is_cloudflare_page(page):
                     logger.error(
-                        "❌ Cloudflare challenge not resolved for %s — returning empty.", url
+                        "❌ Cloudflare challenge not resolved for %s — returning empty.",
+                        url,
                     )
                     return ""
 
@@ -204,7 +207,9 @@ class BaseScraper:
 
             # Final safety check on the extracted HTML
             if any(pat in html for pat in _CF_PATTERNS):
-                logger.error("❌ Cloudflare JS detected in extracted HTML for %s. Aborting.", url)
+                logger.error(
+                    "❌ Cloudflare JS detected in extracted HTML for %s. Aborting.", url
+                )
                 return ""
 
             markdown = self._html_to_markdown(html)
