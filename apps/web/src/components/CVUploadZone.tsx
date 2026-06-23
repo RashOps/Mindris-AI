@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { useCVStore } from '@/store/useCVStore';
+import { cvDataFromImport, useCVStore } from '@/store/useCVStore';
 import { apiUrl, apiHeaders, jsonHeaders } from '@/lib/api';
 
 
@@ -44,16 +44,18 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
     try {
       const text = await file.text();
       const data = JSON.parse(text);
-      replaceCVData(data);
+      const importedCV = cvDataFromImport(data);
+      if (!importedCV) throw new Error('Invalid CV JSON');
+      replaceCVData(importedCV);
       await fetch(apiUrl("/api/v1/cv/upload"), {
         method: 'POST',
         headers: jsonHeaders(),
-        body: JSON.stringify(data),
+        body: JSON.stringify(importedCV),
       });
-      onCvLoaded?.(data);
+      onCvLoaded?.(importedCV);
       showStatus('✅ JSON CV loaded!');
-    } catch {
-      showStatus('❌ Invalid JSON file.', 5000);
+    } catch (err: unknown) {
+      showStatus(`❌ ${err instanceof Error ? err.message : 'Invalid JSON file.'}`, 5000);
     }
   };
 

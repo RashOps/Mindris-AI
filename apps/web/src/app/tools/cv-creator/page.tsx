@@ -8,7 +8,7 @@ import { JobInsightsPanel } from "@/components/JobInsightsPanel";
 import { CoverLetterModal } from "@/components/CoverLetterModal";
 import { LLMSelector } from "@/components/LLMSelector";
 import { useCVStore } from "@/store/useCVStore";
-import type { CompanyInsight, JobInsights } from "@/store/useCVStore";
+import { cvDataFromImport, resumeNameFromImport, type CompanyInsight, type JobInsights } from "@/store/useCVStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState, useRef, useCallback } from "react";
@@ -54,6 +54,9 @@ export default function AppPage() {
     setJobInsights, jobInsights,
     updateSkillGroup, updateExperience,
     appSettings,
+    resumes, activeResumeId, setActiveResume,
+    createResume, duplicateResume, deleteResume,
+    renameResume, exportActiveResume,
   } = useCVStore();
 
   const [jobUrl, setJobUrl]       = useState("");
@@ -72,6 +75,8 @@ export default function AppPage() {
     setToast(msg);
     setTimeout(() => setToast(null), ms);
   };
+
+  const activeResume = resumes.find((resume) => resume.id === activeResumeId);
 
   // ── dnd-kit sensors ────────────────────────────────────────────────────────
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
@@ -161,18 +166,34 @@ export default function AppPage() {
     try {
       const text = await file.text();
       const jsonData = JSON.parse(text);
-      replaceCVData(jsonData);
+      const importedCV = cvDataFromImport(jsonData);
+      if (!importedCV) throw new Error("Invalid CV JSON");
+      replaceCVData(importedCV);
+      const importedName = resumeNameFromImport(jsonData);
+      if (importedName) renameResume(activeResumeId, importedName);
       await fetch(apiUrl("/api/v1/cv/upload"), {
         method: "POST",
         headers: jsonHeaders(),
-        body: JSON.stringify(jsonData),
+        body: JSON.stringify(importedCV),
       });
       showToast("✅ JSON CV indexed!");
-    } catch {
-      showToast("❌ Failed to parse or upload JSON.", 5000);
+    } catch (err: unknown) {
+      showToast(`❌ ${errorMessage(err, "Failed to parse or upload JSON.")}`, 5000);
     } finally {
       if (jsonInputRef.current) jsonInputRef.current.value = "";
     }
+  };
+
+  const handleExportJSON = () => {
+    const resume = exportActiveResume();
+    const blob = new Blob([JSON.stringify(resume, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${resume.name.replace(/\s+/g, "_") || "mindris_cv"}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast("✅ Resume JSON exported");
   };
 
   // ── Export PDF ─────────────────────────────────────────────────────────────
@@ -248,6 +269,64 @@ export default function AppPage() {
             <span style={{ fontFamily: 'var(--font-space)', color: '#f1f5f9', fontWeight: 600, fontSize: '0.875rem' }}>Mindris AI</span>
           </Link>
 
+          <div className="flex items-center gap-1.5 min-w-0 max-w-sm">
+            <select
+              value={activeResumeId}
+              onChange={(e) => setActiveResume(e.target.value)}
+              className="h-8 min-w-32 max-w-44 rounded-lg px-2 text-xs outline-none"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0' }}
+              title="Active resume"
+            >
+              {resumes.map((resume) => (
+                <option key={resume.id} value={resume.id} style={{ background: '#0a0f1a' }}>
+                  {resume.name}
+                </option>
+              ))}
+            </select>
+            <input
+              value={activeResume?.name ?? ""}
+              onChange={(e) => renameResume(activeResumeId, e.target.value)}
+              placeholder="Resume name"
+              className="h-8 w-36 rounded-lg px-2 text-xs outline-none"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#cbd5e1' }}
+              title="Rename active resume"
+            />
+            <button
+              onClick={() => {
+                createResume("Untitled CV");
+                showToast("✅ New blank CV created");
+              }}
+              className="h-8 px-2 rounded-lg text-xs border"
+              style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}
+              title="Create blank CV"
+            >
+              New
+            </button>
+            <button
+              onClick={() => {
+                duplicateResume();
+                showToast("✅ CV duplicated");
+              }}
+              className="h-8 px-2 rounded-lg text-xs border"
+              style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}
+              title="Duplicate active CV"
+            >
+              Duplicate
+            </button>
+            <button
+              onClick={() => {
+                deleteResume(activeResumeId);
+                showToast(resumes.length > 1 ? "✅ CV deleted" : "Keep at least one CV");
+              }}
+              disabled={resumes.length <= 1}
+              className="h-8 px-2 rounded-lg text-xs border disabled:opacity-40"
+              style={{ borderColor: 'rgba(248,113,113,0.25)', background: 'rgba(248,113,113,0.08)', color: '#fca5a5' }}
+              title="Delete active CV"
+            >
+              Delete
+            </button>
+          </div>
+
           <LLMSelector taskKey="optimize_llm" label="Optimize" />
           {/* Job URL */}
           <div className="flex items-center gap-2 flex-1 max-w-md mx-4">
@@ -286,7 +365,13 @@ export default function AppPage() {
             <button onClick={() => jsonInputRef.current?.click()}
               className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
               style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}>
-              {"{ }"} JSON
+              ↑ JSON
+            </button>
+
+            <button onClick={handleExportJSON}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+              style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}>
+              ↓ JSON
             </button>
 
             <button onClick={() => setShowGhost((v) => !v)}

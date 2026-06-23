@@ -164,11 +164,54 @@ export interface CVData {
   hobbies: string[];
 }
 
+export interface ResumeDocument {
+  id: string;
+  name: string;
+  cvData: CVData;
+  templateId: string;
+  locale: 'fr' | 'en';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function cvDataFromImport(data: unknown): CVData | null {
+  if (!data || typeof data !== 'object') return null;
+  const candidate = data as Partial<CVData> & { cvData?: CVData };
+
+  if (candidate.cvData?.global_settings && candidate.cvData.profile) {
+    return candidate.cvData;
+  }
+
+  if (candidate.global_settings && candidate.profile) {
+    return candidate as CVData;
+  }
+
+  return null;
+}
+
+export function resumeNameFromImport(data: unknown): string | null {
+  if (!data || typeof data !== 'object') return null;
+  const candidate = data as { name?: unknown };
+  return typeof candidate.name === 'string' && candidate.name.trim()
+    ? candidate.name.trim()
+    : null;
+}
+
 // ── Store Interface ───────────────────────────────────────────────────────────
 
 interface CVStore {
   cvData: CVData;
+  resumes: ResumeDocument[];
+  activeResumeId: string;
   isOptimizing: boolean;
+
+  // Resume library
+  createResume: (name?: string, templateId?: string) => string;
+  duplicateResume: (id?: string) => string;
+  deleteResume: (id: string) => void;
+  renameResume: (id: string, name: string) => void;
+  setActiveResume: (id: string) => void;
+  exportActiveResume: () => ResumeDocument;
 
   // Job Insights
   jobInsights: JobInsights | null;
@@ -308,13 +351,187 @@ const initialCV: CVData = {
   hobbies: ['Informatique', 'Veille Technologique', 'Entrepreneuriat'],
 };
 
+function cloneCVData(data: CVData): CVData {
+  return JSON.parse(JSON.stringify(data)) as CVData;
+}
+
+function createBlankCVData(templateId = 'modern'): CVData {
+  return {
+    global_settings: {
+      ...initialCV.global_settings,
+      template_id: templateId,
+    },
+    profile: {
+      full_name: '',
+      title: '',
+      phone: '',
+      email: '',
+      location: { city: '', country: '' },
+      socials: [],
+      text_markdown: '',
+    },
+    experience: [],
+    education: [],
+    skills: [],
+    projects: [],
+    languages: [],
+    hobbies: [],
+  };
+}
+
+function nowIso(): string {
+  return new Date().toISOString();
+}
+
+function createResumeDocument(name: string, cvData: CVData): ResumeDocument {
+  const timestamp = nowIso();
+  return {
+    id: uid(),
+    name,
+    cvData: cloneCVData(cvData),
+    templateId: cvData.global_settings.template_id || 'modern',
+    locale: 'fr',
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  };
+}
+
+const initialResume = createResumeDocument('CV principal', initialCV);
+
+function syncActiveResume(state: CVStore, cvData: CVData): Pick<CVStore, 'cvData' | 'resumes'> {
+  const timestamp = nowIso();
+  const activeResume = state.resumes.find((resume) => resume.id === state.activeResumeId);
+
+  if (!activeResume) {
+    const fallback = createResumeDocument('CV principal', cvData);
+    return {
+      cvData,
+      resumes: [fallback],
+    };
+  }
+
+  return {
+    cvData,
+    resumes: state.resumes.map((resume) =>
+      resume.id === state.activeResumeId
+        ? {
+            ...resume,
+            cvData: cloneCVData(cvData),
+            templateId: cvData.global_settings.template_id || resume.templateId,
+            updatedAt: timestamp,
+          }
+        : resume
+    ),
+  };
+}
+
+type PersistedCVStore = Partial<{
+  cvData: CVData;
+  resumes: ResumeDocument[];
+  activeResumeId: string;
+  appSettings: AppSettings;
+}>;
+
+function normalizePersistedStore(persisted: unknown): PersistedCVStore {
+  if (!persisted || typeof persisted !== 'object') return {};
+
+  const state = persisted as PersistedCVStore;
+  const cvData = state.cvData ?? initialCV;
+  const resumes =
+    Array.isArray(state.resumes) && state.resumes.length > 0
+      ? state.resumes
+      : [createResumeDocument('CV principal', cvData)];
+  const activeResumeId = resumes.some((resume) => resume.id === state.activeResumeId)
+    ? state.activeResumeId!
+    : resumes[0].id;
+  const activeResume = resumes.find((resume) => resume.id === activeResumeId) ?? resumes[0];
+
+  return {
+    ...state,
+    resumes,
+    activeResumeId,
+    cvData: activeResume.cvData,
+  };
+}
+
 // ── Store ─────────────────────────────────────────────────────────────────────
 
 export const useCVStore = create<CVStore>()(
   persist(
     (set, get) => ({
-      cvData: initialCV,
+      cvData: initialResume.cvData,
+      resumes: [initialResume],
+      activeResumeId: initialResume.id,
       isOptimizing: false,
+
+  // ── Resume library ────────────────────────────────────────────────────────
+  createResume: (name = 'Untitled CV', templateId = 'modern') => {
+    const resume = createResumeDocument(name, createBlankCVData(templateId));
+    set((state) => ({
+      resumes: [...state.resumes, resume],
+      activeResumeId: resume.id,
+      cvData: resume.cvData,
+      jobInsights: null,
+    }));
+    return resume.id;
+  },
+
+  duplicateResume: (id) => {
+    const state = get();
+    const source = state.resumes.find((resume) => resume.id === (id ?? state.activeResumeId));
+    const resume = createResumeDocument(
+      `${source?.name ?? 'CV'} copy`,
+      source?.cvData ?? state.cvData
+    );
+    set((current) => ({
+      resumes: [...current.resumes, resume],
+      activeResumeId: resume.id,
+      cvData: resume.cvData,
+      jobInsights: null,
+    }));
+    return resume.id;
+  },
+
+  deleteResume: (id) =>
+    set((state) => {
+      if (state.resumes.length <= 1) return state;
+      const resumes = state.resumes.filter((resume) => resume.id !== id);
+      const activeResume =
+        id === state.activeResumeId
+          ? resumes[0]
+          : resumes.find((resume) => resume.id === state.activeResumeId) ?? resumes[0];
+      return {
+        resumes,
+        activeResumeId: activeResume.id,
+        cvData: activeResume.cvData,
+        jobInsights: id === state.activeResumeId ? null : state.jobInsights,
+      };
+    }),
+
+  renameResume: (id, name) =>
+    set((state) => ({
+      resumes: state.resumes.map((resume) =>
+        resume.id === id ? { ...resume, name: name.trim() || 'Untitled CV', updatedAt: nowIso() } : resume
+      ),
+    })),
+
+  setActiveResume: (id) =>
+    set((state) => {
+      const activeResume = state.resumes.find((resume) => resume.id === id);
+      if (!activeResume) return state;
+      return {
+        activeResumeId: activeResume.id,
+        cvData: activeResume.cvData,
+        jobInsights: null,
+      };
+    }),
+
+  exportActiveResume: () => {
+    const state = get();
+    const activeResume = state.resumes.find((resume) => resume.id === state.activeResumeId);
+    if (activeResume) return activeResume;
+    return createResumeDocument('CV export', state.cvData);
+  },
 
   // ── Job Insights ────────────────────────────────────────────────────────────
   jobInsights: null,
@@ -363,7 +580,7 @@ export const useCVStore = create<CVStore>()(
         const match = patch.experience!.find((p) => p.id === exp.id);
         return match ? { ...exp, description_markdown: match.description_markdown } : exp;
       });
-      return { cvData: { ...state.cvData, experience: updated } };
+      return syncActiveResume(state, { ...state.cvData, experience: updated });
     }),
 
   // ── App Settings (multi-LLM per task) ────────────────────────────────────────
@@ -371,36 +588,45 @@ export const useCVStore = create<CVStore>()(
   setAppSettings: (s) => set((state) => ({ appSettings: { ...state.appSettings, ...s } })),
 
   setGlobalSettings: (s) =>
-    set((state) => ({
-      cvData: { ...state.cvData, global_settings: { ...state.cvData.global_settings, ...s } },
-    })),
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        global_settings: { ...state.cvData.global_settings, ...s },
+      })
+    ),
 
   setProfile: (p) =>
-    set((state) => ({
-      cvData: { ...state.cvData, profile: { ...state.cvData.profile, ...p } },
-    })),
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        profile: { ...state.cvData.profile, ...p },
+      })
+    ),
 
-  setHobbies: (h) => set((state) => ({ cvData: { ...state.cvData, hobbies: h } })),
+  setHobbies: (h) => set((state) => syncActiveResume(state, { ...state.cvData, hobbies: h })),
 
   setIsOptimizing: (v) => set({ isOptimizing: v }),
 
   // ── Experience ──────────────────────────────────────────────────────────────
   updateExperience: (id, data) =>
-    set((state) => ({
-      cvData: {
+    set((state) =>
+      syncActiveResume(state, {
         ...state.cvData,
         experience: state.cvData.experience.map((e) => (e.id === id ? { ...e, ...data } : e)),
-      },
-    })),
+      })
+    ),
 
   reorderExperience: (oldIndex, newIndex) =>
-    set((state) => ({
-      cvData: { ...state.cvData, experience: arrayMove(state.cvData.experience, oldIndex, newIndex) },
-    })),
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        experience: arrayMove(state.cvData.experience, oldIndex, newIndex),
+      })
+    ),
 
   addExperience: () =>
-    set((state) => ({
-      cvData: {
+    set((state) =>
+      syncActiveResume(state, {
         ...state.cvData,
         experience: [
           ...state.cvData.experience,
@@ -414,31 +640,37 @@ export const useCVStore = create<CVStore>()(
             keywords: [],
           },
         ],
-      },
-    })),
+      })
+    ),
 
   removeExperience: (id) =>
-    set((state) => ({
-      cvData: { ...state.cvData, experience: state.cvData.experience.filter((e) => e.id !== id) },
-    })),
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        experience: state.cvData.experience.filter((e) => e.id !== id),
+      })
+    ),
 
   // ── Education ──────────────────────────────────────────────────────────────
   updateEducation: (id, data) =>
-    set((state) => ({
-      cvData: {
+    set((state) =>
+      syncActiveResume(state, {
         ...state.cvData,
         education: state.cvData.education.map((e) => (e.id === id ? { ...e, ...data } : e)),
-      },
-    })),
+      })
+    ),
 
   reorderEducation: (oldIndex, newIndex) =>
-    set((state) => ({
-      cvData: { ...state.cvData, education: arrayMove(state.cvData.education, oldIndex, newIndex) },
-    })),
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        education: arrayMove(state.cvData.education, oldIndex, newIndex),
+      })
+    ),
 
   addEducation: () =>
-    set((state) => ({
-      cvData: {
+    set((state) =>
+      syncActiveResume(state, {
         ...state.cvData,
         education: [
           ...state.cvData.education,
@@ -451,53 +683,62 @@ export const useCVStore = create<CVStore>()(
             description_markdown: '',
           },
         ],
-      },
-    })),
+      })
+    ),
 
   removeEducation: (id) =>
-    set((state) => ({
-      cvData: { ...state.cvData, education: state.cvData.education.filter((e) => e.id !== id) },
-    })),
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        education: state.cvData.education.filter((e) => e.id !== id),
+      })
+    ),
 
   // ── Skills ─────────────────────────────────────────────────────────────────
   updateSkillGroup: (id, data) =>
-    set((state) => ({
-      cvData: {
+    set((state) =>
+      syncActiveResume(state, {
         ...state.cvData,
         skills: state.cvData.skills.map((s) => (s.id === id ? { ...s, ...data } : s)),
-      },
-    })),
+      })
+    ),
 
   addSkillGroup: () =>
-    set((state) => ({
-      cvData: {
+    set((state) =>
+      syncActiveResume(state, {
         ...state.cvData,
         skills: [...state.cvData.skills, { id: uid(), category: 'Nouvelle catégorie', skills: [] }],
-      },
-    })),
+      })
+    ),
 
   removeSkillGroup: (id) =>
-    set((state) => ({
-      cvData: { ...state.cvData, skills: state.cvData.skills.filter((s) => s.id !== id) },
-    })),
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        skills: state.cvData.skills.filter((s) => s.id !== id),
+      })
+    ),
 
   // ── Projects ───────────────────────────────────────────────────────────────
   updateProject: (id, data) =>
-    set((state) => ({
-      cvData: {
+    set((state) =>
+      syncActiveResume(state, {
         ...state.cvData,
         projects: state.cvData.projects.map((p) => (p.id === id ? { ...p, ...data } : p)),
-      },
-    })),
+      })
+    ),
 
   reorderProjects: (oldIndex, newIndex) =>
-    set((state) => ({
-      cvData: { ...state.cvData, projects: arrayMove(state.cvData.projects, oldIndex, newIndex) },
-    })),
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        projects: arrayMove(state.cvData.projects, oldIndex, newIndex),
+      })
+    ),
 
   addProject: () =>
-    set((state) => ({
-      cvData: {
+    set((state) =>
+      syncActiveResume(state, {
         ...state.cvData,
         projects: [
           ...state.cvData.projects,
@@ -509,49 +750,59 @@ export const useCVStore = create<CVStore>()(
             tech_stack: [],
           },
         ],
-      },
-    })),
+      })
+    ),
 
   removeProject: (id) =>
-    set((state) => ({
-      cvData: { ...state.cvData, projects: state.cvData.projects.filter((p) => p.id !== id) },
-    })),
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        projects: state.cvData.projects.filter((p) => p.id !== id),
+      })
+    ),
 
   // ── Languages ──────────────────────────────────────────────────────────────
   updateLanguage: (id, data) =>
-    set((state) => ({
-      cvData: {
+    set((state) =>
+      syncActiveResume(state, {
         ...state.cvData,
         languages: state.cvData.languages.map((l) => (l.id === id ? { ...l, ...data } : l)),
-      },
-    })),
+      })
+    ),
 
   addLanguage: () =>
-    set((state) => ({
-      cvData: {
+    set((state) =>
+      syncActiveResume(state, {
         ...state.cvData,
         languages: [...state.cvData.languages, { id: uid(), language: 'Langue', level: 'B2' }],
-      },
-    })),
+      })
+    ),
 
   removeLanguage: (id) =>
-    set((state) => ({
-      cvData: { ...state.cvData, languages: state.cvData.languages.filter((l) => l.id !== id) },
-    })),
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        languages: state.cvData.languages.filter((l) => l.id !== id),
+      })
+    ),
 
       // ── Full replace ─────────────────────────────────────────────────────────
       replaceCVData: (data) =>
-        set((state) => ({ cvData: { ...state.cvData, ...data } })),
+        set((state) => syncActiveResume(state, { ...state.cvData, ...data })),
     }),
     {
       name: 'mindris-cv-store',
+      version: 2,
       storage: createJSONStorage(() => localStorage),
       // Only persist data we want to survive a page refresh.
       // Transient UI state (isOptimizing, jobInsights) is intentionally excluded.
       partialize: (state) => ({
         cvData: state.cvData,
+        resumes: state.resumes,
+        activeResumeId: state.activeResumeId,
         appSettings: state.appSettings,
       }),
+      migrate: normalizePersistedStore,
     }
   )
 );
