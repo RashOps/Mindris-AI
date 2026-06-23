@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
-      - run: uv sync --all-packages
+      - run: uv sync --all-packages --frozen
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run pytest tests/ -v --tb=short
@@ -25,8 +25,12 @@ jobs:
       - working-directory: apps/web
         run: bun run lint
       - working-directory: apps/web
+        run: bun run typecheck
+      - working-directory: apps/web
         run: bun run build
       - working-directory: services/renderer
         run: bun install --frozen-lockfile
       - working-directory: services/renderer
-        run: bun --version
+        run: bun run typecheck
+      - working-directory: services/renderer
+        run: bun run build
