@@ -4,8 +4,9 @@ import { useState } from "react";
 import { useCVStore } from "@/store/useCVStore";
 import type { LLMProvider } from "@/store/useCVStore";
 import { useRouter } from "next/navigation";
+import { apiUrl, jsonHeaders } from "@/lib/api";
 
-const API = "http://localhost:8000";
+
 
 // ── LLM options ───────────────────────────────────────────────────────────────
 
@@ -64,9 +65,9 @@ export function CoverLetterModal({ open, onClose }: CoverLetterModalProps) {
     };
 
     try {
-      const res = await fetch(`${API}/api/v1/cover-letter`, {
+      const res = await fetch(apiUrl("/api/v1/cover-letter"), {
         method:  "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: jsonHeaders(),
         body:    JSON.stringify({
           cv_data:        cvData,
           job_insights:   insights,
@@ -276,7 +277,7 @@ export function CoverLetterModal({ open, onClose }: CoverLetterModalProps) {
                   Génération en cours…
                 </>
               ) : (
-                <>✉️ Générer la lettre → Ouvrir dans l'éditeur</>
+                <>✉️ Générer la lettre → Ouvrir dans l&apos;éditeur</>
               )}
             </button>
           </div>

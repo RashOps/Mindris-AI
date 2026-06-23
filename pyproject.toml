@@ -9,6 +9,9 @@ dependencies = []
 [dependency-groups]
 dev = [
     "ruff>=0.3.4",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "httpx>=0.28.0",
 ]
 
 [tool.uv.workspace]
@@ -49,7 +52,8 @@ convention = "google"
 "services/intelligence/pdf_parser.py" = ["T201", "E501"]
 "services/api-gateway/main.py" = ["T201", "E501", "ANN"]
 # Auto-generated stubs — not our concern
-"services/api-gateway/__init__.py" = ["D", "N"]
+"services/api-gateway/__init__.py" = ["D", "N", "N999"]
+"services/api-gateway/routers/__init__.py" = ["D", "N", "N999"]
 "services/intelligence/__init__.py" = ["D"]
 "services/scraper/__init__.py" = ["D"]
 "packages/database/schemas/__init__.py" = ["D", "ANN"]

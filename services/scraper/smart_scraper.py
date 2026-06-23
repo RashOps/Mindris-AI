@@ -23,16 +23,16 @@ Usage::
         markdown = await scraper.get_cleaned_content("https://example.com/job")
 """
 
-import logging
 from types import TracebackType
 from typing import Literal
 
 from utils.config import settings
+from utils.logger import get_logger
 
 from .core import BaseScraper
 from .proxy_scraper import ScrapeDoProvider, ScrapingBeeProvider
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ── Exceptions ────────────────────────────────────────────────────────────────
 
@@ -110,9 +110,7 @@ class SmartScraper:
 
     # ── Public API ────────────────────────────────────────────────────────────
 
-    async def get_cleaned_content(
-        self, url: str, selector: str = "body"
-    ) -> str:
+    async def get_cleaned_content(self, url: str, selector: str = "body") -> str:
         """Scrape *url* and return clean Markdown, trying providers in cascade.
 
         The cascade order depends on the active strategy:
@@ -160,9 +158,8 @@ class SmartScraper:
                 )
                 last_error = exc
 
-        msg = (
-            f"All scraping providers exhausted for {url}."
-            + (f" Last error: {last_error}" if last_error else "")
+        msg = f"All scraping providers exhausted for {url}." + (
+            f" Last error: {last_error}" if last_error else ""
         )
         logger.error("❌ %s", msg)
         raise ScraperExhaustedError(msg)

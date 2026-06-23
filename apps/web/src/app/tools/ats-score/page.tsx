@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -9,9 +9,11 @@ import {
 import { useCVStore } from '@/store/useCVStore';
 import type { AtsReport, KeywordStatus } from '@/store/useCVStore';
 import { CVUploadZone } from '@/components/CVUploadZone';
+import { LLMSelector } from '@/components/LLMSelector';
 import Link from 'next/link';
+import { apiUrl, eventSourceUrl, jsonHeaders } from '@/lib/api';
 
-const API = 'http://localhost:8000';
+
 
 // ── Color helpers ─────────────────────────────────────────────────────────────
 
@@ -19,11 +21,6 @@ function scoreColor(s: number) {
   if (s >= 80) return '#10b981';
   if (s >= 60) return '#f59e0b';
   return '#ef4444';
-}
-function scoreGradient(s: number) {
-  if (s >= 80) return 'from-emerald-400 to-emerald-600';
-  if (s >= 60) return 'from-amber-400 to-amber-600';
-  return 'from-rose-400 to-rose-600';
 }
 function scoreLabel(s: number) {
   if (s >= 80) return 'Excellent';
@@ -105,9 +102,6 @@ function KeywordBarChart({ keywords }: { keywords: KeywordStatus[] }) {
 // ── Radar Chart (skills coverage) ─────────────────────────────────────────────
 
 function SkillsRadar({ keywords }: { keywords: KeywordStatus[] }) {
-  const hard   = keywords.filter(k => k.found);
-  const missing = keywords.filter(k => !k.found);
-
   const data = keywords.slice(0, 8).map(k => ({
     skill: k.keyword.length > 12 ? k.keyword.slice(0, 12) + '…' : k.keyword,
     score: k.found ? 100 : k.severity === 'high' ? 10 : k.severity === 'medium' ? 35 : 60,
@@ -280,10 +274,9 @@ interface HeroProps {
   isAnalyzing: boolean;
   cvLoaded: boolean;
   onCvLoaded: (data: object) => void;
-  appSettings: ReturnType<typeof useCVStore.getState>['appSettings'];
 }
 
-function AtsHero({ jobUrl, setJobUrl, onAnalyze, isAnalyzing, cvLoaded, onCvLoaded, appSettings }: HeroProps) {
+function AtsHero({ jobUrl, setJobUrl, onAnalyze, isAnalyzing, cvLoaded, onCvLoaded }: HeroProps) {
   return (
     <div className="max-w-2xl mx-auto text-center space-y-8 pt-8 pb-4">
       {/* Title */}
@@ -349,6 +342,8 @@ function AtsHero({ jobUrl, setJobUrl, onAnalyze, isAnalyzing, cvLoaded, onCvLoad
           </div>
         </div>
 
+        <LLMSelector taskKey="ats_llm" label="ATS Model" />
+
         {/* Analyze button */}
         <button
           id="ats-analyze-btn"
@@ -404,25 +399,28 @@ function SSEProgress({ messages }: SSEProgressProps) {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
+function readSavedAtsReport(): AtsReport | null {
+  if (typeof window === 'undefined') return null;
+  const saved = window.localStorage.getItem('ats_report');
+  if (!saved) return null;
+  try {
+    return JSON.parse(saved) as AtsReport;
+  } catch {
+    return null;
+  }
+}
+
 export default function AtsScorePage() {
   const { cvData, appSettings } = useCVStore();
   const [jobUrl, setJobUrl]         = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [report, setReport]         = useState<AtsReport | null>(null);
+  const [report, setReport]         = useState<AtsReport | null>(readSavedAtsReport);
   const [sseMessages, setSseMessages] = useState<string[]>([]);
   const [cvLoaded, setCvLoaded]     = useState(!!cvData?.profile?.full_name);
   const [error, setError]           = useState<string | null>(null);
   const jobIdRef = useRef<string | null>(null);
 
-  // Load from localStorage on mount (backward compat with CV Creator flow)
-  useEffect(() => {
-    const saved = localStorage.getItem('ats_report');
-    if (saved) {
-      try { setReport(JSON.parse(saved)); } catch { /* ignore */ }
-    }
-  }, []);
-
-  const handleCvLoaded = useCallback((_data: object) => {
+  const handleCvLoaded = useCallback(() => {
     setCvLoaded(true);
   }, []);
 
@@ -435,9 +433,9 @@ export default function AtsScorePage() {
 
     try {
       // 1. Start the pipeline (scrape + analyze job)
-      const startRes = await fetch(`${API}/api/v1/optimize`, {
+      const startRes = await fetch(apiUrl("/api/v1/optimize"), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: jsonHeaders(),
         body: JSON.stringify({
           job_url:    jobUrl,
           provider:   appSettings.optimize_llm.provider,
@@ -449,7 +447,7 @@ export default function AtsScorePage() {
       jobIdRef.current = job_id;
 
       // 2. Listen to SSE stream
-      const sse = new EventSource(`${API}/api/v1/stream/${job_id}`);
+      const sse = new EventSource(eventSourceUrl(`/api/v1/stream/${job_id}`));
 
       sse.addEventListener('progress', (e) => {
         try {
@@ -464,9 +462,9 @@ export default function AtsScorePage() {
           setSseMessages(prev => [...prev, `✓ Job analyzed: ${insights.job_title}`]);
 
           // 3. Request detailed ATS score
-          const scoreRes = await fetch(`${API}/api/v1/cv/score`, {
+          const scoreRes = await fetch(apiUrl("/api/v1/cv/score"), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: jsonHeaders(),
             body: JSON.stringify({
               cv_data:      cvData,
               job_insights: insights,
@@ -521,7 +519,6 @@ export default function AtsScorePage() {
           isAnalyzing={isAnalyzing}
           cvLoaded={cvLoaded}
           onCvLoaded={handleCvLoaded}
-          appSettings={appSettings}
         />
       </div>
 
@@ -615,6 +612,30 @@ export default function AtsScorePage() {
             </div>
           </div>
 
+
+          {/* ── Scoring breakdown ── */}
+          {report.scoring_breakdown?.length > 0 && (
+            <div
+              className="p-6 rounded-2xl"
+              style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(255,255,255,0.07)', backdropFilter: 'blur(20px)' }}
+            >
+              <p className="text-[10px] font-bold uppercase tracking-widest mb-4" style={{ color: '#475569' }}>
+                Scoring Method
+              </p>
+              <div className="grid gap-3 md:grid-cols-5">
+                {report.scoring_breakdown.map((criterion) => (
+                  <div key={criterion.criterion} className="rounded-xl border p-3" style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}>
+                    <p className="text-xs font-semibold" style={{ color: '#e2e8f0' }}>{criterion.criterion}</p>
+                    <p className="mt-2 text-xl font-black" style={{ color: scoreColor(Math.round((criterion.score / criterion.max_score) * 100)), fontFamily: 'var(--font-space)' }}>
+                      {criterion.score}/{criterion.max_score}
+                    </p>
+                    <p className="mt-1 text-[10px]" style={{ color: '#64748b' }}>Weight {criterion.weight}%</p>
+                    <p className="mt-2 text-[11px] leading-relaxed" style={{ color: '#94a3b8' }}>{criterion.explanation}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {/* ── Row 3: Full keyword table ── */}
           <div
             className="p-6 rounded-2xl"

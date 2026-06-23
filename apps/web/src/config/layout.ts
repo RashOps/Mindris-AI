@@ -49,6 +49,16 @@ export const TOOLS: ToolDefinition[] = [
     description: 'Deep keyword analysis & ATS compatibility report',
   },
   {
+    id: 'tracker',
+    label: 'Tracker',
+    shortLabel: 'Track',
+    icon: '📋',
+    href: '/tools/tracker',
+    accentColor: '#f59e0b',
+    accentVar: '--tool-tracker',
+    description: 'Application tracking board',
+  },
+  {
     id: 'markdown',
     label: 'Markdown → PDF',
     shortLabel: 'PDF',

@@ -7,14 +7,14 @@ and returns a detailed enterprise-grade ATS report using Pydantic output.
 from __future__ import annotations
 
 import asyncio
-import logging
 
 from crewai import Agent, Crew, Process, Task
 from pydantic import BaseModel, Field
+from utils.logger import get_logger
 
 from intelligence.llm_config import get_llm
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 # ── Pydantic models ───────────────────────────────────────────────────────────
@@ -27,9 +27,7 @@ class KeywordStatus(BaseModel):
     found: bool = Field(
         description="Whether the keyword or a close semantic match was found in the CV"
     )
-    density: str = Field(
-        description="How many times it was mentioned, or 'Not found'"
-    )
+    density: str = Field(description="How many times it was mentioned, or 'Not found'")
     severity: str = Field(
         description=(
             "Impact if missing: 'high' (blocking), "
@@ -38,12 +36,25 @@ class KeywordStatus(BaseModel):
     )
 
 
+class ScoringCriteria(BaseModel):
+    """Transparent scoring criterion exposed to the candidate."""
+
+    criterion: str = Field(description="Criterion name")
+    weight: int = Field(description="Criterion weight in total score")
+    score: int = Field(description="Points earned for this criterion")
+    max_score: int = Field(description="Maximum available points")
+    explanation: str = Field(description="Why this score was assigned")
+
+
 class AtsReport(BaseModel):
     """Detailed ATS evaluation report."""
 
     score: int = Field(description="Overall ATS match score between 0 and 100")
     summary: str = Field(
         description="A 2-3 sentence executive summary of the candidate's fit"
+    )
+    scoring_breakdown: list[ScoringCriteria] = Field(
+        description="Transparent weighted scoring breakdown"
     )
     keyword_analysis: list[KeywordStatus] = Field(
         description="Detailed analysis of required hard and soft skills"
@@ -128,8 +139,7 @@ async def calculate_ats_score(
             "and generate a detailed report."
         ),
         backstory=(
-            "You are a strict but fair Enterprise-Grade "
-            "Applicant Tracking System (ATS). "
+            "You are a severe Enterprise-Grade Applicant Tracking System (ATS). "
             "You perform deep keyword density analysis, evaluate skill relevance, "
             "and provide actionable insights for candidates."
         ),
@@ -148,8 +158,17 @@ async def calculate_ats_score(
             "2. Write a brief executive summary.\n"
             "3. Analyze EACH required hard and soft skill. Determine if it was found, "
             "its density (e.g., 'Mentioned 2 times'), and the severity if missing.\n"
-            "4. Provide 3-5 specific, actionable recommendations to improve the CV "
-            "for this specific job."
+            "4. Build a scoring_breakdown using exactly these weights: "
+            "Keyword Match Rate 40, Experience Relevance 25, "
+            "Formatting & Structure 15, Quantification 10, "
+            "Overall Coherence 10. The criterion scores must explain "
+            "the final score.\n"
+            "5. Apply strict penalties: every missing hard skill costs "
+            "at least 5 points, weak experience relevance costs up to "
+            "25 points, missing metrics in bullets costs up to 10 points, "
+            "and a non-aligned CV title costs 10 points.\n"
+            "6. Provide 3-5 specific, actionable recommendations to improve "
+            "the CV for this specific job."
         ),
         expected_output="A structured JSON object containing the ATS report.",
         output_pydantic=AtsReport,
@@ -173,6 +192,17 @@ async def calculate_ats_score(
         return {
             "score": 50,
             "summary": "Error generating detailed report.",
+            "scoring_breakdown": [
+                {
+                    "criterion": "Fallback Score",
+                    "weight": 100,
+                    "score": 50,
+                    "max_score": 100,
+                    "explanation": (
+                        "The LLM provider did not return a valid structured report."
+                    ),
+                }
+            ],
             "keyword_analysis": [],
             "recommendations": ["Try again later or check API provider quotas."],
         }

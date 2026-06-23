@@ -26,6 +26,15 @@ class Settings(BaseSettings):
     project_root: Path = Field(default=_PROJECT_ROOT)
     logs_dir: Path = Field(default=_PROJECT_ROOT / "logs")
     storage_dir: Path = Field(default=_PROJECT_ROOT / "storage")
+    api_key: SecretStr = Field(
+        default=SecretStr("dev-mindris-api-key"),
+        alias="API_KEY",
+    )
+    renderer_url: str = Field(default="http://localhost:4000", alias="RENDERER_URL")
+    max_pdf_upload_bytes: int = Field(
+        default=10 * 1024 * 1024,
+        alias="MAX_PDF_UPLOAD_BYTES",
+    )
 
     # ── Local Ollama Configuration ────────────────────────────────────────────
     ollama_api_base: str = Field(
@@ -38,14 +47,14 @@ class Settings(BaseSettings):
     groq_api_key: SecretStr | None = Field(default=None, alias="GROQ_API_KEY")
     gemini_api_key: SecretStr | None = Field(default=None, alias="GEMINI_API_KEY")
     mistral_api_key: SecretStr | None = Field(default=None, alias="MISTRAL_API_KEY")
-    llama_cloud_api_key: SecretStr | None = Field(default=None, alias="LLAMA_CLOUD_API_KEY")
+    llama_cloud_api_key: SecretStr | None = Field(
+        default=None, alias="LLAMA_CLOUD_API_KEY"
+    )
 
     # ── Vector Database & Embeddings ──────────────────────────────────────────
     chroma_db_dir: Path = Field(default=_PROJECT_ROOT / "storage" / "vectordb")
     # Defaulting to an offline HuggingFace model (sentence-transformers)
-    embedding_model: str = Field(
-        default="all-MiniLM-L6-v2", alias="EMBEDDING_MODEL"
-    )
+    embedding_model: str = Field(default="all-MiniLM-L6-v2", alias="EMBEDDING_MODEL")
 
     # ── Scraper ───────────────────────────────────────────────────────────────
     scraper_headless: bool = Field(default=True, alias="SCRAPER_HEADLESS")

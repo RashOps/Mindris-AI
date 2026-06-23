@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import {
   TOOLS,
   TOOLS_NAV_MODE,
@@ -111,6 +112,8 @@ function SidebarNav({
         })}
       </nav>
 
+      <ThemeToggle />
+
       {/* Collapse toggle */}
       <button
         onClick={onToggle}
@@ -194,7 +197,7 @@ function TopbarNav() {
 // ── Tools Layout ──────────────────────────────────────────────────────────────
 
 export default function ToolsLayout({ children }: { children: React.ReactNode }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
 
   return (
     <div

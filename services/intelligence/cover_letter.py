@@ -8,15 +8,16 @@ writing instructions, and an optional example letter for style guidance.
 from __future__ import annotations
 
 import asyncio
-import logging
 
 from crewai import Agent, Crew, Process, Task
+from utils.logger import get_logger
 
 from intelligence.llm_config import get_llm
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ── Prompt builders ───────────────────────────────────────────────────────────
+
 
 def _build_cv_summary(cv_data: dict) -> str:
     """Extract a concise candidate summary from CVData."""
@@ -33,9 +34,7 @@ def _build_cv_summary(cv_data: dict) -> str:
     )
 
     skills_groups = cv_data.get("skills", [])
-    skills_text = ", ".join(
-        s for g in skills_groups for s in g.get("skills", [])[:5]
-    )
+    skills_text = ", ".join(s for g in skills_groups for s in g.get("skills", [])[:5])
 
     return (
         f"Candidate: {name} — {title}\n"
@@ -82,13 +81,14 @@ def _build_style_guidance(example_letter: str | None) -> str:
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
+
 async def generate_cover_letter(
-    cv_data:        dict,
-    job_insights:   dict,
-    instructions:   str,
+    cv_data: dict,
+    job_insights: dict,
+    instructions: str,
     example_letter: str | None,
-    provider:       str,
-    model_name:     str,
+    provider: str,
+    model_name: str,
 ) -> str:
     """Generate a tailored cover letter in Markdown.
 

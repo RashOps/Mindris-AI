@@ -2,8 +2,9 @@
 
 import { useRef, useState } from 'react';
 import { useCVStore } from '@/store/useCVStore';
+import { apiUrl, apiHeaders, jsonHeaders } from '@/lib/api';
 
-const API = 'http://localhost:8000';
+
 
 interface CVUploadZoneProps {
   /** Called after a successful upload or JSON load, with the new CV data */
@@ -44,9 +45,9 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
       const text = await file.text();
       const data = JSON.parse(text);
       replaceCVData(data);
-      await fetch(`${API}/api/v1/cv/upload`, {
+      await fetch(apiUrl("/api/v1/cv/upload"), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: jsonHeaders(),
         body: JSON.stringify(data),
       });
       onCvLoaded?.(data);
@@ -65,7 +66,7 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
       form.append('file', file);
       form.append('provider',   appSettings.optimize_llm.provider);
       form.append('model_name', appSettings.optimize_llm.model_name);
-      const res = await fetch(`${API}/api/v1/cv/upload-pdf`, { method: 'POST', body: form });
+      const res = await fetch(apiUrl("/api/v1/cv/upload-pdf"), { method: 'POST', headers: apiHeaders(), body: form });
       if (!res.ok) throw new Error('Upload failed');
       const data = await res.json();
       if (data.cv_data) {
@@ -128,7 +129,7 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
             className="flex-1 px-3 py-2 rounded-lg text-xs font-medium border transition-colors"
             style={{ borderColor: 'rgba(255,255,255,0.08)', color: '#94a3b8', background: 'rgba(255,255,255,0.03)' }}
           >
-            { } JSON
+            {"{ }"} JSON
           </button>
           <button
             onClick={() => pdfRef.current?.click()}

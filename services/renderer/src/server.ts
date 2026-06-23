@@ -1,16 +1,24 @@
-import { Elysia, t } from "elysia";
 import { cors } from "@elysiajs/cors";
-import { generateHtml } from "./templates/engine";
+import { Elysia, t } from "elysia";
 import { generatePDF } from "./pdf/generator";
 import { renderMarkdownToHtml } from "./markdown";
+import { generateHtml } from "./templates/engine";
+
+function safeFilename(title: string, fallback = "document"): string {
+    const cleaned = title
+        .normalize("NFKD")
+        .replace(/[̀-ͯ]/g, "")
+        .replace(/[^a-zA-Z0-9._-]+/g, "_")
+        .replace(/^_+|_+$/g, "")
+        .slice(0, 80);
+    return cleaned || fallback;
+}
 
 const app = new Elysia()
-    .use(cors())
+    .use(cors({ origin: ["http://localhost:3000", "http://127.0.0.1:3000"] }))
 
-    // ── Health ──────────────────────────────────────────────────────────────
     .get("/", () => ({ status: "Renderer Service is running" }))
 
-    // ── CV → PDF (preview or export) ────────────────────────────────────────
     .post("/render/pdf", async ({ body }: any) => {
         const { cv_data, template_id, return_buffer, return_html } = body;
 
@@ -40,7 +48,7 @@ const app = new Elysia()
             console.error("CV render failed:", error);
             return new Response(
                 JSON.stringify({ success: false, error: error.message }),
-                { status: 500, headers: { "Content-Type": "application/json" } }
+                { status: 500, headers: { "Content-Type": "application/json" } },
             );
         }
     }, {
@@ -52,7 +60,6 @@ const app = new Elysia()
         }),
     })
 
-    // ── Markdown → HTML preview ─────────────────────────────────────────────
     .post("/render/markdown/preview", async ({ body }: any) => {
         const { markdown, style, title } = body;
 
@@ -65,7 +72,7 @@ const app = new Elysia()
             console.error("Markdown preview failed:", error);
             return new Response(
                 JSON.stringify({ success: false, error: error.message }),
-                { status: 500, headers: { "Content-Type": "application/json" } }
+                { status: 500, headers: { "Content-Type": "application/json" } },
             );
         }
     }, {
@@ -76,13 +83,12 @@ const app = new Elysia()
         }),
     })
 
-    // ── Markdown → PDF export ───────────────────────────────────────────────
     .post("/render/markdown", async ({ body }: any) => {
         const { markdown, style = "document", title = "Document" } = body;
 
         try {
             const html = renderMarkdownToHtml({ markdown, style, title });
-            const filename = `${title.replace(/\s+/g, "_")}_${Date.now()}.pdf`;
+            const filename = `${safeFilename(title)}_${Date.now()}.pdf`;
             const pdfBuffer = await generatePDF(html, filename, true);
 
             return new Response(pdfBuffer as Buffer, {
@@ -95,7 +101,7 @@ const app = new Elysia()
             console.error("Markdown PDF failed:", error);
             return new Response(
                 JSON.stringify({ success: false, error: error.message }),
-                { status: 500, headers: { "Content-Type": "application/json" } }
+                { status: 500, headers: { "Content-Type": "application/json" } },
             );
         }
     }, {
@@ -108,6 +114,4 @@ const app = new Elysia()
 
     .listen(4000);
 
-console.log(
-    `🚀 Mindris Renderer running at http://${app.server?.hostname}:${app.server?.port}`
-);
+console.log(`Mindris Renderer running at http://${app.server?.hostname}:${app.server?.port}`);

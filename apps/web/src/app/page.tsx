@@ -1,4 +1,9 @@
 import Link from "next/link";
+import type { CSSProperties } from "react";
+
+type DelayStyle = CSSProperties & { "--delay": string };
+
+const delayStyle = (delay: string): DelayStyle => ({ "--delay": delay });
 
 const FEATURES = [
   {
@@ -8,7 +13,7 @@ const FEATURES = [
     title: "CV Creator",
     description:
       "Drag & drop editor powered by your real CV data. Upload once, paste any job URL — agents retrieve your most relevant experiences and rewrite every bullet point for maximum ATS compatibility.",
-    cta: { label: "Open Editor", href: "/app" },
+    cta: { label: "Open Editor", href: "/tools/cv-creator" },
     available: true,
   },
   {
@@ -118,7 +123,7 @@ export default function LandingPage() {
           </div>
 
           <Link
-            href="/app"
+            href="/tools/cv-creator"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all"
             style={{
               background: "linear-gradient(135deg, #2563eb, #818cf8)",
@@ -166,7 +171,7 @@ export default function LandingPage() {
           {/* CTAs */}
           <div className="flex items-center justify-center gap-4 flex-wrap mb-16">
             <Link
-              href="/app"
+              href="/tools/cv-creator"
               className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl text-base font-semibold text-white transition-all"
               style={{
                 background: "linear-gradient(135deg, #2563eb, #818cf8)",
@@ -213,34 +218,34 @@ export default function LandingPage() {
             </div>
             {/* Lines */}
             <div className="p-6" style={{ fontFamily: "monospace", fontSize: "0.875rem" }}>
-              <div className="land-tline" style={{"--delay": "0.2s"} as any}>
+              <div className="land-tline" style={delayStyle("0.2s")}>
                 <span style={{ color: "#4ade80" }}>✅</span>
                 <span style={{ color: "#475569" }}>[Retrieval]</span>
                 <span style={{ color: "#f1f5f9" }}> Found </span>
                 <span style={{ color: "#818cf8" }}>4</span>
                 <span style={{ color: "#f1f5f9" }}> relevant CV chunks.</span>
               </div>
-              <div className="land-tline" style={{"--delay": "0.7s"} as any}>
+              <div className="land-tline" style={delayStyle("0.7s")}>
                 <span style={{ color: "#facc15" }}>✍️</span>
                 <span style={{ color: "#475569" }}>[Draft]</span>
                 <span style={{ color: "#f1f5f9" }}> Tailoring CV — </span>
                 <span style={{ color: "#a78bfa" }}>Iteration 1</span>
                 <span style={{ color: "#f1f5f9" }}>...</span>
               </div>
-              <div className="land-tline" style={{"--delay": "1.3s"} as any}>
+              <div className="land-tline" style={delayStyle("1.3s")}>
                 <span style={{ color: "#fb923c" }}>⚖️</span>
                 <span style={{ color: "#475569" }}>[Score]</span>
                 <span style={{ color: "#fb923c" }}> 72/100</span>
                 <span style={{ color: "#f1f5f9" }}> — Revising...</span>
               </div>
-              <div className="land-tline" style={{"--delay": "2.0s"} as any}>
+              <div className="land-tline" style={delayStyle("2.0s")}>
                 <span style={{ color: "#facc15" }}>✍️</span>
                 <span style={{ color: "#475569" }}>[Draft]</span>
                 <span style={{ color: "#f1f5f9" }}> Tailoring CV — </span>
                 <span style={{ color: "#a78bfa" }}>Iteration 2</span>
                 <span style={{ color: "#f1f5f9" }}>...</span>
               </div>
-              <div className="land-tline" style={{"--delay": "2.8s"} as any}>
+              <div className="land-tline" style={delayStyle("2.8s")}>
                 <span style={{ color: "#4ade80" }}>✅</span>
                 <span style={{ color: "#475569" }}>[Score]</span>
                 <span style={{ color: "#4ade80" }}> 88/100</span>
@@ -380,7 +385,7 @@ export default function LandingPage() {
               Upload your CV. Paste a job URL. Let the agents work.
             </p>
             <Link
-              href="/app"
+              href="/tools/cv-creator"
               className="inline-flex items-center gap-2 px-10 py-4 rounded-xl text-base font-semibold text-white transition-all"
               style={{
                 background: "linear-gradient(135deg, #2563eb, #818cf8)",
@@ -406,7 +411,7 @@ export default function LandingPage() {
             <span className="font-bold text-sm" style={{ color: "#f1f5f9" }}>Mindris AI</span>
           </div>
           <div className="flex gap-6">
-            <Link href="/app" className="text-sm transition-colors" style={{ color: "#475569" }}>CV Creator</Link>
+            <Link href="/tools/cv-creator" className="text-sm transition-colors" style={{ color: "#475569" }}>CV Creator</Link>
             <Link href="/tools/markdown" className="text-sm transition-colors" style={{ color: "#475569" }}>Markdown → PDF</Link>
             <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-sm transition-colors" style={{ color: "#475569" }}>GitHub</a>
           </div>

@@ -7,46 +7,52 @@ Each node emits SSE events via the event_bus so the frontend Ghost Mode
 terminal can display real-time progress.
 """
 
-import logging
 from typing import TypedDict
 
 from crewai import Agent, Crew, Process, Task
 from database.models import JobOffer
 from database.vector_store import MindrisVectorStore
 from langgraph.graph import END, StateGraph
+from utils.logger import get_logger
 
 from intelligence.agents import MindrisAgents
 from intelligence.event_bus import emit
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ── State Definition ─────────────────────────────────────────────────────────
+
 
 class GraphState(TypedDict):
     """Represents the state of our RAG workflow."""
 
-    job_offer: JobOffer        # The analyzed job offer
-    provider: str              # LLM Provider to use
-    model_name: str            # LLM Model name
-    retrieved_context: str     # Relevant chunks from the CV
-    drafted_cv: str            # The drafted/tailored CV sections
-    score: int                 # ATS/Matching score (0-100)
-    iterations: int            # Number of drafting iterations
-    job_id: str                # SSE job identifier
+    job_offer: JobOffer  # The analyzed job offer
+    provider: str  # LLM Provider to use
+    model_name: str  # LLM Model name
+    retrieved_context: str  # Relevant chunks from the CV
+    drafted_cv: str  # The drafted/tailored CV sections
+    score: int  # ATS/Matching score (0-100)
+    iterations: int  # Number of drafting iterations
+    job_id: str  # SSE job identifier
 
 
 # ── Node factory (receives job_id via closure) ────────────────────────────────
+
 
 def make_nodes(job_id: str) -> tuple:
     """Return node functions bound to a specific SSE job_id."""
 
     def retrieve_context(state: GraphState) -> GraphState:
         """Retrieve relevant CV chunks from ChromaDB based on the Job Offer."""
-        emit(job_id, "node_start", {
-            "node": "retrieve",
-            "icon": "🔍",
-            "message": "Searching ChromaDB for relevant CV experiences…",
-        })
+        emit(
+            job_id,
+            "node_start",
+            {
+                "node": "retrieve",
+                "icon": "🔍",
+                "message": "Searching ChromaDB for relevant CV experiences…",
+            },
+        )
 
         job = state["job_offer"]
         skills_str = ", ".join(job.hard_skills)
@@ -62,21 +68,29 @@ def make_nodes(job_id: str) -> tuple:
         state["retrieved_context"] = context
         n = len(results)
 
-        emit(job_id, "node_done", {
-            "node": "retrieve",
-            "icon": "✅",
-            "message": f"Found {n} relevant CV chunk{'s' if n != 1 else ''}.",
-        })
+        emit(
+            job_id,
+            "node_done",
+            {
+                "node": "retrieve",
+                "icon": "✅",
+                "message": f"Found {n} relevant CV chunk{'s' if n != 1 else ''}.",
+            },
+        )
         return state
 
     def draft_cv(state: GraphState) -> GraphState:
         """Draft tailored CV bullet points using CrewAI."""
         iteration = state["iterations"] + 1
-        emit(job_id, "node_start", {
-            "node": "draft",
-            "icon": "✍️",
-            "message": f"Tailoring CV — Iteration {iteration}…",
-        })
+        emit(
+            job_id,
+            "node_start",
+            {
+                "node": "draft",
+                "icon": "✍️",
+                "message": f"Tailoring CV — Iteration {iteration}…",
+            },
+        )
 
         agents_factory = MindrisAgents(
             provider=state["provider"], model_name=state["model_name"]
@@ -113,21 +127,29 @@ def make_nodes(job_id: str) -> tuple:
         state["drafted_cv"] = str(result.raw)
         state["iterations"] = iteration
 
-        emit(job_id, "node_done", {
-            "node": "draft",
-            "icon": "✅",
-            "message": f"Draft ready (iteration {iteration}).",
-            "content": str(result.raw)[:300],  # snippet for terminal
-        })
+        emit(
+            job_id,
+            "node_done",
+            {
+                "node": "draft",
+                "icon": "✅",
+                "message": f"Draft ready (iteration {iteration}).",
+                "content": str(result.raw)[:300],  # snippet for terminal
+            },
+        )
         return state
 
     def score_cv(state: GraphState) -> GraphState:
         """Score the drafted CV against the Job Offer."""
-        emit(job_id, "node_start", {
-            "node": "score",
-            "icon": "⚖️",
-            "message": "Evaluating ATS compatibility…",
-        })
+        emit(
+            job_id,
+            "node_start",
+            {
+                "node": "score",
+                "icon": "⚖️",
+                "message": "Evaluating ATS compatibility…",
+            },
+        )
 
         agents_factory = MindrisAgents(
             provider=state["provider"], model_name=state["model_name"]
@@ -165,12 +187,16 @@ def make_nodes(job_id: str) -> tuple:
 
         state["score"] = score
 
-        emit(job_id, "node_done", {
-            "node": "score",
-            "icon": "🏅",
-            "message": f"ATS Score: {score}/100",
-            "score": score,
-        })
+        emit(
+            job_id,
+            "node_done",
+            {
+                "node": "score",
+                "icon": "🏅",
+                "message": f"ATS Score: {score}/100",
+                "score": score,
+            },
+        )
 
         # ── Emit full structured result for Job Insights Panel ────────────────
         drafted_markdown = state.get("drafted_cv", "")
@@ -179,15 +205,19 @@ def make_nodes(job_id: str) -> tuple:
             for line in drafted_markdown.splitlines()
             if line.strip() and line.strip()[0] in ("-", "•", "*")
         ]
-        emit(job_id, "job_result", {
-            "job_title":       state["job_offer"].title,
-            "company":         state["job_offer"].company,
-            "hard_skills":     state["job_offer"].hard_skills,
-            "soft_skills":     state["job_offer"].soft_skills,
-            "drafted_bullets": bullets,
-            "raw_markdown":    drafted_markdown,
-            "score":           score,
-        })
+        emit(
+            job_id,
+            "job_result",
+            {
+                "job_title": state["job_offer"].title,
+                "company": state["job_offer"].company,
+                "hard_skills": state["job_offer"].hard_skills,
+                "soft_skills": state["job_offer"].soft_skills,
+                "drafted_bullets": bullets,
+                "raw_markdown": drafted_markdown,
+                "score": score,
+            },
+        )
 
         return state
 
@@ -195,6 +225,7 @@ def make_nodes(job_id: str) -> tuple:
 
 
 # ── Edges / Routing ──────────────────────────────────────────────────────────
+
 
 def decide_next_step(state: GraphState) -> str:
     """Decide whether to finish or revise the draft."""
@@ -204,6 +235,7 @@ def decide_next_step(state: GraphState) -> str:
 
 
 # ── Workflow Setup ───────────────────────────────────────────────────────────
+
 
 def create_rag_workflow(job_id: str = "") -> StateGraph:
     """Build and compile the LangGraph workflow.

@@ -3,10 +3,11 @@
 import { useState, useCallback } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { useCVStore } from "@/store/useCVStore";
-import type { JobInsights } from "@/store/useCVStore";
+import type { LLMProvider } from "@/store/useCVStore";
 import { AtsScoreWidget } from "@/components/ats/AtsScoreWidget";
+import { apiUrl, jsonHeaders } from "@/lib/api";
 
-const API = "http://localhost:8000";
+
 
 // ── Draggable Skill Tag ────────────────────────────────────────────────────────
 
@@ -74,6 +75,10 @@ const MODELS: Record<string, { id: string; label: string }[]> = {
   mistral: [{ id: "mistral-large-latest", label: "Mistral Large" }, { id: "mistral-small-latest", label: "Mistral Small" }],
 };
 
+function errorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
+}
+
 // ── Main Panel ────────────────────────────────────────────────────────────────
 
 interface JobInsightsPanelProps {
@@ -105,9 +110,9 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
     setIsPatchLoading(true);
     setPatchStatus(null);
     try {
-      const res = await fetch(`${API}/api/v1/cv/patch-from-bullets`, {
+      const res = await fetch(apiUrl("/api/v1/cv/patch-from-bullets"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: jsonHeaders(),
         body: JSON.stringify({
           drafted_bullets: bullets,
           cv_data: cvData,
@@ -121,8 +126,8 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
         applyPatch(data.patch);
         setPatchStatus("✅ CV patched successfully!");
       }
-    } catch (err: any) {
-      setPatchStatus(`❌ ${err.message}`);
+    } catch (err: unknown) {
+      setPatchStatus(`❌ ${errorMessage(err, "Patch failed")}`);
     } finally {
       setIsPatchLoading(false);
       setTimeout(() => setPatchStatus(null), 4000);
@@ -141,10 +146,6 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
     localStorage.setItem("md_draft", jobInsights.raw_markdown);
     window.open("/tools/markdown", "_blank");
   };
-
-  const scoreColor = jobInsights
-    ? jobInsights.score >= 80 ? "text-green-600" : jobInsights.score >= 60 ? "text-amber-500" : "text-red-500"
-    : "text-slate-400";
 
   return (
     <>
@@ -238,7 +239,11 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
               <div className="flex gap-1.5 mt-2">
                 <select
                   value={provider}
-                  onChange={(e) => { setProvider(e.target.value as any); setModelName(MODELS[e.target.value][0].id); }}
+                  onChange={(e) => {
+                    const nextProvider = e.target.value as LLMProvider;
+                    setProvider(nextProvider);
+                    setModelName(MODELS[nextProvider]?.[0]?.id ?? modelName);
+                  }}
                   className="flex-1 text-xs rounded px-2 py-1 focus:outline-none"
                   style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#cbd5e1' }}
                 >
@@ -268,6 +273,22 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
               {patchStatus && <p className="text-xs text-center mt-1.5" style={{ color: '#64748b' }}>{patchStatus}</p>}
             </div>
 
+
+            {/* Company Intel */}
+            {jobInsights.company_insight && (
+              <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: '#475569' }}>
+                  🏢 Company Intel
+                </p>
+                <div className="space-y-1 text-xs" style={{ color: '#94a3b8' }}>
+                  <p><span style={{ color: '#cbd5e1' }}>Industry:</span> {jobInsights.company_insight.industry}</p>
+                  <p><span style={{ color: '#cbd5e1' }}>Size:</span> {jobInsights.company_insight.size}</p>
+                  {jobInsights.company_insight.unavailable_reason && <p>{jobInsights.company_insight.unavailable_reason}</p>}
+                  {jobInsights.company_insight.culture_values?.length > 0 && <p>Values: {jobInsights.company_insight.culture_values.join(', ')}</p>}
+                  {jobInsights.company_insight.tech_stack_known?.length > 0 && <p>Known stack: {jobInsights.company_insight.tech_stack_known.join(', ')}</p>}
+                </div>
+              </div>
+            )}
             {/* Hard Skills */}
             {jobInsights.hard_skills.length > 0 && (
               <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>

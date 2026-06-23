@@ -1,27 +1,6 @@
 import type { Metadata } from "next";
-import { Fira_Code, Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
-
-// ── Typography ────────────────────────────────────────────────────────────────
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space",
-  subsets: ["latin"],
-  display: "swap",
-  weight: ["300", "400", "500", "600", "700"],
-});
-
-const firaCode = Fira_Code({
-  variable: "--font-mono",
-  subsets: ["latin"],
-  display: "swap",
-  weight: ["400", "500", "600"],
-});
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 // ── Metadata ──────────────────────────────────────────────────────────────────
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://mindris.ai";
@@ -65,9 +44,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${spaceGrotesk.variable} ${firaCode.variable} h-full antialiased`}
+      className="h-full antialiased"
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col"><ThemeProvider>{children}</ThemeProvider></body>
     </html>
   );
 }

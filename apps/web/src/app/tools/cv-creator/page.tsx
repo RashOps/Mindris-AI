@@ -6,11 +6,13 @@ import { GhostMode } from "@/components/GhostMode";
 import { StylePanel } from "@/components/StylePanel";
 import { JobInsightsPanel } from "@/components/JobInsightsPanel";
 import { CoverLetterModal } from "@/components/CoverLetterModal";
+import { LLMSelector } from "@/components/LLMSelector";
 import { useCVStore } from "@/store/useCVStore";
-import type { JobInsights } from "@/store/useCVStore";
+import type { CompanyInsight, JobInsights } from "@/store/useCVStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState, useRef, useCallback } from "react";
+import { apiUrl, rendererUrl, apiHeaders, jsonHeaders } from "@/lib/api";
 import Link from "next/link";
 import {
   DndContext,
@@ -20,8 +22,31 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 
-const API = "http://localhost:8000";
-const RENDERER = "http://localhost:4000";
+type DragPayload =
+  | { kind: "skill"; skill: string }
+  | { kind: "skillGroup"; groupId: string }
+  | { kind: "bullet"; bullet: string }
+  | { kind: "experience"; expId: string };
+
+type JobResultPayload = Partial<JobInsights> & {
+  company_insight?: CompanyInsight;
+};
+
+function asDragPayload(value: unknown): DragPayload | null {
+  if (!value || typeof value !== "object" || !("kind" in value)) return null;
+  return value as DragPayload;
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+function errorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
+}
+
+
+
 
 export default function AppPage() {
   const {
@@ -56,8 +81,8 @@ export default function AppPage() {
     const { active, over } = event;
     if (!over) return;
 
-    const dragData  = active.data.current as any;
-    const dropData  = over.data.current   as any;
+    const dragData = asDragPayload(active.data.current);
+    const dropData = asDragPayload(over.data.current);
 
     // Skill tag → skill group
     if (dragData?.kind === "skill" && dropData?.kind === "skillGroup") {
@@ -81,15 +106,24 @@ export default function AppPage() {
   }, [cvData, updateSkillGroup, updateExperience]);
 
   // ── Job Result callback (from GhostMode SSE) ──────────────────────────────
-  const handleJobResult = useCallback((data: any) => {
+
+  const handleCompanyResult = useCallback((data: JobResultPayload) => {
+    const insight = data.company_insight;
+    if (!insight) return;
+    const current = useCVStore.getState().jobInsights;
+    if (current) setJobInsights({ ...current, company_insight: insight });
+  }, [setJobInsights]);
+  const handleJobResult = useCallback((data: JobResultPayload) => {
     const insights: JobInsights = {
-      job_title:       data.job_title      ?? "Unknown Role",
-      company:         data.company        ?? "",
-      hard_skills:     data.hard_skills    ?? [],
-      soft_skills:     data.soft_skills    ?? [],
-      drafted_bullets: data.drafted_bullets ?? [],
-      raw_markdown:    data.raw_markdown   ?? "",
-      score:           data.score          ?? 0,
+      job_title:       typeof data.job_title === "string" ? data.job_title : "Unknown Role",
+      company:         typeof data.company === "string" ? data.company : "",
+      hard_skills:     stringArray(data.hard_skills),
+      soft_skills:     stringArray(data.soft_skills),
+      drafted_bullets: stringArray(data.drafted_bullets),
+      raw_markdown:    typeof data.raw_markdown === "string" ? data.raw_markdown : "",
+      score:           typeof data.score === "number" ? data.score : 0,
+      ats_report:      data.ats_report,
+      company_insight: data.company_insight,
     };
     setJobInsights(insights);
     setShowInsights(true);
@@ -107,13 +141,13 @@ export default function AppPage() {
       formData.append("file", file);
       formData.append("provider", appSettings.optimize_llm.provider);
       formData.append("model_name", appSettings.optimize_llm.model_name);
-      const res = await fetch(`${API}/api/v1/cv/upload-pdf`, { method: "POST", body: formData });
+      const res = await fetch(apiUrl("/api/v1/cv/upload-pdf"), { method: "POST", headers: apiHeaders(), body: formData });
       if (!res.ok) { const err = await res.json(); throw new Error(err.detail ?? "Upload failed"); }
       const data = await res.json();
       if (data.cv_data) replaceCVData(data.cv_data);
       showToast("✅ PDF indexed! Editor and RAG updated.");
-    } catch (err: any) {
-      showToast(`❌ ${err.message}`, 6000);
+    } catch (err: unknown) {
+      showToast(`❌ ${errorMessage(err, "Upload failed")}`, 6000);
     } finally {
       setIsUploading(false);
       if (pdfInputRef.current) pdfInputRef.current.value = "";
@@ -128,9 +162,9 @@ export default function AppPage() {
       const text = await file.text();
       const jsonData = JSON.parse(text);
       replaceCVData(jsonData);
-      await fetch(`${API}/api/v1/cv/upload`, {
+      await fetch(apiUrl("/api/v1/cv/upload"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: jsonHeaders(),
         body: JSON.stringify(jsonData),
       });
       showToast("✅ JSON CV indexed!");
@@ -145,9 +179,9 @@ export default function AppPage() {
   const handleExportPDF = async () => {
     showToast("⏳ Generating PDF…", 30000);
     try {
-      const res = await fetch(`${RENDERER}/render/pdf`, {
+      const res = await fetch(rendererUrl("/render/pdf"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: jsonHeaders(),
         body: JSON.stringify({ cv_data: cvData, template_id: "modern", return_buffer: true }),
       });
       if (!res.ok) throw new Error("Render failed");
@@ -159,8 +193,8 @@ export default function AppPage() {
       a.click();
       URL.revokeObjectURL(url);
       showToast("✅ PDF downloaded!");
-    } catch (err: any) {
-      showToast(`❌ ${err.message}`, 5000);
+    } catch (err: unknown) {
+      showToast(`❌ ${errorMessage(err, "Render failed")}`, 5000);
     }
   };
 
@@ -171,9 +205,9 @@ export default function AppPage() {
     setShowGhost(true);
     setJobId(null);
     try {
-      const res = await fetch(`${API}/api/v1/optimize`, {
+      const res = await fetch(apiUrl("/api/v1/optimize"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: jsonHeaders(),
         body: JSON.stringify({
           job_url:    jobUrl,
           provider:   appSettings.optimize_llm.provider,
@@ -183,8 +217,8 @@ export default function AppPage() {
       if (!res.ok) throw new Error("Failed to start pipeline");
       const data = await res.json();
       setJobId(data.job_id);
-    } catch (err: any) {
-      showToast(`❌ ${err.message}`, 5000);
+    } catch (err: unknown) {
+      showToast(`❌ ${errorMessage(err, "Failed to start pipeline")}`, 5000);
       setIsOptimizing(false);
       setShowGhost(false);
     }
@@ -214,6 +248,7 @@ export default function AppPage() {
             <span style={{ fontFamily: 'var(--font-space)', color: '#f1f5f9', fontWeight: 600, fontSize: '0.875rem' }}>Mindris AI</span>
           </Link>
 
+          <LLMSelector taskKey="optimize_llm" label="Optimize" />
           {/* Job URL */}
           <div className="flex items-center gap-2 flex-1 max-w-md mx-4">
             <Input
@@ -321,6 +356,7 @@ export default function AppPage() {
                   onDone={handleGhostDone}
                   onError={handleGhostError}
                   onJobResult={handleJobResult}
+                  onCompanyResult={handleCompanyResult}
                 />
               </div>
             </div>

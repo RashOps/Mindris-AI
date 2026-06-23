@@ -12,11 +12,12 @@ cleanup helper :func:`cleanup_stale_queues` can be called periodically
 """
 
 import asyncio
-import logging
 import time
 from collections.abc import AsyncGenerator
 
-logger = logging.getLogger(__name__)
+from utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 # ── Internal registry ─────────────────────────────────────────────────────────
 
@@ -143,9 +144,7 @@ def cleanup_stale_queues() -> int:
     """
     now = time.monotonic()
     stale = [
-        jid
-        for jid, ts in _queue_created_at.items()
-        if now - ts > QUEUE_TTL_SECONDS
+        jid for jid, ts in _queue_created_at.items() if now - ts > QUEUE_TTL_SECONDS
     ]
     for jid in stale:
         remove_job_queue(jid)

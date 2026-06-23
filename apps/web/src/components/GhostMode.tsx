@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { eventSourceUrl } from "@/lib/api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -14,18 +15,21 @@ export interface GhostEvent {
   ts: number;
 }
 
+export type GhostPayload = Record<string, unknown>;
+
 interface GhostModeProps {
   jobId: string | null;
   onDone?: () => void;
   onError?: () => void;
-  onJobResult?: (data: any) => void;  // Called when job_result SSE event arrives
+  onJobResult?: (data: GhostPayload) => void;  // Called when job_result SSE event arrives
+  onCompanyResult?: (data: GhostPayload) => void;
 }
 
-const API = "http://localhost:8000";
+
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function GhostMode({ jobId, onDone, onError, onJobResult }: GhostModeProps) {
+export function GhostMode({ jobId, onDone, onError, onJobResult, onCompanyResult }: GhostModeProps) {
   const [events, setEvents] = useState<GhostEvent[]>([]);
   const [status, setStatus] = useState<"idle" | "running" | "done" | "error">("idle");
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -35,39 +39,50 @@ export function GhostMode({ jobId, onDone, onError, onJobResult }: GhostModeProp
   const onDoneRef = useRef(onDone);
   const onErrorRef = useRef(onError);
   const onJobResultRef = useRef(onJobResult);
-  onDoneRef.current = onDone;
-  onErrorRef.current = onError;
-  onJobResultRef.current = onJobResult;
+  const onCompanyResultRef = useRef(onCompanyResult);
+
+  useEffect(() => {
+    onDoneRef.current = onDone;
+    onErrorRef.current = onError;
+    onJobResultRef.current = onJobResult;
+    onCompanyResultRef.current = onCompanyResult;
+  }, [onDone, onError, onJobResult, onCompanyResult]);
 
   // ── Connect SSE only when jobId changes ────────────────────────────────────
   useEffect(() => {
     if (!jobId) return;
 
-    // Reset terminal
-    setEvents([]);
-    setStatus("running");
-    esRef.current?.close();
-
-    const es = new EventSource(`${API}/api/v1/optimize/stream?job_id=${jobId}`);
+    const previousEventSource = esRef.current;
+    const es = new EventSource(eventSourceUrl(`/api/v1/optimize/stream?job_id=${jobId}`));
     esRef.current = es;
+    queueMicrotask(() => {
+      setEvents([]);
+      setStatus("running");
+      previousEventSource?.close();
+      esRef.current = es;
+    });
 
     const handleEvent = (evt: MessageEvent, eventType: string) => {
       try {
-        const data = JSON.parse(evt.data);
+        const data = JSON.parse(evt.data) as GhostPayload;
         if (eventType === "ping") return;
 
         const entry: GhostEvent = {
           id: `${Date.now()}-${Math.random()}`,
           event: eventType,
-          icon: data.icon ?? (eventType === "error" ? "❌" : "•"),
-          message: data.message ?? "",
-          score: data.score,
-          content: data.content,
+          icon: typeof data.icon === "string" ? data.icon : (eventType === "error" ? "❌" : "•"),
+          message: typeof data.message === "string" ? data.message : "",
+          score: typeof data.score === "number" ? data.score : undefined,
+          content: typeof data.content === "string" ? data.content : undefined,
           ts: Date.now(),
         };
 
         setEvents((prev) => [...prev, entry]);
 
+        if (eventType === "company_result") {
+          onCompanyResultRef.current?.(data);
+          return;
+        }
         if (eventType === "job_result") {
           // Forward structured data to parent without displaying in terminal
           onJobResultRef.current?.(data);
@@ -88,7 +103,7 @@ export function GhostMode({ jobId, onDone, onError, onJobResult }: GhostModeProp
       }
     };
 
-    const eventTypes = ["pipeline_start", "node_start", "node_done", "done", "error", "ping", "job_result"];
+    const eventTypes = ["pipeline_start", "node_start", "node_done", "done", "error", "ping", "job_result", "company_result"];
     eventTypes.forEach((type) => {
       es.addEventListener(type, (evt) => handleEvent(evt as MessageEvent, type));
     });

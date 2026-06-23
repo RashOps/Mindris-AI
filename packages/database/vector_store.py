@@ -56,6 +56,7 @@ class MindrisVectorStore:
         """
         if not ids:
             import uuid
+
             ids = [str(uuid.uuid4()) for _ in texts]
 
         if not metadatas:
@@ -108,15 +109,15 @@ class MindrisVectorStore:
         else:
             distances = [0.0] * len(docs)
 
-        for doc, meta, doc_id, dist in zip(
-            docs, metas, ids, distances, strict=False
-        ):
-            output.append({
-                "id": doc_id,
-                "document": doc,
-                "metadata": meta,
-                "distance": dist,
-            })
+        for doc, meta, doc_id, dist in zip(docs, metas, ids, distances, strict=False):
+            output.append(
+                {
+                    "id": doc_id,
+                    "document": doc,
+                    "metadata": meta,
+                    "distance": dist,
+                }
+            )
 
         return output
 

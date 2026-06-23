@@ -39,6 +39,7 @@ def get_logger(name: str) -> logging.Logger:
     logger.setLevel(logging.DEBUG)
 
     formatter = logging.Formatter(_LOG_FORMAT, datefmt=_DATE_FORMAT)
+    settings.logs_dir.mkdir(parents=True, exist_ok=True)
 
     # Console — WARNING and above only (not too noisy in terminals)
     console_h = logging.StreamHandler()
