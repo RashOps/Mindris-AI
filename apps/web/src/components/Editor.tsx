@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { useCVStore } from "@/store/useCVStore";
-import type { ExperienceItem, EducationItem, SkillGroup, ProjectItem, LanguageItem } from "@/store/useCVStore";
+import type { Social } from "@/store/useCVStore";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import {
   DndContext,
   closestCenter,
+  type DragEndEvent,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -18,7 +18,6 @@ import {
   useDroppable,
 } from "@dnd-kit/core";
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
@@ -195,7 +194,9 @@ function TagInput({
 
 // ── Sortable row wrapper ──────────────────────────────────────────────────────
 
-function SortableRow({ id, children }: { id: string; children: (props: any) => React.ReactNode }) {
+type SortableHandleProps = Pick<ReturnType<typeof useSortable>, "attributes" | "listeners">;
+
+function SortableRow({ id, children }: { id: string; children: (props: SortableHandleProps) => React.ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
   const style = { transform: CSS.Transform.toString(transform), transition };
   return (
@@ -211,7 +212,7 @@ function ExperienceSection() {
   const { cvData, updateExperience, addExperience, removeExperience, reorderExperience } = useCVStore();
   const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
-  const handleDragEnd = (event: any) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
       const oldIdx = cvData.experience.findIndex((e) => e.id === active.id);
@@ -266,7 +267,7 @@ function EducationSection() {
   const { cvData, updateEducation, addEducation, removeEducation, reorderEducation } = useCVStore();
   const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
-  const handleDragEnd = (event: any) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
       const oldIdx = cvData.education.findIndex((e) => e.id === active.id);
@@ -347,7 +348,7 @@ function ProjectsSection() {
   const { cvData, updateProject, addProject, removeProject, reorderProjects } = useCVStore();
   const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
-  const handleDragEnd = (event: any) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
       const oldIdx = cvData.projects.findIndex((p) => p.id === active.id);
@@ -476,7 +477,7 @@ function ProfileSection() {
                 value={s.type}
                 onChange={(e) => {
                   const updated = [...p.socials];
-                  updated[i] = { ...s, type: e.target.value as any };
+                  updated[i] = { ...s, type: e.target.value as Social["type"] };
                   setProfile({ socials: updated });
                 }}
                 className="h-8 rounded border px-2 text-xs w-28 flex-shrink-0 focus:outline-none"
@@ -519,10 +520,6 @@ function ProfileSection() {
 // ── Main Editor ───────────────────────────────────────────────────────────────
 
 export function Editor() {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  if (!mounted) return null;
-
   return (
     <ScrollArea className="h-full w-full pr-2">
       <div className="space-y-4 pb-10">

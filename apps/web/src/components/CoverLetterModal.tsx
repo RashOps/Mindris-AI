@@ -277,7 +277,7 @@ export function CoverLetterModal({ open, onClose }: CoverLetterModalProps) {
                   Génération en cours…
                 </>
               ) : (
-                <>✉️ Générer la lettre → Ouvrir dans l'éditeur</>
+                <>✉️ Générer la lettre → Ouvrir dans l&apos;éditeur</>
               )}
             </button>
           </div>

@@ -15,12 +15,14 @@ export interface GhostEvent {
   ts: number;
 }
 
+export type GhostPayload = Record<string, unknown>;
+
 interface GhostModeProps {
   jobId: string | null;
   onDone?: () => void;
   onError?: () => void;
-  onJobResult?: (data: any) => void;  // Called when job_result SSE event arrives
-  onCompanyResult?: (data: any) => void;
+  onJobResult?: (data: GhostPayload) => void;  // Called when job_result SSE event arrives
+  onCompanyResult?: (data: GhostPayload) => void;
 }
 
 
@@ -38,35 +40,40 @@ export function GhostMode({ jobId, onDone, onError, onJobResult, onCompanyResult
   const onErrorRef = useRef(onError);
   const onJobResultRef = useRef(onJobResult);
   const onCompanyResultRef = useRef(onCompanyResult);
-  onDoneRef.current = onDone;
-  onErrorRef.current = onError;
-  onJobResultRef.current = onJobResult;
-  onCompanyResultRef.current = onCompanyResult;
+
+  useEffect(() => {
+    onDoneRef.current = onDone;
+    onErrorRef.current = onError;
+    onJobResultRef.current = onJobResult;
+    onCompanyResultRef.current = onCompanyResult;
+  }, [onDone, onError, onJobResult, onCompanyResult]);
 
   // ── Connect SSE only when jobId changes ────────────────────────────────────
   useEffect(() => {
     if (!jobId) return;
 
-    // Reset terminal
-    setEvents([]);
-    setStatus("running");
-    esRef.current?.close();
-
+    const previousEventSource = esRef.current;
     const es = new EventSource(eventSourceUrl(`/api/v1/optimize/stream?job_id=${jobId}`));
     esRef.current = es;
+    queueMicrotask(() => {
+      setEvents([]);
+      setStatus("running");
+      previousEventSource?.close();
+      esRef.current = es;
+    });
 
     const handleEvent = (evt: MessageEvent, eventType: string) => {
       try {
-        const data = JSON.parse(evt.data);
+        const data = JSON.parse(evt.data) as GhostPayload;
         if (eventType === "ping") return;
 
         const entry: GhostEvent = {
           id: `${Date.now()}-${Math.random()}`,
           event: eventType,
-          icon: data.icon ?? (eventType === "error" ? "❌" : "•"),
-          message: data.message ?? "",
-          score: data.score,
-          content: data.content,
+          icon: typeof data.icon === "string" ? data.icon : (eventType === "error" ? "❌" : "•"),
+          message: typeof data.message === "string" ? data.message : "",
+          score: typeof data.score === "number" ? data.score : undefined,
+          content: typeof data.content === "string" ? data.content : undefined,
           ts: Date.now(),
         };
 

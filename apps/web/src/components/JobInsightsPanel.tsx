@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { useCVStore } from "@/store/useCVStore";
-import type { JobInsights } from "@/store/useCVStore";
+import type { LLMProvider } from "@/store/useCVStore";
 import { AtsScoreWidget } from "@/components/ats/AtsScoreWidget";
 import { apiUrl, jsonHeaders } from "@/lib/api";
 
@@ -75,6 +75,10 @@ const MODELS: Record<string, { id: string; label: string }[]> = {
   mistral: [{ id: "mistral-large-latest", label: "Mistral Large" }, { id: "mistral-small-latest", label: "Mistral Small" }],
 };
 
+function errorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
+}
+
 // ── Main Panel ────────────────────────────────────────────────────────────────
 
 interface JobInsightsPanelProps {
@@ -122,8 +126,8 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
         applyPatch(data.patch);
         setPatchStatus("✅ CV patched successfully!");
       }
-    } catch (err: any) {
-      setPatchStatus(`❌ ${err.message}`);
+    } catch (err: unknown) {
+      setPatchStatus(`❌ ${errorMessage(err, "Patch failed")}`);
     } finally {
       setIsPatchLoading(false);
       setTimeout(() => setPatchStatus(null), 4000);
@@ -142,10 +146,6 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
     localStorage.setItem("md_draft", jobInsights.raw_markdown);
     window.open("/tools/markdown", "_blank");
   };
-
-  const scoreColor = jobInsights
-    ? jobInsights.score >= 80 ? "text-green-600" : jobInsights.score >= 60 ? "text-amber-500" : "text-red-500"
-    : "text-slate-400";
 
   return (
     <>
@@ -239,7 +239,11 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
               <div className="flex gap-1.5 mt-2">
                 <select
                   value={provider}
-                  onChange={(e) => { setProvider(e.target.value as any); setModelName(MODELS[e.target.value][0].id); }}
+                  onChange={(e) => {
+                    const nextProvider = e.target.value as LLMProvider;
+                    setProvider(nextProvider);
+                    setModelName(MODELS[nextProvider]?.[0]?.id ?? modelName);
+                  }}
                   className="flex-1 text-xs rounded px-2 py-1 focus:outline-none"
                   style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#cbd5e1' }}
                 >

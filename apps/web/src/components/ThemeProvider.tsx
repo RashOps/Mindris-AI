@@ -11,13 +11,14 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("dark");
+function readInitialTheme(): Theme {
+  if (typeof window === "undefined") return "dark";
+  const saved = window.localStorage.getItem("mindris-theme");
+  return saved === "light" || saved === "dark" ? saved : "dark";
+}
 
-  useEffect(() => {
-    const saved = window.localStorage.getItem("mindris-theme") as Theme | null;
-    if (saved === "light" || saved === "dark") setThemeState(saved);
-  }, []);
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [theme, setThemeState] = useState<Theme>(readInitialTheme);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
