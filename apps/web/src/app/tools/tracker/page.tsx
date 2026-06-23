@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { apiUrl, jsonHeaders } from "@/lib/api";
 
 const STATUSES = [
@@ -30,7 +30,7 @@ export default function TrackerPage() {
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState({ company: "", role: "", url: "" });
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -43,9 +43,11 @@ export default function TrackerPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    void Promise.resolve().then(load);
+  }, [load]);
 
   const create = async () => {
     if (!draft.company.trim() || !draft.role.trim()) return;

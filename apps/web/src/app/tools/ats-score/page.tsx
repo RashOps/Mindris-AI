@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -21,11 +21,6 @@ function scoreColor(s: number) {
   if (s >= 80) return '#10b981';
   if (s >= 60) return '#f59e0b';
   return '#ef4444';
-}
-function scoreGradient(s: number) {
-  if (s >= 80) return 'from-emerald-400 to-emerald-600';
-  if (s >= 60) return 'from-amber-400 to-amber-600';
-  return 'from-rose-400 to-rose-600';
 }
 function scoreLabel(s: number) {
   if (s >= 80) return 'Excellent';
@@ -107,9 +102,6 @@ function KeywordBarChart({ keywords }: { keywords: KeywordStatus[] }) {
 // ── Radar Chart (skills coverage) ─────────────────────────────────────────────
 
 function SkillsRadar({ keywords }: { keywords: KeywordStatus[] }) {
-  const hard   = keywords.filter(k => k.found);
-  const missing = keywords.filter(k => !k.found);
-
   const data = keywords.slice(0, 8).map(k => ({
     skill: k.keyword.length > 12 ? k.keyword.slice(0, 12) + '…' : k.keyword,
     score: k.found ? 100 : k.severity === 'high' ? 10 : k.severity === 'medium' ? 35 : 60,
@@ -282,10 +274,9 @@ interface HeroProps {
   isAnalyzing: boolean;
   cvLoaded: boolean;
   onCvLoaded: (data: object) => void;
-  appSettings: ReturnType<typeof useCVStore.getState>['appSettings'];
 }
 
-function AtsHero({ jobUrl, setJobUrl, onAnalyze, isAnalyzing, cvLoaded, onCvLoaded, appSettings }: HeroProps) {
+function AtsHero({ jobUrl, setJobUrl, onAnalyze, isAnalyzing, cvLoaded, onCvLoaded }: HeroProps) {
   return (
     <div className="max-w-2xl mx-auto text-center space-y-8 pt-8 pb-4">
       {/* Title */}
@@ -408,25 +399,28 @@ function SSEProgress({ messages }: SSEProgressProps) {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
+function readSavedAtsReport(): AtsReport | null {
+  if (typeof window === 'undefined') return null;
+  const saved = window.localStorage.getItem('ats_report');
+  if (!saved) return null;
+  try {
+    return JSON.parse(saved) as AtsReport;
+  } catch {
+    return null;
+  }
+}
+
 export default function AtsScorePage() {
   const { cvData, appSettings } = useCVStore();
   const [jobUrl, setJobUrl]         = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [report, setReport]         = useState<AtsReport | null>(null);
+  const [report, setReport]         = useState<AtsReport | null>(readSavedAtsReport);
   const [sseMessages, setSseMessages] = useState<string[]>([]);
   const [cvLoaded, setCvLoaded]     = useState(!!cvData?.profile?.full_name);
   const [error, setError]           = useState<string | null>(null);
   const jobIdRef = useRef<string | null>(null);
 
-  // Load from localStorage on mount (backward compat with CV Creator flow)
-  useEffect(() => {
-    const saved = localStorage.getItem('ats_report');
-    if (saved) {
-      try { setReport(JSON.parse(saved)); } catch { /* ignore */ }
-    }
-  }, []);
-
-  const handleCvLoaded = useCallback((_data: object) => {
+  const handleCvLoaded = useCallback(() => {
     setCvLoaded(true);
   }, []);
 
@@ -525,7 +519,6 @@ export default function AtsScorePage() {
           isAnalyzing={isAnalyzing}
           cvLoaded={cvLoaded}
           onCvLoaded={handleCvLoaded}
-          appSettings={appSettings}
         />
       </div>
 

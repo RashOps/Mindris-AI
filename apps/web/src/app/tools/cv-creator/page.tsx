@@ -8,7 +8,7 @@ import { JobInsightsPanel } from "@/components/JobInsightsPanel";
 import { CoverLetterModal } from "@/components/CoverLetterModal";
 import { LLMSelector } from "@/components/LLMSelector";
 import { useCVStore } from "@/store/useCVStore";
-import type { JobInsights } from "@/store/useCVStore";
+import type { CompanyInsight, JobInsights } from "@/store/useCVStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState, useRef, useCallback } from "react";
@@ -21,6 +21,29 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
+
+type DragPayload =
+  | { kind: "skill"; skill: string }
+  | { kind: "skillGroup"; groupId: string }
+  | { kind: "bullet"; bullet: string }
+  | { kind: "experience"; expId: string };
+
+type JobResultPayload = Partial<JobInsights> & {
+  company_insight?: CompanyInsight;
+};
+
+function asDragPayload(value: unknown): DragPayload | null {
+  if (!value || typeof value !== "object" || !("kind" in value)) return null;
+  return value as DragPayload;
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+function errorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
+}
 
 
 
@@ -58,8 +81,8 @@ export default function AppPage() {
     const { active, over } = event;
     if (!over) return;
 
-    const dragData  = active.data.current as any;
-    const dropData  = over.data.current   as any;
+    const dragData = asDragPayload(active.data.current);
+    const dropData = asDragPayload(over.data.current);
 
     // Skill tag → skill group
     if (dragData?.kind === "skill" && dropData?.kind === "skillGroup") {
@@ -84,21 +107,23 @@ export default function AppPage() {
 
   // ── Job Result callback (from GhostMode SSE) ──────────────────────────────
 
-  const handleCompanyResult = useCallback((data: any) => {
+  const handleCompanyResult = useCallback((data: JobResultPayload) => {
     const insight = data.company_insight;
     if (!insight) return;
     const current = useCVStore.getState().jobInsights;
     if (current) setJobInsights({ ...current, company_insight: insight });
   }, [setJobInsights]);
-  const handleJobResult = useCallback((data: any) => {
+  const handleJobResult = useCallback((data: JobResultPayload) => {
     const insights: JobInsights = {
-      job_title:       data.job_title      ?? "Unknown Role",
-      company:         data.company        ?? "",
-      hard_skills:     data.hard_skills    ?? [],
-      soft_skills:     data.soft_skills    ?? [],
-      drafted_bullets: data.drafted_bullets ?? [],
-      raw_markdown:    data.raw_markdown   ?? "",
-      score:           data.score          ?? 0,
+      job_title:       typeof data.job_title === "string" ? data.job_title : "Unknown Role",
+      company:         typeof data.company === "string" ? data.company : "",
+      hard_skills:     stringArray(data.hard_skills),
+      soft_skills:     stringArray(data.soft_skills),
+      drafted_bullets: stringArray(data.drafted_bullets),
+      raw_markdown:    typeof data.raw_markdown === "string" ? data.raw_markdown : "",
+      score:           typeof data.score === "number" ? data.score : 0,
+      ats_report:      data.ats_report,
+      company_insight: data.company_insight,
     };
     setJobInsights(insights);
     setShowInsights(true);
@@ -121,8 +146,8 @@ export default function AppPage() {
       const data = await res.json();
       if (data.cv_data) replaceCVData(data.cv_data);
       showToast("✅ PDF indexed! Editor and RAG updated.");
-    } catch (err: any) {
-      showToast(`❌ ${err.message}`, 6000);
+    } catch (err: unknown) {
+      showToast(`❌ ${errorMessage(err, "Upload failed")}`, 6000);
     } finally {
       setIsUploading(false);
       if (pdfInputRef.current) pdfInputRef.current.value = "";
@@ -168,8 +193,8 @@ export default function AppPage() {
       a.click();
       URL.revokeObjectURL(url);
       showToast("✅ PDF downloaded!");
-    } catch (err: any) {
-      showToast(`❌ ${err.message}`, 5000);
+    } catch (err: unknown) {
+      showToast(`❌ ${errorMessage(err, "Render failed")}`, 5000);
     }
   };
 
@@ -192,8 +217,8 @@ export default function AppPage() {
       if (!res.ok) throw new Error("Failed to start pipeline");
       const data = await res.json();
       setJobId(data.job_id);
-    } catch (err: any) {
-      showToast(`❌ ${err.message}`, 5000);
+    } catch (err: unknown) {
+      showToast(`❌ ${errorMessage(err, "Failed to start pipeline")}`, 5000);
       setIsOptimizing(false);
       setShowGhost(false);
     }

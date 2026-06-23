@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
+import { RENDERER_BASE_URL, jsonHeaders, rendererUrl } from "@/lib/api";
 
 // ── Templates ─────────────────────────────────────────────────────────────────
 
@@ -84,41 +85,53 @@ Converts Markdown to a PDF document.
 
 
 
+function readInjectedDraft() {
+  if (typeof window === "undefined") {
+    return {
+      markdown: TEMPLATES.cover_letter,
+      style: "letter" as const,
+      title: "Document",
+      activeTemplate: "cover_letter" as keyof typeof TEMPLATES,
+    };
+  }
+
+  const draft = window.localStorage.getItem("md_draft");
+  if (!draft) {
+    return {
+      markdown: TEMPLATES.cover_letter,
+      style: "letter" as const,
+      title: "Document",
+      activeTemplate: "cover_letter" as keyof typeof TEMPLATES,
+    };
+  }
+
+  const savedStyle = window.localStorage.getItem("md_draft_style");
+  const savedTitle = window.localStorage.getItem("md_draft_title");
+  window.localStorage.removeItem("md_draft");
+  window.localStorage.removeItem("md_draft_style");
+  window.localStorage.removeItem("md_draft_title");
+
+  return {
+    markdown: draft,
+    style: savedStyle === "document" ? "document" as const : "letter" as const,
+    title: savedTitle || "Document",
+    activeTemplate: savedStyle === "letter" ? "cover_letter" as const : "blank" as const,
+  };
+}
+
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function MarkdownToolPage() {
-  const [markdown, setMarkdown] = useState(TEMPLATES.cover_letter);
-  const [style, setStyle] = useState<"document" | "letter">("letter");
-  const [title, setTitle] = useState("Document");
+  const [initialDraft] = useState(readInjectedDraft);
+  const [markdown, setMarkdown] = useState(initialDraft.markdown);
+  const [style, setStyle] = useState<"document" | "letter">(initialDraft.style);
+  const [title, setTitle] = useState(initialDraft.title);
   const [previewHtml, setPreviewHtml] = useState("");
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; msg: string } | null>(null);
-  const [activeTemplate, setActiveTemplate] = useState<keyof typeof TEMPLATES>("cover_letter");
+  const [activeTemplate, setActiveTemplate] = useState<keyof typeof TEMPLATES>(initialDraft.activeTemplate);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // ── Read draft injected by CoverLetterModal ───────────────────────────────
-  useEffect(() => {
-    const draft = localStorage.getItem("md_draft");
-    if (draft) {
-      setMarkdown(draft);
-
-      const savedStyle = localStorage.getItem("md_draft_style");
-      const savedTitle = localStorage.getItem("md_draft_title");
-
-      if (savedStyle === "letter" || savedStyle === "document") setStyle(savedStyle);
-      if (savedTitle) setTitle(savedTitle);
-
-      // Show the matching template as active in the tab bar (visual only — markdown stays the AI draft)
-      setActiveTemplate(savedStyle === "letter" ? "cover_letter" : "blank");
-
-      // Clean up so next visit is fresh
-      localStorage.removeItem("md_draft");
-      localStorage.removeItem("md_draft_style");
-      localStorage.removeItem("md_draft_title");
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // ── Preview (debounced) ───────────────────────────────────────────────────
   const fetchPreview = useCallback(async (md: string, s: string, t: string) => {
@@ -166,8 +179,8 @@ export default function MarkdownToolPage() {
       a.click();
       URL.revokeObjectURL(url);
       setStatus({ type: "success", msg: "✅ PDF downloaded!" });
-    } catch (err: any) {
-      setStatus({ type: "error", msg: `❌ ${err.message}` });
+    } catch (err: unknown) {
+      setStatus({ type: "error", msg: `❌ ${err instanceof Error ? err.message : "Export failed"}` });
     } finally {
       setIsExporting(false);
       setTimeout(() => setStatus(null), 4000);
@@ -345,7 +358,7 @@ export default function MarkdownToolPage() {
           Style: <span className="font-medium capitalize" style={{ color: '#64748b' }}>{style}</span>
         </span>
         <span className="text-xs" style={{ color: '#334155' }}>
-          Renderer: <span className="font-medium" style={{ color: '#64748b' }}>{RENDERER_URL}</span>
+          Renderer: <span className="font-medium" style={{ color: '#64748b' }}>{RENDERER_BASE_URL}</span>
         </span>
         <span className="text-xs ml-auto" style={{ color: '#1e293b' }}>
           Mindris AI · Markdown Converter
