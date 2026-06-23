@@ -80,3 +80,19 @@ def test_resume_import_accepts_resume_document_shape() -> None:
     item = response.json()["item"]
     assert item["name"] == "Imported Resume"
     assert item["templateId"] == "compact"
+
+
+def test_resume_create_rejects_invalid_cv_shape() -> None:
+    api = client()
+    response = api.post(
+        "/api/v1/resumes",
+        headers=auth_headers(),
+        json={
+            "name": "Broken CV",
+            "cv_data": {
+                "global_settings": {"template_id": "modern"},
+                "experience": [],
+            },
+        },
+    )
+    assert response.status_code == 422
