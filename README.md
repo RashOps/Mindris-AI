@@ -109,11 +109,21 @@ ollama create gemma4:32k -f gemma4-32k.modelfile
 Create a `.env` file at the project root:
 
 ```env
-# LLM
-OPENAI_API_BASE="http://127.0.0.1:11434"
-OPENAI_MODEL_NAME="gemma4:32k"
-OPENAI_API_KEY="ollama"
-LLM_TYPE="ollama"
+# Local API
+API_KEY="dev-mindris-api-key"
+RENDERER_URL="http://localhost:4000"
+MAX_PDF_UPLOAD_BYTES="10485760"
+
+# Local Ollama
+OLLAMA_API_BASE="http://127.0.0.1:11434"
+OLLAMA_NUM_CTX="32768"
+
+# Optional cloud providers. Do not commit real keys.
+OPENAI_API_KEY=""
+GROQ_API_KEY=""
+GEMINI_API_KEY=""
+MISTRAL_API_KEY=""
+LLAMA_CLOUD_API_KEY=""
 
 # Scraper
 SCRAPER_HEADLESS=false
@@ -177,11 +187,16 @@ All settings are centralised in `packages/utils/config.py` and read from `.env`:
 
 | Variable | Default | Description |
 |---|---|---|
-| `LLM_TYPE` | `ollama` | LLM provider (`ollama`, `openai`) |
-| `OPENAI_API_BASE` | `http://127.0.0.1:11434` | Ollama server URL |
-| `OPENAI_MODEL_NAME` | `gemma4:latest` | Model identifier |
-| `OPENAI_API_KEY` | `ollama` | API key (dummy for Ollama) |
-| `LLM_NUM_CTX` | `32768` | Context window size |
+| `API_KEY` | `dev-mindris-api-key` | Shared local API key for protected routes |
+| `RENDERER_URL` | `http://localhost:4000` | Renderer service URL |
+| `MAX_PDF_UPLOAD_BYTES` | `10485760` | Maximum accepted PDF upload size |
+| `OLLAMA_API_BASE` | `http://127.0.0.1:11434` | Ollama server URL |
+| `OLLAMA_NUM_CTX` | `32768` | Context window size |
+| `OPENAI_API_KEY` | empty | Optional OpenAI key; never commit real keys |
+| `GROQ_API_KEY` | empty | Optional Groq key |
+| `GEMINI_API_KEY` | empty | Optional Gemini key |
+| `MISTRAL_API_KEY` | empty | Optional Mistral key |
+| `LLAMA_CLOUD_API_KEY` | empty | Optional LlamaCloud key for PDF parsing |
 | `SCRAPER_HEADLESS` | `true` | Run browser without UI |
 | `SCRAPER_TIMEOUT_MS` | `60000` | Page load timeout (ms) |
 
@@ -198,11 +213,14 @@ settings.scraper_headless  # → True
 ## 🔍 Code Quality
 
 ```bash
+# Unit/API tests; LLM smoke tests are skipped unless RUN_LLM_TESTS=1
+uv run pytest -q
+
 # Lint (0 errors expected)
-uv run ruff check services/ packages/ run_pipeline.py
+uv run ruff check services packages tests run_pipeline.py test_llm.py test_ollama.py
 
 # Format
-uv run ruff format services/ packages/ run_pipeline.py
+uv run ruff format services packages tests run_pipeline.py test_llm.py test_ollama.py
 ```
 
 **Active ruff rules:** `E` `F` `I` `N` `W` `B` `UP` `D` `ANN` `T20` `SIM` `C4`  
