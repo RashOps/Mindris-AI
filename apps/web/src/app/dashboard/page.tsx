@@ -80,6 +80,17 @@ const NAV_ITEMS = [
   { label: "Markdown PDF", href: "/tools/markdown", active: false },
 ] as const;
 
+type ResumeExportFormat = "json" | "markdown" | "html";
+
+const RESUME_EXPORTS: Record<
+  ResumeExportFormat,
+  { endpoint: string; extension: string; label: string }
+> = {
+  json: { endpoint: "export-json", extension: "json", label: "JSON" },
+  markdown: { endpoint: "export-markdown", extension: "md", label: "Markdown" },
+  html: { endpoint: "export-html", extension: "html", label: "HTML" },
+};
+
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat("en", {
     month: "short",
@@ -89,16 +100,17 @@ function formatDate(value: string): string {
   }).format(new Date(value));
 }
 
-async function downloadResume(id: string, name: string) {
-  const response = await fetch(apiUrl(`/api/v1/resumes/${id}/export-json`), {
+async function downloadResume(id: string, name: string, format: ResumeExportFormat) {
+  const exportConfig = RESUME_EXPORTS[format];
+  const response = await fetch(apiUrl(`/api/v1/resumes/${id}/${exportConfig.endpoint}`), {
     headers: apiHeaders(),
   });
-  if (!response.ok) throw new Error("JSON export failed");
+  if (!response.ok) throw new Error(`${exportConfig.label} export failed`);
   const blob = await response.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `${name.replace(/\s+/g, "_") || "mindris_cv"}.json`;
+  a.download = `${name.replace(/\s+/g, "_") || "mindris_cv"}.${exportConfig.extension}`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -406,18 +418,26 @@ export default function DashboardPage() {
                       >
                         <Copy size={13} /> Duplicate
                       </button>
-                      <button
-                        onClick={() => {
-                          void downloadResume(resume.id, resume.name)
-                            .then(() => showStatus("JSON resume exported"))
-                            .catch((err: unknown) => {
-                              showStatus(err instanceof Error ? err.message : "JSON export failed");
-                            });
-                        }}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 px-2.5 text-xs font-medium text-slate-700"
-                      >
-                        <Download size={13} /> JSON
-                      </button>
+                      {(["json", "markdown", "html"] as const).map((format) => (
+                        <button
+                          key={format}
+                          onClick={() => {
+                            const exportConfig = RESUME_EXPORTS[format];
+                            void downloadResume(resume.id, resume.name, format)
+                              .then(() => showStatus(`${exportConfig.label} resume exported`))
+                              .catch((err: unknown) => {
+                                showStatus(
+                                  err instanceof Error
+                                    ? err.message
+                                    : `${exportConfig.label} export failed`
+                                );
+                              });
+                          }}
+                          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 px-2.5 text-xs font-medium text-slate-700"
+                        >
+                          <Download size={13} /> {RESUME_EXPORTS[format].label}
+                        </button>
+                      ))}
                       <button
                         onClick={() => {
                           void deleteResume(resume.id).catch((err: unknown) => {

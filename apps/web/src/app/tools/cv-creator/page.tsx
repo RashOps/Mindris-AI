@@ -32,6 +32,17 @@ type JobResultPayload = Partial<JobInsights> & {
   company_insight?: CompanyInsight;
 };
 
+type ResumeExportFormat = "json" | "markdown" | "html";
+
+const RESUME_EXPORTS: Record<
+  ResumeExportFormat,
+  { endpoint: string; extension: string; label: string }
+> = {
+  json: { endpoint: "export-json", extension: "json", label: "JSON" },
+  markdown: { endpoint: "export-markdown", extension: "md", label: "Markdown" },
+  html: { endpoint: "export-html", extension: "html", label: "HTML" },
+};
+
 function asDragPayload(value: unknown): DragPayload | null {
   if (!value || typeof value !== "object" || !("kind" in value)) return null;
   return value as DragPayload;
@@ -57,7 +68,7 @@ export default function AppPage() {
     loadResumes,
     resumes, activeResumeId, setActiveResume,
     createResume, duplicateResume, deleteResume,
-    renameResume, exportActiveResume,
+    renameResume,
     flushResumeSave, retryResumeSave,
     resumeSaveStatus, resumeSaveError, lastResumeSavedAt,
   } = useCVStore();
@@ -212,16 +223,23 @@ export default function AppPage() {
     }
   };
 
-  const handleExportJSON = async () => {
-    const resume = await exportActiveResume();
-    const blob = new Blob([JSON.stringify(resume, null, 2)], { type: "application/json" });
+  const handleExportResume = async (format: ResumeExportFormat) => {
+    await flushResumeSave();
+    const exportConfig = RESUME_EXPORTS[format];
+    const response = await fetch(apiUrl(`/api/v1/resumes/${activeResumeId}/${exportConfig.endpoint}`), {
+      headers: apiHeaders(),
+    });
+    if (!response.ok) throw new Error(`${exportConfig.label} export failed`);
+    const blob = await response.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
+    const activeResume = resumes.find((resume) => resume.id === activeResumeId);
+    const name = activeResume?.name || cvData.profile.full_name || "mindris_cv";
     a.href = url;
-    a.download = `${resume.name.replace(/\s+/g, "_") || "mindris_cv"}.json`;
+    a.download = `${name.replace(/\s+/g, "_") || "mindris_cv"}.${exportConfig.extension}`;
     a.click();
     URL.revokeObjectURL(url);
-    showToast("✅ Resume JSON exported");
+    showToast(`✅ Resume ${exportConfig.label} exported`);
   };
 
   // ── Export PDF ─────────────────────────────────────────────────────────────
@@ -429,12 +447,28 @@ export default function AppPage() {
               ↑ JSON
             </button>
 
-            <button onClick={() => void handleExportJSON().catch((err: unknown) => {
+            <button onClick={() => void handleExportResume("json").catch((err: unknown) => {
               showToast(`❌ ${errorMessage(err, "JSON export failed")}`, 6000);
             })}
               className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
               style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}>
               ↓ JSON
+            </button>
+
+            <button onClick={() => void handleExportResume("markdown").catch((err: unknown) => {
+              showToast(`❌ ${errorMessage(err, "Markdown export failed")}`, 6000);
+            })}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+              style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}>
+              ↓ MD
+            </button>
+
+            <button onClick={() => void handleExportResume("html").catch((err: unknown) => {
+              showToast(`❌ ${errorMessage(err, "HTML export failed")}`, 6000);
+            })}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+              style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}>
+              ↓ HTML
             </button>
 
             <button onClick={() => setShowGhost((v) => !v)}
