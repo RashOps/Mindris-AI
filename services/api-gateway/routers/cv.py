@@ -1,5 +1,6 @@
 """CV, cover letter, patch, and ATS routes."""
 
+import asyncio
 import json
 from typing import Annotated
 
@@ -91,7 +92,16 @@ async def upload_pdf_cv(
     from intelligence.ingest_cv import ingest_cv_data
     from intelligence.pdf_parser import parse_pdf_cv
 
-    parsed_cv = await parse_pdf_cv(pdf_bytes, provider=provider, model_name=model_name)
+    try:
+        parsed_cv = await asyncio.wait_for(
+            parse_pdf_cv(pdf_bytes, provider=provider, model_name=model_name),
+            timeout=settings.pipeline_timeout_seconds,
+        )
+    except TimeoutError as exc:
+        raise HTTPException(
+            status_code=504,
+            detail="PDF parsing timed out.",
+        ) from exc
     cv_json = CVDataModel.model_validate(parsed_cv).model_dump(mode="json")
     save_current_cv(session, cv_json, source="pdf")
     ingest_cv_data(cv_json)
@@ -107,12 +117,18 @@ async def calculate_ats_score_route(request: ScoreRequest, session: SessionDep) 
     """Calculate and persist the ATS score for a CV against job insights."""
     from intelligence.ats_score import calculate_ats_score
 
-    report = await calculate_ats_score(
-        cv_data=request.cv_data,
-        job_insights=request.job_insights,
-        provider=request.provider,
-        model_name=request.model_name,
-    )
+    try:
+        report = await asyncio.wait_for(
+            calculate_ats_score(
+                cv_data=request.cv_data,
+                job_insights=request.job_insights,
+                provider=request.provider,
+                model_name=request.model_name,
+            ),
+            timeout=settings.pipeline_timeout_seconds,
+        )
+    except TimeoutError as exc:
+        raise HTTPException(status_code=504, detail="ATS scoring timed out.") from exc
     save_ats_report(session, report, request.provider, request.model_name)
     return {"status": "success", "report": report, "ats_report": report}
 
@@ -124,14 +140,23 @@ async def generate_cover_letter_route(
     """Generate and persist a tailored cover letter in Markdown."""
     from intelligence.cover_letter import generate_cover_letter
 
-    markdown = await generate_cover_letter(
-        cv_data=request.cv_data,
-        job_insights=request.job_insights,
-        instructions=request.instructions,
-        example_letter=request.example_letter,
-        provider=request.provider,
-        model_name=request.model_name,
-    )
+    try:
+        markdown = await asyncio.wait_for(
+            generate_cover_letter(
+                cv_data=request.cv_data,
+                job_insights=request.job_insights,
+                instructions=request.instructions,
+                example_letter=request.example_letter,
+                provider=request.provider,
+                model_name=request.model_name,
+            ),
+            timeout=settings.pipeline_timeout_seconds,
+        )
+    except TimeoutError as exc:
+        raise HTTPException(
+            status_code=504,
+            detail="Cover letter generation timed out.",
+        ) from exc
     save_cover_letter(session, markdown, request.provider, request.model_name)
     return {"status": "success", "markdown": markdown}
 

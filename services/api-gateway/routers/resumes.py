@@ -4,7 +4,12 @@ from typing import Annotated, Any
 
 from database.records import ResumeRecord
 from database.session import Session, get_session
-from exporters import resume_to_html, resume_to_markdown, safe_export_filename
+from exporters import (
+    resume_to_docx,
+    resume_to_html,
+    resume_to_markdown,
+    safe_export_filename,
+)
 from fastapi import APIRouter, Depends, HTTPException, Response
 from persistence import (
     create_resume,
@@ -187,6 +192,24 @@ def export_resume_html(resume_id: int, session: SessionDep) -> Response:
         headers={
             "Content-Disposition": (
                 f'attachment; filename="{safe_export_filename(record.name, "html")}"'
+            )
+        },
+    )
+
+
+@router.get("/{resume_id}/export-docx")
+def export_resume_docx(resume_id: int, session: SessionDep) -> Response:
+    """Return a recruiter-friendly DOCX resume export."""
+    record = _get_resume(session, resume_id)
+    return Response(
+        content=resume_to_docx(record),
+        media_type=(
+            "application/vnd.openxmlformats-officedocument."
+            "wordprocessingml.document"
+        ),
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{safe_export_filename(record.name, "docx")}"'
             )
         },
     )

@@ -11,6 +11,7 @@ from intelligence.event_bus import create_job_queue, emit, stream_events
 from persistence import dump_json, save_job_offer
 from schemas import OptimizationResponse, OptimizeRequest
 from sse_starlette.sse import EventSourceResponse
+from utils.config import settings
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -41,9 +42,15 @@ async def run_intelligence_pipeline(
         )
         try:
             async with SmartScraper() as scraper:
-                markdown_content = await scraper.get_cleaned_content(job_url)
+                markdown_content = await asyncio.wait_for(
+                    scraper.get_cleaned_content(job_url),
+                    timeout=settings.pipeline_timeout_seconds,
+                )
         except ScraperExhaustedError as exc:
             emit(job_id, "error", {"message": f"All scraping providers failed: {exc}"})
+            return
+        except TimeoutError:
+            emit(job_id, "error", {"message": "Scraping timed out."})
             return
 
         if not markdown_content:
@@ -69,12 +76,19 @@ async def run_intelligence_pipeline(
             },
         )
 
-        job_offer = await analyze_job_offer(
-            markdown_content=markdown_content,
-            url=job_url,
-            provider=provider,
-            model_name=model_name,
-        )
+        try:
+            job_offer = await asyncio.wait_for(
+                analyze_job_offer(
+                    markdown_content=markdown_content,
+                    url=job_url,
+                    provider=provider,
+                    model_name=model_name,
+                ),
+                timeout=settings.pipeline_timeout_seconds,
+            )
+        except TimeoutError:
+            emit(job_id, "error", {"message": "Job offer analysis timed out."})
+            return
         if not job_offer:
             emit(
                 job_id,
@@ -92,8 +106,9 @@ async def run_intelligence_pipeline(
         with Session(engine) as session:
             job_record = save_job_offer(session, job_offer)
             try:
-                company_insight = await analyze_company(
-                    job_offer.company, provider, model_name
+                company_insight = await asyncio.wait_for(
+                    analyze_company(job_offer.company, provider, model_name),
+                    timeout=settings.service_timeout_seconds,
                 )
                 job_record.company_insight_json = dump_json(company_insight)
                 session.add(job_record)
@@ -128,7 +143,14 @@ async def run_intelligence_pipeline(
             "job_id": job_id,
         }
         loop = asyncio.get_running_loop()
-        await loop.run_in_executor(None, workflow.invoke, initial_state)
+        try:
+            await asyncio.wait_for(
+                loop.run_in_executor(None, workflow.invoke, initial_state),
+                timeout=settings.pipeline_timeout_seconds,
+            )
+        except TimeoutError:
+            emit(job_id, "error", {"message": "CV optimization workflow timed out."})
+            return
 
         if company_insight:
             emit(job_id, "company_result", {"company_insight": company_insight})
