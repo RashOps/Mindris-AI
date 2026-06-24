@@ -8,18 +8,25 @@ dependencies = [
     "fastapi>=0.136.1",
     "pydantic-settings>=2.10.1",
     "uvicorn>=0.46.0",
-    "llama-cloud>=2.0.0",
     "python-multipart>=0.0.20",
+    "sse-starlette>=3.0.3",
     "database",
-    "intelligence",
-    "scraper",
+    "utils",
+]
+
+[project.optional-dependencies]
+ai = [
     "crewai[google-genai]>=1.14.3",
+    "intelligence",
+    "llama-cloud>=2.0.0",
+    "scraper",
 ]
 
 [tool.uv.sources]
 database = { workspace = true }
 intelligence = { workspace = true }
 scraper = { workspace = true }
+utils = { workspace = true }
 
 [build-system]
 requires = ["setuptools>=61.0"]

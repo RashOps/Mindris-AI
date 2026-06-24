@@ -71,6 +71,24 @@ Dans un autre terminal, une fois les services lances :
 ./scripts/smoke_local.sh
 ```
 
+## E2E navigateur MVP1
+
+Une fois les trois services lances et le smoke check OK :
+
+```bash
+./scripts/e2e_browser.sh
+```
+
+Ce parcours automatise :
+
+- creation d'un CV fixture via l'API ;
+- ouverture du CV Builder ;
+- changement de template ;
+- export DOCX ;
+- export PDF via le renderer ;
+- affichage d'un rapport ATS fixture ;
+- creation et deplacement d'une candidature dans le Job Tracker.
+
 Variables personnalisables :
 
 ```bash

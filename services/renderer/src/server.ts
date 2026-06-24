@@ -4,6 +4,17 @@ import { generatePDF } from "./pdf/generator";
 import { renderMarkdownToHtml } from "./markdown";
 import { generateHtml } from "./templates/engine";
 
+function errorMessage(error: unknown, fallback: string): string {
+    return error instanceof Error ? error.message : fallback;
+}
+
+function jsonError(message: string, status = 500): Response {
+    return new Response(
+        JSON.stringify({ status: "error", message }),
+        { status, headers: { "Content-Type": "application/json" } },
+    );
+}
+
 function safeFilename(title: string, fallback = "document"): string {
     const cleaned = title
         .normalize("NFKD")
@@ -17,7 +28,16 @@ function safeFilename(title: string, fallback = "document"): string {
 const app = new Elysia()
     .use(cors({ origin: ["http://localhost:3000", "http://127.0.0.1:3000"] }))
 
-    .get("/", () => ({ status: "Renderer Service is running" }))
+    .get("/", () => ({ status: "healthy", service: "renderer" }))
+    .get("/health", () => ({ status: "healthy", service: "renderer" }))
+    .get("/ready", () => ({
+        status: "ready",
+        service: "renderer",
+        checks: {
+            templates: { ok: true },
+            pdf: { ok: true },
+        },
+    }))
 
     .post("/render/pdf", async ({ body }: any) => {
         const { cv_data, template_id, return_buffer, return_html } = body;
@@ -44,12 +64,9 @@ const app = new Elysia()
             }
 
             return { success: true, message: "PDF generated.", path: result };
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("CV render failed:", error);
-            return new Response(
-                JSON.stringify({ success: false, error: error.message }),
-                { status: 500, headers: { "Content-Type": "application/json" } },
-            );
+            return jsonError(errorMessage(error, "CV render failed."));
         }
     }, {
         body: t.Object({
@@ -68,12 +85,9 @@ const app = new Elysia()
             return new Response(html, {
                 headers: { "Content-Type": "text/html" },
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Markdown preview failed:", error);
-            return new Response(
-                JSON.stringify({ success: false, error: error.message }),
-                { status: 500, headers: { "Content-Type": "application/json" } },
-            );
+            return jsonError(errorMessage(error, "Markdown preview failed."));
         }
     }, {
         body: t.Object({
@@ -97,12 +111,9 @@ const app = new Elysia()
                     "Content-Disposition": `attachment; filename="${filename}"`,
                 },
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Markdown PDF failed:", error);
-            return new Response(
-                JSON.stringify({ success: false, error: error.message }),
-                { status: 500, headers: { "Content-Type": "application/json" } },
-            );
+            return jsonError(errorMessage(error, "Markdown PDF failed."));
         }
     }, {
         body: t.Object({

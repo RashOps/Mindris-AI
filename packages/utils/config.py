@@ -31,6 +31,14 @@ class Settings(BaseSettings):
         alias="API_KEY",
     )
     renderer_url: str = Field(default="http://localhost:4000", alias="RENDERER_URL")
+    service_timeout_seconds: float = Field(
+        default=45.0,
+        alias="SERVICE_TIMEOUT_SECONDS",
+    )
+    pipeline_timeout_seconds: float = Field(
+        default=180.0,
+        alias="PIPELINE_TIMEOUT_SECONDS",
+    )
     max_pdf_upload_bytes: int = Field(
         default=10 * 1024 * 1024,
         alias="MAX_PDF_UPLOAD_BYTES",

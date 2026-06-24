@@ -7,7 +7,9 @@ SQLite migrations, template catalogue, resume persistence, and workspace drafts.
 from __future__ import annotations
 
 import sys
+from io import BytesIO
 from pathlib import Path
+from zipfile import ZipFile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "services" / "api-gateway"))
@@ -15,13 +17,14 @@ sys.path.insert(0, str(ROOT / "services"))
 sys.path.insert(0, str(ROOT / "packages"))
 
 from database.session import SessionLocal, init_db  # noqa: E402
-from exporters import resume_to_html, resume_to_markdown  # noqa: E402
+from exporters import resume_to_docx, resume_to_html, resume_to_markdown  # noqa: E402
 from persistence import (  # noqa: E402
     create_resume,
     serialize_draft,
     update_resume,
     upsert_workspace_draft,
 )
+from routers.system import readiness_checks  # noqa: E402
 from routers.templates import list_templates  # noqa: E402
 
 
@@ -33,6 +36,9 @@ def main() -> None:
     expected = ["ats", "compact", "creative", "modern", "student"]
     if template_ids != expected:
         raise SystemExit(f"Unexpected templates: {template_ids}")
+    readiness = readiness_checks()
+    if readiness["status"] != "ready":
+        raise SystemExit(f"Readiness smoke check failed: {readiness}")
 
     cv_data = {
         "global_settings": {"template_id": "modern"},
@@ -55,10 +61,17 @@ def main() -> None:
         )
         markdown = resume_to_markdown(resume)
         html = resume_to_html(resume)
+        docx = resume_to_docx(resume)
         if "# Phase 5" not in markdown:
             raise SystemExit("Markdown export smoke check failed.")
         if "Phase 5" not in html or "<script" in html.lower():
             raise SystemExit("HTML export smoke check failed.")
+        with ZipFile(BytesIO(docx)) as package:
+            if "word/document.xml" not in package.namelist():
+                raise SystemExit("DOCX export package smoke check failed.")
+            document = package.read("word/document.xml").decode()
+            if "Phase 5" not in document:
+                raise SystemExit("DOCX export content smoke check failed.")
         update_resume(session, resume, name="Phase 5 CV Updated")
         draft = upsert_workspace_draft(
             session,

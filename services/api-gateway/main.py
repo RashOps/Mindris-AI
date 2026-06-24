@@ -5,7 +5,8 @@ from contextlib import asynccontextmanager
 
 from auth import verify_api_key
 from database.session import init_db
-from fastapi import Depends, FastAPI, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from intelligence.event_bus import cleanup_stale_queues
@@ -78,6 +79,39 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
             "status": "error",
             "message": "Internal server error",
             "detail": str(exc),
+        },
+    )
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+    """Return normalized JSON for expected HTTP errors."""
+    detail = exc.detail if isinstance(exc.detail, str) else "Request failed."
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "status": "error",
+            "message": detail,
+            "detail": exc.detail,
+            "path": request.url.path,
+        },
+        headers=exc.headers,
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(
+    request: Request,
+    exc: RequestValidationError,
+) -> JSONResponse:
+    """Return normalized JSON for validation errors."""
+    return JSONResponse(
+        status_code=422,
+        content={
+            "status": "error",
+            "message": "Validation failed.",
+            "detail": exc.errors(),
+            "path": request.url.path,
         },
     )
 

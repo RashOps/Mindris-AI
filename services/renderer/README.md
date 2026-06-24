@@ -1,15 +1,42 @@
-# renderer
+# Mindris Renderer
 
-To install dependencies:
+## Install
 
 ```bash
 bun install
 ```
 
-To run:
+## Run
 
 ```bash
-bun run index.ts
+bun run start
 ```
 
-This project was created using `bun init` in bun v1.3.11. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+The service listens on:
+
+```text
+http://localhost:4000
+```
+
+## Health and Readiness
+
+```bash
+curl http://localhost:4000/health
+curl http://localhost:4000/ready
+```
+
+Expected readiness response:
+
+```json
+{
+  "status": "ready",
+  "service": "renderer"
+}
+```
+
+## Checks
+
+```bash
+bun run typecheck
+bun run build
+```
