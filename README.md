@@ -104,6 +104,34 @@ ollama pull gemma4:latest
 ollama create gemma4:32k -f gemma4-32k.modelfile
 ```
 
+### Local app without Docker
+
+Install all local dependencies:
+
+```bash
+./scripts/setup_local.sh
+```
+
+Start the API gateway, renderer and frontend together:
+
+```bash
+./scripts/dev_local.sh
+```
+
+Smoke check from another terminal:
+
+```bash
+./scripts/smoke_local.sh
+```
+
+Reinstall dependencies cleanly while keeping lockfiles:
+
+```bash
+./scripts/reset_local_deps.sh
+```
+
+Detailed guide: [`docs/local-development.md`](docs/local-development.md).
+
 ### Environment
 
 Create a `.env` file at the project root:
