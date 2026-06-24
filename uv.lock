@@ -181,29 +181,38 @@ name = "api-gateway"
 version = "0.1.0"
 source = { editable = "services/api-gateway" }
 dependencies = [
-    { name = "crewai", extra = ["google-genai"] },
     { name = "database" },
     { name = "fastapi" },
-    { name = "intelligence" },
-    { name = "llama-cloud" },
     { name = "pydantic-settings" },
     { name = "python-multipart" },
-    { name = "scraper" },
+    { name = "sse-starlette" },
+    { name = "utils" },
     { name = "uvicorn" },
+]
+
+[package.optional-dependencies]
+ai = [
+    { name = "crewai", extra = ["google-genai"] },
+    { name = "intelligence" },
+    { name = "llama-cloud" },
+    { name = "scraper" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "crewai", extras = ["google-genai"], specifier = ">=1.14.3" },
+    { name = "crewai", extras = ["google-genai"], marker = "extra == 'ai'", specifier = ">=1.14.3" },
     { name = "database", editable = "packages/database" },
     { name = "fastapi", specifier = ">=0.136.1" },
-    { name = "intelligence", editable = "services/intelligence" },
-    { name = "llama-cloud", specifier = ">=2.0.0" },
+    { name = "intelligence", marker = "extra == 'ai'", editable = "services/intelligence" },
+    { name = "llama-cloud", marker = "extra == 'ai'", specifier = ">=2.0.0" },
     { name = "pydantic-settings", specifier = ">=2.10.1" },
     { name = "python-multipart", specifier = ">=0.0.20" },
-    { name = "scraper", editable = "services/scraper" },
+    { name = "scraper", marker = "extra == 'ai'", editable = "services/scraper" },
+    { name = "sse-starlette", specifier = ">=3.0.3" },
+    { name = "utils", editable = "packages/utils" },
     { name = "uvicorn", specifier = ">=0.46.0" },
 ]
+provides-extras = ["ai"]
 
 [[package]]
 name = "appdirs"
@@ -728,19 +737,26 @@ name = "database"
 version = "0.1.0"
 source = { editable = "packages/database" }
 dependencies = [
+    { name = "pydantic" },
+    { name = "sqlalchemy" },
+]
+
+[package.optional-dependencies]
+vector = [
     { name = "chromadb" },
     { name = "langchain-huggingface" },
-    { name = "pydantic" },
     { name = "sentence-transformers" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "chromadb", specifier = ">=1.1.1" },
-    { name = "langchain-huggingface", specifier = ">=1.2.2" },
+    { name = "chromadb", marker = "extra == 'vector'", specifier = ">=1.1.1" },
+    { name = "langchain-huggingface", marker = "extra == 'vector'", specifier = ">=1.2.2" },
     { name = "pydantic", specifier = ">=2.0.0" },
-    { name = "sentence-transformers", specifier = ">=5.5.0" },
+    { name = "sentence-transformers", marker = "extra == 'vector'", specifier = ">=5.5.0" },
+    { name = "sqlalchemy", specifier = ">=2.0.0" },
 ]
+provides-extras = ["vector"]
 
 [[package]]
 name = "dataclasses-json"
@@ -1353,7 +1369,7 @@ version = "0.1.0"
 source = { editable = "services/intelligence" }
 dependencies = [
     { name = "crewai", extra = ["tools"] },
-    { name = "database" },
+    { name = "database", extra = ["vector"] },
     { name = "langchain-community" },
     { name = "langchain-openai" },
     { name = "langgraph" },
@@ -1365,7 +1381,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "crewai", extras = ["tools"], specifier = ">=1.14.3" },
-    { name = "database", editable = "packages/database" },
+    { name = "database", extras = ["vector"], editable = "packages/database" },
     { name = "langchain-community", specifier = ">=0.4.1" },
     { name = "langchain-openai", specifier = ">=1.2.1" },
     { name = "langgraph", specifier = ">=1.1.10" },
