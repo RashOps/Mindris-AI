@@ -60,9 +60,15 @@ const shellTemplate = Handlebars.compile(`<!DOCTYPE html>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mindris AI - Generated CV</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; padding: 0; background-color: #f3f4f6; display: flex; justify-content: center; }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
         #cv-container { width: 210mm; min-height: 297mm; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin: 20px 0; }
         @media print {
             body { background: none; }
@@ -254,17 +260,28 @@ export function generateHtml(cvData: any, templateId: string = "modern"): string
     const resolvedTemplate =
         (cvData?.global_settings?.template_id as string | undefined) ?? templateId;
 
-    const cssPath = join(import.meta.dir, "styles", `${resolvedTemplate}.css`);
+    const supportedTemplates = new Set([
+        "modern",
+        "compact",
+        "ats",
+        "student",
+        "creative",
+    ]);
+    const activeTemplate = supportedTemplates.has(resolvedTemplate)
+        ? resolvedTemplate
+        : "modern";
+
+    const cssPath = join(import.meta.dir, "styles", `${activeTemplate}.css`);
     let css = "";
     try {
         css = readFileSync(cssPath, "utf-8");
     } catch {
-        console.warn(`CSS not found for template "${resolvedTemplate}", using fallback.`);
+        console.warn(`CSS not found for template "${activeTemplate}", using fallback.`);
         css = ":host { font-family: sans-serif; }";
     }
 
     let content = "";
-    if (resolvedTemplate === "modern" || resolvedTemplate === "compact") {
+    if (supportedTemplates.has(activeTemplate)) {
         content = modernTemplate(cvData);   // Both templates share the same Handlebars layout
     } else {
         throw new Error(`Template "${resolvedTemplate}" is not supported.`);
@@ -276,4 +293,3 @@ export function generateHtml(cvData: any, templateId: string = "modern"): string
 
     return shellTemplate({ css, content });
 }
-

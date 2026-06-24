@@ -8,10 +8,10 @@ import { JobInsightsPanel } from "@/components/JobInsightsPanel";
 import { CoverLetterModal } from "@/components/CoverLetterModal";
 import { LLMSelector } from "@/components/LLMSelector";
 import { useCVStore } from "@/store/useCVStore";
-import type { CompanyInsight, JobInsights } from "@/store/useCVStore";
+import { cvDataFromImport, resumeNameFromImport, type CompanyInsight, type JobInsights } from "@/store/useCVStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { apiUrl, rendererUrl, apiHeaders, jsonHeaders } from "@/lib/api";
 import Link from "next/link";
 import {
@@ -30,6 +30,17 @@ type DragPayload =
 
 type JobResultPayload = Partial<JobInsights> & {
   company_insight?: CompanyInsight;
+};
+
+type ResumeExportFormat = "json" | "markdown" | "html";
+
+const RESUME_EXPORTS: Record<
+  ResumeExportFormat,
+  { endpoint: string; extension: string; label: string }
+> = {
+  json: { endpoint: "export-json", extension: "json", label: "JSON" },
+  markdown: { endpoint: "export-markdown", extension: "md", label: "Markdown" },
+  html: { endpoint: "export-html", extension: "html", label: "HTML" },
 };
 
 function asDragPayload(value: unknown): DragPayload | null {
@@ -54,6 +65,12 @@ export default function AppPage() {
     setJobInsights, jobInsights,
     updateSkillGroup, updateExperience,
     appSettings,
+    loadResumes,
+    resumes, activeResumeId, setActiveResume,
+    createResume, duplicateResume, deleteResume,
+    renameResume,
+    flushResumeSave, retryResumeSave,
+    resumeSaveStatus, resumeSaveError, lastResumeSavedAt,
   } = useCVStore();
 
   const [jobUrl, setJobUrl]       = useState("");
@@ -72,6 +89,30 @@ export default function AppPage() {
     setToast(msg);
     setTimeout(() => setToast(null), ms);
   };
+
+  useEffect(() => {
+    void loadResumes().catch((err: unknown) => {
+      showToast(`❌ ${errorMessage(err, "Failed to load resumes")}`, 6000);
+    });
+  }, [loadResumes]);
+
+  const activeResume = resumes.find((resume) => resume.id === activeResumeId);
+  const saveStatusText =
+    resumeSaveStatus === "dirty"
+      ? "Unsaved changes"
+      : resumeSaveStatus === "saving"
+        ? "Saving..."
+        : resumeSaveStatus === "error"
+          ? "Save failed"
+          : lastResumeSavedAt
+            ? "Saved"
+            : "Loaded";
+  const saveStatusColor =
+    resumeSaveStatus === "error"
+      ? "#fca5a5"
+      : resumeSaveStatus === "dirty" || resumeSaveStatus === "saving"
+        ? "#fcd34d"
+        : "#86efac";
 
   // ── dnd-kit sensors ────────────────────────────────────────────────────────
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
@@ -161,28 +202,59 @@ export default function AppPage() {
     try {
       const text = await file.text();
       const jsonData = JSON.parse(text);
-      replaceCVData(jsonData);
-      await fetch(apiUrl("/api/v1/cv/upload"), {
-        method: "POST",
+      const importedCV = cvDataFromImport(jsonData);
+      if (!importedCV) throw new Error("Invalid CV JSON");
+      replaceCVData(importedCV);
+      const importedName = resumeNameFromImport(jsonData);
+      if (importedName) renameResume(activeResumeId, importedName);
+      await fetch(apiUrl("/api/v1/cv/current"), {
+        method: "PUT",
         headers: jsonHeaders(),
-        body: JSON.stringify(jsonData),
+        body: JSON.stringify({
+          cv_data: importedCV,
+          source: "json",
+        }),
       });
       showToast("✅ JSON CV indexed!");
-    } catch {
-      showToast("❌ Failed to parse or upload JSON.", 5000);
+    } catch (err: unknown) {
+      showToast(`❌ ${errorMessage(err, "Failed to parse or upload JSON.")}`, 5000);
     } finally {
       if (jsonInputRef.current) jsonInputRef.current.value = "";
     }
+  };
+
+  const handleExportResume = async (format: ResumeExportFormat) => {
+    await flushResumeSave();
+    const exportConfig = RESUME_EXPORTS[format];
+    const response = await fetch(apiUrl(`/api/v1/resumes/${activeResumeId}/${exportConfig.endpoint}`), {
+      headers: apiHeaders(),
+    });
+    if (!response.ok) throw new Error(`${exportConfig.label} export failed`);
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const activeResume = resumes.find((resume) => resume.id === activeResumeId);
+    const name = activeResume?.name || cvData.profile.full_name || "mindris_cv";
+    a.href = url;
+    a.download = `${name.replace(/\s+/g, "_") || "mindris_cv"}.${exportConfig.extension}`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`✅ Resume ${exportConfig.label} exported`);
   };
 
   // ── Export PDF ─────────────────────────────────────────────────────────────
   const handleExportPDF = async () => {
     showToast("⏳ Generating PDF…", 30000);
     try {
+      await flushResumeSave();
       const res = await fetch(rendererUrl("/render/pdf"), {
         method: "POST",
         headers: jsonHeaders(),
-        body: JSON.stringify({ cv_data: cvData, template_id: "modern", return_buffer: true }),
+        body: JSON.stringify({
+          cv_data: cvData,
+          template_id: cvData.global_settings.template_id || "modern",
+          return_buffer: true,
+        }),
       });
       if (!res.ok) throw new Error("Render failed");
       const blob = await res.blob();
@@ -248,7 +320,93 @@ export default function AppPage() {
             <span style={{ fontFamily: 'var(--font-space)', color: '#f1f5f9', fontWeight: 600, fontSize: '0.875rem' }}>Mindris AI</span>
           </Link>
 
+          <div className="flex items-center gap-1.5 min-w-0 max-w-sm">
+            <select
+              value={activeResumeId}
+              onChange={(e) => setActiveResume(e.target.value)}
+              className="h-8 min-w-32 max-w-44 rounded-lg px-2 text-xs outline-none"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0' }}
+              title="Active resume"
+            >
+              {resumes.map((resume) => (
+                <option key={resume.id} value={resume.id} style={{ background: '#0a0f1a' }}>
+                  {resume.name}
+                </option>
+              ))}
+            </select>
+            <input
+              value={activeResume?.name ?? ""}
+              onChange={(e) => renameResume(activeResumeId, e.target.value)}
+              placeholder="Resume name"
+              className="h-8 w-36 rounded-lg px-2 text-xs outline-none"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#cbd5e1' }}
+              title="Rename active resume"
+            />
+            <button
+              onClick={() => {
+                void createResume("Untitled CV")
+                  .then(() => showToast("✅ New blank CV created"))
+                  .catch((err: unknown) => {
+                    showToast(`❌ ${errorMessage(err, "Create failed")}`, 6000);
+                  });
+              }}
+              className="h-8 px-2 rounded-lg text-xs border"
+              style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}
+              title="Create blank CV"
+            >
+              New
+            </button>
+            <button
+              onClick={() => {
+                void duplicateResume()
+                  .then(() => showToast("✅ CV duplicated"))
+                  .catch((err: unknown) => {
+                    showToast(`❌ ${errorMessage(err, "Duplicate failed")}`, 6000);
+                  });
+              }}
+              className="h-8 px-2 rounded-lg text-xs border"
+              style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}
+              title="Duplicate active CV"
+            >
+              Duplicate
+            </button>
+            <button
+              onClick={() => {
+                void deleteResume(activeResumeId)
+                  .then(() => showToast(resumes.length > 1 ? "✅ CV deleted" : "Keep at least one CV"))
+                  .catch((err: unknown) => {
+                    showToast(`❌ ${errorMessage(err, "Delete failed")}`, 6000);
+                  });
+              }}
+              disabled={resumes.length <= 1}
+              className="h-8 px-2 rounded-lg text-xs border disabled:opacity-40"
+              style={{ borderColor: 'rgba(248,113,113,0.25)', background: 'rgba(248,113,113,0.08)', color: '#fca5a5' }}
+              title="Delete active CV"
+            >
+              Delete
+            </button>
+          </div>
+
           <LLMSelector taskKey="optimize_llm" label="Optimize" />
+          <button
+            onClick={() => {
+              if (resumeSaveStatus === "error") {
+                void retryResumeSave().catch((err: unknown) => {
+                  showToast(`❌ ${errorMessage(err, "Save retry failed")}`, 6000);
+                });
+              }
+            }}
+            className="h-8 rounded-lg border px-2 text-xs"
+            style={{
+              borderColor: resumeSaveStatus === "error" ? "rgba(248,113,113,0.35)" : "rgba(255,255,255,0.08)",
+              background: "rgba(255,255,255,0.04)",
+              color: saveStatusColor,
+              cursor: resumeSaveStatus === "error" ? "pointer" : "default",
+            }}
+            title={resumeSaveError ?? "Backend save status"}
+          >
+            {saveStatusText}
+          </button>
           {/* Job URL */}
           <div className="flex items-center gap-2 flex-1 max-w-md mx-4">
             <Input
@@ -286,7 +444,31 @@ export default function AppPage() {
             <button onClick={() => jsonInputRef.current?.click()}
               className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
               style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}>
-              {"{ }"} JSON
+              ↑ JSON
+            </button>
+
+            <button onClick={() => void handleExportResume("json").catch((err: unknown) => {
+              showToast(`❌ ${errorMessage(err, "JSON export failed")}`, 6000);
+            })}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+              style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}>
+              ↓ JSON
+            </button>
+
+            <button onClick={() => void handleExportResume("markdown").catch((err: unknown) => {
+              showToast(`❌ ${errorMessage(err, "Markdown export failed")}`, 6000);
+            })}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+              style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}>
+              ↓ MD
+            </button>
+
+            <button onClick={() => void handleExportResume("html").catch((err: unknown) => {
+              showToast(`❌ ${errorMessage(err, "HTML export failed")}`, 6000);
+            })}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+              style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}>
+              ↓ HTML
             </button>
 
             <button onClick={() => setShowGhost((v) => !v)}

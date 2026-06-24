@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { useCVStore } from '@/store/useCVStore';
+import { cvDataFromImport, useCVStore } from '@/store/useCVStore';
 import { apiUrl, apiHeaders, jsonHeaders } from '@/lib/api';
 
 
@@ -44,16 +44,21 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
     try {
       const text = await file.text();
       const data = JSON.parse(text);
-      replaceCVData(data);
-      await fetch(apiUrl("/api/v1/cv/upload"), {
-        method: 'POST',
+      const importedCV = cvDataFromImport(data);
+      if (!importedCV) throw new Error('Invalid CV JSON');
+      replaceCVData(importedCV);
+      await fetch(apiUrl("/api/v1/cv/current"), {
+        method: 'PUT',
         headers: jsonHeaders(),
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          cv_data: importedCV,
+          source: 'json',
+        }),
       });
-      onCvLoaded?.(data);
+      onCvLoaded?.(importedCV);
       showStatus('✅ JSON CV loaded!');
-    } catch {
-      showStatus('❌ Invalid JSON file.', 5000);
+    } catch (err: unknown) {
+      showStatus(`❌ ${err instanceof Error ? err.message : 'Invalid JSON file.'}`, 5000);
     }
   };
 
@@ -71,6 +76,14 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
       const data = await res.json();
       if (data.cv_data) {
         replaceCVData(data.cv_data);
+        await fetch(apiUrl("/api/v1/cv/current"), {
+          method: 'PUT',
+          headers: jsonHeaders(),
+          body: JSON.stringify({
+            cv_data: data.cv_data,
+            source: 'pdf',
+          }),
+        }).catch(() => undefined);
         onCvLoaded?.(data.cv_data);
       }
       showStatus('✅ PDF parsed & indexed!');

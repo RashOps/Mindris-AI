@@ -23,6 +23,33 @@ class CVDocumentRecord(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
 
 
+class ResumeRecord(Base):
+    """Persisted resume document managed by the backend resume library."""
+
+    __tablename__ = "resumerecord"
+
+    id: Mapped[int | None] = mapped_column(primary_key=True, default=None)
+    name: Mapped[str] = mapped_column(default="Untitled CV", index=True)
+    data_json: Mapped[str] = mapped_column(Text)
+    template_id: Mapped[str] = mapped_column(default="modern", index=True)
+    locale: Mapped[str] = mapped_column(default="fr")
+    source: Mapped[str] = mapped_column(default="manual")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+
+class WorkspaceDraftRecord(Base):
+    """Backend-owned UI draft used for cross-page workflows."""
+
+    __tablename__ = "workspacedraftrecord"
+
+    id: Mapped[int | None] = mapped_column(primary_key=True, default=None)
+    draft_key: Mapped[str] = mapped_column(unique=True, index=True)
+    data_json: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+
 class ScrapedJobRecord(Base):
     """History of scraped and analyzed job offers."""
 

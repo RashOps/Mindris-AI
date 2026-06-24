@@ -6,6 +6,7 @@ import { useCVStore } from "@/store/useCVStore";
 import type { LLMProvider } from "@/store/useCVStore";
 import { AtsScoreWidget } from "@/components/ats/AtsScoreWidget";
 import { apiUrl, jsonHeaders } from "@/lib/api";
+import { saveDraft } from "@/lib/drafts";
 
 
 
@@ -141,9 +142,13 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
     setTimeout(() => setPatchStatus(null), 2000);
   };
 
-  const openInMarkdown = () => {
+  const openInMarkdown = async () => {
     if (!jobInsights) return;
-    localStorage.setItem("md_draft", jobInsights.raw_markdown);
+    await saveDraft("markdown", {
+      markdown: jobInsights.raw_markdown,
+      style: "document",
+      title: "Job Insights",
+    });
     window.open("/tools/markdown", "_blank");
   };
 
@@ -195,10 +200,14 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
               <AtsScoreWidget
                 score={jobInsights.score}
                 onClick={() => {
-                  if (jobInsights.ats_report) {
-                    localStorage.setItem("ats_report", JSON.stringify(jobInsights.ats_report));
-                  }
-                  window.open("/tools/ats-score", "_blank");
+                  void (async () => {
+                    if (jobInsights.ats_report) {
+                      await saveDraft("ats-report", {
+                        report: jobInsights.ats_report,
+                      });
+                    }
+                    window.open("/tools/ats-score", "_blank");
+                  })();
                 }}
               />
               {/* Score my CV button */}
@@ -234,7 +243,6 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
                   }`} />
                 </button>
               </div>
-
               {/* LLM selector for patch */}
               <div className="flex gap-1.5 mt-2">
                 <select
@@ -346,7 +354,9 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
               📋 Copy
             </button>
             <button
-              onClick={openInMarkdown}
+              onClick={() => {
+                void openInMarkdown();
+              }}
               className="flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors"
               style={{ border: '1px solid rgba(255,255,255,0.08)', color: '#64748b', background: 'rgba(255,255,255,0.03)' }}
               onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}

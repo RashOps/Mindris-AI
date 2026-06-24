@@ -9,7 +9,18 @@ from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from intelligence.event_bus import cleanup_stale_queues
-from routers import company, cv, history, llm, optimize, system, tracker
+from routers import (
+    company,
+    cv,
+    drafts,
+    history,
+    llm,
+    optimize,
+    resumes,
+    system,
+    templates,
+    tracker,
+)
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -78,6 +89,9 @@ app.include_router(optimize.router, dependencies=[Depends(verify_api_key)])
 app.include_router(history.router, dependencies=[Depends(verify_api_key)])
 app.include_router(tracker.router, dependencies=[Depends(verify_api_key)])
 app.include_router(company.router, dependencies=[Depends(verify_api_key)])
+app.include_router(resumes.router, dependencies=[Depends(verify_api_key)])
+app.include_router(drafts.router, dependencies=[Depends(verify_api_key)])
+app.include_router(templates.router, dependencies=[Depends(verify_api_key)])
 
 
 if __name__ == "__main__":

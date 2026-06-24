@@ -7,13 +7,9 @@ from collections.abc import AsyncGenerator
 
 from database.session import Session, engine
 from fastapi import APIRouter, BackgroundTasks, Request
-from intelligence.company_analyzer import analyze_company
-from intelligence.crew import analyze_job_offer
 from intelligence.event_bus import create_job_queue, emit, stream_events
-from intelligence.workflow import create_rag_workflow
 from persistence import dump_json, save_job_offer
 from schemas import OptimizationResponse, OptimizeRequest
-from scraper.smart_scraper import ScraperExhaustedError, SmartScraper
 from sse_starlette.sse import EventSourceResponse
 from utils.logger import get_logger
 
@@ -25,6 +21,11 @@ async def run_intelligence_pipeline(
     job_id: str, job_url: str, provider: str, model_name: str
 ) -> None:
     """Background task: scrape -> analyze -> RAG workflow -> SSE events."""
+    from intelligence.company_analyzer import analyze_company
+    from intelligence.crew import analyze_job_offer
+    from intelligence.workflow import create_rag_workflow
+    from scraper.smart_scraper import ScraperExhaustedError, SmartScraper
+
     logger.info("[%s] Starting pipeline for %s", job_id, job_url)
     emit(
         job_id,

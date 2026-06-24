@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -12,6 +12,7 @@ import { CVUploadZone } from '@/components/CVUploadZone';
 import { LLMSelector } from '@/components/LLMSelector';
 import Link from 'next/link';
 import { apiUrl, eventSourceUrl, jsonHeaders } from '@/lib/api';
+import { deleteDraft, loadDraft, saveDraft } from '@/lib/drafts';
 
 
 
@@ -399,26 +400,33 @@ function SSEProgress({ messages }: SSEProgressProps) {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
-function readSavedAtsReport(): AtsReport | null {
-  if (typeof window === 'undefined') return null;
-  const saved = window.localStorage.getItem('ats_report');
-  if (!saved) return null;
-  try {
-    return JSON.parse(saved) as AtsReport;
-  } catch {
-    return null;
-  }
-}
+type AtsReportDraft = {
+  report?: AtsReport;
+};
 
 export default function AtsScorePage() {
   const { cvData, appSettings } = useCVStore();
   const [jobUrl, setJobUrl]         = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [report, setReport]         = useState<AtsReport | null>(readSavedAtsReport);
+  const [report, setReport]         = useState<AtsReport | null>(null);
   const [sseMessages, setSseMessages] = useState<string[]>([]);
   const [cvLoaded, setCvLoaded]     = useState(!!cvData?.profile?.full_name);
   const [error, setError]           = useState<string | null>(null);
   const jobIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadDraft<AtsReportDraft>("ats-report")
+      .then(async (draft) => {
+        if (cancelled || !draft?.report) return;
+        setReport(draft.report);
+        await deleteDraft("ats-report");
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleCvLoaded = useCallback(() => {
     setCvLoaded(true);
@@ -476,7 +484,7 @@ export default function AtsScorePage() {
             const atsData = await scoreRes.json();
             const newReport: AtsReport = atsData.ats_report ?? atsData;
             setReport(newReport);
-            localStorage.setItem('ats_report', JSON.stringify(newReport));
+            await saveDraft("ats-report", { report: newReport });
           }
         } catch { /* ignore */ }
         sse.close();

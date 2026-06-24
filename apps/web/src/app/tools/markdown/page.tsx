@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { RENDERER_BASE_URL, jsonHeaders, rendererUrl } from "@/lib/api";
+import { deleteDraft, loadDraft } from "@/lib/drafts";
 
 // ── Templates ─────────────────────────────────────────────────────────────────
 
@@ -85,44 +86,25 @@ Converts Markdown to a PDF document.
 
 
 
-function readInjectedDraft() {
-  if (typeof window === "undefined") {
-    return {
-      markdown: TEMPLATES.cover_letter,
-      style: "letter" as const,
-      title: "Document",
-      activeTemplate: "cover_letter" as keyof typeof TEMPLATES,
-    };
-  }
+type MarkdownDraft = {
+  markdown?: string;
+  style?: "document" | "letter";
+  title?: string;
+};
 
-  const draft = window.localStorage.getItem("md_draft");
-  if (!draft) {
-    return {
-      markdown: TEMPLATES.cover_letter,
-      style: "letter" as const,
-      title: "Document",
-      activeTemplate: "cover_letter" as keyof typeof TEMPLATES,
-    };
-  }
-
-  const savedStyle = window.localStorage.getItem("md_draft_style");
-  const savedTitle = window.localStorage.getItem("md_draft_title");
-  window.localStorage.removeItem("md_draft");
-  window.localStorage.removeItem("md_draft_style");
-  window.localStorage.removeItem("md_draft_title");
-
+function defaultDraft() {
   return {
-    markdown: draft,
-    style: savedStyle === "document" ? "document" as const : "letter" as const,
-    title: savedTitle || "Document",
-    activeTemplate: savedStyle === "letter" ? "cover_letter" as const : "blank" as const,
+    markdown: TEMPLATES.cover_letter,
+    style: "letter" as const,
+    title: "Document",
+    activeTemplate: "cover_letter" as keyof typeof TEMPLATES,
   };
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function MarkdownToolPage() {
-  const [initialDraft] = useState(readInjectedDraft);
+  const [initialDraft] = useState(defaultDraft);
   const [markdown, setMarkdown] = useState(initialDraft.markdown);
   const [style, setStyle] = useState<"document" | "letter">(initialDraft.style);
   const [title, setTitle] = useState(initialDraft.title);
@@ -132,6 +114,24 @@ export default function MarkdownToolPage() {
   const [status, setStatus] = useState<{ type: "success" | "error"; msg: string } | null>(null);
   const [activeTemplate, setActiveTemplate] = useState<keyof typeof TEMPLATES>(initialDraft.activeTemplate);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadDraft<MarkdownDraft>("markdown")
+      .then(async (draft) => {
+        if (cancelled || !draft?.markdown) return;
+        const nextStyle = draft.style === "document" ? "document" : "letter";
+        setMarkdown(draft.markdown);
+        setStyle(nextStyle);
+        setTitle(draft.title || "Document");
+        setActiveTemplate(nextStyle === "letter" ? "cover_letter" : "blank");
+        await deleteDraft("markdown");
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // ── Preview (debounced) ───────────────────────────────────────────────────
   const fetchPreview = useCallback(async (md: string, s: string, t: string) => {

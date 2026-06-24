@@ -13,7 +13,7 @@ const FEATURES = [
     title: "CV Creator",
     description:
       "Drag & drop editor powered by your real CV data. Upload once, paste any job URL — agents retrieve your most relevant experiences and rewrite every bullet point for maximum ATS compatibility.",
-    cta: { label: "Open Editor", href: "/tools/cv-creator" },
+    cta: { label: "Open Studio", href: "/dashboard" },
     available: true,
   },
   {
@@ -123,7 +123,7 @@ export default function LandingPage() {
           </div>
 
           <Link
-            href="/tools/cv-creator"
+            href="/dashboard"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all"
             style={{
               background: "linear-gradient(135deg, #2563eb, #818cf8)",
@@ -171,7 +171,7 @@ export default function LandingPage() {
           {/* CTAs */}
           <div className="flex items-center justify-center gap-4 flex-wrap mb-16">
             <Link
-              href="/tools/cv-creator"
+              href="/dashboard"
               className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl text-base font-semibold text-white transition-all"
               style={{
                 background: "linear-gradient(135deg, #2563eb, #818cf8)",
@@ -385,7 +385,7 @@ export default function LandingPage() {
               Upload your CV. Paste a job URL. Let the agents work.
             </p>
             <Link
-              href="/tools/cv-creator"
+              href="/dashboard"
               className="inline-flex items-center gap-2 px-10 py-4 rounded-xl text-base font-semibold text-white transition-all"
               style={{
                 background: "linear-gradient(135deg, #2563eb, #818cf8)",

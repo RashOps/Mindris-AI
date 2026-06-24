@@ -5,7 +5,6 @@ from typing import Annotated
 from database.records import CompanyInsightRecord
 from database.session import Session, get_session
 from fastapi import APIRouter, Depends
-from intelligence.company_analyzer import analyze_company
 from persistence import dump_json, load_json
 from schemas import CompanyAnalyzeRequest
 from sqlalchemy import select
@@ -28,6 +27,8 @@ async def analyze_company_route(
     ).first()
     if cached:
         return {"status": "success", "insight": load_json(cached.insight_json, {})}
+
+    from intelligence.company_analyzer import analyze_company
 
     insight = await analyze_company(name, request.provider, request.model_name)
     record = CompanyInsightRecord(

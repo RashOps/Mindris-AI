@@ -1,1 +1,1 @@
-export { default } from '../tools/cv-creator/page';
+export { default } from '../dashboard/page';

@@ -3,14 +3,8 @@
 import json
 from typing import Annotated
 
-from crewai import Agent, Crew, Process, Task
 from database.session import Session, get_session
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
-from intelligence.ats_score import calculate_ats_score
-from intelligence.cover_letter import generate_cover_letter
-from intelligence.ingest_cv import ingest_cv_data
-from intelligence.llm_config import get_llm
-from intelligence.pdf_parser import parse_pdf_cv
 from persistence import (
     get_current_cv,
     save_ats_report,
@@ -19,6 +13,7 @@ from persistence import (
 )
 from schemas import (
     CoverLetterRequest,
+    CVDataModel,
     CVDocumentRequest,
     PatchRequest,
     ScoreRequest,
@@ -44,21 +39,27 @@ def current_cv(session: SessionDep) -> dict:
 @router.put("/cv/current")
 def put_current_cv(request: CVDocumentRequest, session: SessionDep) -> dict:
     """Persist and re-index the current CV."""
-    save_current_cv(session, request.cv_data, source=request.source)
-    ingest_cv_data(request.cv_data)
+    from intelligence.ingest_cv import ingest_cv_data
+
+    cv_data = request.cv_data.model_dump(mode="json")
+    save_current_cv(session, cv_data, source=request.source)
+    ingest_cv_data(cv_data)
     return {"status": "success", "message": "CV saved and indexed."}
 
 
 @router.post("/cv/import-json")
-def import_json_cv(cv_data: dict, session: SessionDep) -> dict:
+def import_json_cv(cv_data: CVDataModel, session: SessionDep) -> dict:
     """Import a CV JSON object, persist it, and index it."""
-    save_current_cv(session, cv_data, source="json")
-    ingest_cv_data(cv_data)
+    from intelligence.ingest_cv import ingest_cv_data
+
+    payload = cv_data.model_dump(mode="json")
+    save_current_cv(session, payload, source="json")
+    ingest_cv_data(payload)
     return {"status": "success", "message": "CV imported and indexed."}
 
 
 @router.post("/cv/upload")
-def upload_cv(cv_data: dict, session: SessionDep) -> dict:
+def upload_cv(cv_data: CVDataModel, session: SessionDep) -> dict:
     """Backward-compatible CV upload endpoint."""
     return import_json_cv(cv_data, session)
 
@@ -87,7 +88,11 @@ async def upload_pdf_cv(
         )
 
     logger.info("Received PDF: %s (%d bytes)", file.filename, len(pdf_bytes))
-    cv_json = await parse_pdf_cv(pdf_bytes, provider=provider, model_name=model_name)
+    from intelligence.ingest_cv import ingest_cv_data
+    from intelligence.pdf_parser import parse_pdf_cv
+
+    parsed_cv = await parse_pdf_cv(pdf_bytes, provider=provider, model_name=model_name)
+    cv_json = CVDataModel.model_validate(parsed_cv).model_dump(mode="json")
     save_current_cv(session, cv_json, source="pdf")
     ingest_cv_data(cv_json)
     return {
@@ -100,6 +105,8 @@ async def upload_pdf_cv(
 @router.post("/cv/score")
 async def calculate_ats_score_route(request: ScoreRequest, session: SessionDep) -> dict:
     """Calculate and persist the ATS score for a CV against job insights."""
+    from intelligence.ats_score import calculate_ats_score
+
     report = await calculate_ats_score(
         cv_data=request.cv_data,
         job_insights=request.job_insights,
@@ -115,6 +122,8 @@ async def generate_cover_letter_route(
     request: CoverLetterRequest, session: SessionDep
 ) -> dict:
     """Generate and persist a tailored cover letter in Markdown."""
+    from intelligence.cover_letter import generate_cover_letter
+
     markdown = await generate_cover_letter(
         cv_data=request.cv_data,
         job_insights=request.job_insights,
@@ -130,6 +139,9 @@ async def generate_cover_letter_route(
 @router.post("/cv/patch-from-bullets")
 def patch_cv_from_bullets(request: PatchRequest) -> dict:
     """Use an LLM to map AI-generated bullets back to a CVData JSON patch."""
+    from crewai import Agent, Crew, Process, Task
+    from intelligence.llm_config import get_llm
+
     llm = get_llm(provider=request.provider, model_name=request.model_name)
     experiences = request.cv_data.get("experience", [])
     exp_list = "\n".join(

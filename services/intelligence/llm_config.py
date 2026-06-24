@@ -12,9 +12,15 @@ Default LLMs per task
 These can be overridden at runtime by passing provider/model_name.
 """
 
-from crewai import LLM
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from utils.config import settings
 from utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from crewai import LLM
 
 logger = get_logger(__name__)
 
@@ -90,6 +96,8 @@ def get_llm(
     Raises:
         ValueError: If an unsupported provider is specified.
     """
+    from crewai import LLM
+
     if provider == "ollama":
         name = (
             model_name if model_name.startswith("ollama/") else f"ollama/{model_name}"

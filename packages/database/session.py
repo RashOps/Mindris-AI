@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session as SQLAlchemySession
 from sqlalchemy.orm import sessionmaker
 from utils.config import settings
 
-from .records import Base
+from .migrations import migrate
 
 DB_PATH = settings.storage_dir / "mindris.db"
 DATABASE_URL = f"sqlite:///{DB_PATH.as_posix()}"
@@ -27,9 +27,10 @@ SessionLocal = sessionmaker(bind=engine, class_=Session, expire_on_commit=False)
 
 
 def init_db() -> None:
-    """Create database tables if they do not exist."""
+    """Apply database migrations."""
     settings.storage_dir.mkdir(parents=True, exist_ok=True)
-    Base.metadata.create_all(engine)
+    with engine.begin() as connection:
+        migrate(connection)
 
 
 def get_session() -> Generator[Session, None, None]:

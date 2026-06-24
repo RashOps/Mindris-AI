@@ -5,6 +5,7 @@ import { useCVStore } from "@/store/useCVStore";
 import type { LLMProvider } from "@/store/useCVStore";
 import { useRouter } from "next/navigation";
 import { apiUrl, jsonHeaders } from "@/lib/api";
+import { saveDraft } from "@/lib/drafts";
 
 
 
@@ -86,9 +87,11 @@ export function CoverLetterModal({ open, onClose }: CoverLetterModalProps) {
       const data = await res.json();
       if (!data.markdown) throw new Error("Empty response from server");
 
-      localStorage.setItem("md_draft",       data.markdown);
-      localStorage.setItem("md_draft_style", "letter");
-      localStorage.setItem("md_draft_title", "Lettre de motivation");
+      await saveDraft("markdown", {
+        markdown: data.markdown,
+        style: "letter",
+        title: "Lettre de motivation",
+      });
 
       onClose();
       router.push("/tools/markdown");

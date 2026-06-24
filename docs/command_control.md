@@ -125,12 +125,52 @@ Arrêter les services :
 docker compose down
 ```
 
+Vérifier les services self-hosted :
+
+```bash
+./scripts/smoke_self_hosting.sh
+```
+
+Guide détaillé :
+
+```text
+docs/self-hosting.md
+```
+
 ## Pipeline backend complet
 
 Depuis la racine du projet :
 
 ```bash
 uv run python run_pipeline.py
+```
+
+## Exports CV ouverts
+
+Avec l'API Gateway lancee sur `http://localhost:8000`, remplace `1` par l'id du CV :
+
+```bash
+curl -H "X-API-Key: dev-mindris-api-key" \
+  -o resume.json \
+  http://localhost:8000/api/v1/resumes/1/export-json
+```
+
+```bash
+curl -H "X-API-Key: dev-mindris-api-key" \
+  -o resume.md \
+  http://localhost:8000/api/v1/resumes/1/export-markdown
+```
+
+```bash
+curl -H "X-API-Key: dev-mindris-api-key" \
+  -o resume.html \
+  http://localhost:8000/api/v1/resumes/1/export-html
+```
+
+Details :
+
+```text
+docs/open-exports.md
 ```
 
 ## Vérifications locales
@@ -141,6 +181,22 @@ uv run python run_pipeline.py
 uv run ruff check .
 uv run ruff format --check .
 uv run pytest tests/ -q --tb=short
+```
+
+Si l'environnement ne peut pas écrire dans le cache `uv` du home ou si tu veux isoler la base SQLite de test :
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache \
+STORAGE_DIR=/tmp/mindris-ai-test-storage \
+uv run --no-sync pytest tests/ -q --tb=short
+```
+
+Pour une vérification backend rapide du périmètre MVP1 :
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache \
+STORAGE_DIR=/tmp/mindris-ai-test-storage \
+uv run --no-sync python tests/smoke_mvp1_backend.py
 ```
 
 ### Frontend
