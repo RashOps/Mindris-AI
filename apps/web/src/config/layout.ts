@@ -1,76 +1,77 @@
-/**
- * Mindris AI — Tools Layout Configuration
- *
- * Change a single value here to switch the tools navigation mode globally
- * without touching any component code.
- *
- * TOOLS_NAV_MODE:
- *  - 'sidebar'  → Collapsible left sidebar (icon + label, icon-only when collapsed)
- *  - 'topbar'   → Horizontal top navigation bar (tabs style)
- */
+import {
+  BarChart3,
+  Briefcase,
+  FileText,
+  LayoutDashboard,
+  type LucideIcon,
+} from "lucide-react";
 
-export type ToolsNavMode = 'sidebar' | 'topbar';
-
-// ── 👇 Change this single value to switch layout globally ─────────────────────
-export const TOOLS_NAV_MODE: ToolsNavMode = 'sidebar';
-
-// ── Tool registry ─────────────────────────────────────────────────────────────
+export type AppNavItemId = "dashboard" | "cv-creator" | "ats-score" | "tracker" | "markdown";
 
 export interface ToolDefinition {
-  id: string;
+  id: AppNavItemId;
   label: string;
   shortLabel: string;
-  icon: string;        // Emoji icon for sidebar / topbar
+  icon: LucideIcon;
   href: string;
-  accentColor: string; // CSS hex — used for glow, active indicator
-  accentVar: string;   // CSS custom property name
+  accentColor: string;
+  accentVar: string;
   description: string;
 }
 
-export const TOOLS: ToolDefinition[] = [
+export const APP_NAV_ITEMS: ToolDefinition[] = [
   {
-    id: 'cv-creator',
-    label: 'CV Creator',
-    shortLabel: 'CV',
-    icon: '🎯',
-    href: '/tools/cv-creator',
-    accentColor: '#2563eb',
-    accentVar: '--tool-cv-creator',
-    description: 'Tailored CV builder with AI-powered optimization',
+    id: "dashboard",
+    label: "Dashboard",
+    shortLabel: "Home",
+    icon: LayoutDashboard,
+    href: "/dashboard",
+    accentColor: "#2563eb",
+    accentVar: "--tool-dashboard",
+    description: "Resume library, templates and MVP status",
   },
   {
-    id: 'ats-score',
-    label: 'ATS Score',
-    shortLabel: 'ATS',
-    icon: '⚡',
-    href: '/tools/ats-score',
-    accentColor: '#8b5cf6',
-    accentVar: '--tool-ats-score',
-    description: 'Deep keyword analysis & ATS compatibility report',
+    id: "cv-creator",
+    label: "CV Builder",
+    shortLabel: "CV",
+    icon: FileText,
+    href: "/tools/cv-creator",
+    accentColor: "#2563eb",
+    accentVar: "--tool-cv-creator",
+    description: "Structured resume builder with live preview",
   },
   {
-    id: 'tracker',
-    label: 'Tracker',
-    shortLabel: 'Track',
-    icon: '📋',
-    href: '/tools/tracker',
-    accentColor: '#f59e0b',
-    accentVar: '--tool-tracker',
-    description: 'Application tracking board',
+    id: "ats-score",
+    label: "ATS Score",
+    shortLabel: "ATS",
+    icon: BarChart3,
+    href: "/tools/ats-score",
+    accentColor: "#7c3aed",
+    accentVar: "--tool-ats-score",
+    description: "Keyword analysis and ATS compatibility report",
   },
   {
-    id: 'markdown',
-    label: 'Markdown → PDF',
-    shortLabel: 'PDF',
-    icon: '📝',
-    href: '/tools/markdown',
-    accentColor: '#10b981',
-    accentVar: '--tool-markdown',
-    description: 'Convert Markdown CVs to pixel-perfect PDFs',
+    id: "tracker",
+    label: "Tracker",
+    shortLabel: "Track",
+    icon: Briefcase,
+    href: "/tools/tracker",
+    accentColor: "#0f766e",
+    accentVar: "--tool-tracker",
+    description: "Application tracking board",
+  },
+  {
+    id: "markdown",
+    label: "Markdown PDF",
+    shortLabel: "PDF",
+    icon: FileText,
+    href: "/tools/markdown",
+    accentColor: "#475569",
+    accentVar: "--tool-markdown",
+    description: "Convert Markdown documents to PDF",
   },
 ] as const;
 
-// ── Layout constants ──────────────────────────────────────────────────────────
+export const TOOLS = APP_NAV_ITEMS.filter((item) => item.id !== "dashboard");
 
-export const SIDEBAR_WIDTH_EXPANDED = 220; // px
-export const SIDEBAR_WIDTH_COLLAPSED = 60;  // px — icon-only mode
+export const SIDEBAR_WIDTH_EXPANDED = 236;
