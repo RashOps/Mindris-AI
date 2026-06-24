@@ -51,7 +51,7 @@
 - [ ] **Auth & Stripe :** (Optionnel) Préparation à la mise sur le marché.
 - [ ] **Telemetry :** Suivi des performances avec LangSmith/Phoenix.
 
-## 🔵 Phase 7 : UI unifiée & workflow local non-Docker
-- [ ] **SaaS App Shell :** Unifier dashboard et outils dans une navigation produit unique.
-- [ ] **Design system opérationnel :** Tokens, composants et états partagés pour remplacer les styles inline dispersés.
-- [ ] **Commandes locales :** Scripts `uv` + `bun` pour réinstaller, configurer et lancer API, renderer et frontend sans Docker.
+## 🟢 Phase 7 : UI unifiée & workflow local non-Docker (Terminée)
+- [x] **SaaS App Shell :** Unifier dashboard et outils dans une navigation produit unique.
+- [x] **Design system opérationnel :** Tokens, composants et états partagés pour remplacer les styles inline dispersés.
+- [x] **Commandes locales :** Scripts `uv` + `bun` pour réinstaller, configurer et lancer API, renderer et frontend sans Docker.

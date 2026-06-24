@@ -9,6 +9,20 @@ cd ~/projects/mindris-ai
 
 ## Installation
 
+### Installation locale automatique
+
+Depuis la racine du projet :
+
+```bash
+./scripts/setup_local.sh
+```
+
+Pour repartir d'une installation propre sans supprimer les lockfiles :
+
+```bash
+./scripts/reset_local_deps.sh
+```
+
 ### Backend Python
 
 ```bash
@@ -33,6 +47,34 @@ bun install
 ## Lancer les services séparément
 
 Ouvre un terminal par service.
+
+### Lancement local automatique sans Docker
+
+Depuis la racine du projet :
+
+```bash
+./scripts/dev_local.sh
+```
+
+Services exposés :
+
+```text
+Frontend  http://localhost:3000
+API       http://localhost:8000
+Renderer  http://localhost:4000
+```
+
+Smoke check :
+
+```bash
+./scripts/smoke_local.sh
+```
+
+Guide détaillé :
+
+```text
+docs/local-development.md
+```
 
 ### API Gateway FastAPI
 
