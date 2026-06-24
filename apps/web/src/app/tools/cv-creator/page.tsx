@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { apiUrl, rendererUrl, apiHeaders, jsonHeaders } from "@/lib/api";
-import Link from "next/link";
 import {
   DndContext,
   type DragEndEvent,
@@ -314,11 +313,11 @@ export default function AppPage() {
 
         {/* ── Header ─────────────────────────────────────────────────────────── */}
         <header className="h-12 border-b flex items-center justify-between px-4 shrink-0 z-30" style={{ background: 'rgba(10,15,26,0.95)', borderColor: 'rgba(255,255,255,0.07)' }}>
-          <Link href="/" className="flex items-center gap-2 no-underline shrink-0">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-black text-sm"
-              style={{ background: "linear-gradient(135deg, #2563eb, #818cf8)" }}>M</div>
-            <span style={{ fontFamily: 'var(--font-space)', color: '#f1f5f9', fontWeight: 600, fontSize: '0.875rem' }}>Mindris AI</span>
-          </Link>
+          <div className="shrink-0">
+            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#64748b' }}>
+              CV Builder
+            </p>
+          </div>
 
           <div className="flex items-center gap-1.5 min-w-0 max-w-sm">
             <select
@@ -425,7 +424,7 @@ export default function AppPage() {
             >
               {isOptimizing
                 ? <span className="flex items-center gap-2"><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Running…</span>
-                : "⚡ Optimize"
+                : "Optimize"
               }
             </Button>
           </div>
@@ -438,7 +437,7 @@ export default function AppPage() {
             <button onClick={() => pdfInputRef.current?.click()} disabled={isUploading}
               className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors disabled:opacity-50"
               style={{ borderColor: 'rgba(37,99,235,0.3)', background: 'rgba(37,99,235,0.1)', color: '#93c5fd' }}>
-              {isUploading ? <span className="w-3 h-3 border border-blue-400 border-t-transparent rounded-full animate-spin" /> : "📄"} PDF
+              {isUploading ? <span className="w-3 h-3 border border-blue-400 border-t-transparent rounded-full animate-spin" /> : null} PDF
             </button>
 
             <button onClick={() => jsonInputRef.current?.click()}
@@ -476,7 +475,7 @@ export default function AppPage() {
               style={showGhost
                 ? { borderColor: 'rgba(99,102,241,0.4)', background: 'rgba(99,102,241,0.12)', color: '#a5b4fc' }
                 : { borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}>
-              👻 Ghost
+              Ghost
             </button>
 
             <button onClick={() => setShowInsights((v) => !v)}
@@ -493,7 +492,7 @@ export default function AppPage() {
             <button onClick={() => setShowCoverLetter(true)}
               className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
               style={{ borderColor: 'rgba(139,92,246,0.3)', background: 'rgba(139,92,246,0.1)', color: '#c4b5fd' }}>
-              ✉️ Cover Letter
+              Cover Letter
             </button>
 
             <button onClick={() => setShowStyle((v) => !v)}
@@ -501,7 +500,7 @@ export default function AppPage() {
               style={showStyle
                 ? { borderColor: 'rgba(139,92,246,0.4)', background: 'rgba(139,92,246,0.12)', color: '#c4b5fd' }
                 : { borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}>
-              🎨 Style
+              Style
             </button>
 
             <button onClick={handleExportPDF}

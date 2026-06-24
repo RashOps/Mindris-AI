@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -15,6 +14,9 @@ import {
   Trash2,
   Upload,
 } from "lucide-react";
+import { AppShell } from "@/components/layout/AppShell";
+import { PageBody, StatusBanner } from "@/components/layout/PagePrimitives";
+import { Button } from "@/components/ui/button";
 import {
   cvDataFromImport,
   resumeNameFromImport,
@@ -71,14 +73,6 @@ const FALLBACK_TEMPLATES: ResumeTemplate[] = [
     layout: "two-column",
   },
 ];
-
-const NAV_ITEMS = [
-  { label: "Resumes", href: "/dashboard", active: true },
-  { label: "Builder", href: "/tools/cv-creator", active: false },
-  { label: "ATS", href: "/tools/ats-score", active: false },
-  { label: "Tracker", href: "/tools/tracker", active: false },
-  { label: "Markdown PDF", href: "/tools/markdown", active: false },
-] as const;
 
 type ResumeExportFormat = "json" | "markdown" | "html";
 
@@ -237,44 +231,11 @@ export default function DashboardPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#f7f8fb] text-slate-950">
-      <div className="flex min-h-screen">
-        <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white px-4 py-5 lg:block">
-          <Link href="/" className="mb-8 flex items-center gap-3 no-underline">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-950 text-sm font-black text-white">
-              M
-            </div>
-            <div>
-              <p className="text-sm font-semibold">Mindris AI</p>
-              <p className="text-xs text-slate-500">Open resume studio</p>
-            </div>
-          </Link>
-
-          <nav className="space-y-1">
-            {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium no-underline transition-colors"
-                style={{
-                  background: item.active ? "#eef2ff" : "transparent",
-                  color: item.active ? "#3730a3" : "#475569",
-                }}
-              >
-                {item.label}
-                {item.active && <span className="h-1.5 w-1.5 rounded-full bg-indigo-600" />}
-              </Link>
-            ))}
-          </nav>
-        </aside>
-
-        <section className="flex min-w-0 flex-1 flex-col">
-          <header className="flex min-h-16 items-center justify-between border-b border-slate-200 bg-white px-5">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Dashboard</p>
-              <h1 className="text-xl font-semibold tracking-tight">Resume Library</h1>
-            </div>
-            <div className="flex items-center gap-2">
+    <AppShell
+      title="Resume Library"
+      description="Create, import, duplicate and export backend-backed resumes."
+      actions={
+        <>
               <button
                 onClick={() => {
                   if (resumeSaveStatus === "error") {
@@ -310,35 +271,34 @@ export default function DashboardPage() {
                   e.currentTarget.value = "";
                 }}
               />
-              <button
+              <Button
+                variant="outline"
                 onClick={() => jsonInputRef.current?.click()}
-                className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 shadow-sm"
               >
                 <Upload size={15} />
                 JSON
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="outline"
                 onClick={() => pdfInputRef.current?.click()}
                 disabled={isImportingPdf}
-                className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 shadow-sm disabled:opacity-50"
               >
                 <FileText size={15} />
                 {isImportingPdf ? "Parsing..." : "PDF"}
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => void createFromTemplate("modern", "Untitled")}
-                className="inline-flex h-9 items-center gap-2 rounded-md bg-slate-950 px-3 text-sm font-semibold text-white shadow-sm"
               >
                 <Plus size={15} />
                 New CV
-              </button>
-            </div>
-          </header>
-
-          <div className="flex-1 overflow-auto px-5 py-6">
+              </Button>
+        </>
+      }
+    >
+          <PageBody>
             {status && (
-              <div className="mb-4 rounded-md border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm text-indigo-900">
-                {status}
+              <div className="mb-4">
+                <StatusBanner>{status}</StatusBanner>
               </div>
             )}
 
@@ -531,9 +491,7 @@ export default function DashboardPage() {
                 </div>
               </aside>
             </section>
-          </div>
-        </section>
-      </div>
-    </main>
+          </PageBody>
+    </AppShell>
   );
 }
