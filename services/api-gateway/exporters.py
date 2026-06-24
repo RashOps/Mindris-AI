@@ -2,7 +2,10 @@
 
 import re
 from html import escape
+from io import BytesIO
 from typing import Any
+from xml.sax.saxutils import escape as xml_escape
+from zipfile import ZIP_DEFLATED, ZipFile
 
 from database.records import ResumeRecord
 from persistence import load_json
@@ -150,6 +153,41 @@ def resume_to_html(record: ResumeRecord) -> str:
 </body>
 </html>
 """
+
+
+def resume_to_docx(record: ResumeRecord) -> bytes:
+    """Render a persisted resume as a text-based DOCX document."""
+    cv_data = _cv_data(record)
+    profile = _mapping(cv_data.get("profile"))
+    full_name = _text(profile.get("full_name")) or record.name
+    title = _text(profile.get("title"))
+    contacts = _contact_parts(profile)
+
+    blocks: list[dict[str, Any]] = [{"style": "Title", "text": full_name}]
+    if title:
+        blocks.append({"style": "Subtitle", "text": title})
+    if contacts:
+        blocks.append({"style": "Contact", "text": " | ".join(contacts)})
+
+    _docx_profile(blocks, _text(profile.get("text_markdown")))
+    _docx_experience(blocks, cv_data.get("experience"))
+    _docx_projects(blocks, cv_data.get("projects"))
+    _docx_skills(blocks, cv_data.get("skills"))
+    _docx_education(blocks, cv_data.get("education"))
+    _docx_languages(blocks, cv_data.get("languages"))
+    _docx_hobbies(blocks, cv_data.get("hobbies"))
+
+    document_xml = _docx_document_xml(blocks)
+    buffer = BytesIO()
+    with ZipFile(buffer, "w", ZIP_DEFLATED) as docx:
+        docx.writestr("[Content_Types].xml", _docx_content_types())
+        docx.writestr("_rels/.rels", _docx_root_rels())
+        docx.writestr("word/_rels/document.xml.rels", _docx_document_rels())
+        docx.writestr("word/document.xml", document_xml)
+        docx.writestr("word/styles.xml", _docx_styles())
+        docx.writestr("docProps/core.xml", _docx_core_props(full_name))
+        docx.writestr("docProps/app.xml", _docx_app_props())
+    return buffer.getvalue()
 
 
 def _cv_data(record: ResumeRecord) -> dict[str, Any]:
@@ -315,6 +353,274 @@ def _append_hobbies(lines: list[str], value: Any) -> None:
     values = [item for item in _items(value) if isinstance(item, str) and item.strip()]
     if values:
         lines.extend(["", "## Interests", ", ".join(values)])
+
+
+def _docx_profile(blocks: list[dict[str, Any]], content: str) -> None:
+    if not content:
+        return
+    blocks.append({"style": "Heading1", "text": "Profile"})
+    _docx_markdownish(blocks, content)
+
+
+def _docx_experience(blocks: list[dict[str, Any]], value: Any) -> None:
+    items = [_mapping(item) for item in _items(value)]
+    items = [
+        item
+        for item in items
+        if _text(item.get("company")) or _text(item.get("role"))
+    ]
+    if not items:
+        return
+    blocks.append({"style": "Heading1", "text": "Experience"})
+    for item in items:
+        heading = _join_non_empty([_text(item.get("role")), _text(item.get("company"))])
+        meta = _join_non_empty(
+            [_text(item.get("period")), _location_text(item.get("location"))],
+            " | ",
+        )
+        blocks.append({"style": "Heading2", "text": heading or "Experience"})
+        if meta:
+            blocks.append({"style": "Meta", "text": meta})
+        _docx_markdownish(blocks, _text(item.get("description_markdown")))
+        keywords = _string_items(item.get("keywords"))
+        if keywords:
+            blocks.append({"style": "Meta", "text": "Keywords: " + ", ".join(keywords)})
+
+
+def _docx_projects(blocks: list[dict[str, Any]], value: Any) -> None:
+    items = [_mapping(item) for item in _items(value)]
+    items = [item for item in items if _text(item.get("name"))]
+    if not items:
+        return
+    blocks.append({"style": "Heading1", "text": "Projects"})
+    for item in items:
+        blocks.append({"style": "Heading2", "text": _text(item.get("name"))})
+        url = _text(item.get("url"))
+        if url:
+            blocks.append({"style": "Meta", "text": url})
+        _docx_markdownish(blocks, _text(item.get("description_markdown")))
+        stack = _string_items(item.get("tech_stack"))
+        if stack:
+            blocks.append({"style": "Meta", "text": "Stack: " + ", ".join(stack)})
+
+
+def _docx_skills(blocks: list[dict[str, Any]], value: Any) -> None:
+    groups = [_mapping(item) for item in _items(value)]
+    rows = []
+    for item in groups:
+        category = _text(item.get("category")) or "Skills"
+        skills = _string_items(item.get("skills"))
+        if category or skills:
+            rows.append(f"{category}: {', '.join(skills)}" if skills else category)
+    if rows:
+        blocks.append({"style": "Heading1", "text": "Skills"})
+        for row in rows:
+            blocks.append({"style": "Bullet", "text": row})
+
+
+def _docx_education(blocks: list[dict[str, Any]], value: Any) -> None:
+    items = [_mapping(item) for item in _items(value)]
+    items = [
+        item
+        for item in items
+        if _text(item.get("institution")) or _text(item.get("degree"))
+    ]
+    if not items:
+        return
+    blocks.append({"style": "Heading1", "text": "Education"})
+    for item in items:
+        heading = _join_non_empty(
+            [_text(item.get("degree")), _text(item.get("institution"))]
+        )
+        meta = _join_non_empty(
+            [_text(item.get("period")), _text(item.get("location"))],
+            " | ",
+        )
+        blocks.append({"style": "Heading2", "text": heading or "Education"})
+        if meta:
+            blocks.append({"style": "Meta", "text": meta})
+        _docx_markdownish(blocks, _text(item.get("description_markdown")))
+
+
+def _docx_languages(blocks: list[dict[str, Any]], value: Any) -> None:
+    labels = [
+        _join_non_empty(
+            [_text(item.get("language")), _text(item.get("level"))],
+            " - ",
+        )
+        for item in (_mapping(item) for item in _items(value))
+    ]
+    labels = [label for label in labels if label]
+    if labels:
+        blocks.append({"style": "Heading1", "text": "Languages"})
+        for label in labels:
+            blocks.append({"style": "Bullet", "text": label})
+
+
+def _docx_hobbies(blocks: list[dict[str, Any]], value: Any) -> None:
+    values = [item for item in _items(value) if isinstance(item, str) and item.strip()]
+    if values:
+        blocks.append({"style": "Heading1", "text": "Interests"})
+        blocks.append({"style": "Normal", "text": ", ".join(values)})
+
+
+def _docx_markdownish(blocks: list[dict[str, Any]], content: str) -> None:
+    for raw in content.splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        if line.startswith(("- ", "* ")):
+            blocks.append({"style": "Bullet", "text": line[2:].strip()})
+        else:
+            blocks.append({"style": "Normal", "text": line})
+
+
+def _docx_document_xml(blocks: list[dict[str, Any]]) -> str:
+    body = "".join(_docx_paragraph(block) for block in blocks if block.get("text"))
+    return f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:o="urn:schemas-microsoft-com:office:office"
+  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+  xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"
+  xmlns:v="urn:schemas-microsoft-com:vml"
+  xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing"
+  xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+  xmlns:w10="urn:schemas-microsoft-com:office:word"
+  xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+  xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml"
+  xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup"
+  xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+  xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml"
+  xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"
+  mc:Ignorable="w14 wp14">
+  <w:body>
+    {body}
+    <w:sectPr>
+      <w:pgSz w:w="11906" w:h="16838"/>
+      <w:pgMar w:top="1134" w:right="1134" w:bottom="1134"
+        w:left="1134" w:header="708" w:footer="708" w:gutter="0"/>
+    </w:sectPr>
+  </w:body>
+</w:document>"""
+
+
+def _docx_paragraph(block: dict[str, Any]) -> str:
+    style = str(block.get("style") or "Normal")
+    text = xml_escape(str(block.get("text") or ""))
+    prefix = "• " if style == "Bullet" else ""
+    paragraph_style = "Normal" if style == "Bullet" else style
+    return (
+        "<w:p>"
+        f'<w:pPr><w:pStyle w:val="{paragraph_style}"/></w:pPr>'
+        f"<w:r><w:t>{xml_escape(prefix)}{text}</w:t></w:r>"
+        "</w:p>"
+    )
+
+
+def _docx_content_types() -> str:
+    return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels"
+    ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml"
+    ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/styles.xml"
+    ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+  <Override PartName="/docProps/core.xml"
+    ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
+  <Override PartName="/docProps/app.xml"
+    ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
+</Types>"""
+
+
+def _docx_root_rels() -> str:
+    return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1"
+    Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"
+    Target="word/document.xml"/>
+  <Relationship Id="rId2"
+    Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties"
+    Target="docProps/core.xml"/>
+  <Relationship Id="rId3"
+    Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties"
+    Target="docProps/app.xml"/>
+</Relationships>"""
+
+
+def _docx_document_rels() -> str:
+    return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1"
+    Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles"
+    Target="styles.xml"/>
+</Relationships>"""
+
+
+def _docx_styles() -> str:
+    return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:style w:type="paragraph" w:default="1" w:styleId="Normal">
+    <w:name w:val="Normal"/>
+    <w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="22"/></w:rPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="Title">
+    <w:name w:val="Title"/>
+    <w:basedOn w:val="Normal"/>
+    <w:pPr><w:spacing w:after="120"/></w:pPr>
+    <w:rPr><w:b/><w:sz w:val="40"/></w:rPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="Subtitle">
+    <w:name w:val="Subtitle"/>
+    <w:basedOn w:val="Normal"/>
+    <w:rPr><w:color w:val="475569"/><w:sz w:val="24"/></w:rPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="Contact">
+    <w:name w:val="Contact"/>
+    <w:basedOn w:val="Normal"/>
+    <w:pPr><w:spacing w:after="240"/></w:pPr>
+    <w:rPr><w:color w:val="475569"/><w:sz w:val="18"/></w:rPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="Heading1">
+    <w:name w:val="Heading 1"/>
+    <w:basedOn w:val="Normal"/>
+    <w:pPr><w:spacing w:before="260" w:after="100"/></w:pPr>
+    <w:rPr><w:b/><w:color w:val="2563EB"/><w:sz w:val="24"/></w:rPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="Heading2">
+    <w:name w:val="Heading 2"/>
+    <w:basedOn w:val="Normal"/>
+    <w:pPr><w:spacing w:before="120" w:after="40"/></w:pPr>
+    <w:rPr><w:b/><w:sz w:val="23"/></w:rPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="Meta">
+    <w:name w:val="Meta"/>
+    <w:basedOn w:val="Normal"/>
+    <w:rPr><w:i/><w:color w:val="64748B"/><w:sz w:val="19"/></w:rPr>
+  </w:style>
+</w:styles>"""
+
+
+def _docx_core_props(title: str) -> str:
+    return f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties"
+  xmlns:dc="http://purl.org/dc/elements/1.1/"
+  xmlns:dcterms="http://purl.org/dc/terms/"
+  xmlns:dcmitype="http://purl.org/dc/dcmitype/"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <dc:title>{xml_escape(title)} - Resume</dc:title>
+  <dc:creator>Mindris AI</dc:creator>
+</cp:coreProperties>"""
+
+
+def _docx_app_props() -> str:
+    return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"
+  xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
+  <Application>Mindris AI</Application>
+</Properties>"""
 
 
 def _html_section(title: str, content: str) -> str:
