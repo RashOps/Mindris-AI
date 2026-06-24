@@ -1,5 +1,8 @@
 """Resume library API tests."""
 
+import io
+from zipfile import ZipFile
+
 from conftest import auth_headers, client
 
 
@@ -76,6 +79,19 @@ def test_resume_crud_duplicate_and_export() -> None:
     assert "Ada Lovelace" in html.text
     assert "<script" not in html.text.lower()
 
+    docx = api.get(f"/api/v1/resumes/{resume['id']}/export-docx", headers=headers)
+    assert docx.status_code == 200
+    assert (
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        in docx.headers["content-type"]
+    )
+    assert docx.headers["content-disposition"].endswith('.docx"')
+    assert len(docx.content) > 1000
+    with ZipFile(io.BytesIO(docx.content)) as package:
+        assert "word/document.xml" in package.namelist()
+        document = package.read("word/document.xml").decode()
+        assert "Ada Lovelace" in document
+
     deleted = api.delete(f"/api/v1/resumes/{duplicate['id']}", headers=headers)
     assert deleted.status_code == 200
 
@@ -118,6 +134,6 @@ def test_resume_exports_return_404_for_missing_resume() -> None:
     api = client()
     headers = auth_headers()
 
-    for endpoint in ("export-json", "export-markdown", "export-html"):
+    for endpoint in ("export-json", "export-markdown", "export-html", "export-docx"):
         response = api.get(f"/api/v1/resumes/999999/{endpoint}", headers=headers)
         assert response.status_code == 404

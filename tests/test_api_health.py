@@ -15,13 +15,28 @@ def test_system_status_is_public() -> None:
     response = api.get("/api/v1/system/status")
     assert response.status_code == 200
     payload = response.json()
+    assert payload["status"] in {"ready", "degraded"}
     assert payload["renderer_url"] == "http://localhost:4000"
     assert payload["sqlite"]["path"].endswith("mindris.db")
+    assert "timeouts" in payload
+
+
+def test_system_readiness_reports_core_checks() -> None:
+    api = client()
+    response = api.get("/api/v1/system/ready")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "ready"
+    assert payload["checks"]["storage"]["ok"] is True
+    assert payload["checks"]["sqlite"]["ok"] is True
 
 
 def test_api_key_required_for_llm_catalogue() -> None:
     api = client()
-    assert api.get("/api/v1/llm/catalogue").status_code == 401
+    unauthorized = api.get("/api/v1/llm/catalogue")
+    assert unauthorized.status_code == 401
+    assert unauthorized.json()["status"] == "error"
+    assert unauthorized.json()["message"]
     assert api.get("/api/v1/llm/catalogue", headers=auth_headers()).status_code == 200
 
 
@@ -43,3 +58,4 @@ def test_invalid_provider_or_model_is_rejected() -> None:
         },
     )
     assert response.status_code == 422
+    assert response.json()["status"] == "error"
