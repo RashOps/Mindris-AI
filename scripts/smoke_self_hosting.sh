@@ -17,7 +17,9 @@ check() {
 
 check "api" "$API_URL/"
 check "api-system" "$API_URL/api/v1/system/status"
+check "api-ready" "$API_URL/api/v1/system/ready"
 check "renderer" "$RENDERER_URL/"
+check "renderer-ready" "$RENDERER_URL/ready"
 check "web" "$WEB_URL/"
 
 echo "self-hosting-smoke-ok"
