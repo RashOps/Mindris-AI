@@ -44,6 +44,9 @@
 - [x] **Validation :** Frontend et renderer validés par lint/typecheck/build ; backend validé par smoke test ciblé.
 
 ## 🔵 Phase 6 : Finalisation & SaaS Ready
-- [ ] **Refactoring Microservices :** Dockerisation complète.
+- [x] **Self-hosting Docker local :** Compose, healthchecks, `.env.example`, guide et smoke script.
+- [x] **Exports ouverts :** JSON, Markdown et HTML backend-driven, avec PDF maintenu via renderer.
+- [ ] **Export DOCX :** Differe jusqu'a une implementation locale fiable.
+- [ ] **Refactoring Microservices :** Durcissement production au-delà du self-hosting local.
 - [ ] **Auth & Stripe :** (Optionnel) Préparation à la mise sur le marché.
 - [ ] **Telemetry :** Suivi des performances avec LangSmith/Phoenix.
