@@ -4,6 +4,7 @@ from typing import Annotated, Any
 
 from database.records import ResumeRecord
 from database.session import Session, get_session
+from exporters import resume_to_html, resume_to_markdown, safe_export_filename
 from fastapi import APIRouter, Depends, HTTPException, Response
 from persistence import (
     create_resume,
@@ -155,7 +156,37 @@ def export_resume_json(resume_id: int, session: SessionDep) -> Response:
         media_type="application/json",
         headers={
             "Content-Disposition": (
-                f'attachment; filename="{record.name.replace(" ", "_")}.json"'
+                f'attachment; filename="{safe_export_filename(record.name, "json")}"'
+            )
+        },
+    )
+
+
+@router.get("/{resume_id}/export-markdown")
+def export_resume_markdown(resume_id: int, session: SessionDep) -> Response:
+    """Return a resume document Markdown export."""
+    record = _get_resume(session, resume_id)
+    return Response(
+        content=resume_to_markdown(record),
+        media_type="text/markdown; charset=utf-8",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{safe_export_filename(record.name, "md")}"'
+            )
+        },
+    )
+
+
+@router.get("/{resume_id}/export-html")
+def export_resume_html(resume_id: int, session: SessionDep) -> Response:
+    """Return a standalone resume document HTML export."""
+    record = _get_resume(session, resume_id)
+    return Response(
+        content=resume_to_html(record),
+        media_type="text/html; charset=utf-8",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{safe_export_filename(record.name, "html")}"'
             )
         },
     )
