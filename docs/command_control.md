@@ -143,6 +143,22 @@ uv run ruff format --check .
 uv run pytest tests/ -q --tb=short
 ```
 
+Si l'environnement ne peut pas écrire dans le cache `uv` du home ou si tu veux isoler la base SQLite de test :
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache \
+STORAGE_DIR=/tmp/mindris-ai-test-storage \
+uv run --no-sync pytest tests/ -q --tb=short
+```
+
+Pour une vérification backend rapide du périmètre MVP1 :
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache \
+STORAGE_DIR=/tmp/mindris-ai-test-storage \
+uv run --no-sync python tests/smoke_mvp1_backend.py
+```
+
 ### Frontend
 
 ```bash

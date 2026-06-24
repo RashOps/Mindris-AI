@@ -37,6 +37,12 @@
 - [x] **Live Preview :** Rendu en temps réel des modifications IA (Connecté au Shadow DOM Bun).
 - [x] **Ghost Mode :** Feedback visuel des agents en plein travail (Connecté à l'API Gateway FastAPI).
 
+## 🟢 Consolidation MVP1 locale (Terminée)
+- [x] **Source de vérité backend :** CV, drafts, templates et tracker sont pilotés par l'API.
+- [x] **QA MVP1 :** Checklist manuelle documentée dans `docs/mvp1-qa-checklist.md`.
+- [x] **Commandes locales :** Variantes `UV_CACHE_DIR` et `STORAGE_DIR` documentées pour les environnements contraints.
+- [x] **Validation :** Frontend et renderer validés par lint/typecheck/build ; backend validé par smoke test ciblé.
+
 ## 🔵 Phase 6 : Finalisation & SaaS Ready
 - [ ] **Refactoring Microservices :** Dockerisation complète.
 - [ ] **Auth & Stripe :** (Optionnel) Préparation à la mise sur le marché.
