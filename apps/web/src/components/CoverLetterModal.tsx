@@ -143,7 +143,7 @@ export function CoverLetterModal({ open, onClose }: CoverLetterModalProps) {
           >
             <div>
               <h2 className="text-sm font-bold flex items-center gap-2" style={{ color: '#f1f5f9', fontFamily: 'var(--font-space)' }}>
-                ✉️ Cover Letter Generator
+                Cover Letter Generator
               </h2>
               {job && (
                 <p className="text-xs mt-0.5" style={{ color: '#64748b' }}>
@@ -153,7 +153,7 @@ export function CoverLetterModal({ open, onClose }: CoverLetterModalProps) {
               )}
               {!job && (
                 <p className="text-xs mt-0.5" style={{ color: '#f59e0b' }}>
-                  ⚠️ No job scraped yet — letter will be generic
+                  No job scraped yet — letter will be generic
                 </p>
               )}
             </div>
@@ -172,7 +172,7 @@ export function CoverLetterModal({ open, onClose }: CoverLetterModalProps) {
             {/* Instructions */}
             <div>
               <label className="block text-xs font-semibold mb-1.5" style={{ color: '#94a3b8' }}>
-                📝 Instructions <span className="font-normal" style={{ color: '#475569' }}>(optionnel)</span>
+                Instructions <span className="font-normal" style={{ color: '#475569' }}>(optionnel)</span>
               </label>
               <textarea
                 value={instructions}
@@ -196,7 +196,7 @@ export function CoverLetterModal({ open, onClose }: CoverLetterModalProps) {
                 onMouseLeave={e => (e.currentTarget.style.color = '#64748b')}
               >
                 <span className={`transition-transform ${showExample ? "rotate-90" : ""}`}>▶</span>
-                📋 Exemple de lettre{" "}
+                Exemple de lettre{" "}
                 <span className="font-normal" style={{ color: '#334155' }}>(guide de style, optionnel)</span>
               </button>
               {showExample && (
@@ -216,7 +216,7 @@ export function CoverLetterModal({ open, onClose }: CoverLetterModalProps) {
             {/* LLM Selector */}
             <div>
               <label className="block text-xs font-semibold mb-1.5" style={{ color: '#94a3b8' }}>
-                🤖 Modèle IA
+                Modèle IA
               </label>
               <div className="flex gap-2">
                 <select
@@ -248,7 +248,7 @@ export function CoverLetterModal({ open, onClose }: CoverLetterModalProps) {
             {/* Error */}
             {error && (
               <div className="px-4 py-3 rounded-xl text-xs" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5' }}>
-                ❌ {error}
+                {error}
               </div>
             )}
 
@@ -280,7 +280,7 @@ export function CoverLetterModal({ open, onClose }: CoverLetterModalProps) {
                   Génération en cours…
                 </>
               ) : (
-                <>✉️ Générer la lettre → Ouvrir dans l&apos;éditeur</>
+                <>Générer la lettre → Ouvrir dans l&apos;éditeur</>
               )}
             </button>
           </div>
