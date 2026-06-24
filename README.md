@@ -16,7 +16,7 @@
 
 ---
 
-[Features](#-features) · [Architecture](#-architecture) · [Quick Start](#-quick-start) · [Usage](#-usage) · [Configuration](#%EF%B8%8F-configuration) · [ADRs](#-architecture-decision-records) · [Roadmap](#-roadmap)
+[Features](#-features) · [Architecture](#-architecture) · [Quick Start](#-quick-start) · [Self-hosting](#-self-hosting-docker) · [Usage](#-usage) · [Configuration](#%EF%B8%8F-configuration) · [ADRs](#-architecture-decision-records) · [Roadmap](#-roadmap)
 
 </div>
 
@@ -132,6 +132,33 @@ SCRAPER_HEADLESS=false
 > [!NOTE]
 > If running Ollama on a separate machine (e.g. Windows host from WSL), replace
 > `127.0.0.1` with the host's IP address.
+
+---
+
+## 🐳 Self-hosting Docker
+
+The MVP1 can run locally with Docker Compose:
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+Services:
+
+```text
+Frontend  http://localhost:3000
+API       http://localhost:8000
+Renderer  http://localhost:4000
+```
+
+Smoke check:
+
+```bash
+./scripts/smoke_self_hosting.sh
+```
+
+Detailed guide: [`docs/self-hosting.md`](docs/self-hosting.md).
 
 ---
 
