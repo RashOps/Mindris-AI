@@ -11,7 +11,7 @@ dependencies = [
     "langgraph>=1.1.10",
     "supabase>=2.29.0",
     "litellm>=1.59.0",
-    "database",
+    "database[vector]",
     "utils",
 ]
 
