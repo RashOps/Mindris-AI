@@ -60,6 +60,22 @@ def test_resume_crud_duplicate_and_export() -> None:
     assert exported.status_code == 200
     assert exported.json()["id"] == resume["id"]
 
+    markdown = api.get(
+        f"/api/v1/resumes/{resume['id']}/export-markdown",
+        headers=headers,
+    )
+    assert markdown.status_code == 200
+    assert "text/markdown" in markdown.headers["content-type"]
+    assert markdown.headers["content-disposition"].endswith('.md"')
+    assert "# Ada Lovelace" in markdown.text
+
+    html = api.get(f"/api/v1/resumes/{resume['id']}/export-html", headers=headers)
+    assert html.status_code == 200
+    assert "text/html" in html.headers["content-type"]
+    assert html.headers["content-disposition"].endswith('.html"')
+    assert "Ada Lovelace" in html.text
+    assert "<script" not in html.text.lower()
+
     deleted = api.delete(f"/api/v1/resumes/{duplicate['id']}", headers=headers)
     assert deleted.status_code == 200
 
@@ -96,3 +112,12 @@ def test_resume_create_rejects_invalid_cv_shape() -> None:
         },
     )
     assert response.status_code == 422
+
+
+def test_resume_exports_return_404_for_missing_resume() -> None:
+    api = client()
+    headers = auth_headers()
+
+    for endpoint in ("export-json", "export-markdown", "export-html"):
+        response = api.get(f"/api/v1/resumes/999999/{endpoint}", headers=headers)
+        assert response.status_code == 404

@@ -15,6 +15,7 @@ sys.path.insert(0, str(ROOT / "services"))
 sys.path.insert(0, str(ROOT / "packages"))
 
 from database.session import SessionLocal, init_db  # noqa: E402
+from exporters import resume_to_html, resume_to_markdown  # noqa: E402
 from persistence import (  # noqa: E402
     create_resume,
     serialize_draft,
@@ -52,6 +53,12 @@ def main() -> None:
             cv_data=cv_data,
             template_id="modern",
         )
+        markdown = resume_to_markdown(resume)
+        html = resume_to_html(resume)
+        if "# Phase 5" not in markdown:
+            raise SystemExit("Markdown export smoke check failed.")
+        if "Phase 5" not in html or "<script" in html.lower():
+            raise SystemExit("HTML export smoke check failed.")
         update_resume(session, resume, name="Phase 5 CV Updated")
         draft = upsert_workspace_draft(
             session,
