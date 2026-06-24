@@ -251,7 +251,7 @@ class TemplateCatalogItem(BaseModel):
     id: str = Field(min_length=1)
     name: str = Field(min_length=1)
     description: str
-    status: Literal["ready", "planned"] = "ready"
+    status: Literal["ready"] = "ready"
     category: str = "general"
     accent: str = "#2563eb"
     layout: Literal["single", "two-column"] = "two-column"
