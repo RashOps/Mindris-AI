@@ -2,7 +2,7 @@
 
 All notable changes to Mindris AI are documented here.
 
-## Unreleased
+## Released
 
 ## v0.1.0 - 2026-06-24
 
