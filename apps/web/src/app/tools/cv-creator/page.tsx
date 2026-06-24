@@ -175,14 +175,6 @@ export default function AppPage() {
       if (!res.ok) { const err = await res.json(); throw new Error(err.detail ?? "Upload failed"); }
       const data = await res.json();
       if (data.cv_data) replaceCVData(data.cv_data);
-      await fetch(apiUrl("/api/v1/cv/current"), {
-        method: "PUT",
-        headers: jsonHeaders(),
-        body: JSON.stringify({
-          cv_data: data.cv_data,
-          source: "pdf",
-        }),
-      }).catch(() => undefined);
       showToast("✅ PDF indexed! Editor and RAG updated.");
     } catch (err: unknown) {
       showToast(`❌ ${errorMessage(err, "Upload failed")}`, 6000);

@@ -171,16 +171,18 @@ export default function DashboardPage() {
     openResume(id);
   };
 
-  const importCVData = async (cvData: CVData, name: string) => {
+  const importCVData = async (cvData: CVData, name: string, syncCurrent = true) => {
     const id = await importResume(name, cvData, "json");
-    await fetch(apiUrl("/api/v1/cv/current"), {
-      method: "PUT",
-      headers: jsonHeaders(),
-      body: JSON.stringify({
-        cv_data: cvData,
-        source: "json",
-      }),
-    }).catch(() => undefined);
+    if (syncCurrent) {
+      await fetch(apiUrl("/api/v1/cv/current"), {
+        method: "PUT",
+        headers: jsonHeaders(),
+        body: JSON.stringify({
+          cv_data: cvData,
+          source: "json",
+        }),
+      }).catch(() => undefined);
+    }
     openResume(id);
   };
 
@@ -213,7 +215,7 @@ export default function DashboardPage() {
       const data = await res.json();
       const cvData = cvDataFromImport(data.cv_data);
       if (!cvData) throw new Error("PDF parser returned invalid CV data");
-      await importCVData(cvData, cvData.profile.full_name || fileNameToResumeName(file));
+      await importCVData(cvData, cvData.profile.full_name || fileNameToResumeName(file), false);
       showStatus("PDF resume imported");
     } catch (err: unknown) {
       showStatus(err instanceof Error ? err.message : "PDF import failed");
