@@ -100,8 +100,8 @@ function Slider({
   return (
     <div className="space-y-1.5">
       <div className="flex justify-between items-center">
-        <label className="text-xs font-medium" style={{ color: '#94a3b8' }}>{label}</label>
-        <span className="text-xs font-semibold tabular-nums" style={{ color: '#e2e8f0', fontFamily: 'var(--font-mono)' }}>{value}{unit}</span>
+        <label className="text-xs font-medium text-slate-600">{label}</label>
+        <span className="text-xs font-semibold tabular-nums text-slate-900" style={{ fontFamily: 'var(--font-mono)' }}>{value}{unit}</span>
       </div>
       <input
         type="range" min={min} max={max} step={step} value={value}
@@ -109,7 +109,7 @@ function Slider({
         className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
         style={{ accentColor: "var(--panel-accent, #8b5cf6)" }}
       />
-      <div className="flex justify-between text-[10px]" style={{ color: '#334155' }}>
+      <div className="flex justify-between text-[10px] text-slate-500">
         <span>{min}{unit}</span><span>{max}{unit}</span>
       </div>
     </div>
@@ -118,7 +118,7 @@ function Slider({
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: '#475569' }}>
+    <h3 className="mb-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
       {children}
     </h3>
   );
@@ -132,7 +132,20 @@ interface StylePanelProps { open: boolean; onClose: () => void; }
 
 export function StylePanel({ open, onClose }: StylePanelProps) {
   const { cvData, setGlobalSettings } = useCVStore();
-  const gs = cvData.global_settings;
+  const current = cvData.global_settings ?? DEFAULTS;
+  const gs: GlobalSettings = {
+    primary_color: current.primary_color || DEFAULTS.primary_color,
+    font_family: current.font_family || DEFAULTS.font_family,
+    font_size: current.font_size || DEFAULTS.font_size,
+    line_height: current.line_height || DEFAULTS.line_height,
+    margin_page: current.margin_page || DEFAULTS.margin_page,
+    margin_h: current.margin_h || DEFAULTS.margin_h,
+    margin_v: current.margin_v || DEFAULTS.margin_v,
+    entry_spacing: current.entry_spacing || DEFAULTS.entry_spacing,
+    col_left_width: current.col_left_width || DEFAULTS.col_left_width,
+    col_swap: current.col_swap || DEFAULTS.col_swap,
+    template_id: current.template_id || DEFAULTS.template_id,
+  };
   const [tab, setTab] = useState<Tab>("design");
   const [templates, setTemplates] = useState<ResumeTemplate[]>(FALLBACK_TEMPLATES);
 
@@ -157,7 +170,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
   }, []);
 
   const TABS: { key: Tab; label: string; icon: string }[] = [
-    { key: "design",     label: "Design",     icon: "🎨" },
+    { key: "design",     label: "Design",     icon: "" },
     { key: "typography", label: "Typography",  icon: "Aa" },
     { key: "spacing",    label: "Spacing",     icon: "⬜" },
     { key: "layout",     label: "Layout",      icon: "◫" },
@@ -172,36 +185,33 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
       <aside
         className={`fixed top-0 right-0 h-full z-50 w-80 flex flex-col transition-transform duration-300 ease-in-out
           ${open ? "translate-x-0" : "translate-x-full"}`}
-        style={{ background: 'rgba(10,15,26,0.97)', borderLeft: '1px solid rgba(255,255,255,0.08)', boxShadow: '-8px 0 40px rgba(0,0,0,0.6)' }}
+        style={{ background: '#ffffff', borderLeft: '1px solid #cbd5e1', boxShadow: '-8px 0 32px rgba(15,23,42,0.18)' }}
         aria-label="Style panel"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3.5 shrink-0">
           <div className="flex items-center gap-2">
-            <span className="text-base">🎨</span>
-            <h2 className="text-sm font-semibold" style={{ color: '#f1f5f9', fontFamily: 'var(--font-space)' }}>Design Studio</h2>
+            <h2 className="text-sm font-semibold text-slate-950" style={{ fontFamily: 'var(--font-space)' }}>Design Studio</h2>
           </div>
           <button
             onClick={onClose}
-            className="w-7 h-7 flex items-center justify-center rounded-md text-sm transition-colors"
-            style={{ color: '#475569' }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#e2e8f0')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#475569')}
+            className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-sm text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
           >✕</button>
         </div>
 
         {/* Tabs */}
-        <div className="flex shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="flex shrink-0 border-b border-slate-200">
           {TABS.map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className="flex-1 py-2.5 text-[11px] font-semibold transition-colors flex flex-col items-center gap-0.5"
-              style={tab === t.key
-                ? { color: '#a78bfa', borderBottom: '2px solid #8b5cf6', background: 'rgba(139,92,246,0.06)' }
-                : { color: '#475569', borderBottom: '2px solid transparent' }}
+              className={`flex flex-1 cursor-pointer flex-col items-center gap-0.5 border-b-2 py-2.5 text-[11px] font-semibold transition-colors ${
+                tab === t.key
+                  ? 'border-violet-600 bg-violet-50 text-violet-700'
+                  : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+              }`}
             >
-              <span className="text-sm leading-none">{t.icon}</span>
+              {t.icon && <span className="text-sm leading-none">{t.icon}</span>}
               {t.label}
             </button>
           ))}
@@ -225,7 +235,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                       style={{
                         background: c.value,
                         border: gs.primary_color === c.value
-                          ? '2px solid #f1f5f9'
+                          ? '2px solid #0f172a'
                           : '2px solid transparent',
                         transform: gs.primary_color === c.value ? 'scale(0.92)' : undefined,
                         boxShadow: gs.primary_color === c.value ? `0 0 12px ${c.value}80` : undefined,
@@ -237,8 +247,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                   <input
                     type="color" value={gs.primary_color}
                     onChange={(e) => update({ primary_color: e.target.value })}
-                    className="w-8 h-8 rounded-md cursor-pointer"
-                    style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'transparent' }}
+                    className="h-8 w-8 cursor-pointer rounded-md border border-slate-300 bg-white"
                     title="Custom color"
                   />
                   <input
@@ -247,13 +256,8 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                       if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value))
                         update({ primary_color: e.target.value });
                     }}
-                    className="flex-1 h-8 px-2 text-xs rounded-md focus:outline-none"
-                    style={{
-                      fontFamily: 'var(--font-mono)',
-                      background: 'rgba(255,255,255,0.05)',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      color: '#e2e8f0',
-                    }}
+                    className="h-8 flex-1 rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-800 shadow-sm focus:outline-none focus:border-slate-500"
+                    style={{ fontFamily: 'var(--font-mono)' }}
                   />
                 </div>
               </section>
@@ -265,12 +269,10 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                     <button
                       key={f.value}
                       onClick={() => update({ font_family: f.value })}
-                      className="w-full text-left px-3 py-2 rounded-lg text-sm transition-all"
+                      className="w-full cursor-pointer rounded-lg px-3 py-2 text-left text-sm transition-all"
                       style={gs.font_family === f.value
-                        ? { background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)', color: '#c4b5fd', fontWeight: 600 }
-                        : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', color: '#64748b' }}
-                      onMouseEnter={e => { if (gs.font_family !== f.value) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; }}
-                      onMouseLeave={e => { if (gs.font_family !== f.value) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'; }}
+                        ? { background: '#f5f3ff', border: '1px solid #c4b5fd', color: '#6d28d9', fontWeight: 600 }
+                        : { background: '#fff', border: '1px solid #cbd5e1', color: '#334155' }}
                     >
                       <span style={{ fontFamily: `'${f.value}', sans-serif` }}>{f.label}</span>
                     </button>
@@ -328,16 +330,16 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                     <button
                       key={t.id}
                       onClick={() => update({ template_id: t.id })}
-                      className="flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all text-center"
+                      className="flex cursor-pointer flex-col items-center gap-1.5 rounded-lg p-3 text-center transition-all"
                       style={gs.template_id === t.id
-                        ? { border: '2px solid #8b5cf6', background: 'rgba(139,92,246,0.12)', boxShadow: '0 0 16px rgba(139,92,246,0.15)' }
-                        : { border: '2px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}
+                        ? { border: '2px solid #7c3aed', background: '#f5f3ff', boxShadow: '0 0 0 3px rgba(124,58,237,0.08)' }
+                        : { border: '2px solid #cbd5e1', background: '#fff' }}
                     >
-                      <span className="text-2xl">{t.layout === "single" ? "📄" : "🗂"}</span>
-                      <span className="text-xs font-semibold" style={{ color: gs.template_id === t.id ? '#c4b5fd' : '#64748b' }}>
+                      <span className="text-2xl font-black text-slate-900">{t.layout === "single" ? "1" : "2"}</span>
+                      <span className="text-xs font-semibold" style={{ color: gs.template_id === t.id ? '#6d28d9' : '#334155' }}>
                         {t.name}
                       </span>
-                      <span className="text-[10px]" style={{ color: '#334155' }}>{t.category}</span>
+                      <span className="text-[10px] text-slate-500">{t.category}</span>
                     </button>
                   ))}
                 </div>
@@ -347,25 +349,24 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                 <SectionLabel>Left Column Width</SectionLabel>
                 <Slider label="Width" min={40} max={75} value={colWidth} unit="%"
                   onChange={(v) => update({ col_left_width: String(v) })} />
-                <p className="text-[10px] mt-1" style={{ color: '#334155' }}>
+                <p className="mt-1 text-[10px] text-slate-500">
                   Right column takes remaining {100 - colWidth}%
                 </p>
               </section>
 
               <section>
                 <SectionLabel>Column Order</SectionLabel>
-                <div className="flex items-center justify-between rounded-xl px-4 py-3"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                <div className="flex items-center justify-between rounded-lg border border-slate-300 bg-white px-4 py-3 shadow-sm">
                   <div>
-                    <p className="text-xs font-semibold" style={{ color: '#cbd5e1' }}>Swap Columns</p>
-                    <p className="text-[10px] mt-0.5" style={{ color: '#475569' }}>
+                    <p className="text-xs font-semibold text-slate-900">Swap Columns</p>
+                    <p className="mt-0.5 text-[10px] text-slate-500">
                       {gs.col_swap === "true" ? "Skills on left, Experience on right" : "Experience on left (default)"}
                     </p>
                   </div>
                   <button
                     onClick={() => update({ col_swap: gs.col_swap === "true" ? "false" : "true" })}
-                    className="relative w-11 h-6 rounded-full transition-colors"
-                    style={{ background: gs.col_swap === "true" ? '#7c3aed' : 'rgba(255,255,255,0.12)' }}
+                    className="relative h-6 w-11 cursor-pointer rounded-full border border-slate-300 transition-colors"
+                    style={{ background: gs.col_swap === "true" ? '#7c3aed' : '#e2e8f0' }}
                   >
                     <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
                       gs.col_swap === "true" ? "translate-x-5" : "translate-x-0.5"
@@ -379,15 +380,12 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="shrink-0 border-t border-slate-200 px-5 py-3">
           <button
             onClick={() => update(DEFAULTS)}
-            className="w-full py-2 text-xs font-medium rounded-lg transition-colors"
-            style={{ color: '#475569' }}
-            onMouseEnter={e => { (e.currentTarget.style.color = '#94a3b8'); (e.currentTarget.style.background = 'rgba(255,255,255,0.05)'); }}
-            onMouseLeave={e => { (e.currentTarget.style.color = '#475569'); (e.currentTarget.style.background = 'transparent'); }}
+            className="w-full cursor-pointer rounded-lg border border-slate-300 bg-white py-2 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
           >
-            ↺ Reset to defaults
+            Reset to defaults
           </button>
         </div>
       </aside>

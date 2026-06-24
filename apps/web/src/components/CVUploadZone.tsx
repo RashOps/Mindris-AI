@@ -126,12 +126,11 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
         {hasCurrentCV && (
           <button
             onClick={useCurrentCV}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-left transition-colors"
-            style={{ background: 'rgba(37,99,235,0.12)', color: '#60a5fa', border: '1px solid rgba(37,99,235,0.2)' }}
+            className="flex w-full cursor-pointer items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-left text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100"
           >
             <span>👤</span>
             <span className="truncate">Use {cvData.profile.full_name || 'current CV'}</span>
-            <span className="ml-auto opacity-60">→</span>
+            <span className="ml-auto opacity-70">→</span>
           </button>
         )}
         <div className="flex gap-2">
@@ -139,21 +138,19 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
           <input ref={pdfRef}  type="file" accept=".pdf"  className="hidden" onChange={onFileInput} />
           <button
             onClick={() => jsonRef.current?.click()}
-            className="flex-1 px-3 py-2 rounded-lg text-xs font-medium border transition-colors"
-            style={{ borderColor: 'rgba(255,255,255,0.08)', color: '#94a3b8', background: 'rgba(255,255,255,0.03)' }}
+            className="flex-1 cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
           >
             {"{ }"} JSON
           </button>
           <button
             onClick={() => pdfRef.current?.click()}
             disabled={isUploading}
-            className="flex-1 px-3 py-2 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50"
-            style={{ borderColor: 'rgba(255,255,255,0.08)', color: '#94a3b8', background: 'rgba(255,255,255,0.03)' }}
+            className="flex-1 cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isUploading ? '⏳' : '📄'} PDF
           </button>
         </div>
-        {status && <p className="text-xs text-center" style={{ color: '#94a3b8' }}>{status}</p>}
+        {status && <p className="text-center text-xs text-slate-600">{status}</p>}
       </div>
     );
   }
@@ -164,26 +161,18 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
       {hasCurrentCV && (
         <button
           onClick={useCurrentCV}
-          className="w-full flex items-center gap-3 p-3 rounded-xl text-sm font-medium text-left transition-all"
-          style={{
-            background: 'rgba(37,99,235,0.1)',
-            border: '1px solid rgba(37,99,235,0.25)',
-            color: '#93c5fd',
-          }}
+          className="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 p-3 text-left text-sm font-medium text-blue-700 transition-all hover:bg-blue-100"
         >
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-            style={{ background: 'rgba(37,99,235,0.2)' }}
-          >
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100">
             👤
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold truncate" style={{ color: '#dbeafe' }}>
+            <p className="truncate font-semibold text-blue-900">
               {cvData.profile.full_name || 'Current CV'}
             </p>
             <p className="text-xs opacity-60 mt-0.5">Already loaded in CV Creator — click to use</p>
           </div>
-          <span style={{ color: '#60a5fa' }}>→</span>
+          <span>→</span>
         </button>
       )}
 
@@ -192,24 +181,23 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
         onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={onDrop}
-        className="relative flex flex-col items-center justify-center gap-3 p-8 rounded-2xl border-2 border-dashed transition-all duration-200 cursor-pointer"
+        className="relative flex cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed p-8 transition-all duration-200"
         style={{
-          borderColor: isDragging ? '#8b5cf6' : 'rgba(255,255,255,0.12)',
-          background: isDragging ? 'rgba(139,92,246,0.06)' : 'rgba(255,255,255,0.02)',
+          borderColor: isDragging ? '#8b5cf6' : '#cbd5e1',
+          background: isDragging ? '#f5f3ff' : '#ffffff',
         }}
         onClick={() => jsonRef.current?.click()}
       >
         <div
-          className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl"
-          style={{ background: 'rgba(139,92,246,0.12)' }}
+          className="flex h-12 w-12 items-center justify-center rounded-lg bg-violet-50 text-2xl"
         >
           {isUploading ? '⏳' : '⬆️'}
         </div>
         <div className="text-center">
-          <p className="text-sm font-medium" style={{ color: '#e2e8f0' }}>
+          <p className="text-sm font-medium text-slate-900">
             {isUploading ? 'Uploading…' : 'Drop your CV here'}
           </p>
-          <p className="text-xs mt-1" style={{ color: '#475569' }}>
+          <p className="mt-1 text-xs text-slate-500">
             JSON or PDF · or click to browse
           </p>
         </div>
@@ -224,12 +212,7 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
         <button
           onClick={(e) => { e.stopPropagation(); pdfRef.current?.click(); }}
           disabled={isUploading}
-          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all"
-          style={{
-            borderColor: 'rgba(255,255,255,0.08)',
-            color: '#94a3b8',
-            background: 'rgba(255,255,255,0.03)',
-          }}
+          className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition-all hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isUploading ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : '📄'}
           Upload PDF
@@ -237,7 +220,7 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
       </div>
 
       {status && (
-        <p className="text-xs text-center py-1.5 px-3 rounded-lg" style={{ color: '#94a3b8', background: 'rgba(255,255,255,0.04)' }}>
+        <p className="rounded-lg bg-slate-100 px-3 py-1.5 text-center text-xs text-slate-600">
           {status}
         </p>
       )}

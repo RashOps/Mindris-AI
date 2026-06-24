@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import Link from "next/link";
 import { RENDERER_BASE_URL, jsonHeaders, rendererUrl } from "@/lib/api";
 import { deleteDraft, loadDraft } from "@/lib/drafts";
 
@@ -200,7 +199,7 @@ export default function MarkdownToolPage() {
   const charCount = markdown.length;
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden theme-dark-tool" style={{ background: '#0a0f1a', color: '#e2e8f0' }}>
+    <div className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden bg-slate-50 text-slate-950">
 
       {/* Toast */}
       {status && (
@@ -210,18 +209,9 @@ export default function MarkdownToolPage() {
       )}
 
       {/* ── Header ───────────────────────────────────────────────────────────── */}
-      <header className="h-12 border-b flex items-center justify-between px-4 shrink-0" style={{ background: 'rgba(10,15,26,0.95)', borderColor: 'rgba(255,255,255,0.07)' }}>
-        {/* Logo + nav */}
+      <header className="flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-2 shadow-sm">
         <div className="flex items-center gap-4">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-black text-sm"
-              style={{ background: "linear-gradient(135deg, #2563eb, #818cf8)" }}>
-              M
-            </div>
-            <span style={{ fontFamily: 'var(--font-space)', color: '#f1f5f9', fontWeight: 600, fontSize: '0.875rem' }}>Mindris AI</span>
-          </Link>
-          <span style={{ color: 'rgba(255,255,255,0.12)' }}>|</span>
-          <span className="text-sm font-medium" style={{ color: '#64748b' }}>Markdown → PDF</span>
+          <span className="text-xs font-semibold uppercase tracking-widest text-slate-500">Markdown PDF</span>
         </div>
 
         {/* Controls */}
@@ -232,24 +222,21 @@ export default function MarkdownToolPage() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Document title..."
-            className="h-8 px-3 text-sm rounded-lg focus:outline-none w-44"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0' }}
-            onFocus={e => (e.target.style.borderColor = 'rgba(139,92,246,0.5)')}
-            onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')}
+            className="h-9 w-44 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none"
           />
 
           {/* Style toggle */}
-          <div className="flex rounded-lg overflow-hidden text-xs font-medium" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div className="flex overflow-hidden rounded-lg border border-slate-200 text-xs font-medium">
             {(["document", "letter"] as const).map((s) => (
               <button
                 key={s}
                 onClick={() => setStyle(s)}
                 className="px-3 py-1.5 transition-colors capitalize"
                 style={style === s
-                  ? { background: 'linear-gradient(135deg, #1d4ed8, #2563eb)', color: '#fff' }
-                  : { background: 'rgba(255,255,255,0.03)', color: '#64748b' }}
+                  ? { background: '#0f172a', color: '#fff' }
+                  : { background: '#fff', color: '#64748b' }}
               >
-                {s === "document" ? "📄 Document" : "✉ Letter"}
+                {s === "document" ? "Document" : "Letter"}
               </button>
             ))}
           </div>
@@ -258,8 +245,7 @@ export default function MarkdownToolPage() {
           <button
             onClick={handleExport}
             disabled={isExporting || !markdown.trim()}
-            className="flex items-center gap-2 px-4 py-1.5 rounded-lg font-semibold text-sm disabled:opacity-50 transition-all"
-            style={{ background: 'linear-gradient(135deg, #059669, #10b981)', color: '#fff', boxShadow: '0 0 16px rgba(16,185,129,0.2)' }}
+            className="flex h-9 cursor-pointer items-center gap-2 rounded-lg bg-slate-950 px-4 text-sm font-semibold text-white transition-all hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isExporting ? (
               <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Generating...</>
@@ -271,23 +257,23 @@ export default function MarkdownToolPage() {
       </header>
 
       {/* ── Template bar ─────────────────────────────────────────────────────────── */}
-      <div className="border-b px-4 py-2 flex items-center gap-2 shrink-0" style={{ background: 'rgba(15,23,42,0.6)', borderColor: 'rgba(255,255,255,0.06)' }}>
-        <span className="text-[10px] font-semibold uppercase tracking-widest mr-1" style={{ color: '#475569' }}>Template:</span>
+      <div className="flex shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-4 py-2">
+        <span className="mr-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Template:</span>
         {(Object.keys(TEMPLATES) as Array<keyof typeof TEMPLATES>).map((key) => (
           <button
             key={key}
             onClick={() => applyTemplate(key)}
             className="px-3 py-1 rounded-full text-xs font-medium transition-colors"
             style={activeTemplate === key
-              ? { background: 'rgba(139,92,246,0.15)', color: '#c4b5fd', border: '1px solid rgba(139,92,246,0.3)' }
-              : { background: 'rgba(255,255,255,0.04)', color: '#64748b', border: '1px solid rgba(255,255,255,0.06)' }}
+              ? { background: '#eef2ff', color: '#4338ca', border: '1px solid #c7d2fe' }
+              : { background: '#fff', color: '#475569', border: '1px solid #e2e8f0' }}
           >
-            {key === "blank" && "✨ Blank"}
-            {key === "cover_letter" && "✉ Cover Letter"}
-            {key === "technical_doc" && "📋 Technical Doc"}
+            {key === "blank" && "Blank"}
+            {key === "cover_letter" && "Cover Letter"}
+            {key === "technical_doc" && "Technical Doc"}
           </button>
         ))}
-        <div className="ml-auto text-xs" style={{ color: '#334155' }}>
+        <div className="ml-auto text-xs text-slate-500">
           {wordCount} words · {charCount} chars
         </div>
       </div>
@@ -296,9 +282,9 @@ export default function MarkdownToolPage() {
       <div className="flex-1 flex overflow-hidden">
 
         {/* Left — Markdown editor */}
-        <div className="w-1/2 h-full flex flex-col border-r" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
-          <div className="px-4 py-2 border-b" style={{ background: 'rgba(15,23,42,0.6)', borderColor: 'rgba(255,255,255,0.06)' }}>
-            <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#475569' }}>Markdown Editor</p>
+        <div className="flex h-full w-1/2 flex-col border-r border-slate-200 bg-white">
+          <div className="border-b border-slate-200 bg-white px-4 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">Markdown Editor</p>
           </div>
           <textarea
             value={markdown}
@@ -306,14 +292,14 @@ export default function MarkdownToolPage() {
             spellCheck={false}
             placeholder={`# Start writing...\n\nSupports **GFM Markdown** — headings, lists, code blocks, tables, blockquotes.\n\nPick a template above to get started quickly.`}
             className="flex-1 w-full resize-none text-sm p-5 focus:outline-none leading-relaxed"
-            style={{ fontFamily: 'var(--font-mono)', background: 'rgba(10,15,26,0.8)', color: '#cbd5e1' }}
+            style={{ fontFamily: 'var(--font-mono)' }}
           />
         </div>
 
         {/* Right — Live preview */}
-        <div className="w-1/2 h-full flex flex-col" style={{ background: 'rgba(5,10,20,0.5)' }}>
-          <div className="px-4 py-2 border-b flex items-center justify-between" style={{ background: 'rgba(15,23,42,0.6)', borderColor: 'rgba(255,255,255,0.06)' }}>
-            <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#475569' }}>Live Preview</p>
+        <div className="flex h-full w-1/2 flex-col bg-slate-100">
+          <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">Live Preview</p>
             {isLoadingPreview && (
               <span className="text-xs flex items-center gap-1.5" style={{ color: '#475569' }}>
                 <span className="w-2.5 h-2.5 border border-slate-500 border-t-slate-300 rounded-full animate-spin" />
@@ -326,7 +312,7 @@ export default function MarkdownToolPage() {
             {previewHtml ? (
               <iframe
                 srcDoc={previewHtml}
-                className="w-full h-full border-none rounded-xl shadow-2xl"
+                className="h-full w-full rounded-lg border border-slate-200 bg-white shadow-sm"
                 title="Markdown Preview"
                 sandbox="allow-same-origin allow-scripts"
               />
@@ -353,15 +339,15 @@ export default function MarkdownToolPage() {
       </div>
 
       {/* ── Status bar ─────────────────────────────────────────────────────────── */}
-      <div className="h-7 border-t flex items-center px-4 gap-4 shrink-0" style={{ background: 'rgba(10,15,26,0.95)', borderColor: 'rgba(255,255,255,0.06)' }}>
-        <span className="text-xs" style={{ color: '#334155' }}>
-          Style: <span className="font-medium capitalize" style={{ color: '#64748b' }}>{style}</span>
+      <div className="flex h-8 shrink-0 items-center gap-4 border-t border-slate-200 bg-white px-4">
+        <span className="text-xs text-slate-500">
+          Style: <span className="font-medium capitalize text-slate-700">{style}</span>
         </span>
-        <span className="text-xs" style={{ color: '#334155' }}>
-          Renderer: <span className="font-medium" style={{ color: '#64748b' }}>{RENDERER_BASE_URL}</span>
+        <span className="text-xs text-slate-500">
+          Renderer: <span className="font-medium text-slate-700">{RENDERER_BASE_URL}</span>
         </span>
-        <span className="text-xs ml-auto" style={{ color: '#1e293b' }}>
-          Mindris AI · Markdown Converter
+        <span className="ml-auto text-xs text-slate-400">
+          Markdown Converter
         </span>
       </div>
     </div>

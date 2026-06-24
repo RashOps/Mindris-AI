@@ -26,6 +26,7 @@ Le principe architectural reste respecte : le frontend n'est pas un service meti
 - Configuration centralisee des URLs API/renderer dans le frontend.
 - Commandes locales documentees dans `docs/command_control.md`.
 - Checklist QA MVP1 documentee dans `docs/mvp1-qa-checklist.md`.
+- Shell SaaS partage pour les pages produit et commandes locales non-Docker.
 
 ## Partiel
 
@@ -139,3 +140,23 @@ Controles executes :
 - `cd services/renderer && bun run build`
 
 Note : `pytest tests/test_resumes_api.py` a ete interrompu dans l'environnement d'agent apres blocage sans sortie. Les assertions ont ete ajoutees au test, mais la verification fiable de cette session repose sur le smoke backend cible et les checks de build.
+
+## Verification phase 7
+
+Workflow local non-Docker :
+
+```bash
+sh -n scripts/*.sh
+```
+
+Resultat : OK.
+
+UI :
+
+```bash
+cd apps/web
+bun run lint
+bun run typecheck
+```
+
+Resultat intermediaire : OK.

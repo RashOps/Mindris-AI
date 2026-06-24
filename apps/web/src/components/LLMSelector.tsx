@@ -35,7 +35,7 @@ export function LLMSelector({ taskKey, label = "Model" }: LLMSelectorProps) {
 
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-[10px] uppercase tracking-wider" style={{ color: "#64748b" }}>{label}</span>
+      <span className="text-[10px] uppercase tracking-wider text-slate-500">{label}</span>
       <select
         value={current.provider}
         onChange={(event) => {
@@ -43,21 +43,19 @@ export function LLMSelector({ taskKey, label = "Model" }: LLMSelectorProps) {
           const first = catalogue[provider]?.[0]?.id ?? current.model_name;
           update({ provider, model_name: first });
         }}
-        className="h-8 rounded-lg px-2 text-xs"
-        style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#cbd5e1" }}
+        className="h-9 cursor-pointer rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-700 shadow-sm outline-none focus:border-slate-500"
       >
         {providers.map((provider) => (
-          <option key={provider} value={provider} style={{ background: "#0a0f1a" }}>{provider}</option>
+          <option key={provider} value={provider}>{provider}</option>
         ))}
       </select>
       <select
         value={current.model_name}
         onChange={(event) => update({ model_name: event.target.value })}
-        className="h-8 rounded-lg px-2 text-xs max-w-44"
-        style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#cbd5e1" }}
+        className="h-9 max-w-44 cursor-pointer rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-700 shadow-sm outline-none focus:border-slate-500"
       >
         {models.map((model) => (
-          <option key={model.id} value={model.id} style={{ background: "#0a0f1a" }}>{model.label}</option>
+          <option key={model.id} value={model.id}>{model.label}</option>
         ))}
       </select>
     </div>

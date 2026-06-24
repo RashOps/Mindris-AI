@@ -27,8 +27,16 @@ import { CSS } from "@dnd-kit/utilities";
 
 // ── Shared UI primitives ─────────────────────────────────────────────────────
 
+const FIELD_INPUT_CLASS =
+  "border-slate-300 bg-white text-slate-800 shadow-sm placeholder:text-slate-400 focus-visible:border-slate-500";
+
+const ITEM_CARD_CLASS = "space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3";
+
+const SELECT_CLASS =
+  "rounded-lg border border-slate-300 bg-white text-slate-800 shadow-sm outline-none focus:border-slate-500";
+
 const DragHandle = () => (
-  <div className="cursor-grab transition-colors px-1 flex-shrink-0" style={{ color: '#334155' }}>
+  <div className="flex-shrink-0 cursor-grab px-1 text-slate-400 transition-colors hover:text-slate-700">
     <svg width="14" height="14" viewBox="0 0 15 15" fill="none">
       <path d="M5.5 4.625C6.12 4.625 6.625 4.12 6.625 3.5C6.625 2.88 6.12 2.375 5.5 2.375C4.88 2.375 4.375 2.88 4.375 3.5C4.375 4.12 4.88 4.625 5.5 4.625ZM9.5 4.625C10.12 4.625 10.625 4.12 10.625 3.5C10.625 2.88 10.12 2.375 9.5 2.375C8.88 2.375 8.375 2.88 8.375 3.5C8.375 4.12 8.88 4.625 9.5 4.625ZM10.625 7.5C10.625 8.12 10.12 8.625 9.5 8.625C8.88 8.625 8.375 8.12 8.375 7.5C8.375 6.88 8.88 6.375 9.5 6.375C10.12 6.375 10.625 6.88 10.625 7.5ZM5.5 8.625C6.12 8.625 6.625 8.12 6.625 7.5C6.625 6.88 6.12 6.375 5.5 6.375C4.88 6.375 4.375 6.88 4.375 7.5C4.375 8.12 4.88 4.625 5.5 8.625ZM10.625 11.5C10.625 12.12 10.12 12.625 9.5 12.625C8.88 12.625 8.375 12.12 8.375 11.5C8.375 10.88 8.88 10.375 9.5 10.375C10.12 10.375 10.625 10.88 10.625 11.5ZM5.5 12.625C6.12 12.625 6.625 12.12 6.625 11.5C6.625 10.88 6.12 10.375 5.5 10.375C4.88 10.375 4.375 10.88 4.375 11.5C4.375 12.12 4.88 12.625 5.5 12.625Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"/>
     </svg>
@@ -70,10 +78,8 @@ function DroppableSkillGroup({ groupId, children }: { groupId: string; children:
 const RemoveBtn = ({ onClick }: { onClick: () => void }) => (
   <button
     onClick={onClick}
-    className="ml-auto flex-shrink-0 w-6 h-6 flex items-center justify-center rounded transition-colors"
-    style={{ color: '#475569' }}
-    onMouseEnter={e => (e.currentTarget.style.color = '#f87171')}
-    onMouseLeave={e => (e.currentTarget.style.color = '#475569')}
+    className="ml-auto flex h-6 w-6 flex-shrink-0 cursor-pointer items-center justify-center rounded text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600"
+    title="Remove"
   >
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M18 6L6 18M6 6l12 12"/>
@@ -92,16 +98,13 @@ const SectionCard = ({
   addLabel?: string;
   children: React.ReactNode;
 }) => (
-  <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(255,255,255,0.07)' }}>
-    <div className="flex items-center justify-between px-4 py-2.5" style={{ background: 'rgba(15,23,42,0.9)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-      <h3 className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#64748b' }}>{title}</h3>
+  <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+    <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-2.5">
+      <h3 className="text-xs font-semibold uppercase tracking-widest text-slate-500">{title}</h3>
       {onAdd && (
         <button
           onClick={onAdd}
-          className="text-xs font-medium flex items-center gap-1 transition-colors"
-          style={{ color: '#8b5cf6' }}
-          onMouseEnter={e => (e.currentTarget.style.color = '#a78bfa')}
-          onMouseLeave={e => (e.currentTarget.style.color = '#8b5cf6')}
+          className="flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-violet-700 transition-colors hover:bg-violet-50"
         >
           <span className="text-base leading-none">+</span> {addLabel}
         </button>
@@ -113,7 +116,7 @@ const SectionCard = ({
 
 const FieldRow = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div className="space-y-1">
-    <Label className="text-xs" style={{ color: '#64748b' }}>{label}</Label>
+    <Label className="text-xs text-slate-600">{label}</Label>
     {children}
   </div>
 );
@@ -134,15 +137,8 @@ const Textarea = ({
     value={value}
     onChange={(e) => onChange(e.target.value)}
     placeholder={placeholder}
-    className="w-full rounded-md px-3 py-2 text-sm resize-none focus:outline-none"
-    style={{
-      background: 'rgba(255,255,255,0.04)',
-      border: '1px solid rgba(255,255,255,0.08)',
-      color: '#cbd5e1',
-      fontFamily: 'var(--font-mono)',
-    }}
-    onFocus={e => (e.target.style.borderColor = 'rgba(139,92,246,0.4)')}
-    onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.08)')}
+    className="w-full resize-none rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-slate-500"
+    style={{ fontFamily: 'var(--font-mono)' }}
   />
 );
 
@@ -170,14 +166,17 @@ function TagInput({
   };
   return (
     <div
-      className="flex flex-wrap gap-1.5 p-2 rounded-md min-h-[36px]"
-      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+      className="flex min-h-[36px] flex-wrap gap-1.5 rounded-lg border border-slate-300 bg-white p-2 shadow-sm"
     >
       {tags.map((tag, i) => (
-        <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded font-medium"
-          style={{ background: 'rgba(139,92,246,0.15)', color: '#c4b5fd', border: '1px solid rgba(139,92,246,0.2)' }}>
+        <span key={i} className="inline-flex items-center gap-1 rounded border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
           {tag}
-          <button onClick={() => onChange(tags.filter((_, j) => j !== i))} style={{ color: '#a78bfa' }}>×</button>
+          <button
+            onClick={() => onChange(tags.filter((_, j) => j !== i))}
+            className="cursor-pointer text-violet-500 hover:text-violet-800"
+          >
+            ×
+          </button>
         </span>
       ))}
       <input
@@ -185,8 +184,7 @@ function TagInput({
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKey}
         placeholder={tags.length === 0 ? placeholder : ""}
-        className="flex-1 min-w-[80px] text-sm outline-none bg-transparent"
-        style={{ color: '#cbd5e1' }}
+        className="min-w-[80px] flex-1 bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400"
       />
     </div>
   );
@@ -229,16 +227,16 @@ function ExperienceSection() {
             <SortableRow key={exp.id} id={exp.id}>
               {({ attributes, listeners }) => (
                 <DroppableExpCard expId={exp.id}>
-                  <div className="p-3 rounded-lg space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className={ITEM_CARD_CLASS}>
                     <div className="flex items-center gap-2">
                       <div {...attributes} {...listeners}><DragHandle /></div>
-                      <Input value={exp.role} onChange={(e) => updateExperience(exp.id, { role: e.target.value })} placeholder="Poste" className="font-medium text-sm" />
-                      <Input value={exp.company} onChange={(e) => updateExperience(exp.id, { company: e.target.value })} placeholder="Entreprise" className="text-sm" />
+                      <Input value={exp.role} onChange={(e) => updateExperience(exp.id, { role: e.target.value })} placeholder="Poste" className={`text-sm font-medium ${FIELD_INPUT_CLASS}`} />
+                      <Input value={exp.company} onChange={(e) => updateExperience(exp.id, { company: e.target.value })} placeholder="Entreprise" className={`text-sm ${FIELD_INPUT_CLASS}`} />
                       <RemoveBtn onClick={() => removeExperience(exp.id)} />
                     </div>
                     <div className="flex gap-2">
-                      <Input value={exp.period} onChange={(e) => updateExperience(exp.id, { period: e.target.value })} placeholder="Période" className="text-xs" />
-                      <Input value={exp.location.city} onChange={(e) => updateExperience(exp.id, { location: { ...exp.location, city: e.target.value } })} placeholder="Ville" className="text-xs" />
+                      <Input value={exp.period} onChange={(e) => updateExperience(exp.id, { period: e.target.value })} placeholder="Période" className={`text-xs ${FIELD_INPUT_CLASS}`} />
+                      <Input value={exp.location.city} onChange={(e) => updateExperience(exp.id, { location: { ...exp.location, city: e.target.value } })} placeholder="Ville" className={`text-xs ${FIELD_INPUT_CLASS}`} />
                     </div>
                     <Textarea
                       value={exp.description_markdown}
@@ -247,7 +245,7 @@ function ExperienceSection() {
                       rows={3}
                     />
                     <div>
-                      <Label className="text-xs mb-1 block" style={{ color: '#64748b' }}>Keywords (Enter pour valider)</Label>
+                      <Label className="mb-1 block text-xs text-slate-600">Keywords (Enter pour valider)</Label>
                       <TagInput tags={exp.keywords} onChange={(kw) => updateExperience(exp.id, { keywords: kw })} placeholder="Python, RAG..." />
                     </div>
                   </div>
@@ -283,17 +281,17 @@ function EducationSection() {
           {cvData.education.map((edu) => (
             <SortableRow key={edu.id} id={edu.id}>
               {({ attributes, listeners }) => (
-                <div className="p-3 rounded-lg space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div className={ITEM_CARD_CLASS}>
                   <div className="flex items-center gap-2">
                     <div {...attributes} {...listeners}><DragHandle /></div>
-                    <Input value={edu.degree} onChange={(e) => updateEducation(edu.id, { degree: e.target.value })} placeholder="Diplôme" className="font-medium text-sm" />
+                    <Input value={edu.degree} onChange={(e) => updateEducation(edu.id, { degree: e.target.value })} placeholder="Diplôme" className={`text-sm font-medium ${FIELD_INPUT_CLASS}`} />
                     <RemoveBtn onClick={() => removeEducation(edu.id)} />
                   </div>
                   <div className="flex gap-2">
-                    <Input value={edu.institution} onChange={(e) => updateEducation(edu.id, { institution: e.target.value })} placeholder="Institution" className="text-sm" />
-                    <Input value={edu.period} onChange={(e) => updateEducation(edu.id, { period: e.target.value })} placeholder="Période" className="text-sm w-32" />
+                    <Input value={edu.institution} onChange={(e) => updateEducation(edu.id, { institution: e.target.value })} placeholder="Institution" className={`text-sm ${FIELD_INPUT_CLASS}`} />
+                    <Input value={edu.period} onChange={(e) => updateEducation(edu.id, { period: e.target.value })} placeholder="Période" className={`w-32 text-sm ${FIELD_INPUT_CLASS}`} />
                   </div>
-                  <Input value={edu.location} onChange={(e) => updateEducation(edu.id, { location: e.target.value })} placeholder="Lieu" className="text-xs" />
+                  <Input value={edu.location} onChange={(e) => updateEducation(edu.id, { location: e.target.value })} placeholder="Lieu" className={`text-xs ${FIELD_INPUT_CLASS}`} />
                   <Textarea
                     value={edu.description_markdown}
                     onChange={(v) => updateEducation(edu.id, { description_markdown: v })}
@@ -319,13 +317,13 @@ function SkillsSection() {
       <div className="space-y-3">
         {cvData.skills.map((group) => (
           <DroppableSkillGroup key={group.id} groupId={group.id}>
-            <div className="p-3 rounded-lg space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className={ITEM_CARD_CLASS}>
               <div className="flex items-center gap-2">
                 <Input
                   value={group.category}
                   onChange={(e) => updateSkillGroup(group.id, { category: e.target.value })}
                   placeholder="Catégorie"
-                  className="text-sm font-medium"
+                  className={`text-sm font-medium ${FIELD_INPUT_CLASS}`}
                 />
                 <RemoveBtn onClick={() => removeSkillGroup(group.id)} />
               </div>
@@ -364,13 +362,13 @@ function ProjectsSection() {
           {cvData.projects.map((proj) => (
             <SortableRow key={proj.id} id={proj.id}>
               {({ attributes, listeners }) => (
-                <div className="p-3 rounded-lg space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div className={ITEM_CARD_CLASS}>
                   <div className="flex items-center gap-2">
                     <div {...attributes} {...listeners}><DragHandle /></div>
-                    <Input value={proj.name} onChange={(e) => updateProject(proj.id, { name: e.target.value })} placeholder="Nom du projet" className="font-medium text-sm" />
+                    <Input value={proj.name} onChange={(e) => updateProject(proj.id, { name: e.target.value })} placeholder="Nom du projet" className={`text-sm font-medium ${FIELD_INPUT_CLASS}`} />
                     <RemoveBtn onClick={() => removeProject(proj.id)} />
                   </div>
-                  <Input value={proj.url ?? ""} onChange={(e) => updateProject(proj.id, { url: e.target.value })} placeholder="URL (optionnel)" className="text-xs text-blue-600" />
+                  <Input value={proj.url ?? ""} onChange={(e) => updateProject(proj.id, { url: e.target.value })} placeholder="URL (optionnel)" className={`text-xs text-blue-700 ${FIELD_INPUT_CLASS}`} />
                   <Textarea
                     value={proj.description_markdown}
                     onChange={(v) => updateProject(proj.id, { description_markdown: v })}
@@ -378,7 +376,7 @@ function ProjectsSection() {
                     rows={2}
                   />
                   <div>
-                    <Label className="text-xs mb-1 block" style={{ color: '#64748b' }}>Tech stack</Label>
+                    <Label className="mb-1 block text-xs text-slate-600">Tech stack</Label>
                     <TagInput tags={proj.tech_stack} onChange={(ts) => updateProject(proj.id, { tech_stack: ts })} placeholder="React, FastAPI..." />
                   </div>
                 </div>
@@ -402,12 +400,11 @@ function LanguagesSection() {
       <div className="space-y-2">
         {cvData.languages.map((lang) => (
           <div key={lang.id} className="flex items-center gap-2">
-            <Input value={lang.language} onChange={(e) => updateLanguage(lang.id, { language: e.target.value })} placeholder="Langue" className="text-sm" />
+            <Input value={lang.language} onChange={(e) => updateLanguage(lang.id, { language: e.target.value })} placeholder="Langue" className={`text-sm ${FIELD_INPUT_CLASS}`} />
             <select
               value={lang.level}
               onChange={(e) => updateLanguage(lang.id, { level: e.target.value })}
-              className="flex-shrink-0 h-9 rounded-md px-2 text-sm focus:outline-none"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#cbd5e1' }}
+              className={`h-9 flex-shrink-0 px-2 text-sm ${SELECT_CLASS}`}
             >
               {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
             </select>
@@ -445,32 +442,32 @@ function ProfileSection() {
       <div className="space-y-3">
         <div className="grid grid-cols-2 gap-2">
           <FieldRow label="Nom complet">
-            <Input value={p.full_name} onChange={(e) => setProfile({ full_name: e.target.value })} />
+            <Input value={p.full_name} onChange={(e) => setProfile({ full_name: e.target.value })} className={FIELD_INPUT_CLASS} />
           </FieldRow>
           <FieldRow label="Titre / Poste visé">
-            <Input value={p.title} onChange={(e) => setProfile({ title: e.target.value })} />
+            <Input value={p.title} onChange={(e) => setProfile({ title: e.target.value })} className={FIELD_INPUT_CLASS} />
           </FieldRow>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <FieldRow label="Email">
-            <Input type="email" value={p.email} onChange={(e) => setProfile({ email: e.target.value })} />
+            <Input type="email" value={p.email} onChange={(e) => setProfile({ email: e.target.value })} className={FIELD_INPUT_CLASS} />
           </FieldRow>
           <FieldRow label="Téléphone">
-            <Input value={p.phone} onChange={(e) => setProfile({ phone: e.target.value })} />
+            <Input value={p.phone} onChange={(e) => setProfile({ phone: e.target.value })} className={FIELD_INPUT_CLASS} />
           </FieldRow>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <FieldRow label="Ville">
-            <Input value={p.location.city} onChange={(e) => setProfile({ location: { ...p.location, city: e.target.value } })} />
+            <Input value={p.location.city} onChange={(e) => setProfile({ location: { ...p.location, city: e.target.value } })} className={FIELD_INPUT_CLASS} />
           </FieldRow>
           <FieldRow label="Pays">
-            <Input value={p.location.country} onChange={(e) => setProfile({ location: { ...p.location, country: e.target.value } })} />
+            <Input value={p.location.country} onChange={(e) => setProfile({ location: { ...p.location, country: e.target.value } })} className={FIELD_INPUT_CLASS} />
           </FieldRow>
         </div>
 
         {/* Socials */}
         <div className="space-y-1">
-          <Label className="text-xs mb-1 block" style={{ color: '#64748b' }}>Réseaux sociaux</Label>
+          <Label className="mb-1 block text-xs text-slate-600">Réseaux sociaux</Label>
           {p.socials.map((s, i) => (
             <div key={i} className="flex items-center gap-2">
               <select
@@ -480,8 +477,7 @@ function ProfileSection() {
                   updated[i] = { ...s, type: e.target.value as Social["type"] };
                   setProfile({ socials: updated });
                 }}
-                className="h-8 rounded border px-2 text-xs w-28 flex-shrink-0 focus:outline-none"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#cbd5e1' }}
+                className={`h-8 w-28 flex-shrink-0 px-2 text-xs ${SELECT_CLASS}`}
               >
                 <option value="linkedin">LinkedIn</option>
                 <option value="github">GitHub</option>
@@ -496,14 +492,14 @@ function ProfileSection() {
                   setProfile({ socials: updated });
                 }}
                 placeholder="https://..."
-                className="text-xs"
+                className={`text-xs ${FIELD_INPUT_CLASS}`}
               />
               <RemoveBtn onClick={() => setProfile({ socials: p.socials.filter((_, j) => j !== i) })} />
             </div>
           ))}
           <button
             onClick={() => setProfile({ socials: [...p.socials, { type: "other", url: "" }] })}
-            className="text-xs text-blue-600 hover:text-blue-700 mt-1"
+            className="mt-1 cursor-pointer rounded-md px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-50"
           >
             + Add social
           </button>
