@@ -107,6 +107,7 @@ Healthcheck :
 ```bash
 curl http://localhost:8000/
 curl http://localhost:8000/api/v1/system/status
+curl http://localhost:8000/api/v1/system/ready
 ```
 
 ### Renderer Bun / Elysia
@@ -128,6 +129,7 @@ Healthcheck :
 
 ```bash
 curl http://localhost:4000/
+curl http://localhost:4000/ready
 ```
 
 ### Frontend Next.js
@@ -184,7 +186,7 @@ docs/self-hosting.md
 Depuis la racine du projet :
 
 ```bash
-uv run python run_pipeline.py
+uv run python tests/run_pipeline.py
 ```
 
 ## Exports CV ouverts
@@ -207,6 +209,12 @@ curl -H "X-API-Key: dev-mindris-api-key" \
 curl -H "X-API-Key: dev-mindris-api-key" \
   -o resume.html \
   http://localhost:8000/api/v1/resumes/1/export-html
+```
+
+```bash
+curl -H "X-API-Key: dev-mindris-api-key" \
+  -o resume.docx \
+  http://localhost:8000/api/v1/resumes/1/export-docx
 ```
 
 Details :
@@ -256,6 +264,23 @@ bun run build
 cd services/renderer
 bun run typecheck
 bun run build
+```
+
+### E2E navigateur MVP1
+
+Avec les trois services lances sur `3000`, `8000` et `4000` :
+
+```bash
+./scripts/e2e_browser.sh
+```
+
+Variables personnalisables :
+
+```bash
+WEB_URL=http://localhost:3000 \
+API_URL=http://localhost:8000 \
+API_KEY=dev-mindris-api-key \
+./scripts/e2e_browser.sh
 ```
 
 ## Variables d'environnement minimales

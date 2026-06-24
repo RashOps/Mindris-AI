@@ -76,7 +76,9 @@ Renderer  http://localhost:4000
 ```bash
 curl http://localhost:8000/
 curl http://localhost:8000/api/v1/system/status
+curl http://localhost:8000/api/v1/system/ready
 curl http://localhost:4000/
+curl http://localhost:4000/ready
 curl http://localhost:3000/
 ```
 

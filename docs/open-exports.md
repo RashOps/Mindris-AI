@@ -11,9 +11,10 @@ Mindris AI expose les exports de CV depuis l'API backend. Le frontend declenche 
 | JSON | `GET /api/v1/resumes/{id}/export-json` | Sauvegarde portable, import futur, debug open-source |
 | Markdown | `GET /api/v1/resumes/{id}/export-markdown` | GitHub, documentation personnelle, edition texte |
 | HTML | `GET /api/v1/resumes/{id}/export-html` | Page autonome, impression navigateur, publication statique |
+| DOCX | `GET /api/v1/resumes/{id}/export-docx` | Document recruteur editable dans Word/LibreOffice |
 | PDF | `POST /render/pdf` sur le renderer | Export final sans watermark |
 
-Les exports Markdown et HTML sont construits depuis `ResumeRecord.data_json`, la source de verite persistee par l'API Gateway.
+Les exports JSON, Markdown, HTML et DOCX sont construits depuis `ResumeRecord.data_json`, la source de verite persistee par l'API Gateway.
 
 ## Exemple local
 
@@ -31,6 +32,12 @@ curl -H "X-API-Key: dev-mindris-api-key" \
   http://localhost:8000/api/v1/resumes/1/export-html
 ```
 
+```bash
+curl -H "X-API-Key: dev-mindris-api-key" \
+  -o resume.docx \
+  http://localhost:8000/api/v1/resumes/1/export-docx
+```
+
 ## Garanties HTML
 
 - Document autonome.
@@ -39,6 +46,9 @@ curl -H "X-API-Key: dev-mindris-api-key" \
 - Contenu utilisateur echappe avant insertion HTML.
 - CSS inline dans le document pour conserver une impression simple.
 
-## Statut DOCX
+## Garanties DOCX
 
-L'export DOCX reste differe. La phase 6B n'ajoute pas de dependance reseau ou de generation fragile. Le DOCX devra etre implemente plus tard avec une librairie locale fiable, testee et compatible self-hosting.
+- Document `.docx` text-based.
+- Generation backend sans dependance reseau.
+- Structure recruteur simple : profil, experience, projets, competences, formation, langues, interets.
+- Objectif initial : lisibilite ATS/recruteur plutot que parite pixel-perfect avec les templates PDF.

@@ -43,13 +43,13 @@
 - [x] **Commandes locales :** Variantes `UV_CACHE_DIR` et `STORAGE_DIR` documentées pour les environnements contraints.
 - [x] **Validation :** Frontend et renderer validés par lint/typecheck/build ; backend validé par smoke test ciblé.
 
-## 🔵 Phase 6 : Finalisation & SaaS Ready
+## 🔵 Phase 6 : Stabilisation outil & contenu recruteur
 - [x] **Self-hosting Docker local :** Compose, healthchecks, `.env.example`, guide et smoke script.
 - [x] **Exports ouverts :** JSON, Markdown et HTML backend-driven, avec PDF maintenu via renderer.
 - [ ] **Export DOCX :** Differe jusqu'a une implementation locale fiable.
-- [ ] **Refactoring Microservices :** Durcissement production au-delà du self-hosting local.
-- [ ] **Auth & Stripe :** (Optionnel) Préparation à la mise sur le marché.
-- [ ] **Telemetry :** Suivi des performances avec LangSmith/Phoenix.
+- [ ] **Durcissement Microservices :** Healthchecks, erreurs normalisees, timeouts, retries, stockage local robuste.
+- [ ] **Validation Docker bout en bout :** `docker compose up --build` et smoke self-hosting.
+- [ ] **E2E navigateur :** Automatiser CV Builder, exports, ATS Scorer et Job Tracker.
 
 ## 🟢 Phase 7 : UI unifiée & workflow local non-Docker (Terminée)
 - [x] **SaaS App Shell :** Unifier dashboard et outils dans une navigation produit unique.
