@@ -91,7 +91,7 @@ export default function AppPage() {
 
   useEffect(() => {
     void loadResumes().catch((err: unknown) => {
-      showToast(`❌ ${errorMessage(err, "Failed to load resumes")}`, 6000);
+      showToast(errorMessage(err, "Failed to load resumes"), 6000);
     });
   }, [loadResumes]);
 
@@ -108,10 +108,10 @@ export default function AppPage() {
             : "Loaded";
   const saveStatusColor =
     resumeSaveStatus === "error"
-      ? "#fca5a5"
+      ? "#b91c1c"
       : resumeSaveStatus === "dirty" || resumeSaveStatus === "saving"
-        ? "#fcd34d"
-        : "#86efac";
+        ? "#92400e"
+        : "#047857";
 
   // ── dnd-kit sensors ────────────────────────────────────────────────────────
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
@@ -129,7 +129,7 @@ export default function AppPage() {
       const group = cvData.skills.find((g) => g.id === dropData.groupId);
       if (group && !group.skills.includes(dragData.skill)) {
         updateSkillGroup(group.id, { skills: [...group.skills, dragData.skill] });
-        showToast(`✅ "${dragData.skill}" added to ${group.category}`);
+        showToast(`"${dragData.skill}" added to ${group.category}`);
       }
     }
 
@@ -140,7 +140,7 @@ export default function AppPage() {
         const existing = exp.description_markdown;
         const updated  = existing ? `${existing}\n- ${dragData.bullet}` : `- ${dragData.bullet}`;
         updateExperience(exp.id, { description_markdown: updated });
-        showToast("✅ Bullet added to experience");
+        showToast("Bullet added to experience");
       }
     }
   }, [cvData, updateSkillGroup, updateExperience]);
@@ -167,7 +167,7 @@ export default function AppPage() {
     };
     setJobInsights(insights);
     setShowInsights(true);
-    showToast("💼 Job Insights ready — see panel →");
+    showToast("Job insights ready — see panel");
   }, [setJobInsights]);
 
   // ── PDF Upload ─────────────────────────────────────────────────────────────
@@ -175,7 +175,7 @@ export default function AppPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     setIsUploading(true);
-    showToast("📄 Parsing PDF (10-30s)…", 30000);
+    showToast("Parsing PDF (10-30s)...", 30000);
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -185,9 +185,9 @@ export default function AppPage() {
       if (!res.ok) { const err = await res.json(); throw new Error(err.detail ?? "Upload failed"); }
       const data = await res.json();
       if (data.cv_data) replaceCVData(data.cv_data);
-      showToast("✅ PDF indexed! Editor and RAG updated.");
+      showToast("PDF indexed. Editor and RAG updated.");
     } catch (err: unknown) {
-      showToast(`❌ ${errorMessage(err, "Upload failed")}`, 6000);
+      showToast(errorMessage(err, "Upload failed"), 6000);
     } finally {
       setIsUploading(false);
       if (pdfInputRef.current) pdfInputRef.current.value = "";
@@ -214,9 +214,9 @@ export default function AppPage() {
           source: "json",
         }),
       });
-      showToast("✅ JSON CV indexed!");
+      showToast("JSON CV indexed.");
     } catch (err: unknown) {
-      showToast(`❌ ${errorMessage(err, "Failed to parse or upload JSON.")}`, 5000);
+      showToast(errorMessage(err, "Failed to parse or upload JSON."), 5000);
     } finally {
       if (jsonInputRef.current) jsonInputRef.current.value = "";
     }
@@ -238,12 +238,12 @@ export default function AppPage() {
     a.download = `${name.replace(/\s+/g, "_") || "mindris_cv"}.${exportConfig.extension}`;
     a.click();
     URL.revokeObjectURL(url);
-    showToast(`✅ Resume ${exportConfig.label} exported`);
+    showToast(`Resume ${exportConfig.label} exported`);
   };
 
   // ── Export PDF ─────────────────────────────────────────────────────────────
   const handleExportPDF = async () => {
-    showToast("⏳ Generating PDF…", 30000);
+    showToast("Generating PDF...", 30000);
     try {
       await flushResumeSave();
       const res = await fetch(rendererUrl("/render/pdf"), {
@@ -263,9 +263,9 @@ export default function AppPage() {
       a.download = `${cvData.profile.full_name.replace(/\s+/g, "_")}_CV.pdf`;
       a.click();
       URL.revokeObjectURL(url);
-      showToast("✅ PDF downloaded!");
+      showToast("PDF downloaded.");
     } catch (err: unknown) {
-      showToast(`❌ ${errorMessage(err, "Render failed")}`, 5000);
+      showToast(errorMessage(err, "Render failed"), 5000);
     }
   };
 
@@ -289,20 +289,20 @@ export default function AppPage() {
       const data = await res.json();
       setJobId(data.job_id);
     } catch (err: unknown) {
-      showToast(`❌ ${errorMessage(err, "Failed to start pipeline")}`, 5000);
+      showToast(errorMessage(err, "Failed to start pipeline"), 5000);
       setIsOptimizing(false);
       setShowGhost(false);
     }
   };
 
-  const handleGhostDone  = () => { setIsOptimizing(false); showToast("🎉 CV optimized! Check the preview →"); };
-  const handleGhostError = () => { setIsOptimizing(false); showToast("❌ Pipeline failed.", 6000); };
+  const handleGhostDone  = () => { setIsOptimizing(false); showToast("CV optimized. Check the preview."); };
+  const handleGhostError = () => { setIsOptimizing(false); showToast("Pipeline failed.", 6000); };
 
   const { isOptimizing } = useCVStore();
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      <main className="flex h-screen w-full flex-col overflow-hidden theme-dark-tool" style={{ background: '#0a0f1a', color: '#e2e8f0' }}>
+      <main className="flex h-[calc(100vh-4rem)] w-full flex-col overflow-hidden bg-slate-50 text-slate-950">
 
         {/* Toast */}
         {toast && (
@@ -312,23 +312,23 @@ export default function AppPage() {
         )}
 
         {/* ── Header ─────────────────────────────────────────────────────────── */}
-        <header className="h-12 border-b flex items-center justify-between px-4 shrink-0 z-30" style={{ background: 'rgba(10,15,26,0.95)', borderColor: 'rgba(255,255,255,0.07)' }}>
+        <header className="z-30 flex shrink-0 flex-col gap-3 border-b border-slate-200 bg-white px-4 py-3 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="shrink-0">
-            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#64748b' }}>
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
               CV Builder
             </p>
           </div>
 
-          <div className="flex items-center gap-1.5 min-w-0 max-w-sm">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
             <select
               value={activeResumeId}
               onChange={(e) => setActiveResume(e.target.value)}
-              className="h-8 min-w-32 max-w-44 rounded-lg px-2 text-xs outline-none"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0' }}
+              className="h-9 min-w-40 max-w-56 cursor-pointer rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-800 shadow-sm outline-none focus:border-slate-500"
               title="Active resume"
             >
               {resumes.map((resume) => (
-                <option key={resume.id} value={resume.id} style={{ background: '#0a0f1a' }}>
+                <option key={resume.id} value={resume.id}>
                   {resume.name}
                 </option>
               ))}
@@ -337,20 +337,18 @@ export default function AppPage() {
               value={activeResume?.name ?? ""}
               onChange={(e) => renameResume(activeResumeId, e.target.value)}
               placeholder="Resume name"
-              className="h-8 w-36 rounded-lg px-2 text-xs outline-none"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#cbd5e1' }}
+              className="h-9 w-40 rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-slate-500"
               title="Rename active resume"
             />
             <button
               onClick={() => {
                 void createResume("Untitled CV")
-                  .then(() => showToast("✅ New blank CV created"))
+                  .then(() => showToast("New blank CV created"))
                   .catch((err: unknown) => {
-                    showToast(`❌ ${errorMessage(err, "Create failed")}`, 6000);
+                    showToast(errorMessage(err, "Create failed"), 6000);
                   });
               }}
-              className="h-8 px-2 rounded-lg text-xs border"
-              style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}
+              className="h-9 cursor-pointer rounded-lg border border-slate-300 bg-white px-3 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
               title="Create blank CV"
             >
               New
@@ -358,13 +356,12 @@ export default function AppPage() {
             <button
               onClick={() => {
                 void duplicateResume()
-                  .then(() => showToast("✅ CV duplicated"))
+                  .then(() => showToast("CV duplicated"))
                   .catch((err: unknown) => {
-                    showToast(`❌ ${errorMessage(err, "Duplicate failed")}`, 6000);
+                    showToast(errorMessage(err, "Duplicate failed"), 6000);
                   });
               }}
-              className="h-8 px-2 rounded-lg text-xs border"
-              style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}
+              className="h-9 cursor-pointer rounded-lg border border-slate-300 bg-white px-3 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
               title="Duplicate active CV"
             >
               Duplicate
@@ -372,33 +369,33 @@ export default function AppPage() {
             <button
               onClick={() => {
                 void deleteResume(activeResumeId)
-                  .then(() => showToast(resumes.length > 1 ? "✅ CV deleted" : "Keep at least one CV"))
+                  .then(() => showToast(resumes.length > 1 ? "CV deleted" : "Keep at least one CV"))
                   .catch((err: unknown) => {
-                    showToast(`❌ ${errorMessage(err, "Delete failed")}`, 6000);
+                    showToast(errorMessage(err, "Delete failed"), 6000);
                   });
               }}
               disabled={resumes.length <= 1}
-              className="h-8 px-2 rounded-lg text-xs border disabled:opacity-40"
-              style={{ borderColor: 'rgba(248,113,113,0.25)', background: 'rgba(248,113,113,0.08)', color: '#fca5a5' }}
+              className="h-9 cursor-pointer rounded-lg border border-red-100 bg-red-50 px-3 text-xs font-medium text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-40"
               title="Delete active CV"
             >
               Delete
             </button>
           </div>
 
+          <div className="flex items-center gap-2">
           <LLMSelector taskKey="optimize_llm" label="Optimize" />
           <button
             onClick={() => {
               if (resumeSaveStatus === "error") {
                 void retryResumeSave().catch((err: unknown) => {
-                  showToast(`❌ ${errorMessage(err, "Save retry failed")}`, 6000);
+                  showToast(errorMessage(err, "Save retry failed"), 6000);
                 });
               }
             }}
-            className="h-8 rounded-lg border px-2 text-xs"
+            className="h-9 rounded-lg border px-3 text-xs font-medium"
             style={{
-              borderColor: resumeSaveStatus === "error" ? "rgba(248,113,113,0.35)" : "rgba(255,255,255,0.08)",
-              background: "rgba(255,255,255,0.04)",
+              borderColor: resumeSaveStatus === "error" ? "#fecaca" : "#e2e8f0",
+              background: "#fff",
               color: saveStatusColor,
               cursor: resumeSaveStatus === "error" ? "pointer" : "default",
             }}
@@ -406,21 +403,23 @@ export default function AppPage() {
           >
             {saveStatusText}
           </button>
+          </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
           {/* Job URL */}
-          <div className="flex items-center gap-2 flex-1 max-w-md mx-4">
+          <div className="flex min-w-[280px] flex-1 items-center gap-2">
             <Input
               value={jobUrl}
               onChange={(e) => setJobUrl(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleOptimize()}
               placeholder="Paste job offer URL…"
-              className="text-sm"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0' }}
+              className="h-9 border-slate-300 bg-white text-sm text-slate-800 shadow-sm placeholder:text-slate-400 focus-visible:border-slate-500"
             />
             <Button
               onClick={handleOptimize}
               disabled={isOptimizing || !jobUrl.trim()}
-              className="shrink-0 text-white text-sm px-4"
-              style={{ background: isOptimizing ? 'rgba(37,99,235,0.4)' : 'linear-gradient(135deg, #1d4ed8, #2563eb)' }}
+              className="h-9 shrink-0 cursor-pointer bg-slate-950 px-4 text-sm text-white hover:bg-slate-800"
             >
               {isOptimizing
                 ? <span className="flex items-center gap-2"><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Running…</span>
@@ -430,95 +429,89 @@ export default function AppPage() {
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             <input type="file" accept=".pdf"  className="hidden" ref={pdfInputRef}  onChange={handlePdfUpload} />
             <input type="file" accept=".json" className="hidden" ref={jsonInputRef} onChange={handleJsonUpload} />
 
             <button onClick={() => pdfInputRef.current?.click()} disabled={isUploading}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors disabled:opacity-50"
-              style={{ borderColor: 'rgba(37,99,235,0.3)', background: 'rgba(37,99,235,0.1)', color: '#93c5fd' }}>
+              className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
               {isUploading ? <span className="w-3 h-3 border border-blue-400 border-t-transparent rounded-full animate-spin" /> : null} PDF
             </button>
 
             <button onClick={() => jsonInputRef.current?.click()}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
-              style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}>
+              className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50">
               ↑ JSON
             </button>
 
             <button onClick={() => void handleExportResume("json").catch((err: unknown) => {
-              showToast(`❌ ${errorMessage(err, "JSON export failed")}`, 6000);
+              showToast(errorMessage(err, "JSON export failed"), 6000);
             })}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
-              style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}>
+              className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50">
               ↓ JSON
             </button>
 
             <button onClick={() => void handleExportResume("markdown").catch((err: unknown) => {
-              showToast(`❌ ${errorMessage(err, "Markdown export failed")}`, 6000);
+              showToast(errorMessage(err, "Markdown export failed"), 6000);
             })}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
-              style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}>
+              className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50">
               ↓ MD
             </button>
 
             <button onClick={() => void handleExportResume("html").catch((err: unknown) => {
-              showToast(`❌ ${errorMessage(err, "HTML export failed")}`, 6000);
+              showToast(errorMessage(err, "HTML export failed"), 6000);
             })}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
-              style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}>
+              className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50">
               ↓ HTML
             </button>
 
             <button onClick={() => setShowGhost((v) => !v)}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+              className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border px-2.5 text-xs font-medium transition-colors"
               style={showGhost
-                ? { borderColor: 'rgba(99,102,241,0.4)', background: 'rgba(99,102,241,0.12)', color: '#a5b4fc' }
-                : { borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}>
+                ? { borderColor: '#c7d2fe', background: '#eef2ff', color: '#4338ca' }
+                : { borderColor: '#e2e8f0', background: '#fff', color: '#475569' }}>
               Ghost
             </button>
 
             <button onClick={() => setShowInsights((v) => !v)}
-              className="relative inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+              className="relative inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border px-2.5 text-xs font-medium transition-colors"
               style={showInsights
-                ? { borderColor: 'rgba(245,158,11,0.4)', background: 'rgba(245,158,11,0.1)', color: '#fcd34d' }
-                : { borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}>
-              💼 Insights
+                ? { borderColor: '#fde68a', background: '#fffbeb', color: '#92400e' }
+                : { borderColor: '#e2e8f0', background: '#fff', color: '#475569' }}>
+              Insights
               {jobInsights && (
                 <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full" />
               )}
             </button>
 
             <button onClick={() => setShowCoverLetter(true)}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
-              style={{ borderColor: 'rgba(139,92,246,0.3)', background: 'rgba(139,92,246,0.1)', color: '#c4b5fd' }}>
+              className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50">
               Cover Letter
             </button>
 
             <button onClick={() => setShowStyle((v) => !v)}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+              className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border px-2.5 text-xs font-medium transition-colors"
               style={showStyle
-                ? { borderColor: 'rgba(139,92,246,0.4)', background: 'rgba(139,92,246,0.12)', color: '#c4b5fd' }
-                : { borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}>
+                ? { borderColor: '#ddd6fe', background: '#f5f3ff', color: '#6d28d9' }
+                : { borderColor: '#e2e8f0', background: '#fff', color: '#475569' }}>
               Style
             </button>
 
             <button onClick={handleExportPDF}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
-              style={{ borderColor: 'rgba(16,185,129,0.3)', background: 'rgba(16,185,129,0.1)', color: '#6ee7b7' }}>
+              className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-100">
               ↓ Export
             </button>
+          </div>
           </div>
         </header>
 
         {/* ── Body ───────────────────────────────────────────────────────────── */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex flex-1 overflow-hidden bg-slate-100">
 
           {/* Editor */}
           <div className={`h-full border-r flex flex-col overflow-hidden transition-all duration-300 ${showGhost ? "w-[30%]" : "w-[45%]"}`}
-            style={{ background: 'rgba(10,15,26,0.8)', borderColor: 'rgba(255,255,255,0.07)' }}>
-            <div className="px-4 py-2 border-b shrink-0" style={{ background: 'rgba(15,23,42,0.6)', borderColor: 'rgba(255,255,255,0.06)' }}>
-              <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#475569' }}>Structure Editor</p>
+            style={{ background: '#fff', borderColor: '#e2e8f0' }}>
+            <div className="shrink-0 border-b border-slate-200 bg-white px-4 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">Structure Editor</p>
             </div>
             <div className="flex-1 overflow-hidden px-3 py-3">
               <Editor />
@@ -527,9 +520,9 @@ export default function AppPage() {
 
           {/* Ghost Mode */}
           {showGhost && (
-            <div className="w-[35%] h-full border-r flex flex-col overflow-hidden" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
-              <div className="px-4 py-2 border-b shrink-0" style={{ background: 'rgba(15,23,42,0.6)', borderColor: 'rgba(255,255,255,0.06)' }}>
-                <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#475569' }}>Ghost Mode</p>
+            <div className="flex h-full w-[35%] flex-col overflow-hidden border-r border-slate-200 bg-white">
+              <div className="shrink-0 border-b border-slate-200 bg-white px-4 py-2">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">Ghost Mode</p>
               </div>
               <div className="flex-1 overflow-hidden p-3">
                 <GhostMode
@@ -544,9 +537,9 @@ export default function AppPage() {
           )}
 
           {/* Preview */}
-          <div className="flex-1 h-full flex flex-col overflow-hidden" style={{ background: 'rgba(5,10,20,0.5)' }}>
-            <div className="px-4 py-2 border-b shrink-0" style={{ background: 'rgba(15,23,42,0.6)', borderColor: 'rgba(255,255,255,0.06)' }}>
-              <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#475569' }}>Live Preview</p>
+          <div className="flex h-full flex-1 flex-col overflow-hidden bg-slate-50">
+            <div className="shrink-0 border-b border-slate-200 bg-white px-4 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">Live Preview</p>
             </div>
             <div className="flex-1 p-4 overflow-hidden">
               <LivePreview />

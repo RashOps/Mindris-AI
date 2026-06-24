@@ -31,9 +31,9 @@ function scoreLabel(s: number) {
 }
 function severityColor(sev: string) {
   switch (sev.toLowerCase()) {
-    case 'high':   return { bg: 'rgba(239,68,68,0.12)', text: '#fca5a5', border: 'rgba(239,68,68,0.2)' };
-    case 'medium': return { bg: 'rgba(245,158,11,0.12)', text: '#fcd34d', border: 'rgba(245,158,11,0.2)' };
-    default:       return { bg: 'rgba(100,116,139,0.1)', text: '#94a3b8', border: 'rgba(100,116,139,0.15)' };
+    case 'high':   return { bg: '#fee2e2', text: '#b91c1c', border: '#fecaca' };
+    case 'medium': return { bg: '#fef3c7', text: '#92400e', border: '#fde68a' };
+    default:       return { bg: '#f1f5f9', text: '#475569', border: '#cbd5e1' };
   }
 }
 
@@ -48,7 +48,7 @@ function ScoreGauge({ score }: { score: number }) {
   return (
     <div className="relative flex items-center justify-center" style={{ width: 160, height: 160 }}>
       <svg width="160" height="160" viewBox="0 0 140 140" style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx="70" cy="70" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="10" />
+        <circle cx="70" cy="70" r={r} fill="none" stroke="#e2e8f0" strokeWidth="10" />
         <circle
           cx="70" cy="70" r={r} fill="none"
           stroke={color} strokeWidth="10" strokeLinecap="round"
@@ -85,12 +85,12 @@ function KeywordBarChart({ keywords }: { keywords: KeywordStatus[] }) {
   return (
     <ResponsiveContainer width="100%" height={160}>
       <BarChart data={data} margin={{ top: 8, right: 8, left: -24, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
         <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} />
         <YAxis tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} />
         <Tooltip
-          contentStyle={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 12 }}
-          cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+          contentStyle={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 12, color: '#0f172a' }}
+          cursor={{ fill: '#f8fafc' }}
         />
         <Bar dataKey="value" radius={[4, 4, 0, 0]}>
           {data.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
@@ -113,7 +113,7 @@ function SkillsRadar({ keywords }: { keywords: KeywordStatus[] }) {
   return (
     <ResponsiveContainer width="100%" height={200}>
       <RadarChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: 16 }}>
-        <PolarGrid stroke="rgba(255,255,255,0.06)" />
+        <PolarGrid stroke="#e2e8f0" />
         <PolarAngleAxis dataKey="skill" tick={{ fill: '#64748b', fontSize: 10 }} />
         <PolarRadiusAxis tick={false} axisLine={false} domain={[0, 100]} />
         <Radar
@@ -125,7 +125,7 @@ function SkillsRadar({ keywords }: { keywords: KeywordStatus[] }) {
           strokeWidth={2}
         />
         <Tooltip
-          contentStyle={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 12 }}
+          contentStyle={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 12, color: '#0f172a' }}
         />
       </RadarChart>
     </ResponsiveContainer>
@@ -148,9 +148,9 @@ function KeywordTable({ keywords }: { keywords: KeywordStatus[] }) {
 
   const filters: { id: Filter; label: string; count: number }[] = [
     { id: 'all',     label: 'All',         count: keywords.length },
-    { id: 'found',   label: '✓ Found',     count: keywords.filter(k => k.found).length },
-    { id: 'missing', label: '✗ Missing',   count: keywords.filter(k => !k.found).length },
-    { id: 'high',    label: '🔴 Critical', count: keywords.filter(k => !k.found && k.severity === 'high').length },
+    { id: 'found',   label: 'Found',       count: keywords.filter(k => k.found).length },
+    { id: 'missing', label: 'Missing',     count: keywords.filter(k => !k.found).length },
+    { id: 'high',    label: 'Critical',    count: keywords.filter(k => !k.found && k.severity === 'high').length },
   ];
 
   return (
@@ -161,17 +161,15 @@ function KeywordTable({ keywords }: { keywords: KeywordStatus[] }) {
           <button
             key={f.id}
             onClick={() => setFilter(f.id)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
-            style={{
-              background: filter === f.id ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.04)',
-              color:      filter === f.id ? '#c4b5fd'               : '#64748b',
-              border:     `1px solid ${filter === f.id ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.06)'}`,
-            }}
+            className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
+              filter === f.id
+                ? 'border-violet-300 bg-violet-50 text-violet-700'
+                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'
+            }`}
           >
             {f.label}
             <span
-              className="px-1.5 py-0.5 rounded-full text-[10px]"
-              style={{ background: 'rgba(255,255,255,0.06)' }}
+              className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600"
             >
               {f.count}
             </span>
@@ -180,12 +178,12 @@ function KeywordTable({ keywords }: { keywords: KeywordStatus[] }) {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-xl" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="overflow-x-auto rounded-lg border border-slate-200">
         <table className="w-full text-sm">
           <thead>
-            <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <tr className="border-b border-slate-200 bg-slate-50">
               {['Keyword / Skill', 'Status', 'Density', 'Impact if Missing'].map(h => (
-                <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#475569' }}>
+                <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500">
                   {h}
                 </th>
               ))}
@@ -197,26 +195,23 @@ function KeywordTable({ keywords }: { keywords: KeywordStatus[] }) {
               return (
                 <tr
                   key={i}
-                  style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
-                  className="transition-colors"
-                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.02)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  className="border-b border-slate-100 transition-colors hover:bg-slate-50"
                 >
-                  <td className="px-4 py-3 font-medium" style={{ color: '#e2e8f0' }}>{kw.keyword}</td>
+                  <td className="px-4 py-3 font-medium text-slate-900">{kw.keyword}</td>
                   <td className="px-4 py-3">
                     {kw.found ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-                        style={{ background: 'rgba(16,185,129,0.12)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.2)' }}>
+                        style={{ background: '#dcfce7', color: '#047857', border: '1px solid #bbf7d0' }}>
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />Found
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-                        style={{ background: 'rgba(239,68,68,0.1)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.15)' }}>
+                        style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca' }}>
                         <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />Missing
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-xs" style={{ color: kw.found ? '#94a3b8' : '#475569', fontStyle: kw.found ? 'normal' : 'italic' }}>
+                  <td className="px-4 py-3 text-xs" style={{ color: kw.found ? '#64748b' : '#475569', fontStyle: kw.found ? 'normal' : 'italic' }}>
                     {kw.density}
                   </td>
                   <td className="px-4 py-3">
@@ -250,16 +245,15 @@ function Recommendations({ recs }: { recs: string[] }) {
       {recs.map((rec, i) => (
         <div
           key={i}
-          className="flex gap-4 p-4 rounded-xl"
-          style={{ background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.12)' }}
+          className="flex gap-4 rounded-lg border border-violet-100 bg-violet-50 p-4"
         >
           <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black shrink-0"
-            style={{ background: 'rgba(139,92,246,0.2)', color: '#c4b5fd', fontFamily: 'var(--font-space)' }}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-xs font-black text-violet-700"
+            style={{ fontFamily: 'var(--font-space)' }}
           >
             {i + 1}
           </div>
-          <p className="text-sm leading-relaxed" style={{ color: '#cbd5e1' }}>{rec}</p>
+          <p className="text-sm leading-relaxed text-slate-700">{rec}</p>
         </div>
       ))}
     </div>
@@ -279,48 +273,46 @@ interface HeroProps {
 
 function AtsHero({ jobUrl, setJobUrl, onAnalyze, isAnalyzing, cvLoaded, onCvLoaded }: HeroProps) {
   return (
-    <div className="max-w-2xl mx-auto text-center space-y-8 pt-8 pb-4">
+    <div className="mx-auto max-w-2xl space-y-8 pb-4 pt-8 text-center">
       {/* Title */}
       <div>
         <div
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold mb-4"
-          style={{ background: 'rgba(139,92,246,0.12)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.2)' }}
+          className="mb-4 inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700"
         >
-          <span>⚡</span> Enterprise-Grade ATS Analysis
+          Enterprise-Grade ATS Analysis
         </div>
         <h1
-          className="text-4xl font-black tracking-tight mb-3"
-          style={{ color: '#f1f5f9', fontFamily: 'var(--font-space)' }}
+          className="mb-3 text-4xl font-black tracking-tight text-slate-950"
+          style={{ fontFamily: 'var(--font-space)' }}
         >
           ATS Score Analyzer
         </h1>
-        <p className="text-base" style={{ color: '#64748b' }}>
+        <p className="text-base text-slate-600">
           Deep keyword density analysis · Skill gap detection · Actionable recommendations
         </p>
       </div>
 
       {/* Input card */}
       <div
-        className="p-6 rounded-2xl space-y-5 text-left"
-        style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}
+        className="space-y-5 rounded-lg border border-slate-200 bg-white p-6 text-left shadow-sm"
       >
         {/* Step 1 — CV */}
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider mb-2.5 flex items-center gap-2" style={{ color: '#8b5cf6' }}>
-            <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black" style={{ background: 'rgba(139,92,246,0.2)', color: '#c4b5fd' }}>1</span>
+          <p className="mb-2.5 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-violet-700">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-100 text-[10px] font-black text-violet-700">1</span>
             Your CV
-            {cvLoaded && <span className="text-emerald-400 normal-case font-normal">✓ loaded</span>}
+            {cvLoaded && <span className="font-normal normal-case text-emerald-700">loaded</span>}
           </p>
           <CVUploadZone onCvLoaded={onCvLoaded} compact />
         </div>
 
         {/* Divider */}
-        <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
+        <div className="h-px bg-slate-200" />
 
         {/* Step 2 — Job URL */}
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider mb-2.5 flex items-center gap-2" style={{ color: '#8b5cf6' }}>
-            <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black" style={{ background: 'rgba(139,92,246,0.2)', color: '#c4b5fd' }}>2</span>
+          <p className="mb-2.5 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-violet-700">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-100 text-[10px] font-black text-violet-700">2</span>
             Job Offer URL
           </p>
           <div className="flex gap-2">
@@ -331,14 +323,7 @@ function AtsHero({ jobUrl, setJobUrl, onAnalyze, isAnalyzing, cvLoaded, onCvLoad
               onChange={e => setJobUrl(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !isAnalyzing && cvLoaded && onAnalyze()}
               placeholder="https://company.com/jobs/position"
-              className="flex-1 px-4 py-2.5 rounded-xl text-sm outline-none transition-all"
-              style={{
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                color: '#e2e8f0',
-              }}
-              onFocus={e => (e.target.style.borderColor = 'rgba(139,92,246,0.5)')}
-              onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')}
+              className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
             />
           </div>
         </div>
@@ -350,13 +335,12 @@ function AtsHero({ jobUrl, setJobUrl, onAnalyze, isAnalyzing, cvLoaded, onCvLoad
           id="ats-analyze-btn"
           onClick={onAnalyze}
           disabled={isAnalyzing || !cvLoaded || !jobUrl.trim()}
-          className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-40"
           style={{
             background: isAnalyzing || !cvLoaded || !jobUrl.trim()
-              ? 'rgba(139,92,246,0.2)'
-              : 'linear-gradient(135deg, #7c3aed, #8b5cf6)',
-            color: '#f5f3ff',
-            boxShadow: isAnalyzing || !cvLoaded || !jobUrl.trim() ? 'none' : '0 0 20px rgba(139,92,246,0.3)',
+              ? '#ede9fe'
+              : '#0f172a',
+            color: isAnalyzing || !cvLoaded || !jobUrl.trim() ? '#6d28d9' : '#fff',
           }}
         >
           {isAnalyzing ? (
@@ -365,7 +349,7 @@ function AtsHero({ jobUrl, setJobUrl, onAnalyze, isAnalyzing, cvLoaded, onCvLoad
               Analyzing… (30-60s)
             </>
           ) : (
-            <> ⚡ Analyze ATS Score </>
+            <>Analyze ATS Score</>
           )}
         </button>
       </div>
@@ -381,16 +365,13 @@ interface SSEProgressProps {
 function SSEProgress({ messages }: SSEProgressProps) {
   if (!messages.length) return null;
   return (
-    <div
-      className="max-w-2xl mx-auto p-4 rounded-xl font-mono text-xs space-y-1"
-      style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.06)' }}
-    >
+    <div className="mx-auto max-w-2xl space-y-1 rounded-lg border border-slate-200 bg-white p-4 font-mono text-xs shadow-sm">
       {messages.slice(-8).map((m, i) => (
-        <div key={i} style={{ color: '#64748b' }}>
+        <div key={i} className="text-slate-600">
           <span style={{ color: '#8b5cf6' }}>›</span> {m}
         </div>
       ))}
-      <div className="flex items-center gap-1 pt-1" style={{ color: '#8b5cf6' }}>
+      <div className="flex items-center gap-1 pt-1 text-violet-700">
         <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
         <span>Processing…</span>
       </div>
@@ -516,7 +497,7 @@ export default function AtsScorePage() {
   const missingHigh  = report?.keyword_analysis.filter(k => !k.found && k.severity === 'high').length ?? 0;
 
   return (
-    <div className="min-h-screen" style={{ background: '#0a0f1a', color: '#e2e8f0' }}>
+    <div className="min-h-[calc(100vh-4rem)] bg-slate-50 text-slate-950">
 
       {/* Hero section */}
       <div className="px-6">
@@ -540,8 +521,8 @@ export default function AtsScorePage() {
       {/* Error */}
       {error && (
         <div className="max-w-2xl mx-auto px-6 mt-4">
-          <div className="p-4 rounded-xl text-sm" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)', color: '#fca5a5' }}>
-            ❌ {error}
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+            {error}
           </div>
         </div>
       )}
@@ -554,10 +535,7 @@ export default function AtsScorePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
             {/* Score gauge */}
-            <div
-              className="flex flex-col items-center justify-center p-6 rounded-2xl gap-4"
-              style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(255,255,255,0.07)', backdropFilter: 'blur(20px)' }}
-            >
+            <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
               <ScoreGauge score={report.score} />
               <div className="flex gap-6 text-center">
                 <div>
@@ -576,16 +554,13 @@ export default function AtsScorePage() {
             </div>
 
             {/* Summary + Bar chart */}
-            <div
-              className="md:col-span-2 p-6 rounded-2xl space-y-4"
-              style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(255,255,255,0.07)', backdropFilter: 'blur(20px)' }}
-            >
+            <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm md:col-span-2">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: '#475569' }}>Executive Summary</p>
-                <p className="text-sm leading-relaxed" style={{ color: '#94a3b8' }}>{report.summary}</p>
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">Executive Summary</p>
+                <p className="text-sm leading-relaxed text-slate-700">{report.summary}</p>
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: '#475569' }}>Keyword Breakdown</p>
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">Keyword Breakdown</p>
                 <KeywordBarChart keywords={report.keyword_analysis} />
               </div>
             </div>
@@ -595,27 +570,21 @@ export default function AtsScorePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
             {/* Radar */}
-            <div
-              className="p-6 rounded-2xl"
-              style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(255,255,255,0.07)', backdropFilter: 'blur(20px)' }}
-            >
-              <p className="text-[10px] font-bold uppercase tracking-widest mb-4" style={{ color: '#475569' }}>
-                📡 Skill Coverage Radar
+            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+              <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                Skill Coverage Radar
               </p>
               <SkillsRadar keywords={report.keyword_analysis} />
             </div>
 
             {/* Recommendations */}
-            <div
-              className="p-6 rounded-2xl"
-              style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(255,255,255,0.07)', backdropFilter: 'blur(20px)' }}
-            >
-              <p className="text-[10px] font-bold uppercase tracking-widest mb-4" style={{ color: '#475569' }}>
-                💡 Actionable Recommendations
+            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+              <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                Actionable Recommendations
               </p>
               {report.recommendations.length > 0
                 ? <Recommendations recs={report.recommendations} />
-                : <p className="text-sm italic" style={{ color: '#475569' }}>No critical improvements needed.</p>
+                : <p className="text-sm italic text-slate-500">No critical improvements needed.</p>
               }
             </div>
           </div>
@@ -623,34 +592,28 @@ export default function AtsScorePage() {
 
           {/* ── Scoring breakdown ── */}
           {report.scoring_breakdown?.length > 0 && (
-            <div
-              className="p-6 rounded-2xl"
-              style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(255,255,255,0.07)', backdropFilter: 'blur(20px)' }}
-            >
-              <p className="text-[10px] font-bold uppercase tracking-widest mb-4" style={{ color: '#475569' }}>
+            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+              <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
                 Scoring Method
               </p>
               <div className="grid gap-3 md:grid-cols-5">
                 {report.scoring_breakdown.map((criterion) => (
-                  <div key={criterion.criterion} className="rounded-xl border p-3" style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}>
-                    <p className="text-xs font-semibold" style={{ color: '#e2e8f0' }}>{criterion.criterion}</p>
+                  <div key={criterion.criterion} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    <p className="text-xs font-semibold text-slate-900">{criterion.criterion}</p>
                     <p className="mt-2 text-xl font-black" style={{ color: scoreColor(Math.round((criterion.score / criterion.max_score) * 100)), fontFamily: 'var(--font-space)' }}>
                       {criterion.score}/{criterion.max_score}
                     </p>
-                    <p className="mt-1 text-[10px]" style={{ color: '#64748b' }}>Weight {criterion.weight}%</p>
-                    <p className="mt-2 text-[11px] leading-relaxed" style={{ color: '#94a3b8' }}>{criterion.explanation}</p>
+                    <p className="mt-1 text-[10px] text-slate-500">Weight {criterion.weight}%</p>
+                    <p className="mt-2 text-[11px] leading-relaxed text-slate-600">{criterion.explanation}</p>
                   </div>
                 ))}
               </div>
             </div>
           )}
           {/* ── Row 3: Full keyword table ── */}
-          <div
-            className="p-6 rounded-2xl"
-            style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(255,255,255,0.07)', backdropFilter: 'blur(20px)' }}
-          >
-            <p className="text-[10px] font-bold uppercase tracking-widest mb-4" style={{ color: '#475569' }}>
-              📊 Keyword Density & Semantic Analysis
+          <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+            <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+              Keyword Density & Semantic Analysis
             </p>
             <KeywordTable keywords={report.keyword_analysis} />
           </div>
@@ -666,7 +629,7 @@ export default function AtsScorePage() {
                 boxShadow: '0 0 20px rgba(37,99,235,0.25)',
               }}
             >
-              🎯 Apply fixes in CV Creator →
+              Apply fixes in CV Creator →
             </Link>
           </div>
         </div>

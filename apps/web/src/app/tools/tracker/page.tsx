@@ -67,6 +67,7 @@ export default function TrackerPage() {
   const [query, setQuery] = useState("");
   const [draft, setDraft] = useState({ company: "", role: "", url: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const canCreate = Boolean(draft.company.trim() && draft.role.trim());
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -111,15 +112,31 @@ export default function TrackerPage() {
   }, [columns, items.length]);
 
   const create = async () => {
-    if (!draft.company.trim() || !draft.role.trim()) return;
+    if (!canCreate) {
+      setError("Company and role are required.");
+      return;
+    }
     setIsSubmitting(true);
+    setError(null);
     try {
       const res = await fetch(apiUrl("/api/v1/tracker/applications"), {
         method: "POST",
         headers: jsonHeaders(),
-        body: JSON.stringify({ ...draft, status: "wishlist" }),
+        body: JSON.stringify({
+          company: draft.company.trim(),
+          role: draft.role.trim(),
+          url: draft.url.trim() || null,
+          status: "wishlist",
+        }),
       });
-      if (!res.ok) throw new Error("Unable to create application");
+      if (!res.ok) {
+        const detail = await res.json().catch(() => null);
+        throw new Error(
+          typeof detail?.detail === "string"
+            ? detail.detail
+            : "Unable to create application",
+        );
+      }
       setDraft({ company: "", role: "", url: "" });
       await load();
     } catch (err) {
@@ -201,19 +218,19 @@ export default function TrackerPage() {
                 value={draft.company}
                 onChange={(e) => setDraft({ ...draft, company: e.target.value })}
                 placeholder="Company"
-                className="h-10 bg-white"
+                className="h-10 border-slate-300 bg-white text-slate-800 shadow-sm placeholder:text-slate-400 focus-visible:border-slate-500"
               />
               <Input
                 value={draft.role}
                 onChange={(e) => setDraft({ ...draft, role: e.target.value })}
                 placeholder="Role"
-                className="h-10 bg-white"
+                className="h-10 border-slate-300 bg-white text-slate-800 shadow-sm placeholder:text-slate-400 focus-visible:border-slate-500"
               />
               <Input
                 value={draft.url}
                 onChange={(e) => setDraft({ ...draft, url: e.target.value })}
                 placeholder="Job URL"
-                className="h-10 bg-white"
+                className="h-10 border-slate-300 bg-white text-slate-800 shadow-sm placeholder:text-slate-400 focus-visible:border-slate-500"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -221,9 +238,14 @@ export default function TrackerPage() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search applications"
-                className="h-10 min-w-[260px] bg-white"
+                className="h-10 min-w-[260px] border-slate-300 bg-white text-slate-800 shadow-sm placeholder:text-slate-400 focus-visible:border-slate-500"
               />
-              <Button onClick={create} disabled={isSubmitting} className="h-10 px-4">
+              <Button
+                onClick={create}
+                disabled={isSubmitting || !canCreate}
+                className="h-10 cursor-pointer px-4 disabled:cursor-not-allowed"
+                title={!canCreate ? "Company and role are required" : "Add application"}
+              >
                 <Plus size={16} />
                 {isSubmitting ? "Adding..." : "Add application"}
               </Button>
@@ -238,7 +260,7 @@ export default function TrackerPage() {
         )}
 
         {loading ? (
-          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-8 text-sm text-slate-500 shadow-sm">
+          <div className="rounded-lg border border-slate-200 bg-white px-4 py-8 text-sm text-slate-500 shadow-sm">
             Loading tracker...
           </div>
         ) : (
@@ -249,7 +271,7 @@ export default function TrackerPage() {
               return (
                 <section
                   key={status.id}
-                  className="flex min-h-[72vh] flex-col rounded-2xl border border-slate-200 bg-white shadow-sm"
+                  className="flex min-h-[72vh] flex-col rounded-lg border border-slate-200 bg-white shadow-sm"
                 >
                   <div className="border-b border-slate-200 px-4 py-4">
                     <div className="mb-2 flex items-center justify-between">
@@ -266,14 +288,14 @@ export default function TrackerPage() {
 
                   <div className="flex-1 space-y-3 p-3">
                     {itemsForStatus.length === 0 ? (
-                      <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-slate-200 px-4 py-10 text-center text-xs text-slate-400">
+                      <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-slate-200 px-4 py-10 text-center text-xs text-slate-400">
                         No applications in this stage.
                       </div>
                     ) : (
                       itemsForStatus.map((item, index) => {
                         const itemTone = statTone(item.status);
                         return (
-                          <article key={item.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                          <article key={item.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
                                 <p className="truncate text-sm font-semibold">{item.role}</p>
@@ -296,7 +318,7 @@ export default function TrackerPage() {
                                 href={item.url}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="mt-2 inline-flex max-w-full items-center gap-1.5 truncate text-xs text-slate-500 no-underline hover:text-slate-800"
+                                className="mt-2 inline-flex max-w-full cursor-pointer items-center gap-1.5 truncate text-xs text-slate-500 no-underline hover:text-slate-800"
                               >
                                 <ExternalLink size={12} />
                                 {item.url}
@@ -312,7 +334,7 @@ export default function TrackerPage() {
                                 <button
                                   key={target.id}
                                   onClick={() => move(item, target.id, index)}
-                                  className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-900"
+                                  className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-900"
                                 >
                                   <ArrowRight size={11} />
                                   {target.label}
@@ -320,7 +342,7 @@ export default function TrackerPage() {
                               ))}
                               <button
                                 onClick={() => void remove(item.id)}
-                                className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-white px-2 py-1 text-[11px] font-medium text-red-600 transition-colors hover:border-red-300"
+                                className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-red-200 bg-white px-2 py-1 text-[11px] font-medium text-red-600 transition-colors hover:border-red-300"
                               >
                                 <Trash2 size={11} />
                                 Delete
