@@ -9,6 +9,7 @@ from database.records import (
     CoverLetterRecord,
     CVDocumentRecord,
     ResumeRecord,
+    ResumeRevisionRecord,
     ScrapedJobRecord,
     WorkspaceDraftRecord,
 )
@@ -29,6 +30,21 @@ def load_json(value: str | None, fallback: Any) -> Any:
         return json.loads(value)
     except json.JSONDecodeError:
         return fallback
+
+
+def _locale_from_cv_data(cv_data: dict | None, fallback: str = "fr") -> str:
+    if not isinstance(cv_data, dict):
+        return fallback
+    global_settings = cv_data.get("global_settings")
+    if isinstance(global_settings, dict):
+        locale = global_settings.get("locale")
+        if isinstance(locale, dict):
+            label_language = locale.get("label_language")
+            if label_language == "en":
+                return "en"
+            if label_language == "fr":
+                return "fr"
+    return fallback
 
 
 def save_current_cv(
@@ -65,7 +81,18 @@ def get_current_cv(session: Session) -> dict | None:
     return load_json(record.data_json, None) if record else None
 
 
-def serialize_resume(record: ResumeRecord) -> dict:
+def _latest_resume_revision(session: Session, resume_id: int | None) -> int:
+    if resume_id is None:
+        return 0
+    row = session.exec(
+        select(ResumeRevisionRecord.revision)
+        .where(ResumeRevisionRecord.resume_id == resume_id)
+        .order_by(ResumeRevisionRecord.revision.desc())
+    ).first()
+    return int(row or 0)
+
+
+def serialize_resume(session: Session, record: ResumeRecord) -> dict:
     """Convert a resume record to the public API shape."""
     cv_data = load_json(record.data_json, {})
     return {
@@ -75,6 +102,7 @@ def serialize_resume(record: ResumeRecord) -> dict:
         "templateId": record.template_id,
         "locale": record.locale,
         "source": record.source,
+        "revision": _latest_resume_revision(session, record.id),
         "createdAt": record.created_at.isoformat(),
         "updatedAt": record.updated_at.isoformat(),
     }
@@ -91,6 +119,7 @@ def create_resume(
 ) -> ResumeRecord:
     """Create a persisted resume document."""
     now = datetime.now()
+    locale = _locale_from_cv_data(cv_data, locale or "fr")
     record = ResumeRecord(
         name=name,
         data_json=dump_json(cv_data),
@@ -103,6 +132,7 @@ def create_resume(
     session.add(record)
     session.commit()
     session.refresh(record)
+    create_resume_revision(session, record, label="initial")
     return record
 
 
@@ -124,6 +154,7 @@ def update_resume(
         record.template_id = template_id or cv_data.get("global_settings", {}).get(
             "template_id", record.template_id
         )
+        locale = _locale_from_cv_data(cv_data, locale or record.locale)
     elif template_id is not None:
         record.template_id = template_id
     if locale is not None:
@@ -134,7 +165,74 @@ def update_resume(
     session.add(record)
     session.commit()
     session.refresh(record)
+    create_resume_revision(session, record, label=source or "update")
     return record
+
+
+def create_resume_revision(
+    session: Session,
+    record: ResumeRecord,
+    *,
+    label: str | None = None,
+) -> ResumeRevisionRecord:
+    """Store a snapshot for a resume version."""
+    next_revision = _latest_resume_revision(session, record.id) + 1
+    revision = ResumeRevisionRecord(
+        resume_id=int(record.id or 0),
+        revision=next_revision,
+        name=record.name,
+        data_json=record.data_json,
+        template_id=record.template_id,
+        locale=record.locale,
+        source=record.source,
+        label=label,
+        created_at=datetime.now(),
+    )
+    session.add(revision)
+    session.commit()
+    session.refresh(revision)
+    return revision
+
+
+def list_resume_revisions(
+    session: Session,
+    resume_id: int,
+) -> list[ResumeRevisionRecord]:
+    """Return all snapshots for a resume."""
+    return session.exec(
+        select(ResumeRevisionRecord)
+        .where(ResumeRevisionRecord.resume_id == resume_id)
+        .order_by(ResumeRevisionRecord.revision.desc())
+    ).all()
+
+
+def get_resume_revision(
+    session: Session,
+    resume_id: int,
+    revision: int,
+) -> ResumeRevisionRecord | None:
+    """Return one resume snapshot by revision number."""
+    return session.exec(
+        select(ResumeRevisionRecord).where(
+            ResumeRevisionRecord.resume_id == resume_id,
+            ResumeRevisionRecord.revision == revision,
+        )
+    ).first()
+
+
+def serialize_resume_revision(record: ResumeRevisionRecord) -> dict:
+    """Convert a resume revision to a public API payload."""
+    return {
+        "id": str(record.id),
+        "resumeId": str(record.resume_id),
+        "revision": record.revision,
+        "name": record.name,
+        "templateId": record.template_id,
+        "locale": record.locale,
+        "source": record.source,
+        "label": record.label,
+        "createdAt": record.created_at.isoformat(),
+    }
 
 
 def serialize_draft(record: WorkspaceDraftRecord) -> dict:

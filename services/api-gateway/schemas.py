@@ -537,10 +537,27 @@ class TemplateCatalogItem(BaseModel):
     id: str = Field(min_length=1)
     name: str = Field(min_length=1)
     description: str
-    status: Literal["ready"] = "ready"
+    status: Literal["ready", "community"] = "ready"
     category: str = "general"
     accent: str = "#2563eb"
     layout: Literal["single", "two-column"] = "two-column"
+    base_template_id: str | None = None
+    author: str | None = None
+    preset_settings: dict[str, Any] = Field(default_factory=dict)
+
+
+class ResumeRevisionItem(BaseModel):
+    """Snapshot entry returned by the resume versioning API."""
+
+    id: str
+    resumeId: str
+    revision: int
+    name: str
+    templateId: str
+    locale: str
+    source: str
+    label: str | None = None
+    createdAt: str
 
 
 class CompanyAnalyzeRequest(LLMRequest):
