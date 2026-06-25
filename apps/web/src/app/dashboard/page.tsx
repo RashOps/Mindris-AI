@@ -110,6 +110,30 @@ type ResumeRevision = {
   createdAt: string;
 };
 
+type ResumeRevisionChange = {
+  path: string;
+  kind: "added" | "removed" | "changed";
+  before?: unknown;
+  after?: unknown;
+};
+
+type ResumeRevisionSectionSummary = {
+  section: string;
+  label: string;
+  status: "added" | "removed" | "changed" | "unchanged";
+  beforeCount: number;
+  afterCount: number;
+};
+
+type ResumeRevisionCompare = {
+  resumeId: string;
+  baseRevision: ResumeRevision;
+  targetRevision: ResumeRevision;
+  changeCount: number;
+  sectionSummaries: ResumeRevisionSectionSummary[];
+  changes: ResumeRevisionChange[];
+};
+
 const RESUME_EXPORTS: Record<
   ResumeExportFormat,
   { endpoint: string; extension: string; label: string }
@@ -172,6 +196,8 @@ export default function DashboardPage() {
   const [templates, setTemplates] = useState<ResumeTemplate[]>(FALLBACK_TEMPLATES);
   const [revisions, setRevisions] = useState<ResumeRevision[]>([]);
   const [revisionsLoading, setRevisionsLoading] = useState(false);
+  const [compareResult, setCompareResult] = useState<ResumeRevisionCompare | null>(null);
+  const [compareLoading, setCompareLoading] = useState(false);
 
   const showStatus = useCallback((message: string) => {
     setStatus(message);
@@ -264,6 +290,32 @@ export default function DashboardPage() {
     await loadResumes();
     if (payload.item) {
       showStatus(`Restored version ${revision}`);
+    }
+  };
+
+  const compareRevision = async (baseRevision: number, targetRevision: number) => {
+    if (!activeResumeId) return;
+    setCompareLoading(true);
+    try {
+      const response = await fetch(
+        apiUrl(
+          `/api/v1/resumes/${activeResumeId}/revisions/compare?base_revision=${baseRevision}&target_revision=${targetRevision}`
+        ),
+        {
+          headers: apiHeaders(),
+        }
+      );
+      if (!response.ok) throw new Error("Compare failed");
+      const payload = (await response.json()) as { item?: ResumeRevisionCompare };
+      setCompareResult(payload.item ?? null);
+      if (payload.item) {
+        showStatus(`Compared v${baseRevision} → v${targetRevision}`);
+      }
+    } catch (err: unknown) {
+      setCompareResult(null);
+      showStatus(err instanceof Error ? err.message : "Compare failed");
+    } finally {
+      setCompareLoading(false);
     }
   };
 
@@ -631,8 +683,8 @@ export default function DashboardPage() {
                     </button>
                   </div>
                   <div className="space-y-2">
-                    {revisions.slice(0, 4).map((revision) => (
-                      <div key={revision.id} className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+                      {revisions.slice(0, 4).map((revision) => (
+                        <div key={revision.id} className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
                         <div className="min-w-0">
                           <p className="text-xs font-medium text-slate-800">
                             v{revision.revision} {revision.label ? `· ${revision.label}` : ""}
@@ -641,16 +693,31 @@ export default function DashboardPage() {
                             {revision.templateId} · {formatDate(revision.createdAt)}
                           </p>
                         </div>
-                        <button
-                          onClick={() => {
-                            void restoreRevision(revision.revision).catch((err: unknown) => {
-                              showStatus(err instanceof Error ? err.message : "Restore failed");
-                            });
-                          }}
-                          className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700"
-                        >
-                          Restore
-                        </button>
+                        <div className="flex items-center gap-2">
+                          {revisions.findIndex((item) => item.id === revision.id) < revisions.length - 1 && (
+                            <button
+                              onClick={() => {
+                                const index = revisions.findIndex((item) => item.id === revision.id);
+                                const older = revisions[index + 1];
+                                if (!older) return;
+                                void compareRevision(older.revision, revision.revision);
+                              }}
+                              className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700"
+                            >
+                              Compare
+                            </button>
+                          )}
+                          <button
+                            onClick={() => {
+                              void restoreRevision(revision.revision).catch((err: unknown) => {
+                                showStatus(err instanceof Error ? err.message : "Restore failed");
+                              });
+                            }}
+                            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700"
+                          >
+                            Restore
+                          </button>
+                        </div>
                       </div>
                     ))}
                     {revisions.length === 0 && (
@@ -659,6 +726,78 @@ export default function DashboardPage() {
                       </p>
                     )}
                   </div>
+                </div>
+                <div className="border-t border-slate-200 pt-4">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-medium">Comparison</p>
+                      <p className="text-xs leading-5 text-slate-500">
+                        {compareLoading
+                          ? "Comparing snapshots..."
+                          : compareResult
+                            ? `v${compareResult.baseRevision.revision} → v${compareResult.targetRevision.revision}`
+                            : "Compare two versions from the list"}
+                      </p>
+                    </div>
+                    {compareResult && (
+                      <button
+                        onClick={() => setCompareResult(null)}
+                        className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                  {compareResult ? (
+                    <div className="space-y-3 rounded-md border border-slate-200 bg-slate-50 p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-medium text-slate-800">
+                          {compareResult.changeCount} field changes
+                        </p>
+                        <p className="text-[11px] text-slate-500">
+                          {compareResult.baseRevision.templateId} → {compareResult.targetRevision.templateId}
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        {compareResult.sectionSummaries
+                          .filter((item) => item.status !== "unchanged")
+                          .slice(0, 6)
+                          .map((item) => (
+                            <div
+                              key={item.section}
+                              className="flex items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-3 py-2"
+                            >
+                              <div className="min-w-0">
+                                <p className="text-xs font-medium text-slate-800">{item.label}</p>
+                                <p className="text-[11px] text-slate-500">
+                                  {item.beforeCount} → {item.afterCount}
+                                </p>
+                              </div>
+                              <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600">
+                                {item.status}
+                              </span>
+                            </div>
+                          ))}
+                      </div>
+                      <div className="space-y-2">
+                        {compareResult.changes.slice(0, 6).map((change) => (
+                          <div key={`${change.kind}-${change.path}`} className="rounded-md border border-slate-200 bg-white px-3 py-2">
+                            <p className="text-xs font-medium text-slate-800">{change.path}</p>
+                            <p className="mt-1 text-[11px] text-slate-500">
+                              {change.kind}
+                            </p>
+                          </div>
+                        ))}
+                        {compareResult.changes.length === 0 && (
+                          <p className="text-xs leading-5 text-slate-500">No structural changes detected.</p>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs leading-5 text-slate-500">
+                      Open two snapshots to inspect changes between revisions.
+                    </p>
+                  )}
                 </div>
               </aside>
             </section>
