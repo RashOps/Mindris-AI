@@ -5,6 +5,58 @@ import { apiUrl, jsonHeaders } from '@/lib/api';
 // ── Types aligned with cv_schema.json ────────────────────────────────────────
 
 export interface GlobalSettings {
+  schema_version?: string;
+  page?: {
+    format?: "A4" | "Letter";
+    margins?: { horizontal?: string; vertical?: string };
+    page_break_mode?: "auto" | "manual";
+  };
+  layout?: {
+    columns?: 1 | 2;
+    sidebar_position?: "none" | "left" | "right";
+    sidebar_width?: string;
+    density?: "student" | "compact" | "normal" | "senior";
+    header_alignment?: "left" | "center" | "right";
+    photo?: { enabled?: boolean; shape?: "round" | "square" };
+    section_placement?: Record<string, "main" | "sidebar">;
+  };
+  typography?: {
+    body_font?: string;
+    heading_font?: string;
+    base_size?: string;
+    heading_scale?: string;
+    weight?: "regular" | "medium" | "bold";
+    titles_uppercase?: boolean;
+    line_height?: string;
+    date_style?: "normal" | "italic" | "small" | "right";
+    bullet_style?: "bullets" | "dash" | "dots" | "icons";
+  };
+  colors?: {
+    primary?: string;
+    secondary?: string;
+    text?: string;
+    heading?: string;
+    sidebar_background?: string;
+    separators?: string;
+    palette_preset?: "corporate" | "tech" | "minimal" | "creative" | "custom";
+    monochrome?: boolean;
+  };
+  sections?: Array<{
+    id: string;
+    type: string;
+    label: string;
+    visible?: boolean;
+    placement?: "main" | "sidebar";
+    display_mode?: "list" | "timeline" | "cards" | "compact";
+    show_dates?: boolean;
+    show_locations?: boolean;
+    detail_level?: "short" | "normal" | "detailed";
+    icon?: string | null;
+  }>;
+  locale?: {
+    label_language?: "fr" | "en" | "de" | "es";
+    text_direction?: "ltr" | "rtl";
+  };
   // Typography
   font_family:   string;
   font_size:     string;     // e.g. "13px"
