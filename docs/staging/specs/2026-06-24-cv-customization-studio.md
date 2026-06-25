@@ -68,3 +68,9 @@ T2 implementation note: `/api/v1/templates/customization-catalogue` now exposes 
 T3 implementation note: renderer content generation now resolves sections from `global_settings.sections`, preserves configured order, applies labels and `data-section-placement`, and excludes hidden sections from generated HTML.
 
 T4 implementation note: renderer token overrides now drive A4/Letter sizing, single-column and sidebar left/right/none layouts, density-driven spacing, heading/body font pairing, title casing, date alignment styles, sidebar background/separator colors, and monochrome-safe fallbacks through CSS variables consumed by the template stylesheet.
+
+T5 implementation note: CV data, exports, renderer, and editor state now support certifications, volunteering, publications, references, and custom sections end to end. The browser editor can add/edit/remove those sections, and Markdown/HTML/DOCX exports render them with semantic fallbacks.
+
+T6 implementation note: the Studio UI now hydrates its controls from the backend customization catalogue, resolves template compatibility and enforced values on the client, drives layout/typography/color/section settings from the versioned contract, and keeps the frontend in API-client mode with no hardcoded product defaults beyond fallback rendering.
+
+V1.5 implementation note: multi-language FR/EN is now exposed in the builder and persisted through resume locale inference, community templates are available in the backend catalogue and dashboard gallery, and simple resume versioning is available through snapshot/list/restore endpoints plus dashboard controls.

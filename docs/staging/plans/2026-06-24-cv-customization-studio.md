@@ -26,15 +26,15 @@ spec: docs/staging/specs/2026-06-24-cv-customization-studio.md
   acceptance: `UV_CACHE_DIR=/tmp/uv-cache uv run --no-sync pytest tests/test_resumes_api.py && cd services/renderer && bun run typecheck`
   spec: docs/staging/specs/2026-06-24-cv-customization-studio.md#cv-customization-studio
 
-- [ ] T5: Advanced section data
+- [x] T5: Advanced section data
   goal: Add certifications, volunteering, publications, references, and custom sections through backend validation, editor state, renderer, and open exports.
   files: services/api-gateway/schemas.py, services/api-gateway/exporters.py, apps/web/src/store/useCVStore.ts, apps/web/src/components/Editor.tsx, tests/test_resumes_api.py
   acceptance: `UV_CACHE_DIR=/tmp/uv-cache uv run --no-sync pytest tests/test_resumes_api.py tests/test_mvp_resume_flow.py`
   spec: docs/staging/specs/2026-06-24-cv-customization-studio.md#cv-customization-studio
 
-- [ ] T6: Backend-driven Studio UI
+- [x] T6: Backend-driven Studio UI
   goal: Rebuild the StylePanel/structure controls around the customization catalogue while keeping the frontend as an API client only.
-  files: apps/web/src/components/StylePanel.tsx, apps/web/src/store/useCVStore.ts, apps/web/src/lib/templates.ts, apps/web/src/app/tools/cv-creator/page.tsx
+  files: apps/web/src/components/StylePanel.tsx, apps/web/src/store/useCVStore.ts, apps/web/src/lib/customization-catalogue.ts, apps/web/src/lib/customization-catalogue.test.ts, apps/web/src/types/bun-test.d.ts
   acceptance: `cd apps/web && bun run lint && bun run typecheck`
   spec: docs/staging/specs/2026-06-24-cv-customization-studio.md#cv-customization-studio
 
