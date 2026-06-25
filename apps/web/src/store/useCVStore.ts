@@ -81,6 +81,49 @@ export interface LanguageItem {
   level: string;
 }
 
+export interface CertificationItem {
+  id: string;
+  name: string;
+  issuer: string;
+  date: string;
+  url: string;
+  description_markdown: string;
+}
+
+export interface VolunteeringItem {
+  id: string;
+  organization: string;
+  role: string;
+  period: string;
+  location: string;
+  description_markdown: string;
+}
+
+export interface PublicationItem {
+  id: string;
+  title: string;
+  publisher: string;
+  date: string;
+  url: string;
+  description_markdown: string;
+}
+
+export interface ReferenceItem {
+  id: string;
+  name: string;
+  role: string;
+  company: string;
+  contact: string;
+  description_markdown: string;
+}
+
+export interface CustomSectionItem {
+  id: string;
+  title: string;
+  content_markdown: string;
+  items: string[];
+}
+
 // ── Job Insights (from SSE job_result event) ──────────────────────────────────
 
 export interface KeywordStatus {
@@ -159,6 +202,11 @@ export interface CVData {
   education: EducationItem[];
   skills: SkillGroup[];
   projects: ProjectItem[];
+  certifications: CertificationItem[];
+  volunteering: VolunteeringItem[];
+  publications: PublicationItem[];
+  references: ReferenceItem[];
+  custom_sections: CustomSectionItem[];
   languages: LanguageItem[];
   hobbies: string[];
 }
@@ -273,6 +321,23 @@ interface CVStore {
   addLanguage: () => void;
   removeLanguage: (id: string) => void;
 
+  // Advanced sections
+  updateCertification: (id: string, data: Partial<CertificationItem>) => void;
+  addCertification: () => void;
+  removeCertification: (id: string) => void;
+  updateVolunteering: (id: string, data: Partial<VolunteeringItem>) => void;
+  addVolunteering: () => void;
+  removeVolunteering: (id: string) => void;
+  updatePublication: (id: string, data: Partial<PublicationItem>) => void;
+  addPublication: () => void;
+  removePublication: (id: string) => void;
+  updateReference: (id: string, data: Partial<ReferenceItem>) => void;
+  addReference: () => void;
+  removeReference: (id: string) => void;
+  updateCustomSection: (id: string, data: Partial<CustomSectionItem>) => void;
+  addCustomSection: () => void;
+  removeCustomSection: (id: string) => void;
+
   // Full replace (used by PDF upload / JSON import)
   replaceCVData: (data: Partial<CVData>) => void;
 }
@@ -353,6 +418,20 @@ const initialCV: CVData = {
       tech_stack: ['LangGraph', 'Playwright', 'Supabase'],
     },
   ],
+  certifications: [
+    {
+      id: uid(),
+      name: 'AWS Certified',
+      issuer: 'Amazon',
+      date: '2025',
+      url: 'https://aws.amazon.com',
+      description_markdown: '- Cloud architecture',
+    },
+  ],
+  volunteering: [],
+  publications: [],
+  references: [],
+  custom_sections: [],
   languages: [
     { id: uid(), language: 'Français', level: 'Natif' },
     { id: uid(), language: 'Anglais', level: 'Full Professional Proficiency' },
@@ -383,6 +462,11 @@ function createBlankCVData(templateId = 'modern'): CVData {
     education: [],
     skills: [],
     projects: [],
+    certifications: [],
+    volunteering: [],
+    publications: [],
+    references: [],
+    custom_sections: [],
     languages: [],
     hobbies: [],
   };
@@ -963,6 +1047,185 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       syncActiveResume(state, {
         ...state.cvData,
         languages: state.cvData.languages.filter((l) => l.id !== id),
+      })
+    ),
+
+  // ── Advanced sections ────────────────────────────────────────────────────
+  updateCertification: (id, data) =>
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        certifications: state.cvData.certifications.map((item) =>
+          item.id === id ? { ...item, ...data } : item
+        ),
+      })
+    ),
+
+  addCertification: () =>
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        certifications: [
+          ...state.cvData.certifications,
+          {
+            id: uid(),
+            name: 'Nouvelle certification',
+            issuer: 'Organisme',
+            date: '',
+            url: '',
+            description_markdown: '',
+          },
+        ],
+      })
+    ),
+
+  removeCertification: (id) =>
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        certifications: state.cvData.certifications.filter((item) => item.id !== id),
+      })
+    ),
+
+  updateVolunteering: (id, data) =>
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        volunteering: state.cvData.volunteering.map((item) =>
+          item.id === id ? { ...item, ...data } : item
+        ),
+      })
+    ),
+
+  addVolunteering: () =>
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        volunteering: [
+          ...state.cvData.volunteering,
+          {
+            id: uid(),
+            organization: 'Organisation',
+            role: 'Mentor',
+            period: '',
+            location: '',
+            description_markdown: '',
+          },
+        ],
+      })
+    ),
+
+  removeVolunteering: (id) =>
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        volunteering: state.cvData.volunteering.filter((item) => item.id !== id),
+      })
+    ),
+
+  updatePublication: (id, data) =>
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        publications: state.cvData.publications.map((item) =>
+          item.id === id ? { ...item, ...data } : item
+        ),
+      })
+    ),
+
+  addPublication: () =>
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        publications: [
+          ...state.cvData.publications,
+          {
+            id: uid(),
+            title: 'Nouvelle publication',
+            publisher: 'Éditeur',
+            date: '',
+            url: '',
+            description_markdown: '',
+          },
+        ],
+      })
+    ),
+
+  removePublication: (id) =>
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        publications: state.cvData.publications.filter((item) => item.id !== id),
+      })
+    ),
+
+  updateReference: (id, data) =>
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        references: state.cvData.references.map((item) =>
+          item.id === id ? { ...item, ...data } : item
+        ),
+      })
+    ),
+
+  addReference: () =>
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        references: [
+          ...state.cvData.references,
+          {
+            id: uid(),
+            name: 'Référence',
+            role: '',
+            company: '',
+            contact: '',
+            description_markdown: '',
+          },
+        ],
+      })
+    ),
+
+  removeReference: (id) =>
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        references: state.cvData.references.filter((item) => item.id !== id),
+      })
+    ),
+
+  updateCustomSection: (id, data) =>
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        custom_sections: state.cvData.custom_sections.map((item) =>
+          item.id === id ? { ...item, ...data } : item
+        ),
+      })
+    ),
+
+  addCustomSection: () =>
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        custom_sections: [
+          ...state.cvData.custom_sections,
+          {
+            id: uid(),
+            title: 'Nouvelle section',
+            content_markdown: '',
+            items: [],
+          },
+        ],
+      })
+    ),
+
+  removeCustomSection: (id) =>
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        custom_sections: state.cvData.custom_sections.filter((item) => item.id !== id),
       })
     ),
 

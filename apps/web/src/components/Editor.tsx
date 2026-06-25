@@ -389,6 +389,128 @@ function ProjectsSection() {
   );
 }
 
+// ── Advanced Sections ────────────────────────────────────────────────────────
+
+function CertificationsSection() {
+  const { cvData, updateCertification, addCertification, removeCertification } = useCVStore();
+  return (
+    <SectionCard title="Certifications" onAdd={addCertification} addLabel="Add certification">
+      <div className="space-y-3">
+        {cvData.certifications.map((item) => (
+          <div key={item.id} className={ITEM_CARD_CLASS}>
+            <div className="flex items-center gap-2">
+              <Input value={item.name} onChange={(e) => updateCertification(item.id, { name: e.target.value })} placeholder="Nom" className={`text-sm font-medium ${FIELD_INPUT_CLASS}`} />
+              <RemoveBtn onClick={() => removeCertification(item.id)} />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Input value={item.issuer} onChange={(e) => updateCertification(item.id, { issuer: e.target.value })} placeholder="Organisme" className={`text-xs ${FIELD_INPUT_CLASS}`} />
+              <Input value={item.date} onChange={(e) => updateCertification(item.id, { date: e.target.value })} placeholder="Date" className={`text-xs ${FIELD_INPUT_CLASS}`} />
+            </div>
+            <Input value={item.url} onChange={(e) => updateCertification(item.id, { url: e.target.value })} placeholder="URL" className={`text-xs ${FIELD_INPUT_CLASS}`} />
+            <Textarea value={item.description_markdown} onChange={(v) => updateCertification(item.id, { description_markdown: v })} placeholder="Description..." rows={2} />
+          </div>
+        ))}
+      </div>
+    </SectionCard>
+  );
+}
+
+function VolunteeringSection() {
+  const { cvData, updateVolunteering, addVolunteering, removeVolunteering } = useCVStore();
+  return (
+    <SectionCard title="Bénévolat" onAdd={addVolunteering} addLabel="Add volunteering">
+      <div className="space-y-3">
+        {cvData.volunteering.map((item) => (
+          <div key={item.id} className={ITEM_CARD_CLASS}>
+            <div className="flex items-center gap-2">
+              <Input value={item.role} onChange={(e) => updateVolunteering(item.id, { role: e.target.value })} placeholder="Rôle" className={`text-sm font-medium ${FIELD_INPUT_CLASS}`} />
+              <RemoveBtn onClick={() => removeVolunteering(item.id)} />
+            </div>
+            <Input value={item.organization} onChange={(e) => updateVolunteering(item.id, { organization: e.target.value })} placeholder="Organisation" className={`text-xs ${FIELD_INPUT_CLASS}`} />
+            <div className="grid grid-cols-2 gap-2">
+              <Input value={item.period} onChange={(e) => updateVolunteering(item.id, { period: e.target.value })} placeholder="Période" className={`text-xs ${FIELD_INPUT_CLASS}`} />
+              <Input value={item.location} onChange={(e) => updateVolunteering(item.id, { location: e.target.value })} placeholder="Lieu" className={`text-xs ${FIELD_INPUT_CLASS}`} />
+            </div>
+            <Textarea value={item.description_markdown} onChange={(v) => updateVolunteering(item.id, { description_markdown: v })} placeholder="Description..." rows={2} />
+          </div>
+        ))}
+      </div>
+    </SectionCard>
+  );
+}
+
+function PublicationsSection() {
+  const { cvData, updatePublication, addPublication, removePublication } = useCVStore();
+  return (
+    <SectionCard title="Publications" onAdd={addPublication} addLabel="Add publication">
+      <div className="space-y-3">
+        {cvData.publications.map((item) => (
+          <div key={item.id} className={ITEM_CARD_CLASS}>
+            <div className="flex items-center gap-2">
+              <Input value={item.title} onChange={(e) => updatePublication(item.id, { title: e.target.value })} placeholder="Titre" className={`text-sm font-medium ${FIELD_INPUT_CLASS}`} />
+              <RemoveBtn onClick={() => removePublication(item.id)} />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Input value={item.publisher} onChange={(e) => updatePublication(item.id, { publisher: e.target.value })} placeholder="Éditeur" className={`text-xs ${FIELD_INPUT_CLASS}`} />
+              <Input value={item.date} onChange={(e) => updatePublication(item.id, { date: e.target.value })} placeholder="Date" className={`text-xs ${FIELD_INPUT_CLASS}`} />
+            </div>
+            <Input value={item.url} onChange={(e) => updatePublication(item.id, { url: e.target.value })} placeholder="URL" className={`text-xs ${FIELD_INPUT_CLASS}`} />
+            <Textarea value={item.description_markdown} onChange={(v) => updatePublication(item.id, { description_markdown: v })} placeholder="Description..." rows={2} />
+          </div>
+        ))}
+      </div>
+    </SectionCard>
+  );
+}
+
+function ReferencesSection() {
+  const { cvData, updateReference, addReference, removeReference } = useCVStore();
+  return (
+    <SectionCard title="Références" onAdd={addReference} addLabel="Add reference">
+      <div className="space-y-3">
+        {cvData.references.map((item) => (
+          <div key={item.id} className={ITEM_CARD_CLASS}>
+            <div className="flex items-center gap-2">
+              <Input value={item.name} onChange={(e) => updateReference(item.id, { name: e.target.value })} placeholder="Nom" className={`text-sm font-medium ${FIELD_INPUT_CLASS}`} />
+              <RemoveBtn onClick={() => removeReference(item.id)} />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Input value={item.role} onChange={(e) => updateReference(item.id, { role: e.target.value })} placeholder="Rôle" className={`text-xs ${FIELD_INPUT_CLASS}`} />
+              <Input value={item.company} onChange={(e) => updateReference(item.id, { company: e.target.value })} placeholder="Entreprise" className={`text-xs ${FIELD_INPUT_CLASS}`} />
+            </div>
+            <Input value={item.contact} onChange={(e) => updateReference(item.id, { contact: e.target.value })} placeholder="Contact" className={`text-xs ${FIELD_INPUT_CLASS}`} />
+            <Textarea value={item.description_markdown} onChange={(v) => updateReference(item.id, { description_markdown: v })} placeholder="Description..." rows={2} />
+          </div>
+        ))}
+      </div>
+    </SectionCard>
+  );
+}
+
+function CustomSectionsSection() {
+  const { cvData, updateCustomSection, addCustomSection, removeCustomSection } = useCVStore();
+  return (
+    <SectionCard title="Sections personnalisées" onAdd={addCustomSection} addLabel="Add section">
+      <div className="space-y-3">
+        {cvData.custom_sections.map((item) => (
+          <div key={item.id} className={ITEM_CARD_CLASS}>
+            <div className="flex items-center gap-2">
+              <Input value={item.title} onChange={(e) => updateCustomSection(item.id, { title: e.target.value })} placeholder="Titre" className={`text-sm font-medium ${FIELD_INPUT_CLASS}`} />
+              <RemoveBtn onClick={() => removeCustomSection(item.id)} />
+            </div>
+            <Textarea value={item.content_markdown} onChange={(v) => updateCustomSection(item.id, { content_markdown: v })} placeholder="Contenu Markdown..." rows={3} />
+            <TagInput
+              tags={item.items}
+              onChange={(items) => updateCustomSection(item.id, { items })}
+              placeholder="Items..."
+            />
+          </div>
+        ))}
+      </div>
+    </SectionCard>
+  );
+}
+
 // ── Languages Section ─────────────────────────────────────────────────────────
 
 const LEVELS = ["Natif", "C2", "C1", "B2", "B1", "A2", "A1", "Full Professional Proficiency", "Elementary"];
@@ -524,6 +646,11 @@ export function Editor() {
         <EducationSection />
         <SkillsSection />
         <ProjectsSection />
+        <CertificationsSection />
+        <VolunteeringSection />
+        <PublicationsSection />
+        <ReferencesSection />
+        <CustomSectionsSection />
         <LanguagesSection />
         <HobbiesSection />
       </div>
