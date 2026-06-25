@@ -11,12 +11,15 @@ from pydantic import ValidationError
 from routers.resumes import (
     create_resume_route,
     create_resume_revision_route,
+    compare_resume_revisions_route,
     delete_resume_route,
     duplicate_resume_route,
     export_resume_docx,
     export_resume_html,
     export_resume_json,
+    export_resume_latex,
     export_resume_markdown,
+    export_resume_typst,
     import_resume_json,
     list_resumes,
     list_resume_revisions_route,
@@ -170,6 +173,18 @@ def test_resume_crud_duplicate_and_export() -> None:
         assert "Ada Lovelace" in html.body.decode()
         assert "<script" not in html.body.decode().lower()
 
+        latex = export_resume_latex(int(resume["id"]), session)
+        assert "application/x-latex" in latex.headers["content-type"]
+        assert latex.headers["content-disposition"].endswith('.tex"')
+        assert "\\begin{document}" in latex.body.decode()
+        assert "Ada Lovelace" in latex.body.decode()
+
+        typst = export_resume_typst(int(resume["id"]), session)
+        assert "text/typst" in typst.headers["content-type"]
+        assert typst.headers["content-disposition"].endswith('.typ"')
+        assert "= Ada Lovelace" in typst.body.decode()
+        assert "Ada Lovelace" in typst.body.decode()
+
         docx = export_resume_docx(int(resume["id"]), session)
         assert (
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -293,6 +308,57 @@ def test_resume_versioning_snapshots_and_restore() -> None:
         )["item"]
         assert restored["id"] == created["id"]
         assert restored["name"] == revisions[-1]["name"]
+
+
+def test_resume_revision_comparison_returns_semantic_diff() -> None:
+    with _session() as session:
+        created = create_resume_route(
+            ResumeCreateRequest(
+                name="Diff CV",
+                cv_data=_cv_payload("modern"),
+                template_id="modern",
+            ),
+            session,
+        )["item"]
+
+        update_resume_route(
+            int(created["id"]),
+            ResumeUpdateRequest(
+                name="Diff CV v2",
+                cv_data={
+                    **_cv_payload("compact"),
+                    "experience": [
+                        {
+                            "id": "exp-1",
+                            "role": "Lead Engineer",
+                            "company": "Mindris",
+                            "period": "2025",
+                            "location": {"city": "Paris", "country": "France"},
+                            "description_markdown": "- Shipped comparisons",
+                        }
+                    ],
+                },
+            ),
+            session,
+        )
+
+        revisions = list_resume_revisions_route(int(created["id"]), session)["items"]
+        newest = revisions[0]["revision"]
+        older = revisions[-1]["revision"]
+        compare = compare_resume_revisions_route(
+            int(created["id"]),
+            base_revision=older,
+            target_revision=newest,
+            session=session,
+        )["item"]
+
+        assert compare["resumeId"] == created["id"]
+        assert compare["baseRevision"]["revision"] == older
+        assert compare["targetRevision"]["revision"] == newest
+        assert compare["changeCount"] >= 2
+        assert any(item["section"] == "experience" for item in compare["sectionSummaries"])
+        assert any(change["path"] == "name" for change in compare["changes"])
+        assert any("experience" in change["path"] for change in compare["changes"])
 
 
 def test_resume_create_migrates_legacy_global_settings_direct_route() -> None:

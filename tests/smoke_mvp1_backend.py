@@ -17,7 +17,13 @@ sys.path.insert(0, str(ROOT / "services"))
 sys.path.insert(0, str(ROOT / "packages"))
 
 from database.session import SessionLocal, init_db  # noqa: E402
-from exporters import resume_to_docx, resume_to_html, resume_to_markdown  # noqa: E402
+from exporters import (  # noqa: E402
+    resume_to_docx,
+    resume_to_html,
+    resume_to_latex,
+    resume_to_markdown,
+    resume_to_typst,
+)
 from persistence import (  # noqa: E402
     create_resume,
     serialize_draft,
@@ -97,6 +103,8 @@ def main() -> None:
         )
         markdown = resume_to_markdown(resume)
         html = resume_to_html(resume)
+        latex = resume_to_latex(resume)
+        typst = resume_to_typst(resume)
         docx = resume_to_docx(resume)
         if "# Phase 5" not in markdown:
             raise SystemExit("Markdown export smoke check failed.")
@@ -114,6 +122,10 @@ def main() -> None:
             raise SystemExit("HTML hidden section smoke check failed.")
         if html.index("<h2>Projets</h2>") > html.index("<h2>Parcours professionnel</h2>"):
             raise SystemExit("HTML ordering smoke check failed.")
+        if "\\begin{document}" not in latex or "Phase 5" not in latex:
+            raise SystemExit("LaTeX export smoke check failed.")
+        if "= Phase 5" not in typst or "Phase 5" not in typst:
+            raise SystemExit("Typst export smoke check failed.")
         with ZipFile(BytesIO(docx)) as package:
             if "word/document.xml" not in package.namelist():
                 raise SystemExit("DOCX export package smoke check failed.")
