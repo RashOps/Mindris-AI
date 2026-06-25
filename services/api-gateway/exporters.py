@@ -10,6 +10,36 @@ from zipfile import ZIP_DEFLATED, ZipFile
 from database.records import ResumeRecord
 from persistence import load_json
 
+DEFAULT_SECTION_TITLES = {
+    "profile": "Profile",
+    "experience": "Experience",
+    "projects": "Projects",
+    "certifications": "Certifications",
+    "volunteering": "Volunteering",
+    "publications": "Publications",
+    "references": "References",
+    "custom": "Custom sections",
+    "skills": "Skills",
+    "education": "Education",
+    "languages": "Languages",
+    "interests": "Interests",
+}
+
+SECTION_FALLBACK_ORDER = [
+    "profile",
+    "experience",
+    "projects",
+    "certifications",
+    "volunteering",
+    "publications",
+    "references",
+    "custom",
+    "skills",
+    "education",
+    "languages",
+    "interests",
+]
+
 
 def safe_export_filename(name: str, extension: str) -> str:
     """Return a conservative download filename."""
@@ -22,6 +52,7 @@ def resume_to_markdown(record: ResumeRecord) -> str:
     cv_data = _cv_data(record)
     profile = _mapping(cv_data.get("profile"))
     lines: list[str] = []
+    sections = _section_configs(cv_data)
 
     full_name = _text(profile.get("full_name")) or record.name
     title = _text(profile.get("title"))
@@ -35,18 +66,64 @@ def resume_to_markdown(record: ResumeRecord) -> str:
         lines.append("")
         lines.append(" | ".join(contacts))
 
-    _append_markdown_section(lines, "Profile", _text(profile.get("text_markdown")))
-    _append_experience(lines, cv_data.get("experience"))
-    _append_projects(lines, cv_data.get("projects"))
-    _append_certifications(lines, cv_data.get("certifications"))
-    _append_volunteering(lines, cv_data.get("volunteering"))
-    _append_publications(lines, cv_data.get("publications"))
-    _append_references(lines, cv_data.get("references"))
-    _append_custom_sections(lines, cv_data.get("custom_sections"))
-    _append_skills(lines, cv_data.get("skills"))
-    _append_education(lines, cv_data.get("education"))
-    _append_languages(lines, cv_data.get("languages"))
-    _append_hobbies(lines, cv_data.get("hobbies"))
+    rendered_types: set[str] = set()
+    for section in sections:
+        section_type = _text(section.get("type"))
+        rendered_types.add(section_type)
+        section_title = _section_title(section)
+        if section_type == "profile":
+            _append_markdown_section(lines, section_title, _text(profile.get("text_markdown")))
+        elif section_type == "experience":
+            _append_experience(lines, cv_data.get("experience"), section_title)
+        elif section_type == "projects":
+            _append_projects(lines, cv_data.get("projects"), section_title)
+        elif section_type == "certifications":
+            _append_certifications(lines, cv_data.get("certifications"), section_title)
+        elif section_type == "volunteering":
+            _append_volunteering(lines, cv_data.get("volunteering"), section_title)
+        elif section_type == "publications":
+            _append_publications(lines, cv_data.get("publications"), section_title)
+        elif section_type == "references":
+            _append_references(lines, cv_data.get("references"), section_title)
+        elif section_type == "custom":
+            _append_custom_sections(lines, cv_data.get("custom_sections"))
+        elif section_type == "skills":
+            _append_skills(lines, cv_data.get("skills"), section_title)
+        elif section_type == "education":
+            _append_education(lines, cv_data.get("education"), section_title)
+        elif section_type == "languages":
+            _append_languages(lines, cv_data.get("languages"), section_title)
+        elif section_type == "interests":
+            _append_hobbies(lines, cv_data.get("hobbies"), section_title)
+
+    for section_type in SECTION_FALLBACK_ORDER:
+        if section_type in rendered_types:
+            continue
+        section_data = _section_data_for_type(cv_data, section_type, profile)
+        if section_type == "profile":
+            _append_markdown_section(lines, DEFAULT_SECTION_TITLES[section_type], section_data)
+        elif section_type == "experience":
+            _append_experience(lines, section_data, DEFAULT_SECTION_TITLES[section_type])
+        elif section_type == "projects":
+            _append_projects(lines, section_data, DEFAULT_SECTION_TITLES[section_type])
+        elif section_type == "certifications":
+            _append_certifications(lines, section_data, DEFAULT_SECTION_TITLES[section_type])
+        elif section_type == "volunteering":
+            _append_volunteering(lines, section_data, DEFAULT_SECTION_TITLES[section_type])
+        elif section_type == "publications":
+            _append_publications(lines, section_data, DEFAULT_SECTION_TITLES[section_type])
+        elif section_type == "references":
+            _append_references(lines, section_data, DEFAULT_SECTION_TITLES[section_type])
+        elif section_type == "custom":
+            _append_custom_sections(lines, section_data)
+        elif section_type == "skills":
+            _append_skills(lines, section_data, DEFAULT_SECTION_TITLES[section_type])
+        elif section_type == "education":
+            _append_education(lines, section_data, DEFAULT_SECTION_TITLES[section_type])
+        elif section_type == "languages":
+            _append_languages(lines, section_data, DEFAULT_SECTION_TITLES[section_type])
+        elif section_type == "interests":
+            _append_hobbies(lines, section_data, DEFAULT_SECTION_TITLES[section_type])
 
     return "\n".join(lines).strip() + "\n"
 
@@ -55,26 +132,79 @@ def resume_to_html(record: ResumeRecord) -> str:
     """Render a persisted resume as standalone, script-free HTML."""
     cv_data = _cv_data(record)
     profile = _mapping(cv_data.get("profile"))
+    sections = _section_configs(cv_data)
     full_name = _text(profile.get("full_name")) or record.name
     title = _text(profile.get("title"))
     contacts = _contact_parts(profile)
 
     profile_html = _markdownish_html(_text(profile.get("text_markdown")))
-    sections = [
-        _html_section("Profile", profile_html),
-        _experience_html(cv_data.get("experience")),
-        _projects_html(cv_data.get("projects")),
-        _certifications_html(cv_data.get("certifications")),
-        _volunteering_html(cv_data.get("volunteering")),
-        _publications_html(cv_data.get("publications")),
-        _references_html(cv_data.get("references")),
-        _custom_sections_html(cv_data.get("custom_sections")),
-        _skills_html(cv_data.get("skills")),
-        _education_html(cv_data.get("education")),
-        _languages_html(cv_data.get("languages")),
-        _hobbies_html(cv_data.get("hobbies")),
-    ]
-    body_sections = "\n".join(section for section in sections if section)
+    rendered_sections: list[str] = []
+    rendered_types: set[str] = set()
+    for section in sections:
+        section_type = _text(section.get("type"))
+        rendered_types.add(section_type)
+        section_title = _section_title(section)
+        if section_type == "profile":
+            rendered = _html_section(section_title, profile_html)
+        elif section_type == "experience":
+            rendered = _experience_html(cv_data.get("experience"), section_title)
+        elif section_type == "projects":
+            rendered = _projects_html(cv_data.get("projects"), section_title)
+        elif section_type == "certifications":
+            rendered = _certifications_html(cv_data.get("certifications"), section_title)
+        elif section_type == "volunteering":
+            rendered = _volunteering_html(cv_data.get("volunteering"), section_title)
+        elif section_type == "publications":
+            rendered = _publications_html(cv_data.get("publications"), section_title)
+        elif section_type == "references":
+            rendered = _references_html(cv_data.get("references"), section_title)
+        elif section_type == "custom":
+            rendered = _custom_sections_html(cv_data.get("custom_sections"))
+        elif section_type == "skills":
+            rendered = _skills_html(cv_data.get("skills"), section_title)
+        elif section_type == "education":
+            rendered = _education_html(cv_data.get("education"), section_title)
+        elif section_type == "languages":
+            rendered = _languages_html(cv_data.get("languages"), section_title)
+        elif section_type == "interests":
+            rendered = _hobbies_html(cv_data.get("hobbies"), section_title)
+        else:
+            rendered = ""
+        if rendered:
+            rendered_sections.append(rendered)
+    for section_type in SECTION_FALLBACK_ORDER:
+        if section_type in rendered_types:
+            continue
+        section_data = _section_data_for_type(cv_data, section_type, profile)
+        if section_type == "profile":
+            rendered = _html_section(DEFAULT_SECTION_TITLES[section_type], profile_html)
+        elif section_type == "experience":
+            rendered = _experience_html(section_data, DEFAULT_SECTION_TITLES[section_type])
+        elif section_type == "projects":
+            rendered = _projects_html(section_data, DEFAULT_SECTION_TITLES[section_type])
+        elif section_type == "certifications":
+            rendered = _certifications_html(section_data, DEFAULT_SECTION_TITLES[section_type])
+        elif section_type == "volunteering":
+            rendered = _volunteering_html(section_data, DEFAULT_SECTION_TITLES[section_type])
+        elif section_type == "publications":
+            rendered = _publications_html(section_data, DEFAULT_SECTION_TITLES[section_type])
+        elif section_type == "references":
+            rendered = _references_html(section_data, DEFAULT_SECTION_TITLES[section_type])
+        elif section_type == "custom":
+            rendered = _custom_sections_html(section_data)
+        elif section_type == "skills":
+            rendered = _skills_html(section_data, DEFAULT_SECTION_TITLES[section_type])
+        elif section_type == "education":
+            rendered = _education_html(section_data, DEFAULT_SECTION_TITLES[section_type])
+        elif section_type == "languages":
+            rendered = _languages_html(section_data, DEFAULT_SECTION_TITLES[section_type])
+        elif section_type == "interests":
+            rendered = _hobbies_html(section_data, DEFAULT_SECTION_TITLES[section_type])
+        else:
+            rendered = ""
+        if rendered:
+            rendered_sections.append(rendered)
+    body_sections = "\n".join(rendered_sections)
     contact_html = ""
     if contacts:
         contact_html = (
@@ -169,6 +299,7 @@ def resume_to_docx(record: ResumeRecord) -> bytes:
     """Render a persisted resume as a text-based DOCX document."""
     cv_data = _cv_data(record)
     profile = _mapping(cv_data.get("profile"))
+    sections = _section_configs(cv_data)
     full_name = _text(profile.get("full_name")) or record.name
     title = _text(profile.get("title"))
     contacts = _contact_parts(profile)
@@ -179,18 +310,64 @@ def resume_to_docx(record: ResumeRecord) -> bytes:
     if contacts:
         blocks.append({"style": "Contact", "text": " | ".join(contacts)})
 
-    _docx_profile(blocks, _text(profile.get("text_markdown")))
-    _docx_experience(blocks, cv_data.get("experience"))
-    _docx_projects(blocks, cv_data.get("projects"))
-    _docx_certifications(blocks, cv_data.get("certifications"))
-    _docx_volunteering(blocks, cv_data.get("volunteering"))
-    _docx_publications(blocks, cv_data.get("publications"))
-    _docx_references(blocks, cv_data.get("references"))
-    _docx_custom_sections(blocks, cv_data.get("custom_sections"))
-    _docx_skills(blocks, cv_data.get("skills"))
-    _docx_education(blocks, cv_data.get("education"))
-    _docx_languages(blocks, cv_data.get("languages"))
-    _docx_hobbies(blocks, cv_data.get("hobbies"))
+    rendered_types: set[str] = set()
+    for section in sections:
+        section_type = _text(section.get("type"))
+        rendered_types.add(section_type)
+        section_title = _section_title(section)
+        if section_type == "profile":
+            _docx_profile(blocks, _text(profile.get("text_markdown")), section_title)
+        elif section_type == "experience":
+            _docx_experience(blocks, cv_data.get("experience"), section_title)
+        elif section_type == "projects":
+            _docx_projects(blocks, cv_data.get("projects"), section_title)
+        elif section_type == "certifications":
+            _docx_certifications(blocks, cv_data.get("certifications"), section_title)
+        elif section_type == "volunteering":
+            _docx_volunteering(blocks, cv_data.get("volunteering"), section_title)
+        elif section_type == "publications":
+            _docx_publications(blocks, cv_data.get("publications"), section_title)
+        elif section_type == "references":
+            _docx_references(blocks, cv_data.get("references"), section_title)
+        elif section_type == "custom":
+            _docx_custom_sections(blocks, cv_data.get("custom_sections"))
+        elif section_type == "skills":
+            _docx_skills(blocks, cv_data.get("skills"), section_title)
+        elif section_type == "education":
+            _docx_education(blocks, cv_data.get("education"), section_title)
+        elif section_type == "languages":
+            _docx_languages(blocks, cv_data.get("languages"), section_title)
+        elif section_type == "interests":
+            _docx_hobbies(blocks, cv_data.get("hobbies"), section_title)
+
+    for section_type in SECTION_FALLBACK_ORDER:
+        if section_type in rendered_types:
+            continue
+        section_data = _section_data_for_type(cv_data, section_type, profile)
+        if section_type == "profile":
+            _docx_profile(blocks, section_data, DEFAULT_SECTION_TITLES[section_type])
+        elif section_type == "experience":
+            _docx_experience(blocks, section_data, DEFAULT_SECTION_TITLES[section_type])
+        elif section_type == "projects":
+            _docx_projects(blocks, section_data, DEFAULT_SECTION_TITLES[section_type])
+        elif section_type == "certifications":
+            _docx_certifications(blocks, section_data, DEFAULT_SECTION_TITLES[section_type])
+        elif section_type == "volunteering":
+            _docx_volunteering(blocks, section_data, DEFAULT_SECTION_TITLES[section_type])
+        elif section_type == "publications":
+            _docx_publications(blocks, section_data, DEFAULT_SECTION_TITLES[section_type])
+        elif section_type == "references":
+            _docx_references(blocks, section_data, DEFAULT_SECTION_TITLES[section_type])
+        elif section_type == "custom":
+            _docx_custom_sections(blocks, section_data)
+        elif section_type == "skills":
+            _docx_skills(blocks, section_data, DEFAULT_SECTION_TITLES[section_type])
+        elif section_type == "education":
+            _docx_education(blocks, section_data, DEFAULT_SECTION_TITLES[section_type])
+        elif section_type == "languages":
+            _docx_languages(blocks, section_data, DEFAULT_SECTION_TITLES[section_type])
+        elif section_type == "interests":
+            _docx_hobbies(blocks, section_data, DEFAULT_SECTION_TITLES[section_type])
 
     document_xml = _docx_document_xml(blocks)
     buffer = BytesIO()
@@ -220,6 +397,52 @@ def _items(value: Any) -> list[Any]:
 
 def _text(value: Any) -> str:
     return value.strip() if isinstance(value, str) else ""
+
+
+def _section_configs(cv_data: dict[str, Any]) -> list[dict[str, Any]]:
+    settings = _mapping(cv_data.get("global_settings"))
+    sections = _items(settings.get("sections"))
+    configs: list[dict[str, Any]] = []
+    for section in sections:
+        item = _mapping(section)
+        section_type = _text(item.get("type"))
+        if not section_type or item.get("visible", True) is False:
+            continue
+        configs.append(item)
+    return configs
+
+
+def _section_title(section: dict[str, Any]) -> str:
+    section_type = _text(section.get("type"))
+    return _text(section.get("label")) or DEFAULT_SECTION_TITLES.get(section_type, section_type.title())
+
+
+def _section_data_for_type(cv_data: dict[str, Any], section_type: str, profile: dict[str, Any]) -> Any:
+    if section_type == "profile":
+        return _text(profile.get("text_markdown"))
+    if section_type == "experience":
+        return cv_data.get("experience")
+    if section_type == "projects":
+        return cv_data.get("projects")
+    if section_type == "certifications":
+        return cv_data.get("certifications")
+    if section_type == "volunteering":
+        return cv_data.get("volunteering")
+    if section_type == "publications":
+        return cv_data.get("publications")
+    if section_type == "references":
+        return cv_data.get("references")
+    if section_type == "custom":
+        return cv_data.get("custom_sections")
+    if section_type == "skills":
+        return cv_data.get("skills")
+    if section_type == "education":
+        return cv_data.get("education")
+    if section_type == "languages":
+        return cv_data.get("languages")
+    if section_type == "interests":
+        return cv_data.get("hobbies")
+    return None
 
 
 def _join_non_empty(values: list[str], separator: str = " - ") -> str:
@@ -260,7 +483,7 @@ def _append_markdown_section(lines: list[str], title: str, content: str) -> None
     lines.extend(["", f"## {title}", "", content.strip()])
 
 
-def _append_experience(lines: list[str], value: Any) -> None:
+def _append_experience(lines: list[str], value: Any, title: str = "Experience") -> None:
     items = [_mapping(item) for item in _items(value)]
     items = [
         item
@@ -269,7 +492,7 @@ def _append_experience(lines: list[str], value: Any) -> None:
     ]
     if not items:
         return
-    lines.extend(["", "## Experience"])
+    lines.extend(["", f"## {title}"])
     for item in items:
         heading = _join_non_empty([_text(item.get("role")), _text(item.get("company"))])
         meta = _join_non_empty(
@@ -288,12 +511,12 @@ def _append_experience(lines: list[str], value: Any) -> None:
             lines.append("Keywords: " + ", ".join(keywords))
 
 
-def _append_projects(lines: list[str], value: Any) -> None:
+def _append_projects(lines: list[str], value: Any, title: str = "Projects") -> None:
     items = [_mapping(item) for item in _items(value)]
     items = [item for item in items if _text(item.get("name"))]
     if not items:
         return
-    lines.extend(["", "## Projects"])
+    lines.extend(["", f"## {title}"])
     for item in items:
         name = _text(item.get("name"))
         url = _text(item.get("url"))
@@ -309,7 +532,7 @@ def _append_projects(lines: list[str], value: Any) -> None:
             lines.append("Stack: " + ", ".join(stack))
 
 
-def _append_certifications(lines: list[str], value: Any) -> None:
+def _append_certifications(lines: list[str], value: Any, title: str = "Certifications") -> None:
     items = [_mapping(item) for item in _items(value)]
     items = [
         item
@@ -318,7 +541,7 @@ def _append_certifications(lines: list[str], value: Any) -> None:
     ]
     if not items:
         return
-    lines.extend(["", "## Certifications"])
+    lines.extend(["", f"## {title}"])
     for item in items:
         heading = _join_non_empty([_text(item.get("name")), _text(item.get("issuer"))])
         meta = _text(item.get("date"))
@@ -333,7 +556,7 @@ def _append_certifications(lines: list[str], value: Any) -> None:
             lines.extend(["", description])
 
 
-def _append_volunteering(lines: list[str], value: Any) -> None:
+def _append_volunteering(lines: list[str], value: Any, title: str = "Volunteering") -> None:
     items = [_mapping(item) for item in _items(value)]
     items = [
         item
@@ -342,7 +565,7 @@ def _append_volunteering(lines: list[str], value: Any) -> None:
     ]
     if not items:
         return
-    lines.extend(["", "## Volunteering"])
+    lines.extend(["", f"## {title}"])
     for item in items:
         heading = _join_non_empty(
             [_text(item.get("role")), _text(item.get("organization"))]
@@ -359,12 +582,12 @@ def _append_volunteering(lines: list[str], value: Any) -> None:
             lines.extend(["", description])
 
 
-def _append_publications(lines: list[str], value: Any) -> None:
+def _append_publications(lines: list[str], value: Any, title: str = "Publications") -> None:
     items = [_mapping(item) for item in _items(value)]
     items = [item for item in items if _text(item.get("title"))]
     if not items:
         return
-    lines.extend(["", "## Publications"])
+    lines.extend(["", f"## {title}"])
     for item in items:
         lines.extend(["", f"### {_text(item.get('title'))}"])
         meta = _join_non_empty(
@@ -381,7 +604,7 @@ def _append_publications(lines: list[str], value: Any) -> None:
             lines.extend(["", description])
 
 
-def _append_references(lines: list[str], value: Any) -> None:
+def _append_references(lines: list[str], value: Any, title: str = "References") -> None:
     items = [_mapping(item) for item in _items(value)]
     items = [
         item
@@ -390,7 +613,7 @@ def _append_references(lines: list[str], value: Any) -> None:
     ]
     if not items:
         return
-    lines.extend(["", "## References"])
+    lines.extend(["", f"## {title}"])
     for item in items:
         heading = _join_non_empty(
             [
@@ -425,7 +648,7 @@ def _append_custom_sections(lines: list[str], value: Any) -> None:
             lines.extend([f"- {bullet}" for bullet in bullets])
 
 
-def _append_skills(lines: list[str], value: Any) -> None:
+def _append_skills(lines: list[str], value: Any, title: str = "Skills") -> None:
     items = [_mapping(item) for item in _items(value)]
     groups = [
         (_text(item.get("category")), _string_items(item.get("skills")))
@@ -434,7 +657,7 @@ def _append_skills(lines: list[str], value: Any) -> None:
     groups = [(category, skills) for category, skills in groups if category or skills]
     if not groups:
         return
-    lines.extend(["", "## Skills"])
+    lines.extend(["", f"## {title}"])
     for category, skills in groups:
         label = category or "Skills"
         if skills:
@@ -443,7 +666,7 @@ def _append_skills(lines: list[str], value: Any) -> None:
             lines.append(f"- **{label}**")
 
 
-def _append_education(lines: list[str], value: Any) -> None:
+def _append_education(lines: list[str], value: Any, title: str = "Education") -> None:
     items = [_mapping(item) for item in _items(value)]
     items = [
         item
@@ -452,7 +675,7 @@ def _append_education(lines: list[str], value: Any) -> None:
     ]
     if not items:
         return
-    lines.extend(["", "## Education"])
+    lines.extend(["", f"## {title}"])
     for item in items:
         heading = _join_non_empty(
             [_text(item.get("degree")), _text(item.get("institution"))]
@@ -469,7 +692,7 @@ def _append_education(lines: list[str], value: Any) -> None:
             lines.extend(["", description])
 
 
-def _append_languages(lines: list[str], value: Any) -> None:
+def _append_languages(lines: list[str], value: Any, title: str = "Languages") -> None:
     items = [_mapping(item) for item in _items(value)]
     values = [
         _join_non_empty([_text(item.get("language")), _text(item.get("level"))], " - ")
@@ -477,16 +700,16 @@ def _append_languages(lines: list[str], value: Any) -> None:
     ]
     values = [value for value in values if value]
     if values:
-        lines.extend(["", "## Languages", *[f"- {value}" for value in values]])
+        lines.extend(["", f"## {title}", *[f"- {value}" for value in values]])
 
 
-def _append_hobbies(lines: list[str], value: Any) -> None:
+def _append_hobbies(lines: list[str], value: Any, title: str = "Interests") -> None:
     values = [item for item in _items(value) if isinstance(item, str) and item.strip()]
     if values:
-        lines.extend(["", "## Interests", ", ".join(values)])
+        lines.extend(["", f"## {title}", ", ".join(values)])
 
 
-def _certifications_html(value: Any) -> str:
+def _certifications_html(value: Any, title: str = "Certifications") -> str:
     items = [_mapping(item) for item in _items(value)]
     cards = []
     for item in items:
@@ -494,46 +717,46 @@ def _certifications_html(value: Any) -> str:
         issuer = _text(item.get("issuer"))
         if not name and not issuer:
             continue
-        title = _join_non_empty([name, issuer])
+        entry_title = _join_non_empty([name, issuer])
         meta = _text(item.get("date"))
         body = _markdownish_html(_text(item.get("description_markdown")))
         url = _text(item.get("url"))
         cards.append(
-            f'<article class="item"><h3>{escape(title or "Certification")}</h3>'
+            f'<article class="item"><h3>{escape(entry_title or "Certification")}</h3>'
             f"{_meta_html(meta)}"
             f"{f'<p class=\"meta\">{escape(url)}</p>' if url else ''}"
             f"{body}</article>"
         )
-    return _html_section("Certifications", "\n  ".join(cards))
+    return _html_section(title, "\n  ".join(cards))
 
 
-def _volunteering_html(value: Any) -> str:
+def _volunteering_html(value: Any, title: str = "Volunteering") -> str:
     items = [_mapping(item) for item in _items(value)]
     cards = []
     for item in items:
-        title = _join_non_empty(
+        entry_title = _join_non_empty(
             [_text(item.get("role")), _text(item.get("organization"))]
         )
-        if not title:
+        if not entry_title:
             continue
         meta = _join_non_empty(
             [_text(item.get("period")), _text(item.get("location"))],
             " | ",
         )
         cards.append(
-            f'<article class="item"><h3>{escape(title)}</h3>'
+            f'<article class="item"><h3>{escape(entry_title)}</h3>'
             f"{_meta_html(meta)}"
             f"{_markdownish_html(_text(item.get('description_markdown')))}</article>"
         )
-    return _html_section("Volunteering", "\n  ".join(cards))
+    return _html_section(title, "\n  ".join(cards))
 
 
-def _publications_html(value: Any) -> str:
+def _publications_html(value: Any, title: str = "Publications") -> str:
     items = [_mapping(item) for item in _items(value)]
     cards = []
     for item in items:
-        title = _text(item.get("title"))
-        if not title:
+        entry_title = _text(item.get("title"))
+        if not entry_title:
             continue
         meta = _join_non_empty(
             [_text(item.get("publisher")), _text(item.get("date"))],
@@ -541,58 +764,58 @@ def _publications_html(value: Any) -> str:
         )
         url = _text(item.get("url"))
         cards.append(
-            f'<article class="item"><h3>{escape(title)}</h3>'
+            f'<article class="item"><h3>{escape(entry_title)}</h3>'
             f"{_meta_html(meta)}"
             f"{f'<p class=\"meta\">{escape(url)}</p>' if url else ''}"
             f"{_markdownish_html(_text(item.get('description_markdown')))}</article>"
         )
-    return _html_section("Publications", "\n  ".join(cards))
+    return _html_section(title, "\n  ".join(cards))
 
 
-def _references_html(value: Any) -> str:
+def _references_html(value: Any, title: str = "References") -> str:
     items = [_mapping(item) for item in _items(value)]
     cards = []
     for item in items:
-        title = _join_non_empty(
+        entry_title = _join_non_empty(
             [
                 _text(item.get("name")),
                 _text(item.get("role")),
                 _text(item.get("company")),
             ]
         )
-        if not title:
+        if not entry_title:
             continue
         contact = _text(item.get("contact"))
         content = _markdownish_html(_text(item.get("description_markdown")))
         cards.append(
-            f'<article class="item"><h3>{escape(title)}</h3>'
+            f'<article class="item"><h3>{escape(entry_title)}</h3>'
             f"{f'<p class=\"meta\">{escape(contact)}</p>' if contact else ''}"
             f"{content}</article>"
         )
-    return _html_section("References", "\n  ".join(cards))
+    return _html_section(title, "\n  ".join(cards))
 
 
 def _custom_sections_html(value: Any) -> str:
     items = [_mapping(item) for item in _items(value)]
     sections = []
     for item in items:
-        title = _text(item.get("title"))
-        if not title:
+        entry_title = _text(item.get("title"))
+        if not entry_title:
             continue
         content = _markdownish_html(_text(item.get("content_markdown")))
         chips = _chips_html(_string_items(item.get("items")))
-        sections.append(_html_section(title, content + chips))
+        sections.append(_html_section(entry_title, content + chips))
     return "\n  ".join(section for section in sections if section)
 
 
-def _docx_profile(blocks: list[dict[str, Any]], content: str) -> None:
+def _docx_profile(blocks: list[dict[str, Any]], content: str, title: str = "Profile") -> None:
     if not content:
         return
-    blocks.append({"style": "Heading1", "text": "Profile"})
+    blocks.append({"style": "Heading1", "text": title})
     _docx_markdownish(blocks, content)
 
 
-def _docx_experience(blocks: list[dict[str, Any]], value: Any) -> None:
+def _docx_experience(blocks: list[dict[str, Any]], value: Any, title: str = "Experience") -> None:
     items = [_mapping(item) for item in _items(value)]
     items = [
         item
@@ -601,7 +824,7 @@ def _docx_experience(blocks: list[dict[str, Any]], value: Any) -> None:
     ]
     if not items:
         return
-    blocks.append({"style": "Heading1", "text": "Experience"})
+    blocks.append({"style": "Heading1", "text": title})
     for item in items:
         heading = _join_non_empty([_text(item.get("role")), _text(item.get("company"))])
         meta = _join_non_empty(
@@ -617,12 +840,12 @@ def _docx_experience(blocks: list[dict[str, Any]], value: Any) -> None:
             blocks.append({"style": "Meta", "text": "Keywords: " + ", ".join(keywords)})
 
 
-def _docx_projects(blocks: list[dict[str, Any]], value: Any) -> None:
+def _docx_projects(blocks: list[dict[str, Any]], value: Any, title: str = "Projects") -> None:
     items = [_mapping(item) for item in _items(value)]
     items = [item for item in items if _text(item.get("name"))]
     if not items:
         return
-    blocks.append({"style": "Heading1", "text": "Projects"})
+    blocks.append({"style": "Heading1", "text": title})
     for item in items:
         blocks.append({"style": "Heading2", "text": _text(item.get("name"))})
         url = _text(item.get("url"))
@@ -634,7 +857,7 @@ def _docx_projects(blocks: list[dict[str, Any]], value: Any) -> None:
             blocks.append({"style": "Meta", "text": "Stack: " + ", ".join(stack)})
 
 
-def _docx_skills(blocks: list[dict[str, Any]], value: Any) -> None:
+def _docx_skills(blocks: list[dict[str, Any]], value: Any, title: str = "Skills") -> None:
     groups = [_mapping(item) for item in _items(value)]
     rows = []
     for item in groups:
@@ -643,12 +866,12 @@ def _docx_skills(blocks: list[dict[str, Any]], value: Any) -> None:
         if category or skills:
             rows.append(f"{category}: {', '.join(skills)}" if skills else category)
     if rows:
-        blocks.append({"style": "Heading1", "text": "Skills"})
+        blocks.append({"style": "Heading1", "text": title})
         for row in rows:
             blocks.append({"style": "Bullet", "text": row})
 
 
-def _docx_education(blocks: list[dict[str, Any]], value: Any) -> None:
+def _docx_education(blocks: list[dict[str, Any]], value: Any, title: str = "Education") -> None:
     items = [_mapping(item) for item in _items(value)]
     items = [
         item
@@ -657,7 +880,7 @@ def _docx_education(blocks: list[dict[str, Any]], value: Any) -> None:
     ]
     if not items:
         return
-    blocks.append({"style": "Heading1", "text": "Education"})
+    blocks.append({"style": "Heading1", "text": title})
     for item in items:
         heading = _join_non_empty(
             [_text(item.get("degree")), _text(item.get("institution"))]
@@ -672,7 +895,7 @@ def _docx_education(blocks: list[dict[str, Any]], value: Any) -> None:
         _docx_markdownish(blocks, _text(item.get("description_markdown")))
 
 
-def _docx_languages(blocks: list[dict[str, Any]], value: Any) -> None:
+def _docx_languages(blocks: list[dict[str, Any]], value: Any, title: str = "Languages") -> None:
     labels = [
         _join_non_empty(
             [_text(item.get("language")), _text(item.get("level"))],
@@ -682,19 +905,19 @@ def _docx_languages(blocks: list[dict[str, Any]], value: Any) -> None:
     ]
     labels = [label for label in labels if label]
     if labels:
-        blocks.append({"style": "Heading1", "text": "Languages"})
+        blocks.append({"style": "Heading1", "text": title})
         for label in labels:
             blocks.append({"style": "Bullet", "text": label})
 
 
-def _docx_hobbies(blocks: list[dict[str, Any]], value: Any) -> None:
+def _docx_hobbies(blocks: list[dict[str, Any]], value: Any, title: str = "Interests") -> None:
     values = [item for item in _items(value) if isinstance(item, str) and item.strip()]
     if values:
-        blocks.append({"style": "Heading1", "text": "Interests"})
+        blocks.append({"style": "Heading1", "text": title})
         blocks.append({"style": "Normal", "text": ", ".join(values)})
 
 
-def _docx_certifications(blocks: list[dict[str, Any]], value: Any) -> None:
+def _docx_certifications(blocks: list[dict[str, Any]], value: Any, title: str = "Certifications") -> None:
     items = [_mapping(item) for item in _items(value)]
     items = [
         item
@@ -703,7 +926,7 @@ def _docx_certifications(blocks: list[dict[str, Any]], value: Any) -> None:
     ]
     if not items:
         return
-    blocks.append({"style": "Heading1", "text": "Certifications"})
+    blocks.append({"style": "Heading1", "text": title})
     for item in items:
         heading = _join_non_empty([_text(item.get("name")), _text(item.get("issuer"))])
         blocks.append({"style": "Heading2", "text": heading or "Certification"})
@@ -714,7 +937,7 @@ def _docx_certifications(blocks: list[dict[str, Any]], value: Any) -> None:
         _docx_markdownish(blocks, _text(item.get("description_markdown")))
 
 
-def _docx_volunteering(blocks: list[dict[str, Any]], value: Any) -> None:
+def _docx_volunteering(blocks: list[dict[str, Any]], value: Any, title: str = "Volunteering") -> None:
     items = [_mapping(item) for item in _items(value)]
     items = [
         item
@@ -723,7 +946,7 @@ def _docx_volunteering(blocks: list[dict[str, Any]], value: Any) -> None:
     ]
     if not items:
         return
-    blocks.append({"style": "Heading1", "text": "Volunteering"})
+    blocks.append({"style": "Heading1", "text": title})
     for item in items:
         heading = _join_non_empty(
             [_text(item.get("role")), _text(item.get("organization"))]
@@ -738,12 +961,12 @@ def _docx_volunteering(blocks: list[dict[str, Any]], value: Any) -> None:
         _docx_markdownish(blocks, _text(item.get("description_markdown")))
 
 
-def _docx_publications(blocks: list[dict[str, Any]], value: Any) -> None:
+def _docx_publications(blocks: list[dict[str, Any]], value: Any, title: str = "Publications") -> None:
     items = [_mapping(item) for item in _items(value)]
     items = [item for item in items if _text(item.get("title"))]
     if not items:
         return
-    blocks.append({"style": "Heading1", "text": "Publications"})
+    blocks.append({"style": "Heading1", "text": title})
     for item in items:
         blocks.append({"style": "Heading2", "text": _text(item.get("title"))})
         meta = _join_non_empty(
@@ -757,7 +980,7 @@ def _docx_publications(blocks: list[dict[str, Any]], value: Any) -> None:
         _docx_markdownish(blocks, _text(item.get("description_markdown")))
 
 
-def _docx_references(blocks: list[dict[str, Any]], value: Any) -> None:
+def _docx_references(blocks: list[dict[str, Any]], value: Any, title: str = "References") -> None:
     items = [_mapping(item) for item in _items(value)]
     items = [
         item
@@ -766,7 +989,7 @@ def _docx_references(blocks: list[dict[str, Any]], value: Any) -> None:
     ]
     if not items:
         return
-    blocks.append({"style": "Heading1", "text": "References"})
+    blocks.append({"style": "Heading1", "text": title})
     for item in items:
         heading = _join_non_empty(
             [
@@ -981,7 +1204,7 @@ def _markdownish_html(content: str) -> str:
     return "\n  ".join(html_parts)
 
 
-def _experience_html(value: Any) -> str:
+def _experience_html(value: Any, title: str = "Experience") -> str:
     items = [_mapping(item) for item in _items(value)]
     cards = []
     for item in items:
@@ -1002,10 +1225,10 @@ def _experience_html(value: Any) -> str:
             f"{_meta_html(meta)}"
             f"{description}{chips}</article>"
         )
-    return _html_section("Experience", "\n  ".join(cards))
+    return _html_section(title, "\n  ".join(cards))
 
 
-def _projects_html(value: Any) -> str:
+def _projects_html(value: Any, title: str = "Projects") -> str:
     items = [_mapping(item) for item in _items(value)]
     cards = []
     for item in items:
@@ -1020,10 +1243,10 @@ def _projects_html(value: Any) -> str:
             f'<article class="item"><h3>{escape(name)}</h3>{link}'
             f"{description}{_chips_html(stack)}</article>"
         )
-    return _html_section("Projects", "\n  ".join(cards))
+    return _html_section(title, "\n  ".join(cards))
 
 
-def _skills_html(value: Any) -> str:
+def _skills_html(value: Any, title: str = "Skills") -> str:
     items = [_mapping(item) for item in _items(value)]
     rows = []
     for item in items:
@@ -1034,10 +1257,10 @@ def _skills_html(value: Any) -> str:
                 f'<p><strong>{escape(category)}:</strong> '
                 f'{escape(", ".join(skills))}</p>'
             )
-    return _html_section("Skills", "\n  ".join(rows))
+    return _html_section(title, "\n  ".join(rows))
 
 
-def _education_html(value: Any) -> str:
+def _education_html(value: Any, title: str = "Education") -> str:
     items = [_mapping(item) for item in _items(value)]
     cards = []
     for item in items:
@@ -1056,21 +1279,21 @@ def _education_html(value: Any) -> str:
             f"{_meta_html(meta)}"
             f"{description}</article>"
         )
-    return _html_section("Education", "\n  ".join(cards))
+    return _html_section(title, "\n  ".join(cards))
 
 
-def _languages_html(value: Any) -> str:
+def _languages_html(value: Any, title: str = "Languages") -> str:
     items = [_mapping(item) for item in _items(value)]
     labels = [
         _join_non_empty([_text(item.get("language")), _text(item.get("level"))], " - ")
         for item in items
     ]
-    return _html_section("Languages", _list_html([label for label in labels if label]))
+    return _html_section(title, _list_html([label for label in labels if label]))
 
 
-def _hobbies_html(value: Any) -> str:
+def _hobbies_html(value: Any, title: str = "Interests") -> str:
     values = [item for item in _items(value) if isinstance(item, str) and item.strip()]
-    return _html_section("Interests", _chips_html(values))
+    return _html_section(title, _chips_html(values))
 
 
 def _string_items(value: Any) -> list[str]:
