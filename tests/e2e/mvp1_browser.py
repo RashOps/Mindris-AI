@@ -14,7 +14,9 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from io import BytesIO
 from pathlib import Path
+from zipfile import ZipFile
 from typing import Any
 
 from playwright.sync_api import Page, expect, sync_playwright
@@ -46,6 +48,26 @@ def request_json(
         detail = exc.read().decode("utf-8", errors="replace")
         raise RuntimeError(f"{method} {path} failed: {exc.code} {detail}") from exc
     return json.loads(body) if body else {}
+
+
+def request_text(base_url: str, path: str, *, api_key: str) -> str:
+    """Fetch a text response using the API key."""
+    request = urllib.request.Request(
+        f"{base_url.rstrip('/')}{path}",
+        headers={"X-API-Key": api_key},
+    )
+    with urllib.request.urlopen(request, timeout=20) as response:
+        return response.read().decode("utf-8")
+
+
+def request_bytes(base_url: str, path: str, *, api_key: str) -> bytes:
+    """Fetch a binary response using the API key."""
+    request = urllib.request.Request(
+        f"{base_url.rstrip('/')}{path}",
+        headers={"X-API-Key": api_key},
+    )
+    with urllib.request.urlopen(request, timeout=20) as response:
+        return response.read()
 
 
 def sample_cv(unique: str) -> dict[str, Any]:
@@ -234,14 +256,65 @@ def run(args: argparse.Namespace) -> None:
         expect(page.get_by_role("button", name="Style")).to_be_visible()
         page.get_by_role("button", name="Style").click()
         expect(page.get_by_label("Style panel")).to_be_visible()
-        page.get_by_role("button", name="Layout").click()
         page.get_by_role("button", name="ATS Strict").click()
-        expect(page.get_by_text("ATS Strict")).to_be_visible()
+        page.get_by_role("button", name="Sections").click()
+        page.get_by_label("Section label experience").fill("Parcours professionnel")
+        page.get_by_label("Toggle section languages").uncheck()
+        page.get_by_label("Move section projects up").click()
+        page.get_by_label("Section placement experience").selectOption("main")
+        page.get_by_label("Section display mode experience").selectOption("timeline")
+        expect(page.get_by_label("Section label experience")).to_have_value(
+            "Parcours professionnel"
+        )
         page.get_by_label("Style panel").get_by_role("button", name="✕").click()
         page.locator(".fixed.inset-0.z-40").wait_for(state="detached", timeout=5_000)
+        expect(page.get_by_role("button", name="Saved")).to_be_visible(timeout=20_000)
 
         assert_download(page, "↓ DOCX", ".docx")
         assert_download(page, "↓ Export", ".pdf")
+
+        resume = request_json(
+            args.api_url,
+            f"/api/v1/resumes/{resume_id}",
+            api_key=args.api_key,
+        )["item"]
+        settings = resume["cvData"]["global_settings"]
+        assert settings["template_id"] == "ats"
+        assert settings["layout"]["columns"] == 1
+        assert settings["layout"]["sidebar_position"] == "none"
+        assert settings["colors"]["monochrome"] is True
+
+        markdown = request_text(
+            args.api_url,
+            f"/api/v1/resumes/{resume_id}/export-markdown",
+            api_key=args.api_key,
+        )
+        html = request_text(
+            args.api_url,
+            f"/api/v1/resumes/{resume_id}/export-html",
+            api_key=args.api_key,
+        )
+        docx = request_bytes(
+            args.api_url,
+            f"/api/v1/resumes/{resume_id}/export-docx",
+            api_key=args.api_key,
+        )
+        with ZipFile(BytesIO(docx)) as package:
+            document = package.read("word/document.xml").decode()
+
+        assert "## Parcours professionnel" in markdown
+        assert "## Projects" in markdown
+        assert "## Languages" not in markdown
+        assert markdown.index("## Projects") < markdown.index("## Parcours professionnel")
+
+        assert "<h2>Parcours professionnel</h2>" in html
+        assert "<h2>Projects</h2>" in html
+        assert "Languages" not in html
+        assert html.index("<h2>Projects</h2>") < html.index("<h2>Parcours professionnel</h2>")
+
+        assert "Parcours professionnel" in document
+        assert "Languages" not in document
+        assert document.index("Projects") < document.index("Parcours professionnel")
 
         page.goto(f"{args.base_url.rstrip('/')}/tools/ats-score")
         expect(page.get_by_text("ATS Score Analyzer")).to_be_visible(timeout=15_000)
