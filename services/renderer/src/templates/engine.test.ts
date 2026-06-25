@@ -124,12 +124,16 @@ describe("generateHtml semantic sections", () => {
     expect(html).toContain("--margin-page-h: 36px;");
     expect(html).toContain("--margin-page-v: 40px;");
     expect(html).toContain("--col-left-width: 100%;");
-    expect(html).toContain("--font-family: 'Merriweather', sans-serif;");
+    expect(html).toContain("--grid-template-columns: 1fr;");
+    expect(html).toContain("--main-column: 1;");
+    expect(html).toContain("--sidebar-column: 1;");
+    expect(html).toContain("--font-family: Merriweather, sans-serif;");
     expect(html).toContain("--heading-font-family: Lato, sans-serif;");
     expect(html).toContain("--font-size-base: 11px;");
     expect(html).toContain("--line-height: 1.35;");
     expect(html).toContain("--primary-color: #0f766e;");
     expect(html).toContain("--text-color: #111827;");
     expect(html).toContain("--header-text-align: center;");
+    expect(html).toContain("grid-template-columns: var(--grid-template-columns, var(--col-left-width) 1fr);");
   });
 });

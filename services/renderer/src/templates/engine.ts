@@ -35,6 +35,11 @@ function buildTokenOverrides(settings?: any): string {
         props.push(`  --sidebar-background: ${colors.sidebar_background};`);
     if (colors.separators)
         props.push(`  --separator-color: ${colors.separators};`);
+    if (colors.monochrome) {
+        props.push(`  --primary-color: ${colors.heading ?? "#111827"};`);
+        props.push(`  --secondary-color: ${colors.text ?? "#475569"};`);
+        props.push(`  --sidebar-background: #ffffff;`);
+    }
 
     const bodyFont = typography.body_font ?? settings.font_family;
     if (bodyFont) {
@@ -46,13 +51,30 @@ function buildTokenOverrides(settings?: any): string {
         props.push(`  --font-size-base: ${typography.base_size ?? settings.font_size};`);
     if (typography.heading_scale)
         props.push(`  --heading-scale: ${typography.heading_scale};`);
+    if (typography.weight)
+        props.push(`  --body-font-weight: ${typography.weight};`);
+    if (typeof typography.titles_uppercase === "boolean") {
+        props.push(
+            `  --section-title-transform: ${typography.titles_uppercase ? "uppercase" : "none"};`,
+        );
+    }
 
     if (typography.line_height ?? settings.line_height)
         props.push(`  --line-height: ${typography.line_height ?? settings.line_height};`);
-    if (typography.date_style)
-        props.push(`  --date-style: ${typography.date_style};`);
-    if (typography.bullet_style)
-        props.push(`  --bullet-style: ${typography.bullet_style};`);
+    if (typography.date_style === "italic")
+        props.push(`  --date-font-style: italic;`);
+    if (typography.date_style === "small")
+        props.push(`  --date-font-size: calc(var(--font-size-base) * 0.78);`);
+    if (typography.date_style === "right") {
+        props.push(`  --date-text-align: right;`);
+        props.push(`  --date-display: block;`);
+    }
+    if (typography.bullet_style === "dash")
+        props.push(`  --description-bullet-indent: 0.8em;`);
+    if (typography.bullet_style === "dots")
+        props.push(`  --description-bullet-indent: 1em;`);
+    if (typography.bullet_style === "icons")
+        props.push(`  --description-bullet-indent: 1.2em;`);
 
     // Spacing — prefer granular tokens, fall back to margin_page
     if (page.margins?.horizontal)
@@ -72,26 +94,41 @@ function buildTokenOverrides(settings?: any): string {
     if (settings.entry_spacing)
         props.push(`  --entry-spacing: ${settings.entry_spacing};`);
 
-    // Layout — column width & swap
-    if (layout.columns === 1) {
+    // Layout — column width & placement
+    const sidebarWidth =
+        layout.sidebar_width ??
+        (settings.col_left_width ? `${settings.col_left_width}%` : "35%");
+    if (layout.columns === 1 || layout.sidebar_position === "none") {
         props.push(`  --col-left-width: 100%;`);
         props.push(`  --grid-template-columns: 1fr;`);
-    } else if (layout.sidebar_width) {
-        props.push(`  --col-left-width: ${layout.sidebar_width};`);
-        props.push(`  --grid-template-columns: 1fr ${layout.sidebar_width};`);
-    } else if (settings.col_left_width) {
-        props.push(`  --col-left-width: ${settings.col_left_width}%;`);
-        props.push(`  --grid-template-columns: ${settings.col_left_width}% 1fr;`);
+        props.push(`  --main-column: 1;`);
+        props.push(`  --sidebar-column: 1;`);
+    } else if (layout.sidebar_position === "left" || settings.col_swap === "true") {
+        props.push(`  --col-left-width: ${sidebarWidth};`);
+        props.push(`  --grid-template-columns: ${sidebarWidth} 1fr;`);
+        props.push(`  --main-column: 2;`);
+        props.push(`  --sidebar-column: 1;`);
+    } else {
+        props.push(`  --col-left-width: ${sidebarWidth};`);
+        props.push(`  --grid-template-columns: 1fr ${sidebarWidth};`);
+        props.push(`  --main-column: 1;`);
+        props.push(`  --sidebar-column: 2;`);
     }
 
     if (layout.header_alignment)
         props.push(`  --header-text-align: ${layout.header_alignment};`);
     if (layout.density)
         props.push(`  --resume-density: ${layout.density};`);
-
-    if (settings.col_swap === "true" || layout.sidebar_position === "left") {
-        props.push(`  --col-order-left: 2;`);
-        props.push(`  --col-order-right: 1;`);
+    if (!settings.entry_spacing) {
+        const densitySpacing =
+            layout.density === "compact"
+                ? "16px"
+                : layout.density === "student"
+                  ? "18px"
+                  : layout.density === "senior"
+                    ? "24px"
+                    : "20px";
+        props.push(`  --entry-spacing: ${densitySpacing};`);
     }
 
     return props.length ? `:host {\n${props.join("\n")}\n}` : "";
