@@ -269,6 +269,7 @@ export interface ResumeDocument {
   cvData: CVData;
   templateId: string;
   locale: 'fr' | 'en';
+  revision?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -491,10 +492,6 @@ const initialCV: CVData = {
   hobbies: ['Informatique', 'Veille Technologique', 'Entrepreneuriat'],
 };
 
-function cloneCVData(data: CVData): CVData {
-  return JSON.parse(JSON.stringify(data)) as CVData;
-}
-
 function createBlankCVData(templateId = 'modern'): CVData {
   return {
     global_settings: {
@@ -524,8 +521,43 @@ function createBlankCVData(templateId = 'modern'): CVData {
   };
 }
 
+export function normalizeCVData(
+  data: Partial<CVData> | undefined,
+  templateId = 'modern',
+): CVData {
+  const blank = createBlankCVData(templateId);
+  const source = data ?? {};
+  const settings = (source.global_settings ?? {}) as Partial<GlobalSettings>;
+  return {
+    global_settings: {
+      ...blank.global_settings,
+      ...settings,
+      template_id: settings.template_id ?? blank.global_settings.template_id,
+    },
+    profile: {
+      ...blank.profile,
+      ...(source.profile ?? {}),
+    },
+    experience: Array.isArray(source.experience) ? source.experience : [],
+    education: Array.isArray(source.education) ? source.education : [],
+    skills: Array.isArray(source.skills) ? source.skills : [],
+    projects: Array.isArray(source.projects) ? source.projects : [],
+    certifications: Array.isArray(source.certifications) ? source.certifications : [],
+    volunteering: Array.isArray(source.volunteering) ? source.volunteering : [],
+    publications: Array.isArray(source.publications) ? source.publications : [],
+    references: Array.isArray(source.references) ? source.references : [],
+    custom_sections: Array.isArray(source.custom_sections) ? source.custom_sections : [],
+    languages: Array.isArray(source.languages) ? source.languages : [],
+    hobbies: Array.isArray(source.hobbies) ? source.hobbies : [],
+  };
+}
+
 function nowIso(): string {
   return new Date().toISOString();
+}
+
+function resumeLocaleFromCVData(cvData: CVData): 'fr' | 'en' {
+  return cvData.global_settings?.locale?.label_language === 'en' ? 'en' : 'fr';
 }
 
 function errorMessage(error: unknown): string {
@@ -537,9 +569,9 @@ function createResumeDocument(name: string, cvData: CVData): ResumeDocument {
   return {
     id: uid(),
     name,
-    cvData: cloneCVData(cvData),
+    cvData: normalizeCVData(cvData),
     templateId: cvData.global_settings.template_id || 'modern',
-    locale: 'fr',
+    locale: resumeLocaleFromCVData(normalizeCVData(cvData)),
     createdAt: timestamp,
     updatedAt: timestamp,
   };
@@ -553,15 +585,17 @@ function syncActiveResume(state: CVStore, cvData: CVData): Pick<CVStore, 'cvData
 
   if (!activeResume) {
     return {
-      cvData,
+      cvData: normalizeCVData(cvData),
       resumes: state.resumes,
     };
   }
 
+  const normalized = normalizeCVData(cvData, activeResume.cvData.global_settings.template_id);
   const updatedResume = {
     ...activeResume,
-    cvData: cloneCVData(cvData),
-    templateId: cvData.global_settings.template_id || activeResume.templateId,
+    cvData: normalized,
+    templateId: normalized.global_settings.template_id || activeResume.templateId,
+    locale: resumeLocaleFromCVData(normalized),
     updatedAt: timestamp,
   };
 
@@ -573,7 +607,7 @@ function syncActiveResume(state: CVStore, cvData: CVData): Pick<CVStore, 'cvData
   });
 
   return {
-    cvData,
+    cvData: normalized,
     resumes: state.resumes.map((resume) =>
       resume.id === state.activeResumeId ? updatedResume : resume
     ),
@@ -720,9 +754,12 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       const activeResume =
         data.items.find((resume) => resume.id === activeId) ?? data.items[0];
       set({
-        resumes: data.items,
+        resumes: data.items.map((resume) => ({
+          ...resume,
+          cvData: normalizeCVData(resume.cvData, resume.templateId),
+        })),
         activeResumeId: activeResume.id,
-        cvData: activeResume.cvData,
+        cvData: normalizeCVData(activeResume.cvData, activeResume.templateId),
         jobInsights: null,
         resumeSaveStatus: 'idle',
         resumeSaveError: null,
@@ -745,9 +782,12 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       }),
     });
     set((state) => ({
-      resumes: [data.item, ...state.resumes],
+      resumes: [
+        { ...data.item, cvData: normalizeCVData(data.item.cvData, data.item.templateId) },
+        ...state.resumes,
+      ],
       activeResumeId: data.item.id,
-      cvData: data.item.cvData,
+      cvData: normalizeCVData(data.item.cvData, data.item.templateId),
       jobInsights: null,
       resumeSaveStatus: 'saved',
       resumeSaveError: null,
@@ -766,9 +806,12 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       }),
     });
     set((state) => ({
-      resumes: [data.item, ...state.resumes],
+      resumes: [
+        { ...data.item, cvData: normalizeCVData(data.item.cvData, data.item.templateId) },
+        ...state.resumes,
+      ],
       activeResumeId: data.item.id,
-      cvData: data.item.cvData,
+      cvData: normalizeCVData(data.item.cvData, data.item.templateId),
       jobInsights: null,
       resumeSaveStatus: 'saved',
       resumeSaveError: null,
@@ -784,9 +827,12 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       { method: 'POST' }
     );
     set((state) => ({
-      resumes: [data.item, ...state.resumes],
+      resumes: [
+        { ...data.item, cvData: normalizeCVData(data.item.cvData, data.item.templateId) },
+        ...state.resumes,
+      ],
       activeResumeId: data.item.id,
-      cvData: data.item.cvData,
+      cvData: normalizeCVData(data.item.cvData, data.item.templateId),
       jobInsights: null,
       resumeSaveStatus: 'saved',
       resumeSaveError: null,
@@ -808,7 +854,7 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       return {
         resumes,
         activeResumeId: activeResume.id,
-        cvData: activeResume.cvData,
+        cvData: normalizeCVData(activeResume.cvData, activeResume.templateId),
         jobInsights: id === current.activeResumeId ? null : current.jobInsights,
         resumeSaveStatus: 'saved',
         resumeSaveError: null,
@@ -833,7 +879,7 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       if (!activeResume) return state;
       return {
         activeResumeId: activeResume.id,
-        cvData: activeResume.cvData,
+        cvData: normalizeCVData(activeResume.cvData, activeResume.templateId),
         jobInsights: null,
       };
     }),
@@ -1283,5 +1329,5 @@ export const useCVStore = create<CVStore>()((set, get) => ({
 
   // ── Full replace ─────────────────────────────────────────────────────────
   replaceCVData: (data) =>
-    set((state) => syncActiveResume(state, { ...state.cvData, ...data })),
+    set((state) => syncActiveResume(state, normalizeCVData({ ...state.cvData, ...data }, state.cvData.global_settings.template_id))),
 }));
