@@ -20,7 +20,7 @@ spec: docs/staging/specs/2026-06-24-cv-customization-studio.md
   acceptance: `cd services/renderer && bun run typecheck && bun run build`
   spec: docs/staging/specs/2026-06-24-cv-customization-studio.md#cv-customization-studio
 
-- [ ] T4: Advanced layout, typography, and color tokens
+- [x] T4: Advanced layout, typography, and color tokens
   goal: Apply A4/Letter, one/two columns, sidebar position/width, density, header alignment, photo flags, font pairing, date/bullet styles, palettes, monochrome mode, and contrast-safe colors.
   files: services/renderer/src/templates/engine.ts, services/renderer/src/templates/styles/*.css, services/api-gateway/schemas.py, tests/test_resumes_api.py
   acceptance: `UV_CACHE_DIR=/tmp/uv-cache uv run --no-sync pytest tests/test_resumes_api.py && cd services/renderer && bun run typecheck`
