@@ -8,10 +8,13 @@ from exporters import (
     resume_to_docx,
     resume_to_html,
     resume_to_markdown,
+    resume_to_latex,
+    resume_to_typst,
     safe_export_filename,
 )
 from fastapi import APIRouter, Depends, HTTPException, Response
 from persistence import (
+    compare_resume_revisions,
     create_resume,
     create_resume_revision,
     dump_json,
@@ -210,6 +213,21 @@ def restore_resume_revision_route(resume_id: int, revision: int, session: Sessio
     return {"status": "success", "item": serialize_resume(session, restored)}
 
 
+@router.get("/{resume_id}/revisions/compare")
+def compare_resume_revisions_route(
+    resume_id: int,
+    base_revision: int,
+    target_revision: int,
+    session: SessionDep,
+) -> dict:
+    """Compare two snapshots for the same resume."""
+    _get_resume(session, resume_id)
+    payload = compare_resume_revisions(session, resume_id, base_revision, target_revision)
+    if not payload:
+        raise HTTPException(status_code=404, detail="Revision not found.")
+    return {"status": "success", "item": payload}
+
+
 @router.get("/{resume_id}/export-markdown")
 def export_resume_markdown(resume_id: int, session: SessionDep) -> Response:
     """Return a resume document Markdown export."""
@@ -220,6 +238,36 @@ def export_resume_markdown(resume_id: int, session: SessionDep) -> Response:
         headers={
             "Content-Disposition": (
                 f'attachment; filename="{safe_export_filename(record.name, "md")}"'
+            )
+        },
+    )
+
+
+@router.get("/{resume_id}/export-latex")
+def export_resume_latex(resume_id: int, session: SessionDep) -> Response:
+    """Return a resume document LaTeX export."""
+    record = _get_resume(session, resume_id)
+    return Response(
+        content=resume_to_latex(record),
+        media_type="application/x-latex; charset=utf-8",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{safe_export_filename(record.name, "tex")}"'
+            )
+        },
+    )
+
+
+@router.get("/{resume_id}/export-typst")
+def export_resume_typst(resume_id: int, session: SessionDep) -> Response:
+    """Return a resume document Typst export."""
+    record = _get_resume(session, resume_id)
+    return Response(
+        content=resume_to_typst(record),
+        media_type="text/typst; charset=utf-8",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{safe_export_filename(record.name, "typ")}"'
             )
         },
     )
