@@ -2,7 +2,24 @@
 
 All notable changes to Mindris AI are documented here.
 
-## Released
+## Unreleased
+
+No unreleased changes.
+
+## v0.1.1 - 2026-06-25
+
+### Added
+
+- FR/EN locale exposure in the builder and backend resume persistence.
+- Community template presets in the backend catalogue and dashboard gallery.
+- Simple resume versioning with snapshot, list, and restore endpoints.
+- Frontend normalization for partial CV payloads to keep advanced sections stable.
+
+### Fixed
+
+- Partial CV imports no longer crash advanced editor sections.
+- Resume locale inference now respects bilingual template presets.
+- Dashboard and style controls keep community templates and locale state aligned with the backend contract.
 
 ## v0.1.0 - 2026-06-24
 
