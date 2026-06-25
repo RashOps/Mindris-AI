@@ -55,3 +55,10 @@
 - [x] **SaaS App Shell :** Unifier dashboard et outils dans une navigation produit unique.
 - [x] **Design system opérationnel :** Tokens, composants et états partagés pour remplacer les styles inline dispersés.
 - [x] **Commandes locales :** Scripts `uv` + `bun` pour réinstaller, configurer et lancer API, renderer et frontend sans Docker.
+
+## 🔵 Phase 8 : CV Customization Studio
+- [ ] **Contrat backend de personnalisation :** Normaliser layout, typographie, couleurs, sections et labels dans le schema CV.
+- [ ] **Renderer configurable :** Appliquer les tokens et la structure de sections depuis le contrat backend.
+- [ ] **Studio UI backend-driven :** Exposer les contrôles avancés sans logique métier côté front.
+- [ ] **Sections avancées :** Certifications, bénévolat, publications, références et sections personnalisées.
+- [ ] **Validation ATS & accessibilité :** Garde-fous de contraste, mode ATS strict et tests E2E de personnalisation.

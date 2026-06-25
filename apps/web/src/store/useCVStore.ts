@@ -5,6 +5,58 @@ import { apiUrl, jsonHeaders } from '@/lib/api';
 // ── Types aligned with cv_schema.json ────────────────────────────────────────
 
 export interface GlobalSettings {
+  schema_version?: string;
+  page?: {
+    format?: "A4" | "Letter";
+    margins?: { horizontal?: string; vertical?: string };
+    page_break_mode?: "auto" | "manual";
+  };
+  layout?: {
+    columns?: 1 | 2;
+    sidebar_position?: "none" | "left" | "right";
+    sidebar_width?: string;
+    density?: "student" | "compact" | "normal" | "senior";
+    header_alignment?: "left" | "center" | "right";
+    photo?: { enabled?: boolean; shape?: "round" | "square" };
+    section_placement?: Record<string, "main" | "sidebar">;
+  };
+  typography?: {
+    body_font?: string;
+    heading_font?: string;
+    base_size?: string;
+    heading_scale?: string;
+    weight?: "regular" | "medium" | "bold";
+    titles_uppercase?: boolean;
+    line_height?: string;
+    date_style?: "normal" | "italic" | "small" | "right";
+    bullet_style?: "bullets" | "dash" | "dots" | "icons";
+  };
+  colors?: {
+    primary?: string;
+    secondary?: string;
+    text?: string;
+    heading?: string;
+    sidebar_background?: string;
+    separators?: string;
+    palette_preset?: "corporate" | "tech" | "minimal" | "creative" | "custom";
+    monochrome?: boolean;
+  };
+  sections?: Array<{
+    id: string;
+    type: string;
+    label: string;
+    visible?: boolean;
+    placement?: "main" | "sidebar";
+    display_mode?: "list" | "timeline" | "cards" | "compact";
+    show_dates?: boolean;
+    show_locations?: boolean;
+    detail_level?: "short" | "normal" | "detailed";
+    icon?: string | null;
+  }>;
+  locale?: {
+    label_language?: "fr" | "en" | "de" | "es";
+    text_direction?: "ltr" | "rtl";
+  };
   // Typography
   font_family:   string;
   font_size:     string;     // e.g. "13px"
@@ -79,6 +131,49 @@ export interface LanguageItem {
   id: string;
   language: string;
   level: string;
+}
+
+export interface CertificationItem {
+  id: string;
+  name: string;
+  issuer: string;
+  date: string;
+  url: string;
+  description_markdown: string;
+}
+
+export interface VolunteeringItem {
+  id: string;
+  organization: string;
+  role: string;
+  period: string;
+  location: string;
+  description_markdown: string;
+}
+
+export interface PublicationItem {
+  id: string;
+  title: string;
+  publisher: string;
+  date: string;
+  url: string;
+  description_markdown: string;
+}
+
+export interface ReferenceItem {
+  id: string;
+  name: string;
+  role: string;
+  company: string;
+  contact: string;
+  description_markdown: string;
+}
+
+export interface CustomSectionItem {
+  id: string;
+  title: string;
+  content_markdown: string;
+  items: string[];
 }
 
 // ── Job Insights (from SSE job_result event) ──────────────────────────────────
@@ -159,6 +254,11 @@ export interface CVData {
   education: EducationItem[];
   skills: SkillGroup[];
   projects: ProjectItem[];
+  certifications: CertificationItem[];
+  volunteering: VolunteeringItem[];
+  publications: PublicationItem[];
+  references: ReferenceItem[];
+  custom_sections: CustomSectionItem[];
   languages: LanguageItem[];
   hobbies: string[];
 }
@@ -169,6 +269,7 @@ export interface ResumeDocument {
   cvData: CVData;
   templateId: string;
   locale: 'fr' | 'en';
+  revision?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -273,6 +374,23 @@ interface CVStore {
   addLanguage: () => void;
   removeLanguage: (id: string) => void;
 
+  // Advanced sections
+  updateCertification: (id: string, data: Partial<CertificationItem>) => void;
+  addCertification: () => void;
+  removeCertification: (id: string) => void;
+  updateVolunteering: (id: string, data: Partial<VolunteeringItem>) => void;
+  addVolunteering: () => void;
+  removeVolunteering: (id: string) => void;
+  updatePublication: (id: string, data: Partial<PublicationItem>) => void;
+  addPublication: () => void;
+  removePublication: (id: string) => void;
+  updateReference: (id: string, data: Partial<ReferenceItem>) => void;
+  addReference: () => void;
+  removeReference: (id: string) => void;
+  updateCustomSection: (id: string, data: Partial<CustomSectionItem>) => void;
+  addCustomSection: () => void;
+  removeCustomSection: (id: string) => void;
+
   // Full replace (used by PDF upload / JSON import)
   replaceCVData: (data: Partial<CVData>) => void;
 }
@@ -353,16 +471,26 @@ const initialCV: CVData = {
       tech_stack: ['LangGraph', 'Playwright', 'Supabase'],
     },
   ],
+  certifications: [
+    {
+      id: uid(),
+      name: 'AWS Certified',
+      issuer: 'Amazon',
+      date: '2025',
+      url: 'https://aws.amazon.com',
+      description_markdown: '- Cloud architecture',
+    },
+  ],
+  volunteering: [],
+  publications: [],
+  references: [],
+  custom_sections: [],
   languages: [
     { id: uid(), language: 'Français', level: 'Natif' },
     { id: uid(), language: 'Anglais', level: 'Full Professional Proficiency' },
   ],
   hobbies: ['Informatique', 'Veille Technologique', 'Entrepreneuriat'],
 };
-
-function cloneCVData(data: CVData): CVData {
-  return JSON.parse(JSON.stringify(data)) as CVData;
-}
 
 function createBlankCVData(templateId = 'modern'): CVData {
   return {
@@ -383,13 +511,53 @@ function createBlankCVData(templateId = 'modern'): CVData {
     education: [],
     skills: [],
     projects: [],
+    certifications: [],
+    volunteering: [],
+    publications: [],
+    references: [],
+    custom_sections: [],
     languages: [],
     hobbies: [],
   };
 }
 
+export function normalizeCVData(
+  data: Partial<CVData> | undefined,
+  templateId = 'modern',
+): CVData {
+  const blank = createBlankCVData(templateId);
+  const source = data ?? {};
+  const settings = (source.global_settings ?? {}) as Partial<GlobalSettings>;
+  return {
+    global_settings: {
+      ...blank.global_settings,
+      ...settings,
+      template_id: settings.template_id ?? blank.global_settings.template_id,
+    },
+    profile: {
+      ...blank.profile,
+      ...(source.profile ?? {}),
+    },
+    experience: Array.isArray(source.experience) ? source.experience : [],
+    education: Array.isArray(source.education) ? source.education : [],
+    skills: Array.isArray(source.skills) ? source.skills : [],
+    projects: Array.isArray(source.projects) ? source.projects : [],
+    certifications: Array.isArray(source.certifications) ? source.certifications : [],
+    volunteering: Array.isArray(source.volunteering) ? source.volunteering : [],
+    publications: Array.isArray(source.publications) ? source.publications : [],
+    references: Array.isArray(source.references) ? source.references : [],
+    custom_sections: Array.isArray(source.custom_sections) ? source.custom_sections : [],
+    languages: Array.isArray(source.languages) ? source.languages : [],
+    hobbies: Array.isArray(source.hobbies) ? source.hobbies : [],
+  };
+}
+
 function nowIso(): string {
   return new Date().toISOString();
+}
+
+function resumeLocaleFromCVData(cvData: CVData): 'fr' | 'en' {
+  return cvData.global_settings?.locale?.label_language === 'en' ? 'en' : 'fr';
 }
 
 function errorMessage(error: unknown): string {
@@ -401,9 +569,9 @@ function createResumeDocument(name: string, cvData: CVData): ResumeDocument {
   return {
     id: uid(),
     name,
-    cvData: cloneCVData(cvData),
+    cvData: normalizeCVData(cvData),
     templateId: cvData.global_settings.template_id || 'modern',
-    locale: 'fr',
+    locale: resumeLocaleFromCVData(normalizeCVData(cvData)),
     createdAt: timestamp,
     updatedAt: timestamp,
   };
@@ -417,15 +585,17 @@ function syncActiveResume(state: CVStore, cvData: CVData): Pick<CVStore, 'cvData
 
   if (!activeResume) {
     return {
-      cvData,
+      cvData: normalizeCVData(cvData),
       resumes: state.resumes,
     };
   }
 
+  const normalized = normalizeCVData(cvData, activeResume.cvData.global_settings.template_id);
   const updatedResume = {
     ...activeResume,
-    cvData: cloneCVData(cvData),
-    templateId: cvData.global_settings.template_id || activeResume.templateId,
+    cvData: normalized,
+    templateId: normalized.global_settings.template_id || activeResume.templateId,
+    locale: resumeLocaleFromCVData(normalized),
     updatedAt: timestamp,
   };
 
@@ -437,7 +607,7 @@ function syncActiveResume(state: CVStore, cvData: CVData): Pick<CVStore, 'cvData
   });
 
   return {
-    cvData,
+    cvData: normalized,
     resumes: state.resumes.map((resume) =>
       resume.id === state.activeResumeId ? updatedResume : resume
     ),
@@ -584,9 +754,12 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       const activeResume =
         data.items.find((resume) => resume.id === activeId) ?? data.items[0];
       set({
-        resumes: data.items,
+        resumes: data.items.map((resume) => ({
+          ...resume,
+          cvData: normalizeCVData(resume.cvData, resume.templateId),
+        })),
         activeResumeId: activeResume.id,
-        cvData: activeResume.cvData,
+        cvData: normalizeCVData(activeResume.cvData, activeResume.templateId),
         jobInsights: null,
         resumeSaveStatus: 'idle',
         resumeSaveError: null,
@@ -609,9 +782,12 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       }),
     });
     set((state) => ({
-      resumes: [data.item, ...state.resumes],
+      resumes: [
+        { ...data.item, cvData: normalizeCVData(data.item.cvData, data.item.templateId) },
+        ...state.resumes,
+      ],
       activeResumeId: data.item.id,
-      cvData: data.item.cvData,
+      cvData: normalizeCVData(data.item.cvData, data.item.templateId),
       jobInsights: null,
       resumeSaveStatus: 'saved',
       resumeSaveError: null,
@@ -630,9 +806,12 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       }),
     });
     set((state) => ({
-      resumes: [data.item, ...state.resumes],
+      resumes: [
+        { ...data.item, cvData: normalizeCVData(data.item.cvData, data.item.templateId) },
+        ...state.resumes,
+      ],
       activeResumeId: data.item.id,
-      cvData: data.item.cvData,
+      cvData: normalizeCVData(data.item.cvData, data.item.templateId),
       jobInsights: null,
       resumeSaveStatus: 'saved',
       resumeSaveError: null,
@@ -648,9 +827,12 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       { method: 'POST' }
     );
     set((state) => ({
-      resumes: [data.item, ...state.resumes],
+      resumes: [
+        { ...data.item, cvData: normalizeCVData(data.item.cvData, data.item.templateId) },
+        ...state.resumes,
+      ],
       activeResumeId: data.item.id,
-      cvData: data.item.cvData,
+      cvData: normalizeCVData(data.item.cvData, data.item.templateId),
       jobInsights: null,
       resumeSaveStatus: 'saved',
       resumeSaveError: null,
@@ -672,7 +854,7 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       return {
         resumes,
         activeResumeId: activeResume.id,
-        cvData: activeResume.cvData,
+        cvData: normalizeCVData(activeResume.cvData, activeResume.templateId),
         jobInsights: id === current.activeResumeId ? null : current.jobInsights,
         resumeSaveStatus: 'saved',
         resumeSaveError: null,
@@ -697,7 +879,7 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       if (!activeResume) return state;
       return {
         activeResumeId: activeResume.id,
-        cvData: activeResume.cvData,
+        cvData: normalizeCVData(activeResume.cvData, activeResume.templateId),
         jobInsights: null,
       };
     }),
@@ -966,7 +1148,186 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       })
     ),
 
+  // ── Advanced sections ────────────────────────────────────────────────────
+  updateCertification: (id, data) =>
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        certifications: state.cvData.certifications.map((item) =>
+          item.id === id ? { ...item, ...data } : item
+        ),
+      })
+    ),
+
+  addCertification: () =>
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        certifications: [
+          ...state.cvData.certifications,
+          {
+            id: uid(),
+            name: 'Nouvelle certification',
+            issuer: 'Organisme',
+            date: '',
+            url: '',
+            description_markdown: '',
+          },
+        ],
+      })
+    ),
+
+  removeCertification: (id) =>
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        certifications: state.cvData.certifications.filter((item) => item.id !== id),
+      })
+    ),
+
+  updateVolunteering: (id, data) =>
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        volunteering: state.cvData.volunteering.map((item) =>
+          item.id === id ? { ...item, ...data } : item
+        ),
+      })
+    ),
+
+  addVolunteering: () =>
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        volunteering: [
+          ...state.cvData.volunteering,
+          {
+            id: uid(),
+            organization: 'Organisation',
+            role: 'Mentor',
+            period: '',
+            location: '',
+            description_markdown: '',
+          },
+        ],
+      })
+    ),
+
+  removeVolunteering: (id) =>
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        volunteering: state.cvData.volunteering.filter((item) => item.id !== id),
+      })
+    ),
+
+  updatePublication: (id, data) =>
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        publications: state.cvData.publications.map((item) =>
+          item.id === id ? { ...item, ...data } : item
+        ),
+      })
+    ),
+
+  addPublication: () =>
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        publications: [
+          ...state.cvData.publications,
+          {
+            id: uid(),
+            title: 'Nouvelle publication',
+            publisher: 'Éditeur',
+            date: '',
+            url: '',
+            description_markdown: '',
+          },
+        ],
+      })
+    ),
+
+  removePublication: (id) =>
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        publications: state.cvData.publications.filter((item) => item.id !== id),
+      })
+    ),
+
+  updateReference: (id, data) =>
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        references: state.cvData.references.map((item) =>
+          item.id === id ? { ...item, ...data } : item
+        ),
+      })
+    ),
+
+  addReference: () =>
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        references: [
+          ...state.cvData.references,
+          {
+            id: uid(),
+            name: 'Référence',
+            role: '',
+            company: '',
+            contact: '',
+            description_markdown: '',
+          },
+        ],
+      })
+    ),
+
+  removeReference: (id) =>
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        references: state.cvData.references.filter((item) => item.id !== id),
+      })
+    ),
+
+  updateCustomSection: (id, data) =>
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        custom_sections: state.cvData.custom_sections.map((item) =>
+          item.id === id ? { ...item, ...data } : item
+        ),
+      })
+    ),
+
+  addCustomSection: () =>
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        custom_sections: [
+          ...state.cvData.custom_sections,
+          {
+            id: uid(),
+            title: 'Nouvelle section',
+            content_markdown: '',
+            items: [],
+          },
+        ],
+      })
+    ),
+
+  removeCustomSection: (id) =>
+    set((state) =>
+      syncActiveResume(state, {
+        ...state.cvData,
+        custom_sections: state.cvData.custom_sections.filter((item) => item.id !== id),
+      })
+    ),
+
   // ── Full replace ─────────────────────────────────────────────────────────
   replaceCVData: (data) =>
-    set((state) => syncActiveResume(state, { ...state.cvData, ...data })),
+    set((state) => syncActiveResume(state, normalizeCVData({ ...state.cvData, ...data }, state.cvData.global_settings.template_id))),
 }));

@@ -4,10 +4,12 @@ export type ResumeTemplate = {
   id: string;
   name: string;
   description: string;
-  status: "ready";
+  status: "ready" | "community";
   category: string;
   accent: string;
   layout: "single" | "two-column";
+  base_template_id?: string | null;
+  author?: string | null;
 };
 
 export async function fetchResumeTemplates(): Promise<ResumeTemplate[]> {

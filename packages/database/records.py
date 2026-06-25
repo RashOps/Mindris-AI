@@ -38,6 +38,25 @@ class ResumeRecord(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
 
 
+class ResumeRevisionRecord(Base):
+    """Snapshot history for a persisted resume document."""
+
+    __tablename__ = "resumerevisionrecord"
+
+    id: Mapped[int | None] = mapped_column(primary_key=True, default=None)
+    resume_id: Mapped[int] = mapped_column(
+        ForeignKey("resumerecord.id"), index=True
+    )
+    revision: Mapped[int] = mapped_column(index=True)
+    name: Mapped[str] = mapped_column(default="Untitled CV")
+    data_json: Mapped[str] = mapped_column(Text)
+    template_id: Mapped[str] = mapped_column(default="modern")
+    locale: Mapped[str] = mapped_column(default="fr")
+    source: Mapped[str] = mapped_column(default="manual")
+    label: Mapped[str | None] = mapped_column(Text, default=None)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+
 class WorkspaceDraftRecord(Base):
     """Backend-owned UI draft used for cross-page workflows."""
 

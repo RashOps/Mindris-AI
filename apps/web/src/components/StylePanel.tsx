@@ -1,92 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useCVStore } from "@/store/useCVStore";
 import type { GlobalSettings } from "@/store/useCVStore";
-import { fetchResumeTemplates, type ResumeTemplate } from "@/lib/templates";
+import {
+  buildTemplateCards,
+  fetchCustomizationCatalogue,
+  normalizeCustomizationCatalogue,
+  resolveCustomizationOptionLists,
+  type CustomizationCatalogue,
+  FALLBACK_CUSTOMIZATION_CATALOGUE,
+} from "@/lib/customization-catalogue";
 
-// ── Options ───────────────────────────────────────────────────────────────────
+const DEFAULT_FONT = "Inter";
 
-const FONTS = [
-  { label: "Inter",            value: "Inter" },
-  { label: "Roboto",           value: "Roboto" },
-  { label: "DM Sans",          value: "DM Sans" },
-  { label: "Playfair Display", value: "Playfair Display" },
-  { label: "Merriweather",     value: "Merriweather" },
-  { label: "IBM Plex Serif",   value: "IBM Plex Serif" },
-];
-
-const PALETTE = [
-  { label: "Blue",    value: "#2563eb" },
-  { label: "Indigo",  value: "#4f46e5" },
-  { label: "Violet",  value: "#7c3aed" },
-  { label: "Rose",    value: "#e11d48" },
-  { label: "Emerald", value: "#059669" },
-  { label: "Slate",   value: "#334155" },
-  { label: "Amber",   value: "#d97706" },
-  { label: "Cyan",    value: "#0891b2" },
-];
-
-const FALLBACK_TEMPLATES: ResumeTemplate[] = [
-  {
-    id: "modern",
-    name: "Modern",
-    description: "2 cols · spacious",
-    status: "ready",
-    category: "tech",
-    accent: "#2563eb",
-    layout: "two-column",
-  },
-  {
-    id: "compact",
-    name: "Compact",
-    description: "1 page · dense",
-    status: "ready",
-    category: "senior",
-    accent: "#0f766e",
-    layout: "two-column",
-  },
-  {
-    id: "ats",
-    name: "ATS Strict",
-    description: "single column · ats-friendly",
-    status: "ready",
-    category: "ats",
-    accent: "#475569",
-    layout: "single",
-  },
-  {
-    id: "student",
-    name: "Student",
-    description: "education first · entry level",
-    status: "ready",
-    category: "student",
-    accent: "#7c3aed",
-    layout: "single",
-  },
-  {
-    id: "creative",
-    name: "Creative",
-    description: "editorial · portfolio-led",
-    status: "ready",
-    category: "creative",
-    accent: "#e11d48",
-    layout: "two-column",
-  },
-];
-
-const DEFAULTS: GlobalSettings = {
-  primary_color:  "#2563eb",
-  font_family:    "Inter",
-  font_size:      "13px",
-  line_height:    "1.5",
-  margin_page:    "48px",
-  margin_h:       "64px",
-  margin_v:       "48px",
-  entry_spacing:  "20px",
-  col_left_width: "65",
-  col_swap:       "false",
-  template_id:    "modern",
+const SECTION_LABELS: Record<string, string> = {
+  profile: "Profil",
+  contact: "Contact",
+  experience: "Expériences",
+  education: "Formation",
+  projects: "Projets",
+  skills: "Compétences",
+  languages: "Langues",
+  certifications: "Certifications",
+  volunteering: "Bénévolat",
+  interests: "Centres d'intérêt",
+  publications: "Publications",
+  references: "Références",
+  custom: "Section personnalisée",
 };
 
 // ── Reusable components ───────────────────────────────────────────────────────
@@ -124,82 +65,238 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+function titleCase(value: string): string {
+  return value
+    .split(/[_-]/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+type SectionDraft = NonNullable<GlobalSettings["sections"]>[number];
+
+function defaultSections(types: string[], placements: string[]): SectionDraft[] {
+  return types.map((type, index) => ({
+    id: type,
+    type,
+    label: SECTION_LABELS[type] ?? titleCase(type),
+    visible: true,
+    placement: (placements[index] === "sidebar" ? "sidebar" : "main") as "main" | "sidebar",
+    display_mode: "list",
+    show_dates: true,
+    show_locations: true,
+    detail_level: "normal",
+    icon: null,
+  }));
+}
+
+function mergeSections(
+  current: GlobalSettings | undefined,
+  catalogue: CustomizationCatalogue,
+): SectionDraft[] {
+  const defaults = defaultSections(catalogue.sections.types, catalogue.sections.placements);
+  const existing = current?.sections ?? [];
+  const byType = new Map(existing.map((section) => [section.type, section]));
+  return defaults.map((section) => ({ ...section, ...byType.get(section.type) }));
+}
+
+function resolveSettings(
+  current: GlobalSettings | undefined,
+  catalogue: CustomizationCatalogue,
+): GlobalSettings {
+  const pageFormat = current?.page?.format ?? "A4";
+  const bodyFont = current?.typography?.body_font ?? current?.font_family ?? DEFAULT_FONT;
+  const headingFont = current?.typography?.heading_font ?? bodyFont;
+  const primaryColor = current?.colors?.primary ?? current?.primary_color ?? "#2563eb";
+  const resolved: GlobalSettings = {
+    schema_version: current?.schema_version ?? catalogue.schemaVersion,
+    page: {
+      format: pageFormat,
+      margins: {
+        horizontal: current?.page?.margins?.horizontal ?? current?.margin_h ?? "64px",
+        vertical: current?.page?.margins?.vertical ?? current?.margin_v ?? "48px",
+      },
+      page_break_mode: current?.page?.page_break_mode ?? "auto",
+    },
+    layout: {
+      columns: current?.layout?.columns ?? (current?.col_swap === "true" ? 2 : 2),
+      sidebar_position:
+        current?.layout?.sidebar_position ??
+        (current?.col_swap === "true" ? "left" : "right"),
+      sidebar_width: current?.layout?.sidebar_width ?? `${current?.col_left_width ?? "35"}%`,
+      density: current?.layout?.density ?? "normal",
+      header_alignment: current?.layout?.header_alignment ?? "left",
+      photo: {
+        enabled: current?.layout?.photo?.enabled ?? false,
+        shape: current?.layout?.photo?.shape ?? "round",
+      },
+      section_placement: current?.layout?.section_placement ?? {},
+    },
+    typography: {
+      body_font: bodyFont,
+      heading_font: headingFont,
+      base_size: current?.typography?.base_size ?? current?.font_size ?? "13px",
+      heading_scale: current?.typography?.heading_scale ?? "1.0",
+      weight: current?.typography?.weight ?? "regular",
+      titles_uppercase: current?.typography?.titles_uppercase ?? true,
+      line_height: current?.typography?.line_height ?? current?.line_height ?? "1.5",
+      date_style: current?.typography?.date_style ?? "normal",
+      bullet_style: current?.typography?.bullet_style ?? "bullets",
+    },
+    colors: {
+      primary: primaryColor,
+      secondary: current?.colors?.secondary ?? "#64748b",
+      text: current?.colors?.text ?? "#334155",
+      heading: current?.colors?.heading ?? "#0f172a",
+      sidebar_background: current?.colors?.sidebar_background ?? "#f8fafc",
+      separators: current?.colors?.separators ?? "#e2e8f0",
+      palette_preset: current?.colors?.palette_preset ?? "tech",
+      monochrome: current?.colors?.monochrome ?? false,
+    },
+    sections: mergeSections(current, catalogue),
+    locale: {
+      label_language: current?.locale?.label_language ?? "fr",
+      text_direction: current?.locale?.text_direction ?? "ltr",
+    },
+    font_family: bodyFont,
+    font_size: current?.font_size ?? "13px",
+    primary_color: primaryColor,
+    line_height: current?.line_height ?? "1.5",
+    margin_page: current?.margin_page ?? "48px",
+    margin_h: current?.margin_h ?? "64px",
+    margin_v: current?.margin_v ?? "48px",
+    entry_spacing: current?.entry_spacing ?? "20px",
+    col_left_width: current?.col_left_width ?? "65",
+    col_swap: current?.col_swap ?? "false",
+    template_id: current?.template_id ?? "modern",
+  };
+  return resolved;
+}
+
 // ── Main Panel ────────────────────────────────────────────────────────────────
 
-type Tab = "design" | "typography" | "spacing" | "layout";
+type Tab = "design" | "typography" | "layout" | "sections";
 
-interface StylePanelProps { open: boolean; onClose: () => void; }
+interface StylePanelProps {
+  open: boolean;
+  onClose: () => void;
+}
 
 export function StylePanel({ open, onClose }: StylePanelProps) {
   const { cvData, setGlobalSettings } = useCVStore();
-  const current = cvData.global_settings ?? DEFAULTS;
-  const gs: GlobalSettings = {
-    primary_color: current.primary_color || DEFAULTS.primary_color,
-    font_family: current.font_family || DEFAULTS.font_family,
-    font_size: current.font_size || DEFAULTS.font_size,
-    line_height: current.line_height || DEFAULTS.line_height,
-    margin_page: current.margin_page || DEFAULTS.margin_page,
-    margin_h: current.margin_h || DEFAULTS.margin_h,
-    margin_v: current.margin_v || DEFAULTS.margin_v,
-    entry_spacing: current.entry_spacing || DEFAULTS.entry_spacing,
-    col_left_width: current.col_left_width || DEFAULTS.col_left_width,
-    col_swap: current.col_swap || DEFAULTS.col_swap,
-    template_id: current.template_id || DEFAULTS.template_id,
-  };
   const [tab, setTab] = useState<Tab>("design");
-  const [templates, setTemplates] = useState<ResumeTemplate[]>(FALLBACK_TEMPLATES);
-
-  const update = (patch: Partial<GlobalSettings>) =>
-    setGlobalSettings({ ...gs, ...patch });
-
-  const fontSize     = parseInt(gs.font_size)     || 13;
-  const lineHeight   = parseFloat(gs.line_height)  || 1.5;
-  const marginH      = parseInt(gs.margin_h)       || 64;
-  const marginV      = parseInt(gs.margin_v)       || 48;
-  const entrySpacing = parseInt(gs.entry_spacing)  || 20;
-  const colWidth     = parseInt(gs.col_left_width) || 65;
-  const readyTemplates = templates.filter((template) => template.status === "ready");
+  const [catalogue, setCatalogue] = useState<CustomizationCatalogue>(
+    FALLBACK_CUSTOMIZATION_CATALOGUE,
+  );
 
   useEffect(() => {
-    void fetchResumeTemplates()
-      .then((items) => {
-        const ready = items.filter((template) => template.status === "ready");
-        if (ready.length > 0) setTemplates(ready);
-      })
-      .catch(() => undefined);
+    void fetchCustomizationCatalogue()
+      .then((next) => setCatalogue(normalizeCustomizationCatalogue(next)))
+      .catch(() => setCatalogue(FALLBACK_CUSTOMIZATION_CATALOGUE));
   }, []);
 
+  const options = useMemo(
+    () => resolveCustomizationOptionLists(catalogue),
+    [catalogue],
+  );
+  const templateCards = useMemo(() => buildTemplateCards(catalogue), [catalogue]);
+  const settings = useMemo(
+    () => resolveSettings(cvData.global_settings, catalogue),
+    [cvData.global_settings, catalogue],
+  );
+  const colorSettings = settings.colors ?? {};
+  const typographySettings = settings.typography ?? {};
+  const layoutSettings = settings.layout ?? {};
+  const pageSettings = settings.page ?? {};
+  const localeSettings = settings.locale ?? {};
+  const resetSettings = useMemo(
+    () => resolveSettings(undefined, catalogue),
+    [catalogue],
+  );
+
+  const update = (patch: Partial<GlobalSettings>) =>
+    setGlobalSettings({ ...settings, ...patch });
+
+  const updateTemplate = (templateId: string) => {
+    const template = catalogue.templates[templateId];
+    const next: GlobalSettings = { ...settings, template_id: templateId };
+    if (template?.enforced?.layout) {
+      next.layout = { ...next.layout, ...template.enforced.layout };
+    }
+    if (template?.enforced?.photo) {
+      next.layout = { ...next.layout, photo: { ...next.layout?.photo, ...template.enforced.photo } };
+    }
+    if (template?.enforced?.colors) {
+      next.colors = { ...next.colors, ...template.enforced.colors };
+    }
+    if (template?.enforced?.typography) {
+      next.typography = { ...next.typography, ...template.enforced.typography };
+    }
+    setGlobalSettings(next);
+  };
+
+  const updateSection = (index: number, patch: Partial<NonNullable<GlobalSettings["sections"]>[number]>) => {
+    const nextSections = settings.sections?.map((section, currentIndex) =>
+      currentIndex === index ? { ...section, ...patch } : section,
+    ) ?? [];
+    update({ sections: nextSections });
+  };
+
+  const moveSection = (index: number, delta: -1 | 1) => {
+    const sections = [...(settings.sections ?? [])];
+    const nextIndex = index + delta;
+    if (nextIndex < 0 || nextIndex >= sections.length) return;
+    const [item] = sections.splice(index, 1);
+    sections.splice(nextIndex, 0, item);
+    update({ sections });
+  };
+
   const TABS: { key: Tab; label: string; icon: string }[] = [
-    { key: "design",     label: "Design",     icon: "" },
-    { key: "typography", label: "Typography",  icon: "Aa" },
-    { key: "spacing",    label: "Spacing",     icon: "⬜" },
-    { key: "layout",     label: "Layout",      icon: "◫" },
+    { key: "design", label: "Design", icon: "" },
+    { key: "typography", label: "Typography", icon: "Aa" },
+    { key: "layout", label: "Layout", icon: "◫" },
+    { key: "sections", label: "Sections", icon: "≡" },
   ];
+
+  const sectionPlacements = options.sectionPlacements;
+  const sectionModes = options.displayModes;
+  const sectionDetails = options.detailLevels;
 
   return (
     <>
       {open && (
-        <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-[3px]" onClick={onClose} />
+        <div
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-[3px]"
+          onClick={onClose}
+        />
       )}
 
       <aside
-        className={`fixed top-0 right-0 h-full z-50 w-80 flex flex-col transition-transform duration-300 ease-in-out
-          ${open ? "translate-x-0" : "translate-x-full"}`}
-        style={{ background: '#ffffff', borderLeft: '1px solid #cbd5e1', boxShadow: '-8px 0 32px rgba(15,23,42,0.18)' }}
+        className={`fixed top-0 right-0 z-50 flex h-full w-[24rem] flex-col transition-transform duration-300 ease-in-out ${
+          open ? "translate-x-0" : "translate-x-full"
+        }`}
+        style={{
+          background: "#ffffff",
+          borderLeft: "1px solid #cbd5e1",
+          boxShadow: "-8px 0 32px rgba(15,23,42,0.18)",
+        }}
         aria-label="Style panel"
       >
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3.5 shrink-0">
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-slate-950" style={{ fontFamily: 'var(--font-space)' }}>Design Studio</h2>
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-5 py-3.5">
+          <div className="min-w-0">
+            <h2 className="truncate text-sm font-semibold text-slate-950">Design Studio</h2>
+            <p className="text-[10px] uppercase tracking-widest text-slate-500">
+              Backend catalogue driven
+            </p>
           </div>
           <button
             onClick={onClose}
             className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-sm text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
-          >✕</button>
+          >
+            ✕
+          </button>
         </div>
 
-        {/* Tabs */}
         <div className="flex shrink-0 border-b border-slate-200">
           {TABS.map((t) => (
             <button
@@ -207,8 +304,8 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
               onClick={() => setTab(t.key)}
               className={`flex flex-1 cursor-pointer flex-col items-center gap-0.5 border-b-2 py-2.5 text-[11px] font-semibold transition-colors ${
                 tab === t.key
-                  ? 'border-violet-600 bg-violet-50 text-violet-700'
-                  : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                  ? "border-violet-600 bg-violet-50 text-violet-700"
+                  : "border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900"
               }`}
             >
               {t.icon && <span className="text-sm leading-none">{t.icon}</span>}
@@ -217,175 +314,724 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
           ))}
         </div>
 
-        {/* Tab content */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
-
-          {/* ── DESIGN tab ────────────────────────────────────────────── */}
+        <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
           {tab === "design" && (
-            <>
-              <section>
-                <SectionLabel>Primary Color</SectionLabel>
-                <div className="grid grid-cols-4 gap-2 mb-3">
-                  {PALETTE.map((c) => (
-                    <button
-                      key={c.value}
-                      title={c.label}
-                      onClick={() => update({ primary_color: c.value })}
-                      className="h-8 rounded-lg transition-all"
-                      style={{
-                        background: c.value,
-                        border: gs.primary_color === c.value
-                          ? '2px solid #0f172a'
-                          : '2px solid transparent',
-                        transform: gs.primary_color === c.value ? 'scale(0.92)' : undefined,
-                        boxShadow: gs.primary_color === c.value ? `0 0 12px ${c.value}80` : undefined,
-                      }}
-                    />
-                  ))}
-                </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color" value={gs.primary_color}
-                    onChange={(e) => update({ primary_color: e.target.value })}
-                    className="h-8 w-8 cursor-pointer rounded-md border border-slate-300 bg-white"
-                    title="Custom color"
-                  />
-                  <input
-                    type="text" value={gs.primary_color}
-                    onChange={(e) => {
-                      if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value))
-                        update({ primary_color: e.target.value });
-                    }}
-                    className="h-8 flex-1 rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-800 shadow-sm focus:outline-none focus:border-slate-500"
-                    style={{ fontFamily: 'var(--font-mono)' }}
-                  />
-                </div>
-              </section>
-
-              <section>
-                <SectionLabel>Font Family</SectionLabel>
-                <div className="space-y-1.5">
-                  {FONTS.map((f) => (
-                    <button
-                      key={f.value}
-                      onClick={() => update({ font_family: f.value })}
-                      className="w-full cursor-pointer rounded-lg px-3 py-2 text-left text-sm transition-all"
-                      style={gs.font_family === f.value
-                        ? { background: '#f5f3ff', border: '1px solid #c4b5fd', color: '#6d28d9', fontWeight: 600 }
-                        : { background: '#fff', border: '1px solid #cbd5e1', color: '#334155' }}
-                    >
-                      <span style={{ fontFamily: `'${f.value}', sans-serif` }}>{f.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </section>
-            </>
-          )}
-
-          {/* ── TYPOGRAPHY tab ────────────────────────────────────────── */}
-          {tab === "typography" && (
-            <>
-              <section>
-                <SectionLabel>Font Size</SectionLabel>
-                <Slider label="Base size" min={9} max={15} value={fontSize} unit="px"
-                  onChange={(v) => update({ font_size: `${v}px` })} />
-              </section>
-              <section>
-                <SectionLabel>Line Height</SectionLabel>
-                <Slider label="Line spacing" min={1.0} max={2.0} step={0.05}
-                  value={lineHeight} unit="x"
-                  onChange={(v) => update({ line_height: String(v.toFixed(2)) })} />
-              </section>
-            </>
-          )}
-
-          {/* ── SPACING tab ────────────────────────────────────────────── */}
-          {tab === "spacing" && (
-            <>
-              <section>
-                <SectionLabel>Horizontal Margin (Left &amp; Right)</SectionLabel>
-                <Slider label="Left &amp; Right" min={16} max={96} value={marginH} unit="px"
-                  onChange={(v) => update({ margin_h: `${v}px` })} />
-              </section>
-              <section>
-                <SectionLabel>Vertical Margin (Top &amp; Bottom)</SectionLabel>
-                <Slider label="Top &amp; Bottom" min={12} max={80} value={marginV} unit="px"
-                  onChange={(v) => update({ margin_v: `${v}px` })} />
-              </section>
-              <section>
-                <SectionLabel>Space Between Entries</SectionLabel>
-                <Slider label="Entry spacing" min={4} max={36} value={entrySpacing} unit="px"
-                  onChange={(v) => update({ entry_spacing: `${v}px` })} />
-              </section>
-            </>
-          )}
-
-          {/* ── LAYOUT tab ────────────────────────────────────────────── */}
-          {tab === "layout" && (
             <>
               <section>
                 <SectionLabel>Template</SectionLabel>
                 <div className="grid grid-cols-2 gap-3">
-                  {readyTemplates.map((t) => (
+                  {templateCards.map((template) => (
                     <button
-                      key={t.id}
-                      onClick={() => update({ template_id: t.id })}
-                      className="flex cursor-pointer flex-col items-center gap-1.5 rounded-lg p-3 text-center transition-all"
-                      style={gs.template_id === t.id
-                        ? { border: '2px solid #7c3aed', background: '#f5f3ff', boxShadow: '0 0 0 3px rgba(124,58,237,0.08)' }
-                        : { border: '2px solid #cbd5e1', background: '#fff' }}
+                      key={template.id}
+                      onClick={() => updateTemplate(template.id)}
+                      aria-label={`Template ${template.label}`}
+                      className="flex cursor-pointer flex-col items-start gap-1 rounded-lg border p-3 text-left transition-all"
+                      style={
+                        settings.template_id === template.id
+                          ? {
+                              border: "2px solid #7c3aed",
+                              background: "#f5f3ff",
+                              boxShadow: "0 0 0 3px rgba(124,58,237,0.08)",
+                            }
+                          : { border: "1px solid #cbd5e1", background: "#fff" }
+                      }
                     >
-                      <span className="text-2xl font-black text-slate-900">{t.layout === "single" ? "1" : "2"}</span>
-                      <span className="text-xs font-semibold" style={{ color: gs.template_id === t.id ? '#6d28d9' : '#334155' }}>
-                        {t.name}
+                      <span className="text-sm font-semibold text-slate-900">
+                        {template.label}
                       </span>
-                      <span className="text-[10px] text-slate-500">{t.category}</span>
+                      <span className="text-[10px] text-slate-500">
+                        {template.compatibleLayouts.join("/")}-col
+                      </span>
                     </button>
                   ))}
                 </div>
               </section>
 
               <section>
-                <SectionLabel>Left Column Width</SectionLabel>
-                <Slider label="Width" min={40} max={75} value={colWidth} unit="%"
-                  onChange={(v) => update({ col_left_width: String(v) })} />
-                <p className="mt-1 text-[10px] text-slate-500">
-                  Right column takes remaining {100 - colWidth}%
-                </p>
+                <SectionLabel>Palette</SectionLabel>
+                  <select
+                  value={colorSettings.palette_preset ?? "tech"}
+                  onChange={(e) =>
+                    update({
+                      colors: {
+                        ...colorSettings,
+                        palette_preset: e.target.value as NonNullable<
+                          GlobalSettings["colors"]
+                        >["palette_preset"],
+                      },
+                    })
+                  }
+                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                >
+                  {options.palettePresets.map((preset) => (
+                    <option key={preset} value={preset}>
+                      {preset}
+                    </option>
+                  ))}
+                </select>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  {options.editableColors.map((token) => (
+                    <label key={token} className="space-y-1">
+                      <span className="text-[10px] uppercase tracking-wider text-slate-500">
+                        {token.replace("_", " ")}
+                      </span>
+                      <input
+                        type="color"
+                        value={(colorSettings as Record<string, string | undefined>)?.[token] ?? "#2563eb"}
+                        onChange={(e) =>
+                          update({
+                            colors: {
+                              ...colorSettings,
+                              [token]: e.target.value,
+                            },
+                          })
+                        }
+                        className="h-9 w-full cursor-pointer rounded-md border border-slate-300 bg-white"
+                      />
+                    </label>
+                  ))}
+                </div>
+                <label className="mt-3 flex items-center justify-between rounded-lg border border-slate-300 bg-white px-3 py-2">
+                  <span className="text-xs font-medium text-slate-700">Monochrome</span>
+                  <input
+                    type="checkbox"
+                    checked={colorSettings.monochrome ?? false}
+                    onChange={(e) =>
+                      update({
+                        colors: {
+                          ...colorSettings,
+                          monochrome: e.target.checked,
+                        },
+                      })
+                    }
+                  />
+                </label>
               </section>
 
               <section>
-                <SectionLabel>Column Order</SectionLabel>
-                <div className="flex items-center justify-between rounded-lg border border-slate-300 bg-white px-4 py-3 shadow-sm">
-                  <div>
-                    <p className="text-xs font-semibold text-slate-900">Swap Columns</p>
-                    <p className="mt-0.5 text-[10px] text-slate-500">
-                      {gs.col_swap === "true" ? "Skills on left, Experience on right" : "Experience on left (default)"}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => update({ col_swap: gs.col_swap === "true" ? "false" : "true" })}
-                    className="relative h-6 w-11 cursor-pointer rounded-full border border-slate-300 transition-colors"
-                    style={{ background: gs.col_swap === "true" ? '#7c3aed' : '#e2e8f0' }}
+                <SectionLabel>Template notes</SectionLabel>
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+                  The backend keeps template compatibility and enforcement. This panel only
+                  sends API state.
+                </div>
+              </section>
+
+              <section>
+                <SectionLabel>Locale</SectionLabel>
+                <div className="grid gap-2">
+                  <select
+                    value={localeSettings.label_language ?? "fr"}
+                    onChange={(e) =>
+                      update({
+                        locale: {
+                          ...localeSettings,
+                          label_language: e.target.value as NonNullable<
+                            GlobalSettings["locale"]
+                          >["label_language"],
+                        },
+                      })
+                    }
+                    className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
                   >
-                    <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
-                      gs.col_swap === "true" ? "translate-x-5" : "translate-x-0.5"
-                    }`} />
-                  </button>
+                    {options.localeLanguages.map((language) => (
+                      <option key={language} value={language}>
+                        {language.toUpperCase()}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={localeSettings.text_direction ?? "ltr"}
+                    onChange={(e) =>
+                      update({
+                        locale: {
+                          ...localeSettings,
+                          text_direction: e.target.value as NonNullable<
+                            GlobalSettings["locale"]
+                          >["text_direction"],
+                        },
+                      })
+                    }
+                    className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                  >
+                    {options.localeDirections.map((direction) => (
+                      <option key={direction} value={direction}>
+                        {direction.toUpperCase()}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </section>
             </>
           )}
 
+          {tab === "typography" && (
+            <>
+              <section>
+                <SectionLabel>Fonts</SectionLabel>
+                <div className="space-y-3">
+                  <select
+                    value={typographySettings.body_font ?? DEFAULT_FONT}
+                    onChange={(e) =>
+                      update({
+                        font_family: e.target.value,
+                        typography: {
+                          ...typographySettings,
+                          body_font: e.target.value,
+                        },
+                      })
+                    }
+                    className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                  >
+                    {options.fonts.map((font) => (
+                      <option key={font} value={font}>
+                        {font}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={typographySettings.heading_font ?? DEFAULT_FONT}
+                    onChange={(e) =>
+                      update({
+                        typography: {
+                          ...typographySettings,
+                          heading_font: e.target.value,
+                        },
+                      })
+                    }
+                    className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                  >
+                    {options.headingFonts.map((font) => (
+                      <option key={font} value={font}>
+                        {font}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </section>
+
+              <section>
+                <SectionLabel>Size</SectionLabel>
+                <Slider
+                  label="Base size"
+                  min={options.baseSize.min}
+                  max={options.baseSize.max}
+                  value={parseInt(typographySettings.base_size ?? settings.font_size ?? "13", 10)}
+                  unit="pt"
+                  onChange={(v) =>
+                    update({
+                      font_size: `${v}px`,
+                      typography: {
+                        ...typographySettings,
+                        base_size: `${v}px`,
+                      },
+                    })
+                  }
+                />
+                <Slider
+                  label="Heading scale"
+                  min={options.headingScale.min}
+                  max={options.headingScale.max}
+                  step={options.headingScale.step ?? 0.05}
+                  value={parseFloat(typographySettings.heading_scale ?? "1")}
+                  unit="x"
+                  onChange={(v) =>
+                    update({
+                      typography: {
+                        ...typographySettings,
+                        heading_scale: String(v.toFixed(2)),
+                      },
+                    })
+                  }
+                />
+              </section>
+
+              <section>
+                <SectionLabel>Behavior</SectionLabel>
+                <div className="grid gap-2">
+                  <select
+                    value={typographySettings.weight ?? "regular"}
+                    onChange={(e) =>
+                      update({
+                        typography: {
+                          ...typographySettings,
+                          weight: e.target.value as NonNullable<
+                            GlobalSettings["typography"]
+                          >["weight"],
+                        },
+                      })
+                    }
+                    className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                  >
+                    {options.weights.map((weight) => (
+                      <option key={weight} value={weight}>
+                        {weight}
+                      </option>
+                    ))}
+                  </select>
+                  <label className="flex items-center justify-between rounded-lg border border-slate-300 bg-white px-3 py-2">
+                    <span className="text-xs font-medium text-slate-700">
+                      Uppercase titles
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={typographySettings.titles_uppercase ?? true}
+                      onChange={(e) =>
+                        update({
+                          typography: {
+                            ...typographySettings,
+                            titles_uppercase: e.target.checked,
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                  <select
+                    value={typographySettings.line_height ?? settings.line_height ?? "1.5"}
+                    onChange={(e) =>
+                      update({
+                        line_height: e.target.value,
+                        typography: {
+                          ...typographySettings,
+                          line_height: e.target.value,
+                        },
+                      })
+                    }
+                    className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                  >
+                    {options.lineHeights.map((lineHeight) => (
+                      <option key={lineHeight} value={lineHeight}>
+                        {lineHeight}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={typographySettings.date_style ?? "normal"}
+                    onChange={(e) =>
+                      update({
+                        typography: {
+                          ...typographySettings,
+                          date_style: e.target.value as NonNullable<
+                            GlobalSettings["typography"]
+                          >["date_style"],
+                        },
+                      })
+                    }
+                    className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                  >
+                    {options.dateStyles.map((style) => (
+                      <option key={style} value={style}>
+                        {style}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={typographySettings.bullet_style ?? "bullets"}
+                    onChange={(e) =>
+                      update({
+                        typography: {
+                          ...typographySettings,
+                          bullet_style: e.target.value as NonNullable<
+                            GlobalSettings["typography"]
+                          >["bullet_style"],
+                        },
+                      })
+                    }
+                    className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                  >
+                    {options.bulletStyles.map((style) => (
+                      <option key={style} value={style}>
+                        {style}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </section>
+            </>
+          )}
+
+          {tab === "layout" && (
+            <>
+              <section>
+                <SectionLabel>Page</SectionLabel>
+                <div className="grid gap-2">
+                  <select
+                    value={pageSettings.format ?? "A4"}
+                    onChange={(e) =>
+                      update({
+                        page: {
+                          ...pageSettings,
+                          format: e.target.value as "A4" | "Letter",
+                        },
+                      })
+                    }
+                    className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                  >
+                    {options.pageFormats.map((format) => (
+                      <option key={format} value={format}>
+                        {format}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={pageSettings.page_break_mode ?? "auto"}
+                    onChange={(e) =>
+                      update({
+                        page: {
+                          ...pageSettings,
+                          page_break_mode: e.target.value as "auto" | "manual",
+                        },
+                      })
+                    }
+                    className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                  >
+                    {options.pageBreakModes.map((mode) => (
+                      <option key={mode} value={mode}>
+                        {mode}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </section>
+
+              <section>
+                <SectionLabel>Margins</SectionLabel>
+                <Slider
+                  label="Horizontal"
+                  min={options.margins.range.min}
+                  max={options.margins.range.max}
+                  value={parseInt(pageSettings.margins?.horizontal ?? settings.margin_h ?? "64", 10)}
+                  unit={options.margins.range.unit}
+                  onChange={(v) =>
+                      update({
+                        margin_h: `${v}px`,
+                        page: {
+                          ...pageSettings,
+                          margins: {
+                          ...pageSettings.margins,
+                            horizontal: `${v}px`,
+                          },
+                        },
+                    })
+                  }
+                />
+                <Slider
+                  label="Vertical"
+                  min={options.margins.range.min}
+                  max={options.margins.range.max}
+                  value={parseInt(pageSettings.margins?.vertical ?? settings.margin_v ?? "48", 10)}
+                  unit={options.margins.range.unit}
+                  onChange={(v) =>
+                      update({
+                        margin_v: `${v}px`,
+                        page: {
+                        ...pageSettings,
+                          margins: {
+                          ...pageSettings.margins,
+                            vertical: `${v}px`,
+                          },
+                        },
+                    })
+                  }
+                />
+                <Slider
+                  label="Entry spacing"
+                  min={4}
+                  max={36}
+                  value={parseInt(settings.entry_spacing ?? "20", 10)}
+                  unit="px"
+                  onChange={(v) => update({ entry_spacing: `${v}px` })}
+                />
+              </section>
+
+              <section>
+                <SectionLabel>Columns</SectionLabel>
+                <div className="grid gap-2">
+                  <select
+                    value={layoutSettings.columns ?? 2}
+                    onChange={(e) =>
+                      update({
+                        layout: {
+                          ...layoutSettings,
+                          columns: Number(e.target.value) as 1 | 2,
+                        },
+                      })
+                    }
+                    className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                  >
+                    {options.columns.map((value) => (
+                      <option key={value} value={value}>
+                        {value} column{value > 1 ? "s" : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={layoutSettings.sidebar_position ?? "right"}
+                    onChange={(e) =>
+                      update({
+                        layout: {
+                          ...layoutSettings,
+                          sidebar_position: e.target.value as "none" | "left" | "right",
+                        },
+                      })
+                    }
+                    className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                  >
+                    {options.sidebarPositions.map((position) => (
+                      <option key={position} value={position}>
+                        {position}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={layoutSettings.density ?? "normal"}
+                    onChange={(e) =>
+                      update({
+                        layout: {
+                          ...layoutSettings,
+                          density: e.target.value as NonNullable<
+                            GlobalSettings["layout"]
+                          >["density"],
+                        },
+                      })
+                    }
+                    className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                  >
+                    {options.densities.map((density) => (
+                      <option key={density} value={density}>
+                        {density}
+                      </option>
+                    ))}
+                  </select>
+                  <Slider
+                    label="Sidebar width"
+                    min={options.sidebarWidthRange.min}
+                    max={options.sidebarWidthRange.max}
+                    value={parseInt(layoutSettings.sidebar_width ?? settings.col_left_width ?? "35", 10)}
+                    unit="%"
+                    onChange={(v) =>
+                      update({
+                        col_left_width: String(v),
+                        layout: {
+                          ...layoutSettings,
+                          sidebar_width: `${v}%`,
+                        },
+                      })
+                    }
+                  />
+                </div>
+              </section>
+
+              <section>
+                <SectionLabel>Header & Photo</SectionLabel>
+                <div className="grid gap-2">
+                  <select
+                    value={layoutSettings.header_alignment ?? "left"}
+                    onChange={(e) =>
+                      update({
+                        layout: {
+                          ...layoutSettings,
+                          header_alignment: e.target.value as NonNullable<
+                            GlobalSettings["layout"]
+                          >["header_alignment"],
+                        },
+                      })
+                    }
+                    className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                  >
+                    {options.headerAlignments.map((alignment) => (
+                      <option key={alignment} value={alignment}>
+                        {alignment}
+                      </option>
+                    ))}
+                  </select>
+                  <label className="flex items-center justify-between rounded-lg border border-slate-300 bg-white px-3 py-2">
+                    <span className="text-xs font-medium text-slate-700">Photo enabled</span>
+                    <input
+                      type="checkbox"
+                      checked={layoutSettings.photo?.enabled ?? false}
+                      onChange={(e) =>
+                        update({
+                          layout: {
+                            ...layoutSettings,
+                            photo: {
+                              ...layoutSettings.photo,
+                              enabled: e.target.checked,
+                            },
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                  <select
+                    value={layoutSettings.photo?.shape ?? "round"}
+                    onChange={(e) =>
+                      update({
+                        layout: {
+                          ...layoutSettings,
+                          photo: {
+                            ...layoutSettings.photo,
+                            shape: e.target.value as "round" | "square",
+                          },
+                        },
+                      })
+                    }
+                    className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                  >
+                    {options.photoShapes.map((shape) => (
+                      <option key={shape} value={shape}>
+                        {shape}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </section>
+            </>
+          )}
+
+          {tab === "sections" && (
+            <>
+              <section>
+                <SectionLabel>Section model</SectionLabel>
+                <div className="space-y-3">
+                  {settings.sections?.map((section, index) => (
+                    <div key={section.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                      <div className="mb-2 flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-slate-900">
+                            {section.label}
+                          </p>
+                          <p className="text-[10px] uppercase tracking-wider text-slate-500">
+                            {section.type}
+                          </p>
+                        </div>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => moveSection(index, -1)}
+                            disabled={index === 0}
+                            aria-label={`Move section ${section.type} up`}
+                            className="rounded border border-slate-300 bg-white px-2 py-1 text-[10px] text-slate-600 disabled:opacity-40"
+                          >
+                            Up
+                          </button>
+                          <button
+                            onClick={() => moveSection(index, 1)}
+                            disabled={index === (settings.sections?.length ?? 0) - 1}
+                            aria-label={`Move section ${section.type} down`}
+                            className="rounded border border-slate-300 bg-white px-2 py-1 text-[10px] text-slate-600 disabled:opacity-40"
+                          >
+                            Down
+                          </button>
+                        </div>
+                      </div>
+                      <div className="grid gap-2">
+                        <input
+                          value={section.label}
+                          onChange={(e) => updateSection(index, { label: e.target.value })}
+                          aria-label={`Section label ${section.type}`}
+                          className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <label className="flex items-center justify-between rounded-lg border border-slate-300 bg-white px-3 py-2">
+                            <span className="text-xs font-medium text-slate-700">Visible</span>
+                            <input
+                              type="checkbox"
+                              checked={section.visible ?? true}
+                              onChange={(e) => updateSection(index, { visible: e.target.checked })}
+                              aria-label={`Toggle section ${section.type}`}
+                            />
+                          </label>
+                          <select
+                            value={section.placement ?? "main"}
+                            onChange={(e) =>
+                              updateSection(index, {
+                                placement: e.target.value as "main" | "sidebar",
+                              })
+                            }
+                            aria-label={`Section placement ${section.type}`}
+                            className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                          >
+                            {sectionPlacements.map((placement) => (
+                              <option key={placement} value={placement}>
+                                {placement}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <select
+                            value={section.display_mode ?? "list"}
+                            onChange={(e) =>
+                              updateSection(index, {
+                                display_mode: e.target.value as NonNullable<
+                                  GlobalSettings["sections"]
+                                >[number]["display_mode"],
+                              })
+                            }
+                            aria-label={`Section display mode ${section.type}`}
+                            className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                          >
+                            {sectionModes.map((mode) => (
+                              <option key={mode} value={mode}>
+                                {mode}
+                              </option>
+                            ))}
+                          </select>
+                          <select
+                            value={section.detail_level ?? "normal"}
+                            onChange={(e) =>
+                              updateSection(index, {
+                                detail_level: e.target.value as NonNullable<
+                                  GlobalSettings["sections"]
+                                >[number]["detail_level"],
+                              })
+                            }
+                            aria-label={`Section detail level ${section.type}`}
+                            className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                          >
+                            {sectionDetails.map((level) => (
+                              <option key={level} value={level}>
+                                {level}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <label className="flex items-center justify-between rounded-lg border border-slate-300 bg-white px-3 py-2">
+                            <span className="text-xs font-medium text-slate-700">Dates</span>
+                            <input
+                              type="checkbox"
+                              checked={section.show_dates ?? true}
+                              onChange={(e) => updateSection(index, { show_dates: e.target.checked })}
+                              aria-label={`Toggle dates ${section.type}`}
+                            />
+                          </label>
+                          <label className="flex items-center justify-between rounded-lg border border-slate-300 bg-white px-3 py-2">
+                            <span className="text-xs font-medium text-slate-700">Locations</span>
+                            <input
+                              type="checkbox"
+                              checked={section.show_locations ?? true}
+                              onChange={(e) =>
+                                updateSection(index, { show_locations: e.target.checked })
+                              }
+                              aria-label={`Toggle locations ${section.type}`}
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </>
+          )}
         </div>
 
-        {/* Footer */}
         <div className="shrink-0 border-t border-slate-200 px-5 py-3">
           <button
-            onClick={() => update(DEFAULTS)}
+            onClick={() => setGlobalSettings({ ...resetSettings, template_id: "modern" })}
             className="w-full cursor-pointer rounded-lg border border-slate-300 bg-white py-2 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
           >
-            Reset to defaults
+            Reset to backend defaults
           </button>
         </div>
       </aside>

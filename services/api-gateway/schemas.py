@@ -2,7 +2,14 @@
 
 from typing import Any, Literal
 
-from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator
+from pydantic import (
+    AnyHttpUrl,
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_validator,
+)
 
 Provider = Literal["ollama", "groq", "gemini", "openai", "mistral"]
 
@@ -113,9 +120,203 @@ class CVSocial(CVBaseModel):
     label: str | None = None
 
 
+def _hex_to_rgb(value: str) -> tuple[int, int, int] | None:
+    if not isinstance(value, str) or len(value) != 7 or not value.startswith("#"):
+        return None
+    try:
+        return (
+            int(value[1:3], 16),
+            int(value[3:5], 16),
+            int(value[5:7], 16),
+        )
+    except ValueError:
+        return None
+
+
+def _relative_luminance(value: str) -> float | None:
+    rgb = _hex_to_rgb(value)
+    if rgb is None:
+        return None
+    channels = []
+    for channel in rgb:
+        normalized = channel / 255
+        channels.append(
+            normalized / 12.92
+            if normalized <= 0.03928
+            else ((normalized + 0.055) / 1.055) ** 2.4
+        )
+    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+
+
+def _contrast_ratio(foreground: str, background: str) -> float | None:
+    fg = _relative_luminance(foreground)
+    bg = _relative_luminance(background)
+    if fg is None or bg is None:
+        return None
+    lighter = max(fg, bg)
+    darker = min(fg, bg)
+    return (lighter + 0.05) / (darker + 0.05)
+
+
+class CVPageMargins(CVBaseModel):
+    """Page margin settings for resume rendering."""
+
+    horizontal: str = "64px"
+    vertical: str = "48px"
+
+
+class CVPageSettings(CVBaseModel):
+    """Page-level customization settings."""
+
+    format: Literal["A4", "Letter"] = "A4"
+    margins: CVPageMargins = Field(default_factory=CVPageMargins)
+    page_break_mode: Literal["auto", "manual"] = "auto"
+
+
+class CVPhotoSettings(CVBaseModel):
+    """Profile photo rendering settings."""
+
+    enabled: bool = False
+    shape: Literal["round", "square"] = "round"
+
+
+class CVLayoutSettings(CVBaseModel):
+    """Layout customization settings."""
+
+    columns: Literal[1, 2] = 2
+    sidebar_position: Literal["none", "left", "right"] = "right"
+    sidebar_width: str = "35%"
+    density: Literal["student", "compact", "normal", "senior"] = "normal"
+    header_alignment: Literal["left", "center", "right"] = "left"
+    photo: CVPhotoSettings = Field(default_factory=CVPhotoSettings)
+    section_placement: dict[
+        str, Literal["main", "sidebar"]
+    ] = Field(default_factory=dict)
+
+
+class CVTypographySettings(CVBaseModel):
+    """Typography customization settings."""
+
+    body_font: str = "Inter"
+    heading_font: str = "Inter"
+    base_size: str = "13px"
+    heading_scale: str = "1.0"
+    weight: Literal["regular", "medium", "bold"] = "regular"
+    titles_uppercase: bool = True
+    line_height: str = "1.5"
+    date_style: Literal["normal", "italic", "small", "right"] = "normal"
+    bullet_style: Literal["bullets", "dash", "dots", "icons"] = "bullets"
+
+
+class CVColorSettings(CVBaseModel):
+    """Color customization settings with contrast guardrails."""
+
+    primary: str = Field(default="#2563eb", pattern=r"^#[0-9a-fA-F]{6}$")
+    secondary: str = Field(default="#64748b", pattern=r"^#[0-9a-fA-F]{6}$")
+    text: str = Field(default="#334155", pattern=r"^#[0-9a-fA-F]{6}$")
+    heading: str = Field(default="#0f172a", pattern=r"^#[0-9a-fA-F]{6}$")
+    sidebar_background: str = Field(default="#f8fafc", pattern=r"^#[0-9a-fA-F]{6}$")
+    separators: str = Field(default="#e2e8f0", pattern=r"^#[0-9a-fA-F]{6}$")
+    palette_preset: Literal["corporate", "tech", "minimal", "creative", "custom"] = (
+        "tech"
+    )
+    monochrome: bool = False
+
+    @model_validator(mode="after")
+    def validate_contrast(self) -> "CVColorSettings":
+        """Ensure body text remains readable on sidebar backgrounds."""
+        ratio = _contrast_ratio(self.text, self.sidebar_background)
+        if ratio is not None and ratio < 4.5:
+            raise ValueError(
+                "Text and sidebar background contrast must be at least 4.5."
+            )
+        return self
+
+
+class CVSectionSettings(CVBaseModel):
+    """Per-section rendering settings."""
+
+    id: str = Field(min_length=1)
+    type: Literal[
+        "profile",
+        "contact",
+        "experience",
+        "education",
+        "projects",
+        "skills",
+        "languages",
+        "certifications",
+        "volunteering",
+        "interests",
+        "publications",
+        "references",
+        "custom",
+    ]
+    label: str = Field(min_length=1)
+    visible: bool = True
+    placement: Literal["main", "sidebar"] = "main"
+    display_mode: Literal["list", "timeline", "cards", "compact"] = "list"
+    show_dates: bool = True
+    show_locations: bool = True
+    detail_level: Literal["short", "normal", "detailed"] = "normal"
+    icon: str | None = None
+
+
+class CVLocaleSettings(CVBaseModel):
+    """Localized label and direction settings."""
+
+    label_language: Literal["fr", "en", "de", "es"] = "fr"
+    text_direction: Literal["ltr", "rtl"] = "ltr"
+
+
+def default_cv_sections() -> list[CVSectionSettings]:
+    """Return the default semantic section order."""
+    return [
+        CVSectionSettings(id="profile", type="profile", label="Profil"),
+        CVSectionSettings(id="experience", type="experience", label="Expériences"),
+        CVSectionSettings(id="projects", type="projects", label="Projets"),
+        CVSectionSettings(
+            id="skills",
+            type="skills",
+            label="Compétences",
+            placement="sidebar",
+            display_mode="compact",
+        ),
+        CVSectionSettings(
+            id="education",
+            type="education",
+            label="Formation",
+            placement="sidebar",
+        ),
+        CVSectionSettings(
+            id="languages",
+            type="languages",
+            label="Langues",
+            placement="sidebar",
+            display_mode="compact",
+        ),
+        CVSectionSettings(
+            id="interests",
+            type="interests",
+            label="Intérêts",
+            placement="sidebar",
+            display_mode="compact",
+        ),
+    ]
+
+
 class CVGlobalSettings(CVBaseModel):
     """Rendering settings stored with the CV data."""
 
+    schema_version: Literal["2"] = "2"
+    page: CVPageSettings = Field(default_factory=CVPageSettings)
+    layout: CVLayoutSettings = Field(default_factory=CVLayoutSettings)
+    typography: CVTypographySettings = Field(default_factory=CVTypographySettings)
+    colors: CVColorSettings = Field(default_factory=CVColorSettings)
+    sections: list[CVSectionSettings] = Field(default_factory=default_cv_sections)
+    locale: CVLocaleSettings = Field(default_factory=CVLocaleSettings)
+
+    # Legacy flat keys are kept for backward compatibility with the MVP1 frontend.
     font_family: str = "Inter"
     font_size: str = "13px"
     primary_color: str = "#2563eb"
@@ -127,6 +328,33 @@ class CVGlobalSettings(CVBaseModel):
     col_left_width: str = "65"
     col_swap: str = "false"
     template_id: str = "modern"
+
+    @model_validator(mode="after")
+    def migrate_legacy_settings(self) -> "CVGlobalSettings":
+        """Mirror legacy flat settings into the versioned customization contract."""
+        self.colors.primary = self.primary_color or self.colors.primary
+        self.typography.body_font = self.font_family or self.typography.body_font
+        self.typography.heading_font = (
+            self.typography.heading_font or self.typography.body_font
+        )
+        self.typography.base_size = self.font_size or self.typography.base_size
+        self.typography.line_height = self.line_height or self.typography.line_height
+        self.page.margins.horizontal = self.margin_h or self.page.margins.horizontal
+        self.page.margins.vertical = self.margin_v or self.page.margins.vertical
+        if self.col_left_width:
+            width = self.col_left_width.strip()
+            self.layout.sidebar_width = width if width.endswith("%") else f"{width}%"
+        if self.col_swap == "true":
+            self.layout.sidebar_position = "right"
+
+        if self.template_id == "ats":
+            self.layout.columns = 1
+            self.layout.sidebar_position = "none"
+            self.layout.photo.enabled = False
+            self.typography.bullet_style = "dash"
+            self.colors.monochrome = True
+
+        return self
 
 
 class CVProfile(CVBaseModel):
@@ -190,6 +418,59 @@ class CVLanguageItem(CVBaseModel):
     level: str = ""
 
 
+class CVCertificationItem(CVBaseModel):
+    """Certification entry."""
+
+    id: str = ""
+    name: str = ""
+    issuer: str = ""
+    date: str = ""
+    url: str = ""
+    description_markdown: str = ""
+
+
+class CVVolunteeringItem(CVBaseModel):
+    """Volunteering entry."""
+
+    id: str = ""
+    organization: str = ""
+    role: str = ""
+    period: str = ""
+    location: str = ""
+    description_markdown: str = ""
+
+
+class CVPublicationItem(CVBaseModel):
+    """Publication entry."""
+
+    id: str = ""
+    title: str = ""
+    publisher: str = ""
+    date: str = ""
+    url: str = ""
+    description_markdown: str = ""
+
+
+class CVReferenceItem(CVBaseModel):
+    """Reference entry."""
+
+    id: str = ""
+    name: str = ""
+    role: str = ""
+    company: str = ""
+    contact: str = ""
+    description_markdown: str = ""
+
+
+class CVCustomSectionItem(CVBaseModel):
+    """Custom section entry."""
+
+    id: str = ""
+    title: str = ""
+    content_markdown: str = ""
+    items: list[str] = Field(default_factory=list)
+
+
 class CVDataModel(CVBaseModel):
     """Validated backend shape for a resume CV payload."""
 
@@ -199,6 +480,11 @@ class CVDataModel(CVBaseModel):
     education: list[CVEducationItem] = Field(default_factory=list)
     skills: list[CVSkillGroup] = Field(default_factory=list)
     projects: list[CVProjectItem] = Field(default_factory=list)
+    certifications: list[CVCertificationItem] = Field(default_factory=list)
+    volunteering: list[CVVolunteeringItem] = Field(default_factory=list)
+    publications: list[CVPublicationItem] = Field(default_factory=list)
+    references: list[CVReferenceItem] = Field(default_factory=list)
+    custom_sections: list[CVCustomSectionItem] = Field(default_factory=list)
     languages: list[CVLanguageItem] = Field(default_factory=list)
     hobbies: list[str] = Field(default_factory=list)
 
@@ -251,10 +537,27 @@ class TemplateCatalogItem(BaseModel):
     id: str = Field(min_length=1)
     name: str = Field(min_length=1)
     description: str
-    status: Literal["ready"] = "ready"
+    status: Literal["ready", "community"] = "ready"
     category: str = "general"
     accent: str = "#2563eb"
     layout: Literal["single", "two-column"] = "two-column"
+    base_template_id: str | None = None
+    author: str | None = None
+    preset_settings: dict[str, Any] = Field(default_factory=dict)
+
+
+class ResumeRevisionItem(BaseModel):
+    """Snapshot entry returned by the resume versioning API."""
+
+    id: str
+    resumeId: str
+    revision: int
+    name: str
+    templateId: str
+    locale: str
+    source: str
+    label: str | None = None
+    createdAt: str
 
 
 class CompanyAnalyzeRequest(LLMRequest):

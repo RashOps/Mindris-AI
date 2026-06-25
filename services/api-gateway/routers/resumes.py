@@ -13,11 +13,16 @@ from exporters import (
 from fastapi import APIRouter, Depends, HTTPException, Response
 from persistence import (
     create_resume,
+    create_resume_revision,
     dump_json,
     load_json,
+    get_resume_revision,
+    list_resume_revisions,
     serialize_resume,
+    serialize_resume_revision,
     update_resume,
 )
+from routers.templates import apply_template_defaults
 from schemas import (
     CVDataModel,
     ResumeCreateRequest,
@@ -66,13 +71,14 @@ def list_resumes(session: SessionDep) -> dict:
     rows = session.exec(
         select(ResumeRecord).order_by(ResumeRecord.updated_at.desc())
     ).all()
-    return {"status": "success", "items": [serialize_resume(row) for row in rows]}
+    return {"status": "success", "items": [serialize_resume(session, row) for row in rows]}
 
 
 @router.post("")
 def create_resume_route(request: ResumeCreateRequest, session: SessionDep) -> dict:
     """Create a new persisted resume."""
     cv_data = request.cv_data.model_dump(mode="json")
+    cv_data = apply_template_defaults(cv_data, request.template_id or _template_id(cv_data))
     record = create_resume(
         session,
         name=request.name,
@@ -81,7 +87,7 @@ def create_resume_route(request: ResumeCreateRequest, session: SessionDep) -> di
         locale=request.locale,
         source=request.source,
     )
-    return {"status": "success", "item": serialize_resume(record)}
+    return {"status": "success", "item": serialize_resume(session, record)}
 
 
 @router.get("/{resume_id}")
@@ -89,7 +95,7 @@ def get_resume_route(resume_id: int, session: SessionDep) -> dict:
     """Return one persisted resume."""
     return {
         "status": "success",
-        "item": serialize_resume(_get_resume(session, resume_id)),
+        "item": serialize_resume(session, _get_resume(session, resume_id)),
     }
 
 
@@ -101,6 +107,8 @@ def update_resume_route(
 ) -> dict:
     """Patch a persisted resume."""
     cv_data = request.cv_data.model_dump(mode="json") if request.cv_data else None
+    if cv_data is not None and request.template_id:
+        cv_data = apply_template_defaults(cv_data, request.template_id)
     record = update_resume(
         session,
         _get_resume(session, resume_id),
@@ -110,7 +118,7 @@ def update_resume_route(
         locale=request.locale,
         source=request.source,
     )
-    return {"status": "success", "item": serialize_resume(record)}
+    return {"status": "success", "item": serialize_resume(session, record)}
 
 
 @router.delete("/{resume_id}")
@@ -135,7 +143,7 @@ def duplicate_resume_route(resume_id: int, session: SessionDep) -> dict:
         locale=source.locale,
         source="duplicate",
     )
-    return {"status": "success", "item": serialize_resume(record)}
+    return {"status": "success", "item": serialize_resume(session, record)}
 
 
 @router.post("/import-json")
@@ -149,7 +157,7 @@ def import_resume_json(request: ResumeImportRequest, session: SessionDep) -> dic
         template_id=_template_id(cv_data),
         source=request.source,
     )
-    return {"status": "success", "item": serialize_resume(record)}
+    return {"status": "success", "item": serialize_resume(session, record)}
 
 
 @router.get("/{resume_id}/export-json")
@@ -157,7 +165,7 @@ def export_resume_json(resume_id: int, session: SessionDep) -> Response:
     """Return a resume document JSON export."""
     record = _get_resume(session, resume_id)
     return Response(
-        content=dump_json(serialize_resume(record)),
+        content=dump_json(serialize_resume(session, record)),
         media_type="application/json",
         headers={
             "Content-Disposition": (
@@ -165,6 +173,41 @@ def export_resume_json(resume_id: int, session: SessionDep) -> Response:
             )
         },
     )
+
+
+@router.get("/{resume_id}/revisions")
+def list_resume_revisions_route(resume_id: int, session: SessionDep) -> dict:
+    """Return all stored revisions for a resume."""
+    _get_resume(session, resume_id)
+    rows = list_resume_revisions(session, resume_id)
+    return {"status": "success", "items": [serialize_resume_revision(row) for row in rows]}
+
+
+@router.post("/{resume_id}/revisions")
+def create_resume_revision_route(resume_id: int, session: SessionDep) -> dict:
+    """Create a manual snapshot for a resume."""
+    record = _get_resume(session, resume_id)
+    revision = create_resume_revision(session, record, label="manual snapshot")
+    return {"status": "success", "item": serialize_resume_revision(revision)}
+
+
+@router.post("/{resume_id}/revisions/{revision}/restore")
+def restore_resume_revision_route(resume_id: int, revision: int, session: SessionDep) -> dict:
+    """Restore a previous resume snapshot."""
+    record = _get_resume(session, resume_id)
+    snapshot = get_resume_revision(session, resume_id, revision)
+    if not snapshot:
+        raise HTTPException(status_code=404, detail="Revision not found.")
+    restored = update_resume(
+        session,
+        record,
+        name=snapshot.name,
+        cv_data=load_json(snapshot.data_json, {}),
+        template_id=snapshot.template_id,
+        locale=snapshot.locale,
+        source="restore",
+    )
+    return {"status": "success", "item": serialize_resume(session, restored)}
 
 
 @router.get("/{resume_id}/export-markdown")
