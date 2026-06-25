@@ -208,6 +208,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
   const typographySettings = settings.typography ?? {};
   const layoutSettings = settings.layout ?? {};
   const pageSettings = settings.page ?? {};
+  const localeSettings = settings.locale ?? {};
   const resetSettings = useMemo(
     () => resolveSettings(undefined, catalogue),
     [catalogue],
@@ -412,6 +413,52 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                 <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
                   The backend keeps template compatibility and enforcement. This panel only
                   sends API state.
+                </div>
+              </section>
+
+              <section>
+                <SectionLabel>Locale</SectionLabel>
+                <div className="grid gap-2">
+                  <select
+                    value={localeSettings.label_language ?? "fr"}
+                    onChange={(e) =>
+                      update({
+                        locale: {
+                          ...localeSettings,
+                          label_language: e.target.value as NonNullable<
+                            GlobalSettings["locale"]
+                          >["label_language"],
+                        },
+                      })
+                    }
+                    className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                  >
+                    {options.localeLanguages.map((language) => (
+                      <option key={language} value={language}>
+                        {language.toUpperCase()}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={localeSettings.text_direction ?? "ltr"}
+                    onChange={(e) =>
+                      update({
+                        locale: {
+                          ...localeSettings,
+                          text_direction: e.target.value as NonNullable<
+                            GlobalSettings["locale"]
+                          >["text_direction"],
+                        },
+                      })
+                    }
+                    className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                  >
+                    {options.localeDirections.map((direction) => (
+                      <option key={direction} value={direction}>
+                        {direction.toUpperCase()}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </section>
             </>
