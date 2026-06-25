@@ -217,6 +217,18 @@ curl -H "X-API-Key: dev-mindris-api-key" \
   http://localhost:8000/api/v1/resumes/1/export-docx
 ```
 
+```bash
+curl -H "X-API-Key: dev-mindris-api-key" \
+  -o resume.tex \
+  http://localhost:8000/api/v1/resumes/1/export-latex
+```
+
+```bash
+curl -H "X-API-Key: dev-mindris-api-key" \
+  -o resume.typ \
+  http://localhost:8000/api/v1/resumes/1/export-typst
+```
+
 Details :
 
 ```text
