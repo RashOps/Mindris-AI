@@ -271,6 +271,8 @@ def run(args: argparse.Namespace) -> None:
         expect(page.get_by_role("button", name="Saved")).to_be_visible(timeout=20_000)
 
         assert_download(page, "↓ DOCX", ".docx")
+        assert_download(page, "↓ TEX", ".tex")
+        assert_download(page, "↓ TYP", ".typ")
         assert_download(page, "↓ Export", ".pdf")
 
         resume = request_json(
