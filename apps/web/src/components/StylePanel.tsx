@@ -323,6 +323,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                     <button
                       key={template.id}
                       onClick={() => updateTemplate(template.id)}
+                      aria-label={`Template ${template.label}`}
                       className="flex cursor-pointer flex-col items-start gap-1 rounded-lg border p-3 text-left transition-all"
                       style={
                         settings.template_id === template.id
@@ -335,7 +336,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                       }
                     >
                       <span className="text-sm font-semibold text-slate-900">
-                        {template.id}
+                        {template.label}
                       </span>
                       <span className="text-[10px] text-slate-500">
                         {template.compatibleLayouts.join("/")}-col
@@ -860,6 +861,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                           <button
                             onClick={() => moveSection(index, -1)}
                             disabled={index === 0}
+                            aria-label={`Move section ${section.type} up`}
                             className="rounded border border-slate-300 bg-white px-2 py-1 text-[10px] text-slate-600 disabled:opacity-40"
                           >
                             Up
@@ -867,6 +869,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                           <button
                             onClick={() => moveSection(index, 1)}
                             disabled={index === (settings.sections?.length ?? 0) - 1}
+                            aria-label={`Move section ${section.type} down`}
                             className="rounded border border-slate-300 bg-white px-2 py-1 text-[10px] text-slate-600 disabled:opacity-40"
                           >
                             Down
@@ -877,6 +880,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                         <input
                           value={section.label}
                           onChange={(e) => updateSection(index, { label: e.target.value })}
+                          aria-label={`Section label ${section.type}`}
                           className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
                         />
                         <div className="grid grid-cols-2 gap-2">
@@ -886,6 +890,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                               type="checkbox"
                               checked={section.visible ?? true}
                               onChange={(e) => updateSection(index, { visible: e.target.checked })}
+                              aria-label={`Toggle section ${section.type}`}
                             />
                           </label>
                           <select
@@ -895,6 +900,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                                 placement: e.target.value as "main" | "sidebar",
                               })
                             }
+                            aria-label={`Section placement ${section.type}`}
                             className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
                           >
                             {sectionPlacements.map((placement) => (
@@ -914,6 +920,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                                 >[number]["display_mode"],
                               })
                             }
+                            aria-label={`Section display mode ${section.type}`}
                             className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
                           >
                             {sectionModes.map((mode) => (
@@ -931,6 +938,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                                 >[number]["detail_level"],
                               })
                             }
+                            aria-label={`Section detail level ${section.type}`}
                             className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
                           >
                             {sectionDetails.map((level) => (
@@ -947,6 +955,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                               type="checkbox"
                               checked={section.show_dates ?? true}
                               onChange={(e) => updateSection(index, { show_dates: e.target.checked })}
+                              aria-label={`Toggle dates ${section.type}`}
                             />
                           </label>
                           <label className="flex items-center justify-between rounded-lg border border-slate-300 bg-white px-3 py-2">
@@ -957,6 +966,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                               onChange={(e) =>
                                 updateSection(index, { show_locations: e.target.checked })
                               }
+                              aria-label={`Toggle locations ${section.type}`}
                             />
                           </label>
                         </div>
