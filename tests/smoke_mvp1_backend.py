@@ -32,7 +32,7 @@ def main() -> None:
     """Run a minimal backend smoke check for MVP1."""
     init_db()
     templates = list_templates()["items"]
-    template_ids = sorted(item["id"] for item in templates)
+    template_ids = sorted(item["id"] for item in templates if item["status"] == "ready")
     expected = ["ats", "compact", "creative", "modern", "student"]
     if template_ids != expected:
         raise SystemExit(f"Unexpected templates: {template_ids}")

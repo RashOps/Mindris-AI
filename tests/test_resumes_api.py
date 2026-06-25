@@ -10,6 +10,7 @@ from fastapi import HTTPException
 from pydantic import ValidationError
 from routers.resumes import (
     create_resume_route,
+    create_resume_revision_route,
     delete_resume_route,
     duplicate_resume_route,
     export_resume_docx,
@@ -18,6 +19,8 @@ from routers.resumes import (
     export_resume_markdown,
     import_resume_json,
     list_resumes,
+    list_resume_revisions_route,
+    restore_resume_revision_route,
     update_resume_route,
 )
 from schemas import (
@@ -249,6 +252,47 @@ def test_resume_import_accepts_resume_document_shape() -> None:
     item = response["item"]
     assert item["name"] == "Imported Resume"
     assert item["templateId"] == "compact"
+
+
+def test_resume_versioning_snapshots_and_restore() -> None:
+    with _session() as session:
+        created = create_resume_route(
+            ResumeCreateRequest(
+                name="Versioned CV",
+                cv_data=_cv_payload("modern"),
+                template_id="modern",
+            ),
+            session,
+        )["item"]
+
+        patched = update_resume_route(
+            int(created["id"]),
+            ResumeUpdateRequest(
+                cv_data={
+                    **_cv_payload("modern"),
+                    "profile": {
+                        **_cv_payload("modern")["profile"],
+                        "title": "Backend Engineer",
+                    },
+                }
+            ),
+            session,
+        )["item"]
+        assert patched["cvData"]["profile"]["title"] == "Backend Engineer"
+
+        snapshot = create_resume_revision_route(int(created["id"]), session)["item"]
+        assert snapshot["revision"] >= 1
+
+        revisions = list_resume_revisions_route(int(created["id"]), session)["items"]
+        assert len(revisions) >= 2
+
+        restored = restore_resume_revision_route(
+            int(created["id"]),
+            int(revisions[-1]["revision"]),
+            session,
+        )["item"]
+        assert restored["id"] == created["id"]
+        assert restored["name"] == revisions[-1]["name"]
 
 
 def test_resume_create_migrates_legacy_global_settings_direct_route() -> None:

@@ -19,6 +19,9 @@ def test_mvp_resume_template_create_update_duplicate_export_flow() -> None:
     ready_template = next(
         item for item in list_templates()["items"] if item["status"] == "ready"
     )
+    community_template = next(
+        item for item in list_templates()["items"] if item["status"] == "community"
+    )
 
     with SessionLocal() as session:
         created = create_resume_route(
@@ -50,3 +53,14 @@ def test_mvp_resume_template_create_update_duplicate_export_flow() -> None:
         assert json.loads(exported.body)["cvData"]["profile"]["title"] == (
             "Backend-owned Resume Builder"
         )
+
+        community = create_resume_route(
+            ResumeCreateRequest(
+                name="Community CV",
+                template_id=community_template["id"],
+                cv_data=_cv_payload(community_template["id"]),
+            ),
+            session,
+        )["item"]
+        assert community["templateId"] == community_template["id"]
+        assert community["locale"] == "en"

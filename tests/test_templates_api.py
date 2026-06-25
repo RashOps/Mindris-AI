@@ -2,13 +2,33 @@
 
 import pytest
 from fastapi import HTTPException
-from routers.templates import get_template, list_customization_catalogue, list_templates
+from routers.templates import (
+    get_template,
+    list_community_templates,
+    list_customization_catalogue,
+    list_templates,
+)
 
 
 def test_template_catalog_lists_ready_templates() -> None:
     items = list_templates()["items"]
     ready_ids = {item["id"] for item in items if item["status"] == "ready"}
     assert {"modern", "compact", "ats", "student", "creative"} <= ready_ids
+    community_ids = {item["id"] for item in items if item["status"] == "community"}
+    assert {"opensource", "bilingual"} <= community_ids
+
+
+def test_template_catalog_exposes_community_listing() -> None:
+    items = list_templates()["items"]
+    community = [item for item in items if item["status"] == "community"]
+    assert len(community) >= 2
+    assert all(item["author"] == "Mindris Community" for item in community)
+
+
+def test_community_template_route_lists_only_community_items() -> None:
+    items = list_community_templates()["items"]
+    assert items
+    assert all(item["status"] == "community" for item in items)
 
 
 def test_template_detail_404_for_unknown_template() -> None:
