@@ -1,12 +1,15 @@
 """Resume template catalogue routes."""
 
+from copy import deepcopy
+from typing import Any
+
 from fastapi import APIRouter, HTTPException
 from schemas import TemplateCatalogItem
 
 router = APIRouter(prefix="/api/v1/templates", tags=["templates"])
 
 
-TEMPLATE_CATALOG = [
+READY_TEMPLATES = [
     TemplateCatalogItem(
         id="modern",
         name="Modern",
@@ -57,6 +60,91 @@ TEMPLATE_CATALOG = [
         layout="two-column",
     ),
 ]
+
+COMMUNITY_TEMPLATES = [
+    TemplateCatalogItem(
+        id="opensource",
+        name="Open Source",
+        description="Community-made template for developers, GitHub links, and OSS contributions.",
+        status="community",
+        category="developer",
+        accent="#0f766e",
+        layout="two-column",
+        base_template_id="modern",
+        author="Mindris Community",
+        preset_settings={
+            "global_settings": {
+                "template_id": "modern",
+                "typography": {"heading_scale": "1.1"},
+                "colors": {"palette_preset": "tech"},
+                "locale": {"label_language": "en"},
+            }
+        },
+    ),
+    TemplateCatalogItem(
+        id="bilingual",
+        name="Bilingual FR/EN",
+        description="Community template tuned for bilingual CVs and international applications.",
+        status="community",
+        category="international",
+        accent="#7c3aed",
+        layout="two-column",
+        base_template_id="compact",
+        author="Mindris Community",
+        preset_settings={
+            "global_settings": {
+                "template_id": "compact",
+                "layout": {"density": "compact"},
+                "locale": {"label_language": "en"},
+            }
+        },
+    ),
+]
+
+TEMPLATE_CATALOG = [*READY_TEMPLATES, *COMMUNITY_TEMPLATES]
+
+
+def _deep_merge(base: Any, patch: Any) -> Any:
+    if isinstance(base, dict) and isinstance(patch, dict):
+        merged = deepcopy(base)
+        for key, value in patch.items():
+            if key in merged:
+                if (
+                    key == "label_language"
+                    and isinstance(merged[key], str)
+                    and isinstance(value, str)
+                    and merged[key] != value
+                    and value == "fr"
+                ):
+                    continue
+                merged[key] = _deep_merge(merged[key], value)
+            else:
+                merged[key] = deepcopy(value)
+        return merged
+    if isinstance(base, list) and isinstance(patch, list):
+        return deepcopy(patch) if patch else deepcopy(base)
+    if isinstance(base, str) and isinstance(patch, str):
+        return deepcopy(patch) if patch.strip() else deepcopy(base)
+    if patch is None:
+        return deepcopy(base)
+    return deepcopy(patch)
+
+
+def resolve_template_defaults(template_id: str) -> dict[str, Any]:
+    """Return the preset settings associated with a template."""
+    for template in TEMPLATE_CATALOG:
+        if template.id == template_id:
+            return template.preset_settings
+    return {}
+
+
+def apply_template_defaults(cv_data: dict[str, Any], template_id: str) -> dict[str, Any]:
+    """Overlay template defaults on top of a CV payload."""
+    defaults = resolve_template_defaults(template_id)
+    if not defaults:
+        return cv_data
+    return _deep_merge(defaults, cv_data)
+
 
 CUSTOMIZATION_CATALOGUE = {
     "schemaVersion": "2",
@@ -157,6 +245,15 @@ def list_templates() -> dict:
     return {
         "status": "success",
         "items": [template.model_dump(mode="json") for template in TEMPLATE_CATALOG],
+    }
+
+
+@router.get("/community")
+def list_community_templates() -> dict:
+    """List community-made resume templates."""
+    return {
+        "status": "success",
+        "items": [template.model_dump(mode="json") for template in COMMUNITY_TEMPLATES],
     }
 
 
