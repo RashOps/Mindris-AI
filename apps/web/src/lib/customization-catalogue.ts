@@ -75,6 +75,7 @@ export type CustomizationCatalogue = {
 
 export type TemplateCard = {
   id: string;
+  label: string;
   compatibleLayouts: number[];
   enforced?: TemplateEnforcement;
 };
@@ -375,6 +376,7 @@ export function resolveCustomizationOptionLists(catalogue: CustomizationCatalogu
 export function buildTemplateCards(catalogue: CustomizationCatalogue): TemplateCard[] {
   return Object.entries(catalogue.templates).map(([id, template]) => ({
     id,
+    label: id === "ats" ? "ATS Strict" : id.charAt(0).toUpperCase() + id.slice(1),
     compatibleLayouts: template.compatibleLayouts,
     enforced: template.enforced,
   }));
