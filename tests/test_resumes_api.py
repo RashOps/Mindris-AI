@@ -46,7 +46,69 @@ def _cv_payload(template_id: str = "modern") -> dict:
         "projects": [],
         "languages": [],
         "hobbies": [],
+        "certifications": [],
+        "volunteering": [],
+        "publications": [],
+        "references": [],
+        "custom_sections": [],
     }
+
+
+def _advanced_cv_payload(template_id: str = "modern") -> dict:
+    payload = _cv_payload(template_id)
+    payload.update(
+        {
+            "certifications": [
+                {
+                    "id": "cert-1",
+                    "name": "AWS Certified",
+                    "issuer": "Amazon",
+                    "date": "2025",
+                    "url": "https://example.com/cert",
+                    "description_markdown": "- Cloud architecture",
+                }
+            ],
+            "volunteering": [
+                {
+                    "id": "vol-1",
+                    "organization": "Open Source Org",
+                    "role": "Mentor",
+                    "period": "2024",
+                    "location": "Remote",
+                    "description_markdown": "- Supported contributors",
+                }
+            ],
+            "publications": [
+                {
+                    "id": "pub-1",
+                    "title": "Open Resume Formats",
+                    "publisher": "Mindris Press",
+                    "date": "2023",
+                    "url": "https://example.com/paper",
+                    "description_markdown": "- Semantics first",
+                }
+            ],
+            "references": [
+                {
+                    "id": "ref-1",
+                    "name": "Grace Hopper",
+                    "role": "Engineering Manager",
+                    "company": "Navy",
+                    "contact": "grace@example.com",
+                    "description_markdown": "- Available on request",
+                }
+            ],
+            "custom_sections": [
+                {
+                    "id": "custom-1",
+                    "title": "Awards",
+                    "content_markdown": "- Best OSS tool\n- Speaker",
+                    "items": ["Hackathon winner", "Conference speaker"],
+                }
+            ],
+        }
+    )
+    return payload
 
 
 def _session():
@@ -119,6 +181,57 @@ def test_resume_crud_duplicate_and_export() -> None:
 
         deleted = delete_resume_route(int(duplicate["id"]), session)
         assert deleted["status"] == "success"
+
+
+def test_resume_exports_include_advanced_sections() -> None:
+    with _session() as session:
+        resume = create_resume_route(
+            ResumeCreateRequest(
+                name="Advanced CV",
+                cv_data=_advanced_cv_payload(),
+                template_id="modern",
+            ),
+            session,
+        )["item"]
+
+        markdown = export_resume_markdown(int(resume["id"]), session).body.decode()
+        html = export_resume_html(int(resume["id"]), session).body.decode()
+        docx = export_resume_docx(int(resume["id"]), session)
+
+        assert "## Certifications" in markdown
+        assert "## Volunteering" in markdown
+        assert "## Publications" in markdown
+        assert "## References" in markdown
+        assert "## Awards" in markdown
+        assert "AWS Certified" in markdown
+        assert "Open Source Org" in markdown
+        assert "Open Resume Formats" in markdown
+        assert "Grace Hopper" in markdown
+        assert "Hackathon winner" in markdown
+
+        assert "<h2>Certifications</h2>" in html
+        assert "<h2>Volunteering</h2>" in html
+        assert "<h2>Publications</h2>" in html
+        assert "<h2>References</h2>" in html
+        assert "<h2>Awards</h2>" in html
+        assert "AWS Certified" in html
+        assert "Open Source Org" in html
+        assert "Open Resume Formats" in html
+        assert "Grace Hopper" in html
+        assert "Hackathon winner" in html
+
+        with ZipFile(io.BytesIO(docx.body)) as package:
+            document = package.read("word/document.xml").decode()
+            assert "Certifications" in document
+            assert "Volunteering" in document
+            assert "Publications" in document
+            assert "References" in document
+            assert "Awards" in document
+            assert "AWS Certified" in document
+            assert "Open Source Org" in document
+            assert "Open Resume Formats" in document
+            assert "Grace Hopper" in document
+            assert "Hackathon winner" in document
 
 
 def test_resume_import_accepts_resume_document_shape() -> None:
