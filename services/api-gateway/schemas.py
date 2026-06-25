@@ -418,6 +418,59 @@ class CVLanguageItem(CVBaseModel):
     level: str = ""
 
 
+class CVCertificationItem(CVBaseModel):
+    """Certification entry."""
+
+    id: str = ""
+    name: str = ""
+    issuer: str = ""
+    date: str = ""
+    url: str = ""
+    description_markdown: str = ""
+
+
+class CVVolunteeringItem(CVBaseModel):
+    """Volunteering entry."""
+
+    id: str = ""
+    organization: str = ""
+    role: str = ""
+    period: str = ""
+    location: str = ""
+    description_markdown: str = ""
+
+
+class CVPublicationItem(CVBaseModel):
+    """Publication entry."""
+
+    id: str = ""
+    title: str = ""
+    publisher: str = ""
+    date: str = ""
+    url: str = ""
+    description_markdown: str = ""
+
+
+class CVReferenceItem(CVBaseModel):
+    """Reference entry."""
+
+    id: str = ""
+    name: str = ""
+    role: str = ""
+    company: str = ""
+    contact: str = ""
+    description_markdown: str = ""
+
+
+class CVCustomSectionItem(CVBaseModel):
+    """Custom section entry."""
+
+    id: str = ""
+    title: str = ""
+    content_markdown: str = ""
+    items: list[str] = Field(default_factory=list)
+
+
 class CVDataModel(CVBaseModel):
     """Validated backend shape for a resume CV payload."""
 
@@ -427,6 +480,11 @@ class CVDataModel(CVBaseModel):
     education: list[CVEducationItem] = Field(default_factory=list)
     skills: list[CVSkillGroup] = Field(default_factory=list)
     projects: list[CVProjectItem] = Field(default_factory=list)
+    certifications: list[CVCertificationItem] = Field(default_factory=list)
+    volunteering: list[CVVolunteeringItem] = Field(default_factory=list)
+    publications: list[CVPublicationItem] = Field(default_factory=list)
+    references: list[CVReferenceItem] = Field(default_factory=list)
+    custom_sections: list[CVCustomSectionItem] = Field(default_factory=list)
     languages: list[CVLanguageItem] = Field(default_factory=list)
     hobbies: list[str] = Field(default_factory=list)
 

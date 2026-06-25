@@ -38,6 +38,11 @@ def resume_to_markdown(record: ResumeRecord) -> str:
     _append_markdown_section(lines, "Profile", _text(profile.get("text_markdown")))
     _append_experience(lines, cv_data.get("experience"))
     _append_projects(lines, cv_data.get("projects"))
+    _append_certifications(lines, cv_data.get("certifications"))
+    _append_volunteering(lines, cv_data.get("volunteering"))
+    _append_publications(lines, cv_data.get("publications"))
+    _append_references(lines, cv_data.get("references"))
+    _append_custom_sections(lines, cv_data.get("custom_sections"))
     _append_skills(lines, cv_data.get("skills"))
     _append_education(lines, cv_data.get("education"))
     _append_languages(lines, cv_data.get("languages"))
@@ -59,6 +64,11 @@ def resume_to_html(record: ResumeRecord) -> str:
         _html_section("Profile", profile_html),
         _experience_html(cv_data.get("experience")),
         _projects_html(cv_data.get("projects")),
+        _certifications_html(cv_data.get("certifications")),
+        _volunteering_html(cv_data.get("volunteering")),
+        _publications_html(cv_data.get("publications")),
+        _references_html(cv_data.get("references")),
+        _custom_sections_html(cv_data.get("custom_sections")),
         _skills_html(cv_data.get("skills")),
         _education_html(cv_data.get("education")),
         _languages_html(cv_data.get("languages")),
@@ -172,6 +182,11 @@ def resume_to_docx(record: ResumeRecord) -> bytes:
     _docx_profile(blocks, _text(profile.get("text_markdown")))
     _docx_experience(blocks, cv_data.get("experience"))
     _docx_projects(blocks, cv_data.get("projects"))
+    _docx_certifications(blocks, cv_data.get("certifications"))
+    _docx_volunteering(blocks, cv_data.get("volunteering"))
+    _docx_publications(blocks, cv_data.get("publications"))
+    _docx_references(blocks, cv_data.get("references"))
+    _docx_custom_sections(blocks, cv_data.get("custom_sections"))
     _docx_skills(blocks, cv_data.get("skills"))
     _docx_education(blocks, cv_data.get("education"))
     _docx_languages(blocks, cv_data.get("languages"))
@@ -294,6 +309,122 @@ def _append_projects(lines: list[str], value: Any) -> None:
             lines.append("Stack: " + ", ".join(stack))
 
 
+def _append_certifications(lines: list[str], value: Any) -> None:
+    items = [_mapping(item) for item in _items(value)]
+    items = [
+        item
+        for item in items
+        if _text(item.get("name")) or _text(item.get("issuer"))
+    ]
+    if not items:
+        return
+    lines.extend(["", "## Certifications"])
+    for item in items:
+        heading = _join_non_empty([_text(item.get("name")), _text(item.get("issuer"))])
+        meta = _text(item.get("date"))
+        lines.extend(["", f"### {heading or 'Certification'}"])
+        if meta:
+            lines.append(f"*{meta}*")
+        url = _text(item.get("url"))
+        if url:
+            lines.append(url)
+        description = _text(item.get("description_markdown"))
+        if description:
+            lines.extend(["", description])
+
+
+def _append_volunteering(lines: list[str], value: Any) -> None:
+    items = [_mapping(item) for item in _items(value)]
+    items = [
+        item
+        for item in items
+        if _text(item.get("organization")) or _text(item.get("role"))
+    ]
+    if not items:
+        return
+    lines.extend(["", "## Volunteering"])
+    for item in items:
+        heading = _join_non_empty(
+            [_text(item.get("role")), _text(item.get("organization"))]
+        )
+        meta = _join_non_empty(
+            [_text(item.get("period")), _text(item.get("location"))],
+            " | ",
+        )
+        lines.extend(["", f"### {heading or 'Volunteering'}"])
+        if meta:
+            lines.append(f"*{meta}*")
+        description = _text(item.get("description_markdown"))
+        if description:
+            lines.extend(["", description])
+
+
+def _append_publications(lines: list[str], value: Any) -> None:
+    items = [_mapping(item) for item in _items(value)]
+    items = [item for item in items if _text(item.get("title"))]
+    if not items:
+        return
+    lines.extend(["", "## Publications"])
+    for item in items:
+        lines.extend(["", f"### {_text(item.get('title'))}"])
+        meta = _join_non_empty(
+            [_text(item.get("publisher")), _text(item.get("date"))],
+            " | ",
+        )
+        if meta:
+            lines.append(f"*{meta}*")
+        url = _text(item.get("url"))
+        if url:
+            lines.append(url)
+        description = _text(item.get("description_markdown"))
+        if description:
+            lines.extend(["", description])
+
+
+def _append_references(lines: list[str], value: Any) -> None:
+    items = [_mapping(item) for item in _items(value)]
+    items = [
+        item
+        for item in items
+        if _text(item.get("name")) or _text(item.get("company"))
+    ]
+    if not items:
+        return
+    lines.extend(["", "## References"])
+    for item in items:
+        heading = _join_non_empty(
+            [
+                _text(item.get("name")),
+                _text(item.get("role")),
+                _text(item.get("company")),
+            ]
+        )
+        lines.extend(["", f"### {heading or 'Reference'}"])
+        contact = _text(item.get("contact"))
+        if contact:
+            lines.append(contact)
+        description = _text(item.get("description_markdown"))
+        if description:
+            lines.extend(["", description])
+
+
+def _append_custom_sections(lines: list[str], value: Any) -> None:
+    items = [_mapping(item) for item in _items(value)]
+    items = [item for item in items if _text(item.get("title"))]
+    if not items:
+        return
+    for item in items:
+        title = _text(item.get("title"))
+        lines.extend(["", f"## {title}"])
+        content = _text(item.get("content_markdown"))
+        if content:
+            lines.extend(["", content])
+        bullets = _string_items(item.get("items"))
+        if bullets:
+            lines.append("")
+            lines.extend([f"- {bullet}" for bullet in bullets])
+
+
 def _append_skills(lines: list[str], value: Any) -> None:
     items = [_mapping(item) for item in _items(value)]
     groups = [
@@ -353,6 +484,105 @@ def _append_hobbies(lines: list[str], value: Any) -> None:
     values = [item for item in _items(value) if isinstance(item, str) and item.strip()]
     if values:
         lines.extend(["", "## Interests", ", ".join(values)])
+
+
+def _certifications_html(value: Any) -> str:
+    items = [_mapping(item) for item in _items(value)]
+    cards = []
+    for item in items:
+        name = _text(item.get("name"))
+        issuer = _text(item.get("issuer"))
+        if not name and not issuer:
+            continue
+        title = _join_non_empty([name, issuer])
+        meta = _text(item.get("date"))
+        body = _markdownish_html(_text(item.get("description_markdown")))
+        url = _text(item.get("url"))
+        cards.append(
+            f'<article class="item"><h3>{escape(title or "Certification")}</h3>'
+            f"{_meta_html(meta)}"
+            f"{f'<p class=\"meta\">{escape(url)}</p>' if url else ''}"
+            f"{body}</article>"
+        )
+    return _html_section("Certifications", "\n  ".join(cards))
+
+
+def _volunteering_html(value: Any) -> str:
+    items = [_mapping(item) for item in _items(value)]
+    cards = []
+    for item in items:
+        title = _join_non_empty(
+            [_text(item.get("role")), _text(item.get("organization"))]
+        )
+        if not title:
+            continue
+        meta = _join_non_empty(
+            [_text(item.get("period")), _text(item.get("location"))],
+            " | ",
+        )
+        cards.append(
+            f'<article class="item"><h3>{escape(title)}</h3>'
+            f"{_meta_html(meta)}"
+            f"{_markdownish_html(_text(item.get('description_markdown')))}</article>"
+        )
+    return _html_section("Volunteering", "\n  ".join(cards))
+
+
+def _publications_html(value: Any) -> str:
+    items = [_mapping(item) for item in _items(value)]
+    cards = []
+    for item in items:
+        title = _text(item.get("title"))
+        if not title:
+            continue
+        meta = _join_non_empty(
+            [_text(item.get("publisher")), _text(item.get("date"))],
+            " | ",
+        )
+        url = _text(item.get("url"))
+        cards.append(
+            f'<article class="item"><h3>{escape(title)}</h3>'
+            f"{_meta_html(meta)}"
+            f"{f'<p class=\"meta\">{escape(url)}</p>' if url else ''}"
+            f"{_markdownish_html(_text(item.get('description_markdown')))}</article>"
+        )
+    return _html_section("Publications", "\n  ".join(cards))
+
+
+def _references_html(value: Any) -> str:
+    items = [_mapping(item) for item in _items(value)]
+    cards = []
+    for item in items:
+        title = _join_non_empty(
+            [
+                _text(item.get("name")),
+                _text(item.get("role")),
+                _text(item.get("company")),
+            ]
+        )
+        if not title:
+            continue
+        contact = _text(item.get("contact"))
+        content = _markdownish_html(_text(item.get("description_markdown")))
+        cards.append(
+            f'<article class="item"><h3>{escape(title)}</h3>'
+            f"{f'<p class=\"meta\">{escape(contact)}</p>' if contact else ''}"
+            f"{content}</article>"
+        )
+    return _html_section("References", "\n  ".join(cards))
+
+
+def _custom_sections_html(value: Any) -> str:
+    items = [_mapping(item) for item in _items(value)]
+    sections = []
+    for item in items:
+        title = _text(item.get("title"))
+        if not title:
+            continue
+        content = _markdownish_html(_text(item.get("content_markdown")))
+        chips = _chips_html(_string_items(item.get("items")))
+        sections.append(_html_section(title, content + chips))
+    return "\n  ".join(section for section in sections if section)
 
 
 def _docx_profile(blocks: list[dict[str, Any]], content: str) -> None:
@@ -462,6 +692,108 @@ def _docx_hobbies(blocks: list[dict[str, Any]], value: Any) -> None:
     if values:
         blocks.append({"style": "Heading1", "text": "Interests"})
         blocks.append({"style": "Normal", "text": ", ".join(values)})
+
+
+def _docx_certifications(blocks: list[dict[str, Any]], value: Any) -> None:
+    items = [_mapping(item) for item in _items(value)]
+    items = [
+        item
+        for item in items
+        if _text(item.get("name")) or _text(item.get("issuer"))
+    ]
+    if not items:
+        return
+    blocks.append({"style": "Heading1", "text": "Certifications"})
+    for item in items:
+        heading = _join_non_empty([_text(item.get("name")), _text(item.get("issuer"))])
+        blocks.append({"style": "Heading2", "text": heading or "Certification"})
+        if _text(item.get("date")):
+            blocks.append({"style": "Meta", "text": _text(item.get("date"))})
+        if _text(item.get("url")):
+            blocks.append({"style": "Meta", "text": _text(item.get("url"))})
+        _docx_markdownish(blocks, _text(item.get("description_markdown")))
+
+
+def _docx_volunteering(blocks: list[dict[str, Any]], value: Any) -> None:
+    items = [_mapping(item) for item in _items(value)]
+    items = [
+        item
+        for item in items
+        if _text(item.get("organization")) or _text(item.get("role"))
+    ]
+    if not items:
+        return
+    blocks.append({"style": "Heading1", "text": "Volunteering"})
+    for item in items:
+        heading = _join_non_empty(
+            [_text(item.get("role")), _text(item.get("organization"))]
+        )
+        meta = _join_non_empty(
+            [_text(item.get("period")), _text(item.get("location"))],
+            " | ",
+        )
+        blocks.append({"style": "Heading2", "text": heading or "Volunteering"})
+        if meta:
+            blocks.append({"style": "Meta", "text": meta})
+        _docx_markdownish(blocks, _text(item.get("description_markdown")))
+
+
+def _docx_publications(blocks: list[dict[str, Any]], value: Any) -> None:
+    items = [_mapping(item) for item in _items(value)]
+    items = [item for item in items if _text(item.get("title"))]
+    if not items:
+        return
+    blocks.append({"style": "Heading1", "text": "Publications"})
+    for item in items:
+        blocks.append({"style": "Heading2", "text": _text(item.get("title"))})
+        meta = _join_non_empty(
+            [_text(item.get("publisher")), _text(item.get("date"))],
+            " | ",
+        )
+        if meta:
+            blocks.append({"style": "Meta", "text": meta})
+        if _text(item.get("url")):
+            blocks.append({"style": "Meta", "text": _text(item.get("url"))})
+        _docx_markdownish(blocks, _text(item.get("description_markdown")))
+
+
+def _docx_references(blocks: list[dict[str, Any]], value: Any) -> None:
+    items = [_mapping(item) for item in _items(value)]
+    items = [
+        item
+        for item in items
+        if _text(item.get("name")) or _text(item.get("company"))
+    ]
+    if not items:
+        return
+    blocks.append({"style": "Heading1", "text": "References"})
+    for item in items:
+        heading = _join_non_empty(
+            [
+                _text(item.get("name")),
+                _text(item.get("role")),
+                _text(item.get("company")),
+            ]
+        )
+        blocks.append({"style": "Heading2", "text": heading or "Reference"})
+        if _text(item.get("contact")):
+            blocks.append({"style": "Meta", "text": _text(item.get("contact"))})
+        _docx_markdownish(blocks, _text(item.get("description_markdown")))
+
+
+def _docx_custom_sections(blocks: list[dict[str, Any]], value: Any) -> None:
+    items = [_mapping(item) for item in _items(value)]
+    for item in items:
+        title = _text(item.get("title"))
+        if not title:
+            continue
+        blocks.append({"style": "Heading1", "text": title})
+        content = _text(item.get("content_markdown"))
+        if content:
+            _docx_markdownish(blocks, content)
+        bullets = _string_items(item.get("items"))
+        for bullet in bullets:
+            blocks.append({"style": "Bullet", "text": bullet})
 
 
 def _docx_markdownish(blocks: list[dict[str, Any]], content: str) -> None:
