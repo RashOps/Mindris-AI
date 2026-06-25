@@ -314,6 +314,103 @@ function renderProjects(cvData: any, section: SectionConfig): string {
     );
 }
 
+function renderCertifications(cvData: any, section: SectionConfig): string {
+    const rows = items(cvData?.certifications);
+    if (!rows.length) return "";
+    return sectionShell(
+        section,
+        rows.map((item) => {
+            const meta = [item.date, item.url].filter(Boolean).map(html).join(" · ");
+            return `<div class="item item--compact">
+          <div class="item-header"><h3>${html(item.name)}</h3><span class="company">${html(item.issuer)}</span>${meta ? `<span class="meta">${meta}</span>` : ""}</div>
+          ${item.description_markdown ? `<p class="description description--sm">${html(item.description_markdown)}</p>` : ""}
+        </div>`;
+        }).join(""),
+    );
+}
+
+function renderVolunteering(cvData: any, section: SectionConfig): string {
+    const rows = items(cvData?.volunteering);
+    if (!rows.length) return "";
+    return sectionShell(
+        section,
+        rows.map((item) => {
+            const meta = [item.period, item.location].filter(Boolean).map(html).join(" · ");
+            return `<div class="item item--compact">
+          <div class="item-header"><h3>${html(item.role)}</h3><span class="company">${html(item.organization)}</span>${meta ? `<span class="meta">${meta}</span>` : ""}</div>
+          ${item.description_markdown ? `<p class="description description--sm">${html(item.description_markdown)}</p>` : ""}
+        </div>`;
+        }).join(""),
+    );
+}
+
+function renderPublications(cvData: any, section: SectionConfig): string {
+    const rows = items(cvData?.publications);
+    if (!rows.length) return "";
+    return sectionShell(
+        section,
+        rows.map((item) => {
+            const meta = [item.publisher, item.date].filter(Boolean).map(html).join(" · ");
+            const url = item.url ? `<span class="meta">${html(item.url)}</span>` : "";
+            return `<div class="item item--compact">
+          <div class="item-header"><h3>${html(item.title)}</h3>${meta ? `<span class="company">${meta}</span>` : ""}${url}</div>
+          ${item.description_markdown ? `<p class="description description--sm">${html(item.description_markdown)}</p>` : ""}
+        </div>`;
+        }).join(""),
+    );
+}
+
+function renderReferences(cvData: any, section: SectionConfig): string {
+    const rows = items(cvData?.references);
+    if (!rows.length) return "";
+    return sectionShell(
+        section,
+        rows.map((item) => {
+            const meta = [item.role, item.company].filter(Boolean).map(html).join(" · ");
+            return `<div class="item item--compact">
+          <div class="item-header"><h3>${html(item.name)}</h3>${meta ? `<span class="company">${meta}</span>` : ""}${item.contact ? `<span class="meta">${html(item.contact)}</span>` : ""}</div>
+          ${item.description_markdown ? `<p class="description description--sm">${html(item.description_markdown)}</p>` : ""}
+        </div>`;
+        }).join(""),
+    );
+}
+
+function renderCustomSections(cvData: any, section: SectionConfig): string {
+    const rows = items(cvData?.custom_sections);
+    if (!rows.length) return "";
+    return rows
+        .map((item) => {
+            const bullets = items(item.items).length
+                ? `<div class="skill-tags">${items(item.items).map((bullet) => `<span class="tag">${html(bullet)}</span>`).join("")}</div>`
+                : "";
+            return sectionShell(
+                { ...section, label: item.title },
+                `<div class="item item--compact">
+          ${item.content_markdown ? `<p class="description description--sm">${html(item.content_markdown)}</p>` : ""}
+          ${bullets}
+        </div>`,
+            );
+        })
+        .join("");
+}
+
+function renderFallbackSections(cvData: any, usedTypes: Set<string>): string {
+    const fallbacks: Array<{ type: string; label: string; render: (data: any, section: SectionConfig) => string }> = [
+        { type: "certifications", label: "Certifications", render: renderCertifications },
+        { type: "volunteering", label: "Volunteering", render: renderVolunteering },
+        { type: "publications", label: "Publications", render: renderPublications },
+        { type: "references", label: "References", render: renderReferences },
+        { type: "custom", label: "Custom sections", render: renderCustomSections },
+    ];
+    return fallbacks
+        .filter(({ type }) => !usedTypes.has(type))
+        .map(({ type, label, render }) =>
+            render(cvData, { type, label, placement: "main", visible: true }),
+        )
+        .filter(Boolean)
+        .join("");
+}
+
 function renderSkills(cvData: any, section: SectionConfig): string {
     const rows = items(cvData?.skills);
     if (!rows.length) return "";
@@ -376,6 +473,16 @@ function renderSection(cvData: any, section: SectionConfig): string {
             return renderExperience(cvData, section);
         case "projects":
             return renderProjects(cvData, section);
+        case "certifications":
+            return renderCertifications(cvData, section);
+        case "volunteering":
+            return renderVolunteering(cvData, section);
+        case "publications":
+            return renderPublications(cvData, section);
+        case "references":
+            return renderReferences(cvData, section);
+        case "custom":
+            return renderCustomSections(cvData, section);
         case "skills":
             return renderSkills(cvData, section);
         case "education":
@@ -390,8 +497,11 @@ function renderSection(cvData: any, section: SectionConfig): string {
 }
 
 function renderCvContent(cvData: any): string {
-    const sections = configuredSections(cvData)
+    const sectionsConfig = configuredSections(cvData);
+    const usedTypes = new Set(sectionsConfig.map((section) => section.type));
+    const sections = sectionsConfig
         .map((section) => renderSection(cvData, section))
+        .concat(renderFallbackSections(cvData, usedTypes))
         .filter(Boolean)
         .join("");
     return `<div class="cv-wrapper">

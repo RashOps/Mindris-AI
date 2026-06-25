@@ -57,6 +57,11 @@ const baseCv = {
       tech_stack: ["Secret"],
     },
   ],
+  certifications: [],
+  volunteering: [],
+  publications: [],
+  references: [],
+  custom_sections: [],
   skills: [{ category: "Backend", skills: ["Python", "FastAPI"] }],
   education: [],
   languages: [],
@@ -135,5 +140,68 @@ describe("generateHtml semantic sections", () => {
     expect(html).toContain("--text-color: #111827;");
     expect(html).toContain("--header-text-align: center;");
     expect(html).toContain("grid-template-columns: var(--grid-template-columns, var(--col-left-width) 1fr);");
+  });
+
+  test("renders advanced sections through fallback groups", () => {
+    const html = generateHtml(
+      {
+        ...baseCv,
+        certifications: [
+          {
+            name: "AWS Certified",
+            issuer: "Amazon",
+            date: "2025",
+            url: "https://example.com/cert",
+            description_markdown: "- Cloud architecture",
+          },
+        ],
+        volunteering: [
+          {
+            organization: "Open Source Org",
+            role: "Mentor",
+            period: "2024",
+            location: "Remote",
+            description_markdown: "- Supported contributors",
+          },
+        ],
+        publications: [
+          {
+            title: "Open Resume Formats",
+            publisher: "Mindris Press",
+            date: "2023",
+            url: "https://example.com/paper",
+            description_markdown: "- Semantics first",
+          },
+        ],
+        references: [
+          {
+            name: "Grace Hopper",
+            role: "Engineering Manager",
+            company: "Navy",
+            contact: "grace@example.com",
+            description_markdown: "- Available on request",
+          },
+        ],
+        custom_sections: [
+          {
+            title: "Awards",
+            content_markdown: "- Best OSS tool",
+            items: ["Hackathon winner", "Conference speaker"],
+          },
+        ],
+      },
+      "modern",
+    );
+
+    expect(html).toContain("Certifications");
+    expect(html).toContain("AWS Certified");
+    expect(html).toContain("Volunteering");
+    expect(html).toContain("Open Source Org");
+    expect(html).toContain("Publications");
+    expect(html).toContain("Open Resume Formats");
+    expect(html).toContain("References");
+    expect(html).toContain("Grace Hopper");
+    expect(html).toContain("Awards");
+    expect(html).toContain("Hackathon winner");
   });
 });
