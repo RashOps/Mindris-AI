@@ -66,3 +66,5 @@ T1 implementation note: backend schema now validates a versioned `global_setting
 T2 implementation note: `/api/v1/templates/customization-catalogue` now exposes backend-owned customization options for page formats, layout controls, typography ranges, color presets, section types, locale options, and template compatibility/enforcement.
 
 T3 implementation note: renderer content generation now resolves sections from `global_settings.sections`, preserves configured order, applies labels and `data-section-placement`, and excludes hidden sections from generated HTML.
+
+T4 implementation note: renderer token overrides now drive A4/Letter sizing, single-column and sidebar left/right/none layouts, density-driven spacing, heading/body font pairing, title casing, date alignment styles, sidebar background/separator colors, and monochrome-safe fallbacks through CSS variables consumed by the template stylesheet.
