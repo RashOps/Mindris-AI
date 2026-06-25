@@ -560,6 +560,36 @@ class ResumeRevisionItem(BaseModel):
     createdAt: str
 
 
+class ResumeRevisionChangeItem(BaseModel):
+    """Single field-level change between two resume revisions."""
+
+    path: str
+    kind: Literal["added", "removed", "changed"]
+    before: Any | None = None
+    after: Any | None = None
+
+
+class ResumeRevisionSectionItem(BaseModel):
+    """Semantic summary for a top-level CV section diff."""
+
+    section: str
+    label: str
+    status: Literal["added", "removed", "changed", "unchanged"]
+    beforeCount: int = 0
+    afterCount: int = 0
+
+
+class ResumeRevisionCompareItem(BaseModel):
+    """Comparison payload for two resume snapshots."""
+
+    resumeId: str
+    baseRevision: ResumeRevisionItem
+    targetRevision: ResumeRevisionItem
+    changeCount: int
+    sectionSummaries: list[ResumeRevisionSectionItem]
+    changes: list[ResumeRevisionChangeItem]
+
+
 class CompanyAnalyzeRequest(LLMRequest):
     """Request body for company intelligence."""
 
