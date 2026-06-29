@@ -18,10 +18,12 @@ from schemas import (
     ApplicationUpdateRequest,
 )
 from sqlalchemy import select
+from utils.logger import get_logger
 
 router = APIRouter(prefix="/api/v1/tracker", tags=["tracker"])
 STATUSES = ("wishlist", "applied", "interview", "offer", "rejected")
 SessionDep = Annotated[Session, Depends(get_session)]
+logger = get_logger(__name__, service_name="api-gateway")
 
 
 def serialize_application(row: ApplicationRecord) -> dict:
@@ -56,7 +58,7 @@ def _application_payload(request: ApplicationCreateRequest) -> dict:
 
 
 @router.get("/applications")
-def list_applications(session: SessionDep) -> dict:
+async def list_applications(session: SessionDep) -> dict:
     """Return applications grouped by status."""
     rows = session.exec(
         select(ApplicationRecord).order_by(
@@ -75,8 +77,9 @@ def list_applications(session: SessionDep) -> dict:
 
 
 @router.post("/applications")
-def create_application(request: ApplicationCreateRequest, session: SessionDep) -> dict:
+async def create_application(request: ApplicationCreateRequest, session: SessionDep) -> dict:
     """Create an application tracker item."""
+    logger.info("Creating application for company=%s role=%s", request.company, request.role)
     _ensure_status(request.status)
     max_pos = len(
         session.exec(
@@ -95,7 +98,7 @@ def create_application(request: ApplicationCreateRequest, session: SessionDep) -
 
 
 @router.patch("/applications/{application_id}")
-def update_application(
+async def update_application(
     application_id: int,
     request: ApplicationUpdateRequest,
     session: SessionDep,
@@ -103,6 +106,7 @@ def update_application(
     """Patch an application tracker item."""
     row = session.get(ApplicationRecord, application_id)
     if not row:
+        logger.warning("Application %s not found for patch", application_id)
         raise HTTPException(status_code=404, detail="Application not found.")
     data = request.model_dump(exclude_unset=True)
     if data.get("url") is not None:
@@ -125,7 +129,7 @@ def update_application(
 
 
 @router.patch("/applications/{application_id}/move")
-def move_application(
+async def move_application(
     application_id: int,
     request: ApplicationMoveRequest,
     session: SessionDep,
@@ -134,7 +138,9 @@ def move_application(
     _ensure_status(request.status)
     row = session.get(ApplicationRecord, application_id)
     if not row:
+        logger.warning("Application %s not found for move", application_id)
         raise HTTPException(status_code=404, detail="Application not found.")
+    logger.info("Moving application %s to %s/%s", application_id, request.status, request.position)
     row.status = request.status
     row.position = request.position
     if request.status == "applied" and not row.applied_at:
@@ -147,21 +153,24 @@ def move_application(
 
 
 @router.delete("/applications/{application_id}")
-def delete_application(application_id: int, session: SessionDep) -> dict:
+async def delete_application(application_id: int, session: SessionDep) -> dict:
     """Delete an application tracker item."""
     row = session.get(ApplicationRecord, application_id)
     if not row:
+        logger.warning("Application %s not found for delete", application_id)
         raise HTTPException(status_code=404, detail="Application not found.")
+    logger.info("Deleting application %s", application_id)
     session.delete(row)
     session.commit()
     return {"status": "success", "message": "Application deleted."}
 
 
 @router.get("/applications/{application_id}/full")
-def get_application_full(application_id: int, session: SessionDep) -> dict:
+async def get_application_full(application_id: int, session: SessionDep) -> dict:
     """Return an application with linked job, ATS report, and cover letter."""
     row = session.get(ApplicationRecord, application_id)
     if not row:
+        logger.warning("Application %s not found for full fetch", application_id)
         raise HTTPException(status_code=404, detail="Application not found.")
     job = session.get(ScrapedJobRecord, row.job_id) if row.job_id else None
     ats = session.get(AtsReportRecord, row.ats_report_id) if row.ats_report_id else None

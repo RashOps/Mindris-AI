@@ -7,20 +7,22 @@ from database.session import DB_PATH, engine
 from fastapi import APIRouter
 from sqlalchemy import text
 from utils.config import settings
+from utils.logger import get_logger
 
 router = APIRouter(tags=["system"])
+logger = get_logger(__name__, service_name="api-gateway")
 
 
 @router.get("/")
-def health_check() -> dict:
+async def health_check() -> dict:
     """Return the health status of the API Gateway."""
     return {"status": "healthy", "service": "api-gateway"}
 
 
 @router.get("/api/v1/system/status")
-def system_status() -> dict:
+async def system_status() -> dict:
     """Return local service and storage status."""
-    checks = readiness_checks()
+    checks = await readiness_checks()
     return {
         "status": checks["status"],
         "api": "ok",
@@ -48,7 +50,7 @@ def system_status() -> dict:
 
 
 @router.get("/api/v1/system/ready")
-def readiness_checks() -> dict:
+async def readiness_checks() -> dict:
     """Return readiness checks for storage and SQLite."""
     storage = _dir_check(settings.storage_dir)
     vectordb = _dir_check(settings.chroma_db_dir)

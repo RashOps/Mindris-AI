@@ -8,9 +8,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from persistence import serialize_draft, upsert_workspace_draft
 from schemas import DraftUpsertRequest
 from sqlalchemy import select
+from utils.logger import get_logger
 
 router = APIRouter(prefix="/api/v1/drafts", tags=["drafts"])
 SessionDep = Annotated[Session, Depends(get_session)]
+logger = get_logger(__name__, service_name="api-gateway")
 
 
 def _get_draft(session: Session, draft_key: str) -> WorkspaceDraftRecord:
@@ -26,12 +28,13 @@ def _get_draft(session: Session, draft_key: str) -> WorkspaceDraftRecord:
 
 
 @router.put("/{draft_key}")
-def put_draft(
+async def put_draft(
     draft_key: str,
     request: DraftUpsertRequest,
     session: SessionDep,
 ) -> dict:
     """Create or replace a backend-owned cross-page draft."""
+    logger.info("Upserting draft '%s'", draft_key)
     record = upsert_workspace_draft(
         session,
         draft_key=draft_key,
@@ -41,7 +44,7 @@ def put_draft(
 
 
 @router.get("/{draft_key}")
-def get_draft(draft_key: str, session: SessionDep) -> dict:
+async def get_draft(draft_key: str, session: SessionDep) -> dict:
     """Return a backend-owned cross-page draft."""
     return {
         "status": "success",
@@ -50,8 +53,9 @@ def get_draft(draft_key: str, session: SessionDep) -> dict:
 
 
 @router.delete("/{draft_key}")
-def delete_draft(draft_key: str, session: SessionDep) -> dict:
+async def delete_draft(draft_key: str, session: SessionDep) -> dict:
     """Delete a backend-owned cross-page draft."""
+    logger.info("Deleting draft '%s'", draft_key)
     record = _get_draft(session, draft_key)
     session.delete(record)
     session.commit()

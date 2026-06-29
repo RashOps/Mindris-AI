@@ -33,9 +33,11 @@ from schemas import (
     ResumeUpdateRequest,
 )
 from sqlalchemy import select
+from utils.logger import get_logger
 
 router = APIRouter(prefix="/api/v1/resumes", tags=["resumes"])
 SessionDep = Annotated[Session, Depends(get_session)]
+logger = get_logger(__name__, service_name="api-gateway")
 
 
 def _template_id(cv_data: dict[str, Any], fallback: str = "modern") -> str:
@@ -80,6 +82,7 @@ def list_resumes(session: SessionDep) -> dict:
 @router.post("")
 def create_resume_route(request: ResumeCreateRequest, session: SessionDep) -> dict:
     """Create a new persisted resume."""
+    logger.info("Creating resume '%s'", request.name)
     cv_data = request.cv_data.model_dump(mode="json")
     cv_data = apply_template_defaults(cv_data, request.template_id or _template_id(cv_data))
     record = create_resume(
@@ -109,6 +112,7 @@ def update_resume_route(
     session: SessionDep,
 ) -> dict:
     """Patch a persisted resume."""
+    logger.info("Updating resume %s", resume_id)
     cv_data = request.cv_data.model_dump(mode="json") if request.cv_data else None
     if cv_data is not None and request.template_id:
         cv_data = apply_template_defaults(cv_data, request.template_id)
@@ -127,6 +131,7 @@ def update_resume_route(
 @router.delete("/{resume_id}")
 def delete_resume_route(resume_id: int, session: SessionDep) -> dict:
     """Delete a persisted resume."""
+    logger.info("Deleting resume %s", resume_id)
     record = _get_resume(session, resume_id)
     session.delete(record)
     session.commit()
@@ -136,6 +141,7 @@ def delete_resume_route(resume_id: int, session: SessionDep) -> dict:
 @router.post("/{resume_id}/duplicate")
 def duplicate_resume_route(resume_id: int, session: SessionDep) -> dict:
     """Duplicate a persisted resume."""
+    logger.info("Duplicating resume %s", resume_id)
     source = _get_resume(session, resume_id)
     cv_data = load_json(source.data_json, {})
     record = create_resume(
@@ -152,6 +158,7 @@ def duplicate_resume_route(resume_id: int, session: SessionDep) -> dict:
 @router.post("/import-json")
 def import_resume_json(request: ResumeImportRequest, session: SessionDep) -> dict:
     """Import raw CV data or a ResumeDocument-like JSON object."""
+    logger.info("Importing resume JSON source=%s", request.source)
     name, cv_data = _payload_from_import(request)
     record = create_resume(
         session,
@@ -189,6 +196,7 @@ def list_resume_revisions_route(resume_id: int, session: SessionDep) -> dict:
 @router.post("/{resume_id}/revisions")
 def create_resume_revision_route(resume_id: int, session: SessionDep) -> dict:
     """Create a manual snapshot for a resume."""
+    logger.info("Creating manual revision for resume %s", resume_id)
     record = _get_resume(session, resume_id)
     revision = create_resume_revision(session, record, label="manual snapshot")
     return {"status": "success", "item": serialize_resume_revision(revision)}
@@ -197,6 +205,7 @@ def create_resume_revision_route(resume_id: int, session: SessionDep) -> dict:
 @router.post("/{resume_id}/revisions/{revision}/restore")
 def restore_resume_revision_route(resume_id: int, revision: int, session: SessionDep) -> dict:
     """Restore a previous resume snapshot."""
+    logger.info("Restoring revision %s for resume %s", revision, resume_id)
     record = _get_resume(session, resume_id)
     snapshot = get_resume_revision(session, resume_id, revision)
     if not snapshot:

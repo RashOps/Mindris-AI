@@ -7,6 +7,7 @@ from auth import verify_api_key
 from database.session import init_db
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from intelligence.event_bus import cleanup_stale_queues
@@ -110,7 +111,7 @@ async def validation_exception_handler(
         content={
             "status": "error",
             "message": "Validation failed.",
-            "detail": exc.errors(),
+            "detail": jsonable_encoder(exc.errors()),
             "path": request.url.path,
         },
     )

@@ -9,6 +9,9 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 from database.records import ResumeRecord
 from persistence import load_json
+from utils.logger import get_logger
+
+logger = get_logger(__name__, service_name="api-gateway")
 
 DEFAULT_SECTION_TITLES = {
     "profile": "Profile",
@@ -49,6 +52,7 @@ def safe_export_filename(name: str, extension: str) -> str:
 
 def resume_to_markdown(record: ResumeRecord) -> str:
     """Render a persisted resume as portable Markdown."""
+    logger.info("Rendering resume %s to Markdown", record.id)
     cv_data = _cv_data(record)
     profile = _mapping(cv_data.get("profile"))
     lines: list[str] = []
@@ -125,21 +129,30 @@ def resume_to_markdown(record: ResumeRecord) -> str:
         elif section_type == "interests":
             _append_hobbies(lines, section_data, DEFAULT_SECTION_TITLES[section_type])
 
-    return "\n".join(lines).strip() + "\n"
+    rendered = "\n".join(lines).strip() + "\n"
+    logger.debug("Rendered Markdown resume %s (%d chars)", record.id, len(rendered))
+    return rendered
 
 
 def resume_to_latex(record: ResumeRecord) -> str:
     """Render a persisted resume as a compile-ready LaTeX document."""
-    return _markdown_to_latex(resume_to_markdown(record))
+    logger.info("Rendering resume %s to LaTeX", record.id)
+    rendered = _markdown_to_latex(resume_to_markdown(record))
+    logger.debug("Rendered LaTeX resume %s (%d chars)", record.id, len(rendered))
+    return rendered
 
 
 def resume_to_typst(record: ResumeRecord) -> str:
     """Render a persisted resume as a compile-ready Typst document."""
-    return _markdown_to_typst(resume_to_markdown(record))
+    logger.info("Rendering resume %s to Typst", record.id)
+    rendered = _markdown_to_typst(resume_to_markdown(record))
+    logger.debug("Rendered Typst resume %s (%d chars)", record.id, len(rendered))
+    return rendered
 
 
 def resume_to_html(record: ResumeRecord) -> str:
     """Render a persisted resume as standalone, script-free HTML."""
+    logger.info("Rendering resume %s to HTML", record.id)
     cv_data = _cv_data(record)
     profile = _mapping(cv_data.get("profile"))
     sections = _section_configs(cv_data)
@@ -223,7 +236,7 @@ def resume_to_html(record: ResumeRecord) -> str:
             + "</p>"
         )
 
-    return f"""<!doctype html>
+    rendered = f"""<!doctype html>
 <html lang="{escape(str(record.locale or 'en'))}">
 <head>
   <meta charset="utf-8">
@@ -303,6 +316,8 @@ def resume_to_html(record: ResumeRecord) -> str:
 </body>
 </html>
 """
+    logger.debug("Rendered HTML resume %s (%d chars)", record.id, len(rendered))
+    return rendered
 
 
 def _markdown_to_latex(markdown: str) -> str:
@@ -402,6 +417,7 @@ def _markdown_to_typst(markdown: str) -> str:
 
 def resume_to_docx(record: ResumeRecord) -> bytes:
     """Render a persisted resume as a text-based DOCX document."""
+    logger.info("Rendering resume %s to DOCX", record.id)
     cv_data = _cv_data(record)
     profile = _mapping(cv_data.get("profile"))
     sections = _section_configs(cv_data)
@@ -484,7 +500,9 @@ def resume_to_docx(record: ResumeRecord) -> bytes:
         docx.writestr("word/styles.xml", _docx_styles())
         docx.writestr("docProps/core.xml", _docx_core_props(full_name))
         docx.writestr("docProps/app.xml", _docx_app_props())
-    return buffer.getvalue()
+    rendered = buffer.getvalue()
+    logger.debug("Rendered DOCX resume %s (%d bytes)", record.id, len(rendered))
+    return rendered
 
 
 def _cv_data(record: ResumeRecord) -> dict[str, Any]:
