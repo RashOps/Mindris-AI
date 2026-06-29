@@ -252,6 +252,46 @@ def test_resume_exports_include_advanced_sections() -> None:
             assert "Hackathon winner" in document
 
 
+def test_hidden_configured_sections_stay_hidden_even_when_data_exists() -> None:
+    payload = _cv_payload("ats")
+    payload["languages"] = [
+        {"id": "lang-1", "language": "English", "level": "C1"},
+    ]
+    payload["global_settings"] = {
+        "template_id": "ats",
+        "sections": [
+            {"id": "profile", "type": "profile", "label": "Profil"},
+            {"id": "projects", "type": "projects", "label": "Projets"},
+            {"id": "experience", "type": "experience", "label": "Parcours professionnel"},
+            {"id": "languages", "type": "languages", "label": "Langues", "visible": False},
+        ],
+    }
+
+    with _session() as session:
+        resume = create_resume_route(
+            ResumeCreateRequest(
+                name="Hidden Section CV",
+                cv_data=payload,
+                template_id="ats",
+            ),
+            session,
+        )["item"]
+
+        markdown = export_resume_markdown(int(resume["id"]), session).body.decode()
+        html = export_resume_html(int(resume["id"]), session).body.decode()
+        docx = export_resume_docx(int(resume["id"]), session)
+
+        assert "## Langues" not in markdown
+        assert "## Languages" not in markdown
+        assert "<h2>Langues</h2>" not in html
+        assert "<h2>Languages</h2>" not in html
+
+        with ZipFile(io.BytesIO(docx.body)) as package:
+            document = package.read("word/document.xml").decode()
+            assert "Langues" not in document
+            assert "Languages" not in document
+
+
 def test_resume_import_accepts_resume_document_shape() -> None:
     with _session() as session:
         response = import_resume_json(

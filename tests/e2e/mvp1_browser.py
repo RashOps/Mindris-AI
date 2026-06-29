@@ -264,8 +264,8 @@ def run(args: argparse.Namespace) -> None:
         page.get_by_label("Section label experience").fill("Parcours professionnel")
         page.get_by_label("Toggle section languages").uncheck()
         page.get_by_label("Move section projects up").click()
-        page.get_by_label("Section placement experience").selectOption("main")
-        page.get_by_label("Section display mode experience").selectOption("timeline")
+        page.get_by_label("Section placement experience").select_option("main")
+        page.get_by_label("Section display mode experience").select_option("timeline")
         expect(page.get_by_label("Section label experience")).to_have_value(
             "Parcours professionnel"
         )
@@ -309,18 +309,18 @@ def run(args: argparse.Namespace) -> None:
             document = package.read("word/document.xml").decode()
 
         assert "## Parcours professionnel" in markdown
-        assert "## Projects" in markdown
+        assert "## Projets" in markdown
         assert "## Languages" not in markdown
-        assert markdown.index("## Projects") < markdown.index("## Parcours professionnel")
+        assert markdown.index("## Projets") < markdown.index("## Parcours professionnel")
 
         assert "<h2>Parcours professionnel</h2>" in html
-        assert "<h2>Projects</h2>" in html
+        assert "<h2>Projets</h2>" in html
         assert "Languages" not in html
-        assert html.index("<h2>Projects</h2>") < html.index("<h2>Parcours professionnel</h2>")
+        assert html.index("<h2>Projets</h2>") < html.index("<h2>Parcours professionnel</h2>")
 
         assert "Parcours professionnel" in document
         assert "Languages" not in document
-        assert document.index("Projects") < document.index("Parcours professionnel")
+        assert document.index("Projets") < document.index("Parcours professionnel")
 
         page.goto(f"{args.base_url.rstrip('/')}/tools/ats-score")
         expect(page.get_by_text("ATS Score Analyzer")).to_be_visible(timeout=15_000)
