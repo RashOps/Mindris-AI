@@ -110,6 +110,13 @@ curl http://localhost:8000/api/v1/system/status
 curl http://localhost:8000/api/v1/system/ready
 ```
 
+Documentation :
+
+```text
+http://localhost:8000/docs
+http://localhost:8000/openapi.json
+```
+
 ### Renderer Bun / Elysia
 
 Depuis la racine du projet :
@@ -130,6 +137,13 @@ Healthcheck :
 ```bash
 curl http://localhost:4000/
 curl http://localhost:4000/ready
+curl http://localhost:4000/openapi.json
+```
+
+Documentation :
+
+```text
+http://localhost:4000/docs
 ```
 
 ### Frontend Next.js
@@ -145,6 +159,13 @@ URL :
 
 ```text
 http://localhost:3000
+```
+
+Comportement au démarrage :
+
+```text
+Le front attend explicitement l'API Gateway (/api/v1/system/ready) et le renderer (/ready).
+Si un service n'est pas prêt, l'AppShell reste bloqué sur un écran de readiness avec retry automatique.
 ```
 
 ## Lancer avec Docker Compose
