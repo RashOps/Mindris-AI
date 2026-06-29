@@ -14,7 +14,7 @@ from markdownify import markdownify as md
 from utils.config import settings
 from utils.logger import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger(__name__, service_name="scraper")
 
 # ── Shared HTML-to-Markdown helper ────────────────────────────────────────────
 

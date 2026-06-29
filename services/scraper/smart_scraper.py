@@ -32,7 +32,7 @@ from utils.logger import get_logger
 from .core import BaseScraper
 from .proxy_scraper import ScrapeDoProvider, ScrapingBeeProvider
 
-logger = get_logger(__name__)
+logger = get_logger(__name__, service_name="scraper")
 
 # ── Exceptions ────────────────────────────────────────────────────────────────
 
