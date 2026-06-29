@@ -443,6 +443,39 @@ def test_cv_schema_applies_ats_strict_constraints() -> None:
     assert settings["colors"]["monochrome"] is True
 
 
+def test_cv_schema_applies_one_page_challenge_constraints() -> None:
+    payload = _cv_payload("modern")
+    payload["global_settings"] = {
+        "template_id": "modern",
+        "page": {
+            "one_page_challenge": True,
+            "page_break_mode": "manual",
+            "margins": {"horizontal": "64px", "vertical": "48px"},
+        },
+        "layout": {
+            "density": "senior",
+            "photo": {"enabled": True, "shape": "round"},
+        },
+        "typography": {
+            "base_size": "13px",
+            "line_height": "1.5",
+            "date_style": "normal",
+        },
+    }
+
+    cv_data = CVDataModel.model_validate(payload).model_dump(mode="json")
+    settings = cv_data["global_settings"]
+    assert settings["page"]["one_page_challenge"] is True
+    assert settings["page"]["page_break_mode"] == "auto"
+    assert settings["page"]["margins"]["horizontal"] == "36px"
+    assert settings["page"]["margins"]["vertical"] == "28px"
+    assert settings["layout"]["density"] == "compact"
+    assert settings["layout"]["photo"]["enabled"] is False
+    assert settings["typography"]["base_size"] == "11.5px"
+    assert settings["typography"]["line_height"] == "1.35"
+    assert settings["typography"]["date_style"] == "small"
+
+
 def test_cv_schema_rejects_invalid_customization_values() -> None:
     payload = _cv_payload()
     payload["global_settings"] = {

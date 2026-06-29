@@ -257,6 +257,8 @@ def run(args: argparse.Namespace) -> None:
         page.get_by_role("button", name="Style").click()
         expect(page.get_by_label("Style panel")).to_be_visible()
         page.get_by_role("button", name="ATS Strict").click()
+        page.get_by_role("button", name="Layout").click()
+        page.get_by_label("Toggle one page challenge").check()
         page.get_by_role("button", name="Sections").click()
         page.get_by_label("Section label experience").fill("Parcours professionnel")
         page.get_by_label("Toggle section languages").uncheck()
@@ -285,6 +287,7 @@ def run(args: argparse.Namespace) -> None:
         assert settings["layout"]["columns"] == 1
         assert settings["layout"]["sidebar_position"] == "none"
         assert settings["colors"]["monochrome"] is True
+        assert settings["page"]["one_page_challenge"] is True
 
         markdown = request_text(
             args.api_url,
