@@ -24,7 +24,7 @@ from routers import (
 )
 from utils.logger import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger(__name__, service_name="api-gateway")
 
 
 @asynccontextmanager

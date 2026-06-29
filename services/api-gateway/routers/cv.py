@@ -23,7 +23,7 @@ from schemas import (
 from utils.config import settings
 from utils.logger import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger(__name__, service_name="api-gateway")
 router = APIRouter(prefix="/api/v1", tags=["cv"])
 SessionDep = Annotated[Session, Depends(get_session)]
 
