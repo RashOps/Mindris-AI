@@ -9,13 +9,16 @@ This module handles PDF CV ingestion:
 import json
 import re
 import tempfile
+from io import BytesIO
 from pathlib import Path
+from typing import Literal
 
 from llama_cloud import AsyncLlamaCloud
 from utils.config import settings
 from utils.logger import get_logger
 
 logger = get_logger(__name__, service_name="intelligence")
+PDFIngestionMode = Literal["auto", "llama_parse", "local_text"]
 
 
 # ── LlamaParse Configuration ──────────────────────────────────────────────────
@@ -39,7 +42,7 @@ def _get_api_key() -> str:
 # ── PDF → Markdown ─────────────────────────────────────────────────────────────
 
 
-async def pdf_to_markdown(pdf_bytes: bytes, filename: str = "cv.pdf") -> str:
+async def pdf_to_markdown_llama_parse(pdf_bytes: bytes, filename: str = "cv.pdf") -> str:
     """Parse a PDF file bytes to Markdown using the LlamaCloud parsing API.
 
     Args:
@@ -73,6 +76,43 @@ async def pdf_to_markdown(pdf_bytes: bytes, filename: str = "cv.pdf") -> str:
         tmp_path.unlink(missing_ok=True)
 
     return markdown_content
+
+
+async def pdf_to_markdown_local_text(pdf_bytes: bytes, filename: str = "cv.pdf") -> str:
+    """Extract text locally from a PDF and reshape it as plain Markdown."""
+    try:
+        import pdfplumber  # noqa: PLC0415
+    except ModuleNotFoundError as exc:  # pragma: no cover - packaging guardrail
+        raise RuntimeError(
+            "Local PDF parsing requires the 'pdfplumber' dependency."
+        ) from exc
+
+    logger.info("📄 Extracting %s locally with pdfplumber...", filename)
+    pages: list[str] = []
+    with pdfplumber.open(BytesIO(pdf_bytes)) as pdf:
+        for page in pdf.pages:
+            text = (page.extract_text() or "").strip()
+            if text:
+                pages.append(text)
+
+    markdown_content = "\n\n".join(pages).strip()
+    if not markdown_content:
+        raise ValueError("Local PDF parsing produced no extractable text.")
+    logger.info("Local PDF parsing complete (%d chars).", len(markdown_content))
+    return markdown_content
+
+
+def _resolve_ingestion_mode(ingestion_mode: PDFIngestionMode) -> Literal["llama_parse", "local_text"]:
+    if ingestion_mode == "llama_parse":
+        return "llama_parse"
+    if ingestion_mode == "local_text":
+        return "local_text"
+    api_key = (
+        settings.llama_cloud_api_key.get_secret_value()
+        if settings.llama_cloud_api_key
+        else ""
+    )
+    return "llama_parse" if api_key else "local_text"
 
 
 # ── Markdown → Structured CV JSON ────────────────────────────────────────────
@@ -201,6 +241,7 @@ async def parse_pdf_cv(
     filename: str = "cv.pdf",
     provider: str = "groq",
     model_name: str = "llama-3.3-70b-versatile",
+    ingestion_mode: PDFIngestionMode = "auto",
 ) -> dict:
     """Full pipeline: PDF bytes → Markdown → Structured CV JSON.
 
@@ -214,7 +255,24 @@ async def parse_pdf_cv(
         Structured CV dictionary ready for ChromaDB ingestion.
     """
     logger.info("📄 Starting PDF parsing pipeline...")
-    markdown = await pdf_to_markdown(pdf_bytes, filename=filename)
+    resolved_mode = _resolve_ingestion_mode(ingestion_mode)
+    logger.info(
+        "PDF ingestion mode requested=%s resolved=%s", ingestion_mode, resolved_mode
+    )
+    try:
+        if resolved_mode == "llama_parse":
+            markdown = await pdf_to_markdown_llama_parse(pdf_bytes, filename=filename)
+        else:
+            markdown = await pdf_to_markdown_local_text(pdf_bytes, filename=filename)
+    except Exception:
+        if ingestion_mode == "auto" and resolved_mode == "llama_parse":
+            logger.warning(
+                "LlamaParse path failed in auto mode; falling back to local_text",
+                exc_info=True,
+            )
+            markdown = await pdf_to_markdown_local_text(pdf_bytes, filename=filename)
+        else:
+            raise
 
     cv_json = markdown_to_cv_json(markdown, provider=provider, model_name=model_name)
 
