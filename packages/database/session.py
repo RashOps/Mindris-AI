@@ -1,6 +1,6 @@
 """SQLite session helpers for Mindris AI."""
 
-from collections.abc import Generator
+from collections.abc import AsyncGenerator
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session as SQLAlchemySession
@@ -33,7 +33,7 @@ def init_db() -> None:
         migrate(connection)
 
 
-def get_session() -> Generator[Session, None, None]:
+async def get_session() -> AsyncGenerator[Session, None]:
     """FastAPI dependency that yields a SQLite session."""
     with SessionLocal() as session:
         yield session
