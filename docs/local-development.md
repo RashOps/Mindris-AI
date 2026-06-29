@@ -53,9 +53,14 @@ Logs :
 
 ```text
 .logs/api-gateway.log
+.logs/intelligence.log
 .logs/renderer.log
+.logs/scraper.log
 .logs/web.log
 ```
+
+`renderer.log` contient maintenant des lignes JSON structurees exploitables pour le debug local.
+Les modules Python utilisent aussi des fichiers separes par service pour eviter le melange des traces.
 
 Ports personnalisables :
 

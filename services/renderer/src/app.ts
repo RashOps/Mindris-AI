@@ -1,6 +1,7 @@
 import { cors } from "@elysiajs/cors";
 import { Elysia } from "elysia";
 
+import { createRendererLogger, type RendererLogger } from "./logger";
 import { renderMarkdownToHtml } from "./markdown";
 import { generatePDF } from "./pdf/generator";
 import {
@@ -32,14 +33,80 @@ function safeFilename(title: string, fallback = "document"): string {
     return cleaned || fallback;
 }
 
-export function buildRendererApp(baseUrl = "http://localhost:4000") {
+function statusCodeOf(response: unknown, explicitStatus?: unknown): number {
+    if (typeof explicitStatus === "number") {
+        return explicitStatus;
+    }
+
+    if (typeof explicitStatus === "string") {
+        const parsed = Number.parseInt(explicitStatus, 10);
+        if (!Number.isNaN(parsed)) {
+            return parsed;
+        }
+    }
+
+    if (response instanceof Response) {
+        return response.status;
+    }
+
+    return 200;
+}
+
+function routePathOf(request: Request): string {
+    return new URL(request.url).pathname;
+}
+
+export function buildRendererApp(
+    baseUrl = "http://localhost:4000",
+    options: { logger?: RendererLogger } = {},
+) {
     const openApiDocument = buildOpenApiDocument(baseUrl);
+    const logger = options.logger ?? createRendererLogger();
+    const startedAt = new WeakMap<Request, number>();
+
+    const completeRequest = async <T>(
+        request: Request,
+        response: T,
+        explicitStatus?: number,
+    ): Promise<T> => {
+        await logger.log({
+            level: "info",
+            event: "request.completed",
+            message: "Request served",
+            method: request.method,
+            route: routePathOf(request),
+            status: statusCodeOf(response, explicitStatus),
+            duration_ms: Number((performance.now() - (startedAt.get(request) ?? performance.now())).toFixed(2)),
+        });
+
+        return response;
+    };
+
+    const logRouteError = async (
+        event: string,
+        request: Request,
+        message: string,
+        error: unknown,
+    ) => {
+        await logger.log({
+            level: "error",
+            event,
+            message,
+            method: request.method,
+            route: routePathOf(request),
+            duration_ms: Number((performance.now() - (startedAt.get(request) ?? performance.now())).toFixed(2)),
+            error: error instanceof Error ? error.message : String(error),
+        });
+    };
 
     return new Elysia()
         .use(cors({ origin: ["http://localhost:3000", "http://127.0.0.1:3000"] }))
-        .get("/", () => ({ status: "healthy", service: "renderer" }))
-        .get("/health", () => ({ status: "healthy", service: "renderer" }))
-        .get("/ready", () => ({
+        .onRequest(({ request }) => {
+            startedAt.set(request, performance.now());
+        })
+        .get("/", ({ request }) => completeRequest(request, { status: "healthy", service: "renderer" }))
+        .get("/health", ({ request }) => completeRequest(request, { status: "healthy", service: "renderer" }))
+        .get("/ready", ({ request }) => completeRequest(request, {
             status: "ready",
             service: "renderer",
             checks: {
@@ -47,58 +114,58 @@ export function buildRendererApp(baseUrl = "http://localhost:4000") {
                 pdf: { ok: true },
             },
         }))
-        .get("/openapi.json", () => openApiDocument)
-        .get("/docs", () => new Response(buildDocsHtml("/openapi.json"), {
+        .get("/openapi.json", ({ request }) => completeRequest(request, openApiDocument))
+        .get("/docs", ({ request }) => completeRequest(request, new Response(buildDocsHtml("/openapi.json"), {
             headers: { "Content-Type": "text/html; charset=utf-8" },
-        }))
-        .post("/render/pdf", async ({ body }: { body: any }) => {
+        })))
+        .post("/render/pdf", async ({ body, request }: { body: any; request: Request }) => {
             const { cv_data, template_id, return_buffer, return_html } = body;
 
             try {
                 const html = generateHtml(cv_data, template_id);
 
                 if (return_html) {
-                    return new Response(html, {
+                    return completeRequest(request, new Response(html, {
                         headers: { "Content-Type": "text/html" },
-                    });
+                    }));
                 }
 
                 const filename = `cv_${Date.now()}.pdf`;
                 const result = await generatePDF(html, filename, return_buffer);
 
                 if (return_buffer) {
-                    return new Response(result as Buffer, {
+                    return completeRequest(request, new Response(result as Buffer, {
                         headers: {
                             "Content-Type": "application/pdf",
                             "Content-Disposition": `attachment; filename="${filename}"`,
                         },
-                    });
+                    }));
                 }
 
-                return { success: true, message: "PDF generated.", path: result };
+                return completeRequest(request, { success: true, message: "PDF generated.", path: result });
             } catch (error: unknown) {
-                console.error("CV render failed:", error);
-                return jsonError(errorMessage(error, "CV render failed."));
+                await logRouteError("render.pdf.failed", request, "CV render failed", error);
+                return completeRequest(request, jsonError(errorMessage(error, "CV render failed.")), 500);
             }
         }, {
             body: renderPdfBodySchema,
         })
-        .post("/render/markdown/preview", async ({ body }: { body: any }) => {
+        .post("/render/markdown/preview", async ({ body, request }: { body: any; request: Request }) => {
             const { markdown, style, title } = body;
 
             try {
                 const html = renderMarkdownToHtml({ markdown, style, title });
-                return new Response(html, {
+                return completeRequest(request, new Response(html, {
                     headers: { "Content-Type": "text/html" },
-                });
+                }));
             } catch (error: unknown) {
-                console.error("Markdown preview failed:", error);
-                return jsonError(errorMessage(error, "Markdown preview failed."));
+                await logRouteError("render.markdown.preview.failed", request, "Markdown preview failed", error);
+                return completeRequest(request, jsonError(errorMessage(error, "Markdown preview failed.")), 500);
             }
         }, {
             body: renderMarkdownBodySchema,
         })
-        .post("/render/markdown", async ({ body }: { body: any }) => {
+        .post("/render/markdown", async ({ body, request }: { body: any; request: Request }) => {
             const { markdown, style = "document", title = "Document" } = body;
 
             try {
@@ -106,15 +173,15 @@ export function buildRendererApp(baseUrl = "http://localhost:4000") {
                 const filename = `${safeFilename(title)}_${Date.now()}.pdf`;
                 const pdfBuffer = await generatePDF(html, filename, true);
 
-                return new Response(pdfBuffer as Buffer, {
+                return completeRequest(request, new Response(pdfBuffer as Buffer, {
                     headers: {
                         "Content-Type": "application/pdf",
                         "Content-Disposition": `attachment; filename="${filename}"`,
                     },
-                });
+                }));
             } catch (error: unknown) {
-                console.error("Markdown PDF failed:", error);
-                return jsonError(errorMessage(error, "Markdown PDF failed."));
+                await logRouteError("render.markdown.failed", request, "Markdown PDF failed", error);
+                return completeRequest(request, jsonError(errorMessage(error, "Markdown PDF failed.")), 500);
             }
         }, {
             body: renderMarkdownBodySchema,

@@ -20,7 +20,7 @@ spec: `docs/staging/specs/2026-06-29-runtime-polish-and-local-ops.md`
   acceptance: `cd services/renderer && bun run typecheck && bun run build`
   spec: `docs/staging/specs/2026-06-29-runtime-polish-and-local-ops.md#t3-renderer-openapi`
 
-- [ ] T4: Bun renderer structured logging
+- [x] T4: Bun renderer structured logging
   goal: Replace console logging with file-backed structured logging in `.logs`.
   files: `services/renderer/src/server.ts`, `services/renderer/src`, `.logs`
   acceptance: `cd services/renderer && bun run typecheck && bun run build`

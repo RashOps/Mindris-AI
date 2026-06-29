@@ -47,3 +47,11 @@ Expected readiness response:
 bun run typecheck
 bun run build
 ```
+
+## Logs
+
+Le renderer ecrit des evenements structures JSONL dans :
+
+```text
+.logs/renderer.log
+```

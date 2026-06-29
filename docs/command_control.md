@@ -76,6 +76,10 @@ Guide détaillé :
 docs/local-development.md
 ```
 
+Les logs locaux sont ecrits dans `.logs/`.
+Le renderer produit des lignes JSON structurees dans `.logs/renderer.log`.
+Les services Python ecrivent des fichiers dedies comme `.logs/api-gateway.log`, `.logs/intelligence.log` et `.logs/scraper.log`.
+
 ### API Gateway FastAPI
 
 Depuis la racine du projet :
