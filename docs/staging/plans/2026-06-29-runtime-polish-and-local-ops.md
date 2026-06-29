@@ -32,7 +32,7 @@ spec: `docs/staging/specs/2026-06-29-runtime-polish-and-local-ops.md`
   acceptance: `UV_CACHE_DIR=/tmp/uv-cache uv run --no-sync pytest tests/test_api_health.py -q`
   spec: `docs/staging/specs/2026-06-29-runtime-polish-and-local-ops.md#t4t5-logging`
 
-- [ ] T6: Dual PDF ingestion modes
+- [x] T6: Dual PDF ingestion modes
   goal: Keep `llama-parse` and add a selectable local parsing path plus `auto`.
   files: `services/intelligence/pdf_parser.py`, `services/api-gateway/routers/cv.py`, `apps/web/src`
   acceptance: `UV_CACHE_DIR=/tmp/uv-cache uv run --no-sync pytest tests/test_api_health.py tests/test_resumes_api.py -q`

@@ -59,6 +59,8 @@ contract:
 contract:
 - PDF ingestion offers at least `llama_parse`, `local_text`, and `auto`.
 - Users can keep the existing `llama-parse` path or force a full-local pipeline.
+- `auto` resolves to `llama_parse` when `LLAMA_CLOUD_API_KEY` is configured and otherwise resolves to `local_text`.
+- The frontend stores the selected ingestion mode and only forwards it to the API; parsing logic stays server-side.
 
 ## T7 Monitoring
 

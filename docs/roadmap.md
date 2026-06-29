@@ -75,5 +75,5 @@
 - [x] **OpenAPI renderer :** Exposer automatiquement la documentation du service Bun/Elysia.
 - [x] **Logs Bun structurés :** Ecrire les événements renderer dans `.logs` avec métadonnées de route et durée.
 - [x] **Logger Python refondu :** Reprendre `packages/utils/logger.py` pour une base plus robuste et plus lisible.
-- [ ] **Ingestion PDF duale :** Conserver `llama-parse` et ajouter une option full local sélectionnable.
+- [x] **Ingestion PDF duale :** Conserver `llama-parse` et ajouter une option full local sélectionnable.
 - [ ] **Monitoring léger :** Instrumentation minimale des services sans stack d'observabilité lourde.
