@@ -303,6 +303,13 @@ bun run typecheck
 bun run build
 ```
 
+Endpoints runtime utiles :
+
+```text
+http://localhost:8000/api/v1/system/metrics
+http://localhost:4000/metrics
+```
+
 ### E2E navigateur MVP1
 
 Avec les trois services lances sur `3000`, `8000` et `4000` :

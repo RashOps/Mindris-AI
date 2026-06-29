@@ -76,4 +76,4 @@
 - [x] **Logs Bun structurés :** Ecrire les événements renderer dans `.logs` avec métadonnées de route et durée.
 - [x] **Logger Python refondu :** Reprendre `packages/utils/logger.py` pour une base plus robuste et plus lisible.
 - [x] **Ingestion PDF duale :** Conserver `llama-parse` et ajouter une option full local sélectionnable.
-- [ ] **Monitoring léger :** Instrumentation minimale des services sans stack d'observabilité lourde.
+- [x] **Monitoring léger :** Instrumentation minimale des services sans stack d'observabilité lourde.
