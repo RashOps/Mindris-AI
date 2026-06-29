@@ -20,7 +20,7 @@ spec: `docs/staging/specs/2026-06-25-open-source-differentiation-v1.md`
   acceptance: `cd services/renderer && bun run typecheck && bun run build`; `UV_CACHE_DIR=/tmp/uv-cache uv run --no-sync pytest tests/test_resumes_api.py`
   spec: `docs/staging/specs/2026-06-25-open-source-differentiation-v1.md#one-page-challenge`
 
-- [ ] T4: Local-first / BYOK / Ollama hardening
+- [x] T4: Local-first / BYOK / Ollama hardening
   goal: Keep the frontend as a client-only shell while making local provider settings and persistence explicit and robust.
   files: `apps/web/src/store/useCVStore.ts`, `apps/web/src/components/LLMSelector.tsx`, `apps/web/src/components/StylePanel.tsx`, `services/api-gateway/schemas.py`, `services/intelligence/llm_config.py`, `tests/test_llm.py`, `tests/test_ollama.py`
   acceptance: `cd apps/web && bun run lint && bun run typecheck`; `UV_CACHE_DIR=/tmp/uv-cache uv run --no-sync pytest tests/test_llm.py tests/test_ollama.py -q -s`
