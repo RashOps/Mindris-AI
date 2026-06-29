@@ -4,7 +4,16 @@ All notable changes to Mindris AI are documented here.
 
 ## Unreleased
 
-No unreleased changes.
+### Added
+
+- Backend-owned LaTeX and Typst exports for reusable native resume sources.
+- Resume revision comparison API and dashboard diff flow for semantic snapshot review.
+- One-page challenge layout mode with overflow warning support in the renderer.
+- Local-first provider hardening with explicit BYOK status and Ollama-first local mode.
+
+### Verified
+
+- Phase 9 open-source differentiation run is complete and covered by backend, frontend, and renderer validation.
 
 ## v0.1.1 - 2026-06-25
 

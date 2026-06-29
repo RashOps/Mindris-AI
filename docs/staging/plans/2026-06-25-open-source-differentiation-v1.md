@@ -2,7 +2,7 @@
 
 spec: `docs/staging/specs/2026-06-25-open-source-differentiation-v1.md`
 
-- [ ] T1: LaTeX / Typst export backend
+- [x] T1: LaTeX / Typst export backend
   goal: Add backend-owned LaTeX and Typst exports for resumes and expose them in the product.
   files: `services/api-gateway/exporters.py`, `services/api-gateway/routers/resumes.py`, `apps/web/src/app/tools/cv-creator/page.tsx`, `tests/test_resumes_api.py`, `tests/smoke_mvp1_backend.py`, `docs/open-exports.md`, `docs/command_control.md`
   acceptance: `UV_CACHE_DIR=/tmp/uv-cache STORAGE_DIR=/tmp/mindris-ai-tex-export uv run --no-sync python tests/smoke_mvp1_backend.py`; `UV_CACHE_DIR=/tmp/uv-cache uv run --no-sync ruff check services/api-gateway/exporters.py services/api-gateway/routers/resumes.py tests/test_resumes_api.py tests/smoke_mvp1_backend.py`; `cd apps/web && bun run lint && bun run typecheck`

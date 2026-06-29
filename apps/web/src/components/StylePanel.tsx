@@ -90,14 +90,29 @@ function defaultSections(types: string[], placements: string[]): SectionDraft[] 
   }));
 }
 
-function mergeSections(
-  current: GlobalSettings | undefined,
+export function mergeSections(
+  current: Partial<GlobalSettings> | undefined,
   catalogue: CustomizationCatalogue,
 ): SectionDraft[] {
   const defaults = defaultSections(catalogue.sections.types, catalogue.sections.placements);
   const existing = current?.sections ?? [];
-  const byType = new Map(existing.map((section) => [section.type, section]));
-  return defaults.map((section) => ({ ...section, ...byType.get(section.type) }));
+  const defaultsByType = new Map(defaults.map((section) => [section.type, section]));
+  const merged: SectionDraft[] = [];
+  const seenTypes = new Set<string>();
+
+  for (const existingSection of existing) {
+    const defaultSection = defaultsByType.get(existingSection.type);
+    if (!defaultSection) continue;
+    merged.push({ ...defaultSection, ...existingSection });
+    seenTypes.add(existingSection.type);
+  }
+
+  for (const defaultSection of defaults) {
+    if (seenTypes.has(defaultSection.type)) continue;
+    merged.push(defaultSection);
+  }
+
+  return merged;
 }
 
 function resolveSettings(

@@ -38,7 +38,7 @@ spec: docs/staging/specs/2026-06-24-cv-customization-studio.md
   acceptance: `cd apps/web && bun run lint && bun run typecheck`
   spec: docs/staging/specs/2026-06-24-cv-customization-studio.md#cv-customization-studio
 
-- [ ] T7: Export parity and E2E customization flow
+- [x] T7: Export parity and E2E customization flow
   goal: Verify custom labels, hidden sections, ordering, ATS strict mode, PDF, DOCX, HTML, Markdown, and browser critical paths.
   files: tests/e2e/mvp1_browser.py, scripts/e2e_browser.sh, tests/smoke_mvp1_backend.py, docs/command_control.md
   acceptance: `UV_CACHE_DIR=/tmp/uv-cache STORAGE_DIR=/tmp/mindris-ai-customization-test uv run --no-sync python tests/smoke_mvp1_backend.py` and `./scripts/e2e_browser.sh`

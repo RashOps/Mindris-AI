@@ -57,17 +57,17 @@
 - [x] **Commandes locales :** Scripts `uv` + `bun` pour réinstaller, configurer et lancer API, renderer et frontend sans Docker.
 
 ## 🔵 Phase 8 : CV Customization Studio
-- [ ] **Contrat backend de personnalisation :** Normaliser layout, typographie, couleurs, sections et labels dans le schema CV.
-- [ ] **Renderer configurable :** Appliquer les tokens et la structure de sections depuis le contrat backend.
-- [ ] **Studio UI backend-driven :** Exposer les contrôles avancés sans logique métier côté front.
-- [ ] **Sections avancées :** Certifications, bénévolat, publications, références et sections personnalisées.
-- [ ] **Validation ATS & accessibilité :** Garde-fous de contraste, mode ATS strict et tests E2E de personnalisation.
+- [x] **Contrat backend de personnalisation :** Normaliser layout, typographie, couleurs, sections et labels dans le schema CV.
+- [x] **Renderer configurable :** Appliquer les tokens et la structure de sections depuis le contrat backend.
+- [x] **Studio UI backend-driven :** Exposer les contrôles avancés sans logique métier côté front.
+- [x] **Sections avancées :** Certifications, bénévolat, publications, références et sections personnalisées.
+- [x] **Validation ATS & accessibilité :** Garde-fous de contraste, mode ATS strict et tests E2E de personnalisation.
 
 ## 🔵 Phase 9 : Différenciation open-source v1
-- [ ] **Export LaTeX/Typst :** Produire des exports texte natifs et réutilisables.
-- [ ] **Comparaison de versions :** Diff sémantique entre snapshots de CV.
-- [ ] **Mode “1 page challenge” :** Optimiser la densité sans perdre de données.
-- [ ] **Local-first / BYOK / Ollama :** Durcir la configuration locale et les providers IA sans ajouter de service côté front.
+- [x] **Export LaTeX/Typst :** Produire des exports texte natifs et réutilisables.
+- [x] **Comparaison de versions :** Diff sémantique entre snapshots de CV.
+- [x] **Mode “1 page challenge” :** Optimiser la densité sans perdre de données.
+- [x] **Local-first / BYOK / Ollama :** Durcir la configuration locale et les providers IA sans ajouter de service côté front.
 
 ## 🔵 Phase 10 : Runtime polish & local operations
 - [x] **Header CV Builder épuré :** Regrouper les imports/exports dans deux menus `Upload CV` et `Download CV`.

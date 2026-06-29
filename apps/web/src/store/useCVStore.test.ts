@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { normalizeAppSettings, normalizeCVData } from "./useCVStore";
+import { mergeSections } from "../components/StylePanel";
+import { FALLBACK_CUSTOMIZATION_CATALOGUE } from "../lib/customization-catalogue";
 
 describe("useCVStore normalization", () => {
   test("fills missing advanced section arrays from partial CV data", () => {
@@ -41,5 +43,22 @@ describe("useCVStore normalization", () => {
     expect(normalized.cover_letter_llm.model_name).toBe("llama-3.3-70b-versatile");
     expect(normalized.ats_llm.provider).toBe("groq");
     expect(normalized.pdf_ingestion_mode).toBe("auto");
+  });
+
+  test("preserves customized section order when merging with catalogue defaults", () => {
+    const merged = mergeSections(
+      {
+        sections: [
+          { id: "profile", type: "profile", label: "Profil" },
+          { id: "projects", type: "projects", label: "Projets" },
+          { id: "experience", type: "experience", label: "Parcours professionnel" },
+        ],
+      },
+      FALLBACK_CUSTOMIZATION_CATALOGUE,
+    );
+
+    expect(merged[0]?.type).toBe("profile");
+    expect(merged[1]?.type).toBe("projects");
+    expect(merged[2]?.type).toBe("experience");
   });
 });
