@@ -57,6 +57,7 @@ def resume_to_markdown(record: ResumeRecord) -> str:
     profile = _mapping(cv_data.get("profile"))
     lines: list[str] = []
     sections = _section_configs(cv_data)
+    configured_types = _configured_section_types(cv_data)
 
     full_name = _text(profile.get("full_name")) or record.name
     title = _text(profile.get("title"))
@@ -101,7 +102,7 @@ def resume_to_markdown(record: ResumeRecord) -> str:
             _append_hobbies(lines, cv_data.get("hobbies"), section_title)
 
     for section_type in SECTION_FALLBACK_ORDER:
-        if section_type in rendered_types:
+        if section_type in rendered_types or section_type in configured_types:
             continue
         section_data = _section_data_for_type(cv_data, section_type, profile)
         if section_type == "profile":
@@ -156,6 +157,7 @@ def resume_to_html(record: ResumeRecord) -> str:
     cv_data = _cv_data(record)
     profile = _mapping(cv_data.get("profile"))
     sections = _section_configs(cv_data)
+    configured_types = _configured_section_types(cv_data)
     full_name = _text(profile.get("full_name")) or record.name
     title = _text(profile.get("title"))
     contacts = _contact_parts(profile)
@@ -196,7 +198,7 @@ def resume_to_html(record: ResumeRecord) -> str:
         if rendered:
             rendered_sections.append(rendered)
     for section_type in SECTION_FALLBACK_ORDER:
-        if section_type in rendered_types:
+        if section_type in rendered_types or section_type in configured_types:
             continue
         section_data = _section_data_for_type(cv_data, section_type, profile)
         if section_type == "profile":
@@ -421,6 +423,7 @@ def resume_to_docx(record: ResumeRecord) -> bytes:
     cv_data = _cv_data(record)
     profile = _mapping(cv_data.get("profile"))
     sections = _section_configs(cv_data)
+    configured_types = _configured_section_types(cv_data)
     full_name = _text(profile.get("full_name")) or record.name
     title = _text(profile.get("title"))
     contacts = _contact_parts(profile)
@@ -462,7 +465,7 @@ def resume_to_docx(record: ResumeRecord) -> bytes:
             _docx_hobbies(blocks, cv_data.get("hobbies"), section_title)
 
     for section_type in SECTION_FALLBACK_ORDER:
-        if section_type in rendered_types:
+        if section_type in rendered_types or section_type in configured_types:
             continue
         section_data = _section_data_for_type(cv_data, section_type, profile)
         if section_type == "profile":
@@ -560,6 +563,17 @@ def _section_configs(cv_data: dict[str, Any]) -> list[dict[str, Any]]:
             continue
         configs.append(item)
     return configs
+
+
+def _configured_section_types(cv_data: dict[str, Any]) -> set[str]:
+    settings = _mapping(cv_data.get("global_settings"))
+    sections = _items(settings.get("sections"))
+    configured_types: set[str] = set()
+    for section in sections:
+        section_type = _text(_mapping(section).get("type"))
+        if section_type:
+            configured_types.add(section_type)
+    return configured_types
 
 
 def _section_title(section: dict[str, Any]) -> str:
