@@ -10,6 +10,7 @@ export interface GlobalSettings {
     format?: "A4" | "Letter";
     margins?: { horizontal?: string; vertical?: string };
     page_break_mode?: "auto" | "manual";
+    one_page_challenge?: boolean;
   };
   layout?: {
     columns?: 1 | 2;
