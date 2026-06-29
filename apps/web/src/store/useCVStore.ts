@@ -241,12 +241,62 @@ export interface AppSettings {
   patch_llm:        LLMConfig;
 }
 
+const APP_SETTINGS_STORAGE_KEY = 'mindris:app-settings:v1';
+
 const DEFAULT_APP_SETTINGS: AppSettings = {
   optimize_llm:     { provider: 'groq',   model_name: 'llama-3.3-70b-versatile' },
   cover_letter_llm: { provider: 'groq',   model_name: 'llama-3.3-70b-versatile' },
   ats_llm:          { provider: 'groq',   model_name: 'llama-3.1-8b-instant' },
   patch_llm:        { provider: 'groq',   model_name: 'llama-3.3-70b-versatile' },
 };
+
+export function normalizeAppSettings(value: unknown): AppSettings {
+  if (!value || typeof value !== 'object') return DEFAULT_APP_SETTINGS;
+  const candidate = value as Partial<AppSettings>;
+  return {
+    optimize_llm: normalizeLLMConfig(candidate.optimize_llm, DEFAULT_APP_SETTINGS.optimize_llm),
+    cover_letter_llm: normalizeLLMConfig(candidate.cover_letter_llm, DEFAULT_APP_SETTINGS.cover_letter_llm),
+    ats_llm: normalizeLLMConfig(candidate.ats_llm, DEFAULT_APP_SETTINGS.ats_llm),
+    patch_llm: normalizeLLMConfig(candidate.patch_llm, DEFAULT_APP_SETTINGS.patch_llm),
+  };
+}
+
+function normalizeLLMConfig(value: unknown, fallback: LLMConfig): LLMConfig {
+  if (!value || typeof value !== 'object') return fallback;
+  const candidate = value as Partial<LLMConfig>;
+  const provider = candidate.provider;
+  const model_name = candidate.model_name;
+  if (!provider || !model_name || !isLLMProvider(provider)) return fallback;
+  return {
+    provider,
+    model_name: typeof model_name === 'string' && model_name.trim() ? model_name : fallback.model_name,
+  };
+}
+
+function isLLMProvider(value: unknown): value is LLMProvider {
+  return value === 'groq' || value === 'gemini' || value === 'openai' || value === 'mistral' || value === 'ollama';
+}
+
+function loadStoredAppSettings(): AppSettings {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return DEFAULT_APP_SETTINGS;
+  }
+  try {
+    const raw = window.localStorage.getItem(APP_SETTINGS_STORAGE_KEY);
+    return raw ? normalizeAppSettings(JSON.parse(raw)) : DEFAULT_APP_SETTINGS;
+  } catch {
+    return DEFAULT_APP_SETTINGS;
+  }
+}
+
+function persistAppSettings(value: AppSettings): void {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    window.localStorage.setItem(APP_SETTINGS_STORAGE_KEY, JSON.stringify(value));
+  } catch {
+    // Ignore storage failures; backend remains the source of truth for product data.
+  }
+}
 
 export interface CVData {
   global_settings: GlobalSettings;
@@ -947,8 +997,12 @@ export const useCVStore = create<CVStore>()((set, get) => ({
     }),
 
   // ── App Settings (multi-LLM per task) ────────────────────────────────────────
-  appSettings: DEFAULT_APP_SETTINGS,
-  setAppSettings: (s) => set((state) => ({ appSettings: { ...state.appSettings, ...s } })),
+  appSettings: loadStoredAppSettings(),
+  setAppSettings: (s) => set((state) => {
+    const next = normalizeAppSettings({ ...state.appSettings, ...s });
+    persistAppSettings(next);
+    return { appSettings: next };
+  }),
 
   setGlobalSettings: (s) =>
     set((state) =>
