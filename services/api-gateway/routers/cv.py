@@ -2,10 +2,10 @@
 
 import asyncio
 import json
-from typing import Annotated
+from typing import Annotated, Literal
 
 from database.session import Session, get_session
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, UploadFile, status
 from persistence import (
     get_current_cv,
     save_ats_report,
@@ -69,10 +69,23 @@ def upload_cv(cv_data: CVDataModel, session: SessionDep) -> dict:
 async def upload_pdf_cv(
     file: UploadFile,
     session: SessionDep,
-    provider: str = "groq",
-    model_name: str = "llama-3.3-70b-versatile",
+    provider_form: str | None = Form(default=None, alias="provider"),
+    provider_query: str | None = Query(default=None, alias="provider"),
+    model_name_form: str | None = Form(default=None, alias="model_name"),
+    model_name_query: str | None = Query(default=None, alias="model_name"),
+    ingestion_mode_form: Literal["auto", "llama_parse", "local_text"] | None = Form(
+        default=None,
+        alias="ingestion_mode",
+    ),
+    ingestion_mode_query: Literal["auto", "llama_parse", "local_text"] | None = Query(
+        default=None,
+        alias="ingestion_mode",
+    ),
 ) -> dict:
     """Upload a PDF CV, parse it, persist it, and index it."""
+    provider = provider_form or provider_query or "groq"
+    model_name = model_name_form or model_name_query or "llama-3.3-70b-versatile"
+    ingestion_mode = ingestion_mode_form or ingestion_mode_query or "auto"
     try:
         validate_llm_selection(provider, model_name)
     except ValueError as exc:
@@ -94,7 +107,13 @@ async def upload_pdf_cv(
 
     try:
         parsed_cv = await asyncio.wait_for(
-            parse_pdf_cv(pdf_bytes, provider=provider, model_name=model_name),
+            parse_pdf_cv(
+                pdf_bytes,
+                filename=file.filename or "cv.pdf",
+                provider=provider,
+                model_name=model_name,
+                ingestion_mode=ingestion_mode,
+            ),
             timeout=settings.pipeline_timeout_seconds,
         )
     except TimeoutError as exc:
