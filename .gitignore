@@ -45,7 +45,7 @@ out/
 .env.production.local
 
 # Local Storage & Cache
-/storage/
+*storage/
 /scratch/
 /temp/
 *.pdf
