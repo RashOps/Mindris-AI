@@ -46,10 +46,10 @@
 ## 🔵 Phase 6 : Stabilisation outil & contenu recruteur
 - [x] **Self-hosting Docker local :** Compose, healthchecks, `.env.example`, guide et smoke script.
 - [x] **Exports ouverts :** JSON, Markdown et HTML backend-driven, avec PDF maintenu via renderer.
-- [ ] **Export DOCX :** Differe jusqu'a une implementation locale fiable.
-- [ ] **Durcissement Microservices :** Healthchecks, erreurs normalisees, timeouts, retries, stockage local robuste.
-- [ ] **Validation Docker bout en bout :** `docker compose up --build` et smoke self-hosting.
-- [ ] **E2E navigateur :** Automatiser CV Builder, exports, ATS Scorer et Job Tracker.
+- [x] **Export DOCX :** Export backend-owned disponible et documente.
+- [x] **Durcissement Microservices :** Healthchecks, erreurs normalisees, timeouts, retries, stockage local robuste.
+- [x] **Validation Docker bout en bout :** `docker compose up --build` et smoke self-hosting.
+- [x] **E2E navigateur :** Automatiser CV Builder, exports, ATS Scorer et Job Tracker.
 
 ## 🟢 Phase 7 : UI unifiée & workflow local non-Docker (Terminée)
 - [x] **SaaS App Shell :** Unifier dashboard et outils dans une navigation produit unique.
