@@ -14,7 +14,7 @@ spec: `docs/staging/specs/2026-06-25-open-source-differentiation-v1.md`
   acceptance: `UV_CACHE_DIR=/tmp/uv-cache uv run --no-sync pytest tests/test_resumes_api.py`; `cd apps/web && bun run lint && bun run typecheck`
   spec: `docs/staging/specs/2026-06-25-open-source-differentiation-v1.md#revision-comparison`
 
-- [ ] T3: One page challenge mode
+- [x] T3: One page challenge mode
   goal: Add a dense layout mode that prefers one-page output without silently dropping content.
   files: `services/api-gateway/schemas.py`, `services/renderer/src/templates/engine.ts`, `services/renderer/src/templates/styles/*.css`, `apps/web/src/components/StylePanel.tsx`, `tests/test_resumes_api.py`, `tests/e2e/mvp1_browser.py`
   acceptance: `cd services/renderer && bun run typecheck && bun run build`; `UV_CACHE_DIR=/tmp/uv-cache uv run --no-sync pytest tests/test_resumes_api.py`
