@@ -2,6 +2,7 @@
 
 from crewai import Agent, Task
 from database.models import JobOfferExtract
+from utils.logger import get_logger
 
 # Maximum characters of Markdown passed to the LLM.
 # Groq free tier: 12 000 TPM limit.
@@ -9,6 +10,7 @@ from database.models import JobOfferExtract
 # The remaining ~10 500 tokens cover the system prompt, backstory,
 # JSON schema, and the LLM response comfortably.
 _MAX_MARKDOWN_CHARS = 6_000
+logger = get_logger(__name__, service_name="intelligence")
 
 
 class MindrisTasks:
@@ -31,6 +33,13 @@ class MindrisTasks:
         """
         # Truncate early so we never overflow the LLM context window.
         content = job_markdown[:_MAX_MARKDOWN_CHARS]
+        truncated = len(job_markdown) > _MAX_MARKDOWN_CHARS
+        logger.info(
+            "Building analysis task for %s (markdown_chars=%d truncated=%s)",
+            url,
+            len(job_markdown),
+            truncated,
+        )
         if len(job_markdown) > _MAX_MARKDOWN_CHARS:
             content += "\n\n[… content truncated for context-window reasons …]"
 

@@ -8,9 +8,11 @@ from fastapi import APIRouter, Depends
 from persistence import dump_json, load_json
 from schemas import CompanyAnalyzeRequest
 from sqlalchemy import select
+from utils.logger import get_logger
 
 router = APIRouter(prefix="/api/v1/company", tags=["company"])
 SessionDep = Annotated[Session, Depends(get_session)]
+logger = get_logger(__name__, service_name="api-gateway")
 
 
 @router.post("/analyze")
@@ -26,11 +28,13 @@ async def analyze_company_route(
         )
     ).first()
     if cached:
+        logger.info("Company insight cache hit for %s", name)
         return {"status": "success", "insight": load_json(cached.insight_json, {})}
 
     from intelligence.company_analyzer import analyze_company
 
     insight = await analyze_company(name, request.provider, request.model_name)
+    logger.info("Company insight generated for %s", name)
     record = CompanyInsightRecord(
         company_name=name.lower(),
         insight_json=dump_json(insight),

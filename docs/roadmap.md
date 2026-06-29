@@ -46,10 +46,10 @@
 ## 🔵 Phase 6 : Stabilisation outil & contenu recruteur
 - [x] **Self-hosting Docker local :** Compose, healthchecks, `.env.example`, guide et smoke script.
 - [x] **Exports ouverts :** JSON, Markdown et HTML backend-driven, avec PDF maintenu via renderer.
-- [ ] **Export DOCX :** Differe jusqu'a une implementation locale fiable.
-- [ ] **Durcissement Microservices :** Healthchecks, erreurs normalisees, timeouts, retries, stockage local robuste.
-- [ ] **Validation Docker bout en bout :** `docker compose up --build` et smoke self-hosting.
-- [ ] **E2E navigateur :** Automatiser CV Builder, exports, ATS Scorer et Job Tracker.
+- [x] **Export DOCX :** Export backend-owned disponible et documente.
+- [x] **Durcissement Microservices :** Healthchecks, erreurs normalisees, timeouts, retries, stockage local robuste.
+- [x] **Validation Docker bout en bout :** `docker compose up --build` et smoke self-hosting.
+- [x] **E2E navigateur :** Automatiser CV Builder, exports, ATS Scorer et Job Tracker.
 
 ## 🟢 Phase 7 : UI unifiée & workflow local non-Docker (Terminée)
 - [x] **SaaS App Shell :** Unifier dashboard et outils dans une navigation produit unique.
@@ -68,3 +68,12 @@
 - [ ] **Comparaison de versions :** Diff sémantique entre snapshots de CV.
 - [ ] **Mode “1 page challenge” :** Optimiser la densité sans perdre de données.
 - [ ] **Local-first / BYOK / Ollama :** Durcir la configuration locale et les providers IA sans ajouter de service côté front.
+
+## 🔵 Phase 10 : Runtime polish & local operations
+- [x] **Header CV Builder épuré :** Regrouper les imports/exports dans deux menus `Upload CV` et `Download CV`.
+- [x] **Startup gate frontend :** Attendre explicitement l'API Gateway et le renderer avant d'ouvrir l'application.
+- [x] **OpenAPI renderer :** Exposer automatiquement la documentation du service Bun/Elysia.
+- [x] **Logs Bun structurés :** Ecrire les événements renderer dans `.logs` avec métadonnées de route et durée.
+- [x] **Logger Python refondu :** Reprendre `packages/utils/logger.py` pour une base plus robuste et plus lisible.
+- [x] **Ingestion PDF duale :** Conserver `llama-parse` et ajouter une option full local sélectionnable.
+- [x] **Monitoring léger :** Instrumentation minimale des services sans stack d'observabilité lourde.

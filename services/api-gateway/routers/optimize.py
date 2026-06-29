@@ -8,13 +8,14 @@ from collections.abc import AsyncGenerator
 from database.session import Session, engine
 from fastapi import APIRouter, BackgroundTasks, Request
 from intelligence.event_bus import create_job_queue, emit, stream_events
+from monitoring import monitor
 from persistence import dump_json, save_job_offer
 from schemas import OptimizationResponse, OptimizeRequest
 from sse_starlette.sse import EventSourceResponse
 from utils.config import settings
 from utils.logger import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger(__name__, service_name="api-gateway")
 router = APIRouter(prefix="/api/v1", tags=["optimize"])
 
 
@@ -47,13 +48,16 @@ async def run_intelligence_pipeline(
                     timeout=settings.pipeline_timeout_seconds,
                 )
         except ScraperExhaustedError as exc:
+            monitor.increment_pipeline_failure("optimize")
             emit(job_id, "error", {"message": f"All scraping providers failed: {exc}"})
             return
         except TimeoutError:
+            monitor.increment_pipeline_failure("optimize")
             emit(job_id, "error", {"message": "Scraping timed out."})
             return
 
         if not markdown_content:
+            monitor.increment_pipeline_failure("optimize")
             emit(job_id, "error", {"message": "Scraping returned empty content."})
             return
 
@@ -87,9 +91,11 @@ async def run_intelligence_pipeline(
                 timeout=settings.pipeline_timeout_seconds,
             )
         except TimeoutError:
+            monitor.increment_pipeline_failure("optimize")
             emit(job_id, "error", {"message": "Job offer analysis timed out."})
             return
         if not job_offer:
+            monitor.increment_pipeline_failure("optimize")
             emit(
                 job_id,
                 "error",
@@ -149,6 +155,7 @@ async def run_intelligence_pipeline(
                 timeout=settings.pipeline_timeout_seconds,
             )
         except TimeoutError:
+            monitor.increment_pipeline_failure("optimize")
             emit(job_id, "error", {"message": "CV optimization workflow timed out."})
             return
 
@@ -162,6 +169,7 @@ async def run_intelligence_pipeline(
         )
         logger.info("[%s] Pipeline completed.", job_id)
     except Exception as exc:
+        monitor.increment_pipeline_failure("optimize")
         logger.exception("[%s] Pipeline error", job_id)
         emit(job_id, "error", {"message": str(exc)})
 

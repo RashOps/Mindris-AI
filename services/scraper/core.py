@@ -22,7 +22,7 @@ from playwright_stealth import Stealth
 from utils.config import settings
 from utils.logger import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger(__name__, service_name="scraper")
 
 # ── User-agents (updated to Chrome 125 / 2025) ────────────────────────────────
 USER_AGENT_WINDOWS = (

@@ -10,7 +10,7 @@ from utils.logger import get_logger
 from .agents import MindrisAgents
 from .tasks import MindrisTasks
 
-logger = get_logger(__name__)
+logger = get_logger(__name__, service_name="intelligence")
 
 # Guard: never forward more than this many chars of markdown to the LLM.
 # tasks.py truncates at _MAX_MARKDOWN_CHARS but this ensures the upstream

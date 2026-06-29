@@ -14,7 +14,7 @@ from utils.logger import get_logger
 
 from intelligence.llm_config import get_llm
 
-logger = get_logger(__name__)
+logger = get_logger(__name__, service_name="intelligence")
 
 
 # ── Pydantic models ───────────────────────────────────────────────────────────

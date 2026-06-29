@@ -7,13 +7,15 @@ from database.session import Session, get_session
 from fastapi import APIRouter, Depends, HTTPException
 from persistence import serialize_ats, serialize_cover_letter, serialize_job
 from sqlalchemy import select
+from utils.logger import get_logger
 
 router = APIRouter(prefix="/api/v1/history", tags=["history"])
 SessionDep = Annotated[Session, Depends(get_session)]
+logger = get_logger(__name__, service_name="api-gateway")
 
 
 @router.get("/jobs")
-def list_jobs(session: SessionDep, limit: int = 50, offset: int = 0) -> dict:
+async def list_jobs(session: SessionDep, limit: int = 50, offset: int = 0) -> dict:
     """List scraped jobs."""
     rows = session.exec(
         select(ScrapedJobRecord)
@@ -25,10 +27,11 @@ def list_jobs(session: SessionDep, limit: int = 50, offset: int = 0) -> dict:
 
 
 @router.get("/jobs/{job_id}")
-def get_job(job_id: int, session: SessionDep) -> dict:
+async def get_job(job_id: int, session: SessionDep) -> dict:
     """Return one job with linked reports and letters."""
     job = session.get(ScrapedJobRecord, job_id)
     if not job:
+        logger.warning("Job %s not found", job_id)
         raise HTTPException(status_code=404, detail="Job not found.")
     ats_reports = session.exec(
         select(AtsReportRecord).where(AtsReportRecord.job_id == job_id)
@@ -45,7 +48,7 @@ def get_job(job_id: int, session: SessionDep) -> dict:
 
 
 @router.get("/cover-letters")
-def list_cover_letters(session: SessionDep) -> dict:
+async def list_cover_letters(session: SessionDep) -> dict:
     """List generated cover letters."""
     rows = session.exec(
         select(CoverLetterRecord).order_by(CoverLetterRecord.generated_at.desc())
@@ -54,7 +57,7 @@ def list_cover_letters(session: SessionDep) -> dict:
 
 
 @router.get("/ats-reports")
-def list_ats_reports(session: SessionDep) -> dict:
+async def list_ats_reports(session: SessionDep) -> dict:
     """List ATS reports."""
     rows = session.exec(
         select(AtsReportRecord).order_by(AtsReportRecord.generated_at.desc())
@@ -63,11 +66,13 @@ def list_ats_reports(session: SessionDep) -> dict:
 
 
 @router.delete("/jobs/{job_id}")
-def delete_job(job_id: int, session: SessionDep) -> dict:
+async def delete_job(job_id: int, session: SessionDep) -> dict:
     """Delete a job and dependent records."""
     job = session.get(ScrapedJobRecord, job_id)
     if not job:
+        logger.warning("Delete requested for missing job %s", job_id)
         raise HTTPException(status_code=404, detail="Job not found.")
+    logger.info("Deleting job %s and dependent records", job_id)
     ats_query = select(AtsReportRecord).where(AtsReportRecord.job_id == job_id)
     letter_query = select(CoverLetterRecord).where(CoverLetterRecord.job_id == job_id)
     for row in session.exec(ats_query).all():

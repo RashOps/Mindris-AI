@@ -234,11 +234,14 @@ export interface LLMConfig {
   model_name: string;
 }
 
+export type PdfIngestionMode = 'auto' | 'llama_parse' | 'local_text';
+
 export interface AppSettings {
   optimize_llm:     LLMConfig;
   cover_letter_llm: LLMConfig;
   ats_llm:          LLMConfig;
   patch_llm:        LLMConfig;
+  pdf_ingestion_mode: PdfIngestionMode;
 }
 
 const APP_SETTINGS_STORAGE_KEY = 'mindris:app-settings:v1';
@@ -248,6 +251,7 @@ const DEFAULT_APP_SETTINGS: AppSettings = {
   cover_letter_llm: { provider: 'groq',   model_name: 'llama-3.3-70b-versatile' },
   ats_llm:          { provider: 'groq',   model_name: 'llama-3.1-8b-instant' },
   patch_llm:        { provider: 'groq',   model_name: 'llama-3.3-70b-versatile' },
+  pdf_ingestion_mode: 'auto',
 };
 
 export function normalizeAppSettings(value: unknown): AppSettings {
@@ -258,6 +262,10 @@ export function normalizeAppSettings(value: unknown): AppSettings {
     cover_letter_llm: normalizeLLMConfig(candidate.cover_letter_llm, DEFAULT_APP_SETTINGS.cover_letter_llm),
     ats_llm: normalizeLLMConfig(candidate.ats_llm, DEFAULT_APP_SETTINGS.ats_llm),
     patch_llm: normalizeLLMConfig(candidate.patch_llm, DEFAULT_APP_SETTINGS.patch_llm),
+    pdf_ingestion_mode: normalizePdfIngestionMode(
+      candidate.pdf_ingestion_mode,
+      DEFAULT_APP_SETTINGS.pdf_ingestion_mode,
+    ),
   };
 }
 
@@ -275,6 +283,15 @@ function normalizeLLMConfig(value: unknown, fallback: LLMConfig): LLMConfig {
 
 function isLLMProvider(value: unknown): value is LLMProvider {
   return value === 'groq' || value === 'gemini' || value === 'openai' || value === 'mistral' || value === 'ollama';
+}
+
+function normalizePdfIngestionMode(
+  value: unknown,
+  fallback: PdfIngestionMode,
+): PdfIngestionMode {
+  return value === 'auto' || value === 'llama_parse' || value === 'local_text'
+    ? value
+    : fallback;
 }
 
 function loadStoredAppSettings(): AppSettings {

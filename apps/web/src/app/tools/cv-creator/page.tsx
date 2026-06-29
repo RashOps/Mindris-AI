@@ -7,12 +7,14 @@ import { StylePanel } from "@/components/StylePanel";
 import { JobInsightsPanel } from "@/components/JobInsightsPanel";
 import { CoverLetterModal } from "@/components/CoverLetterModal";
 import { LLMSelector } from "@/components/LLMSelector";
+import { PdfIngestionModeSelect } from "@/components/PdfIngestionModeSelect";
 import { useCVStore } from "@/store/useCVStore";
 import { cvDataFromImport, resumeNameFromImport, type CompanyInsight, type JobInsights } from "@/store/useCVStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, type ReactNode } from "react";
 import { apiUrl, rendererUrl, apiHeaders, jsonHeaders } from "@/lib/api";
+import { ChevronDown, Download, Upload } from "lucide-react";
 import {
   DndContext,
   type DragEndEvent,
@@ -32,6 +34,13 @@ type JobResultPayload = Partial<JobInsights> & {
 };
 
 type ResumeExportFormat = "json" | "markdown" | "html" | "docx" | "latex" | "typst";
+type HeaderMenuId = "upload" | "download";
+type HeaderMenuAction = {
+  label: string;
+  hint: string;
+  disabled?: boolean;
+  onSelect: () => void;
+};
 
 const RESUME_EXPORTS: Record<
   ResumeExportFormat,
@@ -58,6 +67,63 @@ function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
 }
 
+function HeaderActionMenu({
+  label,
+  icon,
+  isOpen,
+  onToggle,
+  onClose,
+  actions,
+}: {
+  label: string;
+  icon: ReactNode;
+  isOpen: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+  actions: HeaderMenuAction[];
+}) {
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={isOpen}
+        aria-haspopup="menu"
+        className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+      >
+        {icon}
+        <span>{label}</span>
+        <ChevronDown className={`h-4 w-4 text-slate-500 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+      </button>
+
+      {isOpen ? (
+        <div
+          role="menu"
+          aria-label={`${label} menu`}
+          className="absolute right-0 top-11 z-40 min-w-56 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl"
+        >
+          {actions.map((action) => (
+            <button
+              key={action.label}
+              type="button"
+              role="menuitem"
+              disabled={action.disabled}
+              onClick={() => {
+                onClose();
+                action.onSelect();
+              }}
+              className="flex w-full cursor-pointer items-start justify-between gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <span className="text-sm font-medium text-slate-800">{action.label}</span>
+              <span className="text-[11px] text-slate-500">{action.hint}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 
 
 
@@ -82,10 +148,12 @@ export default function AppPage() {
   const [showStyle, setShowStyle] = useState(false);
   const [showInsights, setShowInsights] = useState(false);
   const [showCoverLetter, setShowCoverLetter] = useState(false);
+  const [activeHeaderMenu, setActiveHeaderMenu] = useState<HeaderMenuId | null>(null);
   const [toast, setToast]         = useState<string | null>(null);
 
   const pdfInputRef  = useRef<HTMLInputElement>(null);
   const jsonInputRef = useRef<HTMLInputElement>(null);
+  const headerMenuRef = useRef<HTMLDivElement>(null);
 
   const showToast = (msg: string, ms = 4000) => {
     setToast(msg);
@@ -97,6 +165,27 @@ export default function AppPage() {
       showToast(errorMessage(err, "Failed to load resumes"), 6000);
     });
   }, [loadResumes]);
+
+  useEffect(() => {
+    if (!activeHeaderMenu) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!headerMenuRef.current?.contains(event.target as Node)) {
+        setActiveHeaderMenu(null);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setActiveHeaderMenu(null);
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [activeHeaderMenu]);
 
   const activeResume = resumes.find((resume) => resume.id === activeResumeId);
   const saveStatusText =
@@ -184,6 +273,7 @@ export default function AppPage() {
       formData.append("file", file);
       formData.append("provider", appSettings.optimize_llm.provider);
       formData.append("model_name", appSettings.optimize_llm.model_name);
+      formData.append("ingestion_mode", appSettings.pdf_ingestion_mode);
       const res = await fetch(apiUrl("/api/v1/cv/upload-pdf"), { method: "POST", headers: apiHeaders(), body: formData });
       if (!res.ok) { const err = await res.json(); throw new Error(err.detail ?? "Upload failed"); }
       const data = await res.json();
@@ -302,6 +392,82 @@ export default function AppPage() {
   const handleGhostError = () => { setIsOptimizing(false); showToast("Pipeline failed.", 6000); };
 
   const { isOptimizing } = useCVStore();
+  const uploadActions: HeaderMenuAction[] = [
+    {
+      label: "PDF",
+      hint: isUploading ? "Parsing..." : "Import resume",
+      disabled: isUploading,
+      onSelect: () => pdfInputRef.current?.click(),
+    },
+    {
+      label: "JSON",
+      hint: "Import structured data",
+      onSelect: () => jsonInputRef.current?.click(),
+    },
+  ];
+  const downloadActions: HeaderMenuAction[] = [
+    {
+      label: "PDF",
+      hint: "Print-ready export",
+      onSelect: () => {
+        void handleExportPDF();
+      },
+    },
+    {
+      label: "DOCX",
+      hint: "Recruiter format",
+      onSelect: () => {
+        void handleExportResume("docx").catch((err: unknown) => {
+          showToast(errorMessage(err, "DOCX export failed"), 6000);
+        });
+      },
+    },
+    {
+      label: "JSON",
+      hint: "Structured data",
+      onSelect: () => {
+        void handleExportResume("json").catch((err: unknown) => {
+          showToast(errorMessage(err, "JSON export failed"), 6000);
+        });
+      },
+    },
+    {
+      label: "Markdown",
+      hint: "GitHub-friendly",
+      onSelect: () => {
+        void handleExportResume("markdown").catch((err: unknown) => {
+          showToast(errorMessage(err, "Markdown export failed"), 6000);
+        });
+      },
+    },
+    {
+      label: "HTML",
+      hint: "Web profile",
+      onSelect: () => {
+        void handleExportResume("html").catch((err: unknown) => {
+          showToast(errorMessage(err, "HTML export failed"), 6000);
+        });
+      },
+    },
+    {
+      label: "LaTeX",
+      hint: "Portable source",
+      onSelect: () => {
+        void handleExportResume("latex").catch((err: unknown) => {
+          showToast(errorMessage(err, "LaTeX export failed"), 6000);
+        });
+      },
+    },
+    {
+      label: "Typst",
+      hint: "Portable source",
+      onSelect: () => {
+        void handleExportResume("typst").catch((err: unknown) => {
+          showToast(errorMessage(err, "Typst export failed"), 6000);
+        });
+      },
+    },
+  ];
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
@@ -386,6 +552,7 @@ export default function AppPage() {
           </div>
 
           <div className="flex items-center gap-2">
+          <PdfIngestionModeSelect label="PDF parse" />
           <LLMSelector taskKey="optimize_llm" label="Optimize" />
           <button
             onClick={() => {
@@ -432,61 +599,27 @@ export default function AppPage() {
           </div>
 
           {/* Action buttons */}
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div ref={headerMenuRef} className="flex flex-wrap items-center gap-1.5">
             <input type="file" accept=".pdf"  className="hidden" ref={pdfInputRef}  onChange={handlePdfUpload} />
             <input type="file" accept=".json" className="hidden" ref={jsonInputRef} onChange={handleJsonUpload} />
 
-            <button onClick={() => pdfInputRef.current?.click()} disabled={isUploading}
-              className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
-              {isUploading ? <span className="w-3 h-3 border border-blue-400 border-t-transparent rounded-full animate-spin" /> : null} PDF
-            </button>
+            <HeaderActionMenu
+              label="Upload CV"
+              icon={isUploading ? <span className="h-3.5 w-3.5 rounded-full border border-sky-500 border-t-transparent animate-spin" /> : <Upload className="h-4 w-4 text-slate-600" />}
+              isOpen={activeHeaderMenu === "upload"}
+              onToggle={() => setActiveHeaderMenu((current) => current === "upload" ? null : "upload")}
+              onClose={() => setActiveHeaderMenu(null)}
+              actions={uploadActions}
+            />
 
-            <button onClick={() => jsonInputRef.current?.click()}
-              className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50">
-              ↑ JSON
-            </button>
-
-            <button onClick={() => void handleExportResume("json").catch((err: unknown) => {
-              showToast(errorMessage(err, "JSON export failed"), 6000);
-            })}
-              className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50">
-              ↓ JSON
-            </button>
-
-            <button onClick={() => void handleExportResume("markdown").catch((err: unknown) => {
-              showToast(errorMessage(err, "Markdown export failed"), 6000);
-            })}
-              className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50">
-              ↓ MD
-            </button>
-
-            <button onClick={() => void handleExportResume("html").catch((err: unknown) => {
-              showToast(errorMessage(err, "HTML export failed"), 6000);
-            })}
-              className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50">
-              ↓ HTML
-            </button>
-
-            <button onClick={() => void handleExportResume("docx").catch((err: unknown) => {
-              showToast(errorMessage(err, "DOCX export failed"), 6000);
-            })}
-              className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50">
-              ↓ DOCX
-            </button>
-
-            <button onClick={() => void handleExportResume("latex").catch((err: unknown) => {
-              showToast(errorMessage(err, "LaTeX export failed"), 6000);
-            })}
-              className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50">
-              ↓ TEX
-            </button>
-
-            <button onClick={() => void handleExportResume("typst").catch((err: unknown) => {
-              showToast(errorMessage(err, "Typst export failed"), 6000);
-            })}
-              className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50">
-              ↓ TYP
-            </button>
+            <HeaderActionMenu
+              label="Download CV"
+              icon={<Download className="h-4 w-4 text-slate-600" />}
+              isOpen={activeHeaderMenu === "download"}
+              onToggle={() => setActiveHeaderMenu((current) => current === "download" ? null : "download")}
+              onClose={() => setActiveHeaderMenu(null)}
+              actions={downloadActions}
+            />
 
             <button onClick={() => setShowGhost((v) => !v)}
               className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border px-2.5 text-xs font-medium transition-colors"
@@ -520,10 +653,6 @@ export default function AppPage() {
               Style
             </button>
 
-            <button onClick={handleExportPDF}
-              className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-100">
-              ↓ Export
-            </button>
           </div>
           </div>
         </header>

@@ -6,13 +6,16 @@ from intelligence.llm_config import (
     TASK_DEFAULTS,
     provider_configuration_status,
 )
+from utils.logger import get_logger
 
 router = APIRouter(prefix="/api/v1/llm", tags=["llm"])
+logger = get_logger(__name__, service_name="api-gateway")
 
 
 @router.get("/catalogue")
-def llm_catalogue() -> dict:
+async def llm_catalogue() -> dict:
     """Return available providers, models, and per-task defaults."""
+    logger.debug("Serving LLM catalogue")
     return {
         "catalogue": MODEL_CATALOGUE,
         "defaults": TASK_DEFAULTS,

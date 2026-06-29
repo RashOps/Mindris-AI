@@ -9,7 +9,7 @@ from scraper.smart_scraper import ScraperExhaustedError, SmartScraper
 from utils.logger import get_logger
 
 # Initialise logging for the CLI entry point
-get_logger("mindris")
+get_logger("mindris", service_name="pipeline")
 logger = logging.getLogger(__name__)
 
 

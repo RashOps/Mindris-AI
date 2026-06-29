@@ -18,7 +18,7 @@ from utils.logger import get_logger
 from intelligence.agents import MindrisAgents
 from intelligence.event_bus import emit
 
-logger = get_logger(__name__)
+logger = get_logger(__name__, service_name="intelligence")
 
 # ── State Definition ─────────────────────────────────────────────────────────
 

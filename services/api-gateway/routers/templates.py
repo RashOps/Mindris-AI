@@ -5,8 +5,10 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException
 from schemas import TemplateCatalogItem
+from utils.logger import get_logger
 
 router = APIRouter(prefix="/api/v1/templates", tags=["templates"])
+logger = get_logger(__name__, service_name="api-gateway")
 
 
 READY_TEMPLATES = [
@@ -242,6 +244,7 @@ CUSTOMIZATION_CATALOGUE = {
 @router.get("")
 def list_templates() -> dict:
     """List resume templates owned by the backend catalogue."""
+    logger.debug("Listing %d templates", len(TEMPLATE_CATALOG))
     return {
         "status": "success",
         "items": [template.model_dump(mode="json") for template in TEMPLATE_CATALOG],
@@ -269,4 +272,5 @@ def get_template(template_id: str) -> dict:
     for template in TEMPLATE_CATALOG:
         if template.id == template_id:
             return {"status": "success", "item": template.model_dump(mode="json")}
+    logger.warning("Template '%s' not found", template_id)
     raise HTTPException(status_code=404, detail="Template not found.")

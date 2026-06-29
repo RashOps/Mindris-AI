@@ -15,6 +15,9 @@ from database.records import (
 )
 from database.session import Session
 from sqlalchemy import select
+from utils.logger import get_logger
+
+logger = get_logger(__name__, service_name="api-gateway")
 
 
 def dump_json(value: Any) -> str:
@@ -29,6 +32,7 @@ def load_json(value: str | None, fallback: Any) -> Any:
     try:
         return json.loads(value)
     except json.JSONDecodeError:
+        logger.warning("Invalid JSON payload encountered in persistence layer; using fallback")
         return fallback
 
 
@@ -51,6 +55,7 @@ def save_current_cv(
     session: Session, cv_data: dict, source: str = "json"
 ) -> CVDocumentRecord:
     """Upsert the current CV document."""
+    logger.info("Saving current CV document (source=%s)", source)
     record = session.exec(
         select(CVDocumentRecord).where(CVDocumentRecord.name == "current")
     ).first()
@@ -78,6 +83,8 @@ def get_current_cv(session: Session) -> dict | None:
     record = session.exec(
         select(CVDocumentRecord).where(CVDocumentRecord.name == "current")
     ).first()
+    if not record:
+        logger.debug("No current CV document found")
     return load_json(record.data_json, None) if record else None
 
 
@@ -118,6 +125,7 @@ def create_resume(
     source: str = "manual",
 ) -> ResumeRecord:
     """Create a persisted resume document."""
+    logger.info("Creating persisted resume '%s' (template=%s, source=%s)", name, template_id, source)
     now = datetime.now()
     locale = _locale_from_cv_data(cv_data, locale or "fr")
     record = ResumeRecord(
@@ -147,6 +155,7 @@ def update_resume(
     source: str | None = None,
 ) -> ResumeRecord:
     """Patch a persisted resume document."""
+    logger.info("Updating persisted resume %s", record.id)
     if name is not None:
         record.name = name
     if cv_data is not None:
@@ -177,6 +186,7 @@ def create_resume_revision(
 ) -> ResumeRevisionRecord:
     """Store a snapshot for a resume version."""
     next_revision = _latest_resume_revision(session, record.id) + 1
+    logger.info("Creating revision %s for resume %s (label=%s)", next_revision, record.id, label)
     revision = ResumeRevisionRecord(
         resume_id=int(record.id or 0),
         revision=next_revision,
@@ -199,6 +209,7 @@ def list_resume_revisions(
     resume_id: int,
 ) -> list[ResumeRevisionRecord]:
     """Return all snapshots for a resume."""
+    logger.debug("Listing revisions for resume %s", resume_id)
     return session.exec(
         select(ResumeRevisionRecord)
         .where(ResumeRevisionRecord.resume_id == resume_id)
@@ -212,6 +223,7 @@ def get_resume_revision(
     revision: int,
 ) -> ResumeRevisionRecord | None:
     """Return one resume snapshot by revision number."""
+    logger.debug("Loading revision %s for resume %s", revision, resume_id)
     return session.exec(
         select(ResumeRevisionRecord).where(
             ResumeRevisionRecord.resume_id == resume_id,
@@ -245,7 +257,19 @@ def compare_resume_revisions(
     base = get_resume_revision(session, resume_id, base_revision)
     target = get_resume_revision(session, resume_id, target_revision)
     if not base or not target:
+        logger.warning(
+            "Cannot compare revisions for resume %s (base=%s target=%s)",
+            resume_id,
+            base_revision,
+            target_revision,
+        )
         return {}
+    logger.info(
+        "Comparing revisions for resume %s (base=%s target=%s)",
+        resume_id,
+        base_revision,
+        target_revision,
+    )
 
     base_data = load_json(base.data_json, {})
     target_data = load_json(target.data_json, {})

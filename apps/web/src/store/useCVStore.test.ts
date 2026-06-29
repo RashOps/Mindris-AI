@@ -40,5 +40,6 @@ describe("useCVStore normalization", () => {
     expect(normalized.cover_letter_llm.provider).toBe("groq");
     expect(normalized.cover_letter_llm.model_name).toBe("llama-3.3-70b-versatile");
     expect(normalized.ats_llm.provider).toBe("groq");
+    expect(normalized.pdf_ingestion_mode).toBe("auto");
   });
 });

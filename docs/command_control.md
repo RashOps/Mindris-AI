@@ -76,6 +76,10 @@ Guide détaillé :
 docs/local-development.md
 ```
 
+Les logs locaux sont ecrits dans `.logs/`.
+Le renderer produit des lignes JSON structurees dans `.logs/renderer.log`.
+Les services Python ecrivent des fichiers dedies comme `.logs/api-gateway.log`, `.logs/intelligence.log` et `.logs/scraper.log`.
+
 ### API Gateway FastAPI
 
 Depuis la racine du projet :
@@ -110,6 +114,13 @@ curl http://localhost:8000/api/v1/system/status
 curl http://localhost:8000/api/v1/system/ready
 ```
 
+Documentation :
+
+```text
+http://localhost:8000/docs
+http://localhost:8000/openapi.json
+```
+
 ### Renderer Bun / Elysia
 
 Depuis la racine du projet :
@@ -130,6 +141,13 @@ Healthcheck :
 ```bash
 curl http://localhost:4000/
 curl http://localhost:4000/ready
+curl http://localhost:4000/openapi.json
+```
+
+Documentation :
+
+```text
+http://localhost:4000/docs
 ```
 
 ### Frontend Next.js
@@ -145,6 +163,13 @@ URL :
 
 ```text
 http://localhost:3000
+```
+
+Comportement au démarrage :
+
+```text
+Le front attend explicitement l'API Gateway (/api/v1/system/ready) et le renderer (/ready).
+Si un service n'est pas prêt, l'AppShell reste bloqué sur un écran de readiness avec retry automatique.
 ```
 
 ## Lancer avec Docker Compose
@@ -276,6 +301,13 @@ bun run build
 cd services/renderer
 bun run typecheck
 bun run build
+```
+
+Endpoints runtime utiles :
+
+```text
+http://localhost:8000/api/v1/system/metrics
+http://localhost:4000/metrics
 ```
 
 ### E2E navigateur MVP1

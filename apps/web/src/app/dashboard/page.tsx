@@ -17,6 +17,7 @@ import {
 import { AppShell } from "@/components/layout/AppShell";
 import { PageBody, StatusBanner } from "@/components/layout/PagePrimitives";
 import { Button } from "@/components/ui/button";
+import { PdfIngestionModeSelect } from "@/components/PdfIngestionModeSelect";
 import {
   cvDataFromImport,
   resumeNameFromImport,
@@ -353,6 +354,7 @@ export default function DashboardPage() {
       form.append("file", file);
       form.append("provider", appSettings.optimize_llm.provider);
       form.append("model_name", appSettings.optimize_llm.model_name);
+      form.append("ingestion_mode", appSettings.pdf_ingestion_mode);
 
       const res = await fetch(apiUrl("/api/v1/cv/upload-pdf"), {
         method: "POST",
@@ -413,6 +415,7 @@ export default function DashboardPage() {
                   e.currentTarget.value = "";
                 }}
               />
+              <PdfIngestionModeSelect compact />
               <Button
                 variant="outline"
                 onClick={() => jsonInputRef.current?.click()}

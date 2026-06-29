@@ -2,14 +2,17 @@
 
 import asyncio
 from contextlib import asynccontextmanager
+from time import perf_counter
 
 from auth import verify_api_key
 from database.session import init_db
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from intelligence.event_bus import cleanup_stale_queues
+from monitoring import monitor
 from routers import (
     company,
     cv,
@@ -24,7 +27,7 @@ from routers import (
 )
 from utils.logger import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger(__name__, service_name="api-gateway")
 
 
 @asynccontextmanager
@@ -69,6 +72,21 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def record_runtime_metrics(request: Request, call_next):
+    """Track lightweight per-request metrics for runtime inspection."""
+    started_at = perf_counter()
+    response = await call_next(request)
+    duration_ms = (perf_counter() - started_at) * 1000
+    monitor.record_request(
+        route=request.url.path,
+        method=request.method,
+        status=response.status_code,
+        duration_ms=duration_ms,
+    )
+    return response
+
+
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Return normalized JSON errors for unexpected failures."""
@@ -110,7 +128,7 @@ async def validation_exception_handler(
         content={
             "status": "error",
             "message": "Validation failed.",
-            "detail": exc.errors(),
+            "detail": jsonable_encoder(exc.errors()),
             "path": request.url.path,
         },
     )

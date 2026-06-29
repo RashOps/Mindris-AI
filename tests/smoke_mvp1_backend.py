@@ -6,6 +6,7 @@ SQLite migrations, template catalogue, resume persistence, and workspace drafts.
 
 from __future__ import annotations
 
+import asyncio
 import sys
 from io import BytesIO
 from pathlib import Path
@@ -42,7 +43,7 @@ def main() -> None:
     expected = ["ats", "compact", "creative", "modern", "student"]
     if template_ids != expected:
         raise SystemExit(f"Unexpected templates: {template_ids}")
-    readiness = readiness_checks()
+    readiness = asyncio.run(readiness_checks())
     if readiness["status"] != "ready":
         raise SystemExit(f"Readiness smoke check failed: {readiness}")
 
