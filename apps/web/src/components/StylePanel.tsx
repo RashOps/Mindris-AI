@@ -117,6 +117,7 @@ function resolveSettings(
         vertical: current?.page?.margins?.vertical ?? current?.margin_v ?? "48px",
       },
       page_break_mode: current?.page?.page_break_mode ?? "auto",
+      one_page_challenge: current?.page?.one_page_challenge ?? false,
     },
     layout: {
       columns: current?.layout?.columns ?? (current?.col_swap === "true" ? 2 : 2),
@@ -690,6 +691,29 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                       </option>
                     ))}
                   </select>
+                  <label className="flex items-center justify-between rounded-lg border border-slate-300 bg-white px-3 py-2">
+                    <div>
+                      <span className="block text-xs font-medium text-slate-700">
+                        1 page challenge
+                      </span>
+                      <span className="block text-[11px] text-slate-500">
+                        Tightens spacing and typography without deleting data.
+                      </span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      aria-label="Toggle one page challenge"
+                      checked={pageSettings.one_page_challenge ?? false}
+                      onChange={(e) =>
+                        update({
+                          page: {
+                            ...pageSettings,
+                            one_page_challenge: e.target.checked,
+                          },
+                        })
+                      }
+                    />
+                  </label>
                 </div>
               </section>
 
