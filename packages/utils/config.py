@@ -24,7 +24,7 @@ class Settings(BaseSettings):
 
     # ── Project layout ────────────────────────────────────────────────────────
     project_root: Path = Field(default=_PROJECT_ROOT)
-    logs_dir: Path = Field(default=_PROJECT_ROOT / "logs")
+    logs_dir: Path = Field(default=_PROJECT_ROOT / ".logs")
     storage_dir: Path = Field(default=_PROJECT_ROOT / "storage")
     api_key: SecretStr = Field(
         default=SecretStr("dev-mindris-api-key"),

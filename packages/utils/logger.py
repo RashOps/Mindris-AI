@@ -3,7 +3,7 @@
 Usage::
 
     from utils import get_logger
-    logger = get_logger(__name__)
+    logger = get_logger(__name__, service_name="api-gateway")
     logger.info("Pipeline started")
 """
 
@@ -16,27 +16,59 @@ _LOG_FORMAT = (
     "[%(asctime)s] %(levelname)-8s | %(name)s | %(filename)s:%(lineno)d | %(message)s"
 )
 _DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+_HANDLER_MARKER = "_mindris_handler"
+_SERVICE_MARKER = "_mindris_service_name"
+_LOG_PATH_MARKER = "_mindris_log_path"
 
 
-def get_logger(name: str) -> logging.Logger:
+def _normalize_level(level_name: str) -> int:
+    return getattr(logging, level_name.upper(), logging.INFO)
+
+
+def _service_log_path(service_name: str | None) -> str:
+    slug = (service_name or "app").strip() or "app"
+    return str(settings.logs_dir / f"{slug}.log")
+
+
+def _mindris_handlers(logger: logging.Logger) -> list[logging.Handler]:
+    return [
+        handler for handler in logger.handlers
+        if getattr(handler, _HANDLER_MARKER, False)
+    ]
+
+
+def get_logger(name: str, *, service_name: str | None = None) -> logging.Logger:
     """Return a configured logger for the given module name.
 
-    The logger writes DEBUG+ to a rotating file and WARNING+ to the console.
-    Calling this function multiple times with the same *name* is safe — handlers
-    are added only once.
+    The logger writes service-specific DEBUG+ traces to a rotating file and
+    mirrors WARNING+ to the console. Calling this function multiple times with
+    the same *name* is safe — Mindris handlers are added only once per logger.
 
     Args:
         name: The logger name, typically ``__name__`` of the calling module.
+        service_name: Optional service slug used for the log filename.
 
     Returns:
         A fully configured :class:`logging.Logger` instance.
     """
     logger = logging.getLogger(name)
+    existing_handlers = _mindris_handlers(logger)
+    configured_service = getattr(logger, _SERVICE_MARKER, None)
+    expected_log_path = _service_log_path(service_name)
+    configured_log_path = getattr(logger, _LOG_PATH_MARKER, None)
 
-    if logger.hasHandlers():
+    if (
+        existing_handlers
+        and configured_service == service_name
+        and configured_log_path == expected_log_path
+    ):
         return logger
 
-    logger.setLevel(logging.DEBUG)
+    for handler in existing_handlers:
+        logger.removeHandler(handler)
+        handler.close()
+
+    logger.setLevel(_normalize_level(settings.log_level))
 
     formatter = logging.Formatter(_LOG_FORMAT, datefmt=_DATE_FORMAT)
     settings.logs_dir.mkdir(parents=True, exist_ok=True)
@@ -45,20 +77,23 @@ def get_logger(name: str) -> logging.Logger:
     console_h = logging.StreamHandler()
     console_h.setLevel(logging.WARNING)
     console_h.setFormatter(formatter)
+    setattr(console_h, _HANDLER_MARKER, True)
 
     # Rotating file — full DEBUG trace, 5 MB × 5 files
-    log_file = settings.logs_dir / "app.log"
     file_h = RotatingFileHandler(
-        log_file,
+        expected_log_path,
         maxBytes=5 * 1024 * 1024,
         backupCount=5,
         encoding="utf-8",
     )
     file_h.setLevel(logging.DEBUG)
     file_h.setFormatter(formatter)
+    setattr(file_h, _HANDLER_MARKER, True)
 
     logger.addHandler(console_h)
     logger.addHandler(file_h)
     logger.propagate = False
+    setattr(logger, _SERVICE_MARKER, service_name)
+    setattr(logger, _LOG_PATH_MARKER, expected_log_path)
 
     return logger
