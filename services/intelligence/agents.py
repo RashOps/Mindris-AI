@@ -6,6 +6,9 @@ import yaml
 from crewai import Agent
 
 from .llm_config import get_llm
+from utils.logger import get_logger
+
+logger = get_logger(__name__, service_name="intelligence")
 
 
 class MindrisAgents:
@@ -23,8 +26,10 @@ class MindrisAgents:
             model_name: The specific model name for the provider.
         """
         config_path = Path(__file__).parent / "agents.yaml"
+        logger.debug("Loading agent configuration from %s", config_path)
         with config_path.open(encoding="utf-8") as f:
             self.agents_config: dict = yaml.safe_load(f)
+        logger.info("Initializing intelligence agents with provider=%s model=%s", provider, model_name)
         self.llm = get_llm(provider=provider, model_name=model_name)
 
     def job_analyst_agent(self) -> Agent:
@@ -37,6 +42,7 @@ class MindrisAgents:
             A :class:`crewai.Agent` ready to be assigned to a task.
         """
         cfg = self.agents_config["job_analyst_agent"]
+        logger.debug("Creating job analyst agent")
         return Agent(
             role=cfg["role"],
             goal=cfg["goal"],
