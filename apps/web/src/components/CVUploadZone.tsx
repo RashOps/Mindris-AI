@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { cvDataFromImport, useCVStore } from '@/store/useCVStore';
 import { apiUrl, apiHeaders, jsonHeaders } from '@/lib/api';
+import { PdfIngestionModeSelect } from '@/components/PdfIngestionModeSelect';
 
 
 
@@ -71,6 +72,7 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
       form.append('file', file);
       form.append('provider',   appSettings.optimize_llm.provider);
       form.append('model_name', appSettings.optimize_llm.model_name);
+      form.append('ingestion_mode', appSettings.pdf_ingestion_mode);
       const res = await fetch(apiUrl("/api/v1/cv/upload-pdf"), { method: 'POST', headers: apiHeaders(), body: form });
       if (!res.ok) throw new Error('Upload failed');
       const data = await res.json();
@@ -134,6 +136,7 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
           </button>
         )}
         <div className="flex gap-2">
+          <PdfIngestionModeSelect compact />
           <input ref={jsonRef} type="file" accept=".json" className="hidden" onChange={onFileInput} />
           <input ref={pdfRef}  type="file" accept=".pdf"  className="hidden" onChange={onFileInput} />
           <button
@@ -209,6 +212,7 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
       {/* PDF button (separate so PDF parsing shows proper loader) */}
       <div className="flex gap-2">
         <input ref={pdfRef} type="file" accept=".pdf" className="hidden" onChange={onFileInput} />
+        <PdfIngestionModeSelect compact />
         <button
           onClick={(e) => { e.stopPropagation(); pdfRef.current?.click(); }}
           disabled={isUploading}

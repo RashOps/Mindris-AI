@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { apiUrl, jsonHeaders } from "@/lib/api";
 import { useCVStore, type AppSettings, type LLMProvider } from "@/store/useCVStore";
 
-type TaskKey = keyof AppSettings;
+type TaskKey = "optimize_llm" | "cover_letter_llm" | "ats_llm" | "patch_llm";
 type Catalogue = Record<string, { id: string; label: string }[]>;
 type ProviderStatus = Record<
   string,
