@@ -31,6 +31,22 @@ def test_system_readiness_reports_core_checks() -> None:
     assert payload["checks"]["sqlite"]["ok"] is True
 
 
+def test_runtime_metrics_are_public_and_include_readiness_and_request_stats() -> None:
+    api = client()
+    assert api.get("/").status_code == 200
+
+    response = api.get("/api/v1/system/metrics")
+    assert response.status_code == 200
+    payload = response.json()
+
+    assert payload["status"] == "success"
+    assert payload["service"] == "api-gateway"
+    assert payload["readiness"]["status"] in {"ready", "degraded"}
+    assert payload["requests"]["total_count"] >= 1
+    assert payload["requests"]["routes"]
+    assert payload["pipelines"]["failures"]["total"] >= 0
+
+
 def test_api_key_required_for_llm_catalogue() -> None:
     api = client()
     unauthorized = api.get("/api/v1/llm/catalogue")
