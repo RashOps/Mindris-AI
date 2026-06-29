@@ -22,7 +22,7 @@ from utils.logger import get_logger
 if TYPE_CHECKING:
     from crewai import LLM
 
-logger = get_logger(__name__)
+logger = get_logger(__name__, service_name="intelligence")
 
 # ── Per-task defaults ─────────────────────────────────────────────────────────
 

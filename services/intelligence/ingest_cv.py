@@ -11,7 +11,7 @@ from database.vector_store import MindrisVectorStore
 from utils.config import settings
 from utils.logger import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger(__name__, service_name="intelligence")
 
 
 def chunk_cv_data(cv_data: dict) -> list[dict]:

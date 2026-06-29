@@ -15,7 +15,7 @@ from llama_cloud import AsyncLlamaCloud
 from utils.config import settings
 from utils.logger import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger(__name__, service_name="intelligence")
 
 
 # ── LlamaParse Configuration ──────────────────────────────────────────────────
