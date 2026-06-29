@@ -48,7 +48,7 @@ def ingest_master_cv(cv_json_path: str) -> None:
 | Route | Méthode | Payload | Cas d'usage |
 | :--- | :--- | :--- | :--- |
 | `/api/v1/cv/upload` | `POST` | `application/json` | Upload d'un CV structuré au format JSON |
-| `/api/v1/cv/upload-pdf` | `POST` | `multipart/form-data` | Upload d'un CV PDF brut via LlamaCloud |
+| `/api/v1/cv/upload-pdf` | `POST` | `multipart/form-data` | Upload d'un CV PDF brut via `llama_parse`, `local_text` ou `auto` |
 
 Les deux routes appellent `ingest_cv_data()` en interne et retournent `{"status": "success", "cv_data": {...}}` pour permettre au frontend de mettre à jour l'éditeur instantanément.
 
