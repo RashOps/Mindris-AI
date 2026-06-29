@@ -3,6 +3,7 @@ import { Elysia } from "elysia";
 
 import { createRendererLogger, type RendererLogger } from "./logger";
 import { renderMarkdownToHtml } from "./markdown";
+import { RendererMonitor } from "./monitoring";
 import { generatePDF } from "./pdf/generator";
 import {
     buildDocsHtml,
@@ -58,10 +59,11 @@ function routePathOf(request: Request): string {
 
 export function buildRendererApp(
     baseUrl = "http://localhost:4000",
-    options: { logger?: RendererLogger } = {},
+    options: { logger?: RendererLogger; monitor?: RendererMonitor } = {},
 ) {
     const openApiDocument = buildOpenApiDocument(baseUrl);
     const logger = options.logger ?? createRendererLogger();
+    const monitor = options.monitor ?? new RendererMonitor();
     const startedAt = new WeakMap<Request, number>();
 
     const completeRequest = async <T>(
@@ -69,6 +71,13 @@ export function buildRendererApp(
         response: T,
         explicitStatus?: number,
     ): Promise<T> => {
+        const durationMs = Number((performance.now() - (startedAt.get(request) ?? performance.now())).toFixed(2));
+        monitor.recordRequest(
+            routePathOf(request),
+            request.method,
+            statusCodeOf(response, explicitStatus),
+            durationMs,
+        );
         await logger.log({
             level: "info",
             event: "request.completed",
@@ -76,7 +85,7 @@ export function buildRendererApp(
             method: request.method,
             route: routePathOf(request),
             status: statusCodeOf(response, explicitStatus),
-            duration_ms: Number((performance.now() - (startedAt.get(request) ?? performance.now())).toFixed(2)),
+            duration_ms: durationMs,
         });
 
         return response;
@@ -88,6 +97,7 @@ export function buildRendererApp(
         message: string,
         error: unknown,
     ) => {
+        monitor.recordRenderFailure(routePathOf(request));
         await logger.log({
             level: "error",
             event,
@@ -114,6 +124,7 @@ export function buildRendererApp(
                 pdf: { ok: true },
             },
         }))
+        .get("/metrics", ({ request }) => completeRequest(request, monitor.snapshot()))
         .get("/openapi.json", ({ request }) => completeRequest(request, openApiDocument))
         .get("/docs", ({ request }) => completeRequest(request, new Response(buildDocsHtml("/openapi.json"), {
             headers: { "Content-Type": "text/html; charset=utf-8" },

@@ -104,6 +104,27 @@ export function buildOpenApiDocument(serverUrl: string): OpenApiDocument {
                     },
                 },
             },
+            "/metrics": {
+                get: {
+                    summary: "Renderer runtime metrics",
+                    responses: {
+                        200: {
+                            description: "In-memory renderer request and failure metrics",
+                            content: {
+                                "application/json": {
+                                    schema: jsonResponseSchema({
+                                        status: { type: "string" },
+                                        service: { type: "string" },
+                                        readiness: { type: "object" },
+                                        requests: { type: "object" },
+                                        render: { type: "object" },
+                                    }),
+                                },
+                            },
+                        },
+                    },
+                },
+            },
             "/render/pdf": {
                 post: {
                     summary: "Render CV as PDF or HTML",
