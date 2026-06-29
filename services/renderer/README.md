@@ -23,6 +23,7 @@ http://localhost:4000
 ```bash
 curl http://localhost:4000/health
 curl http://localhost:4000/ready
+curl http://localhost:4000/metrics
 curl http://localhost:4000/openapi.json
 ```
 
