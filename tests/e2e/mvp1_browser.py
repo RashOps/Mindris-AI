@@ -208,15 +208,16 @@ def seed_ats_draft(api_url: str, api_key: str) -> None:
     )
 
 
-def assert_download(page: Page, button_name: str, suffix: str) -> None:
-    """Click a button and assert a non-empty download with the expected suffix."""
+def assert_download(page: Page, menu_name: str, item_name: str, suffix: str) -> None:
+    """Open a grouped download menu and assert a non-empty download."""
     with page.expect_download(timeout=30_000) as download_info:
-        page.get_by_role("button", name=button_name).click()
+        page.get_by_role("button", name=menu_name).click()
+        page.get_by_role("menuitem", name=item_name).click()
     download = download_info.value
     suggested = download.suggested_filename
     path = download.path()
     if path is None:
-        raise AssertionError(f"{button_name} did not produce a local download path")
+        raise AssertionError(f"{menu_name} > {item_name} did not produce a local download path")
     size = Path(path).stat().st_size
     if not suggested.lower().endswith(suffix):
         raise AssertionError(f"Expected {suffix} download, got {suggested}")
@@ -272,10 +273,10 @@ def run(args: argparse.Namespace) -> None:
         page.locator(".fixed.inset-0.z-40").wait_for(state="detached", timeout=5_000)
         expect(page.get_by_role("button", name="Saved")).to_be_visible(timeout=20_000)
 
-        assert_download(page, "↓ DOCX", ".docx")
-        assert_download(page, "↓ TEX", ".tex")
-        assert_download(page, "↓ TYP", ".typ")
-        assert_download(page, "↓ Export", ".pdf")
+        assert_download(page, "Download CV", "DOCX", ".docx")
+        assert_download(page, "Download CV", "LaTeX", ".tex")
+        assert_download(page, "Download CV", "Typst", ".typ")
+        assert_download(page, "Download CV", "PDF", ".pdf")
 
         resume = request_json(
             args.api_url,
