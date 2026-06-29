@@ -2,6 +2,7 @@
 
 import asyncio
 from contextlib import asynccontextmanager
+from time import perf_counter
 
 from auth import verify_api_key
 from database.session import init_db
@@ -11,6 +12,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from intelligence.event_bus import cleanup_stale_queues
+from monitoring import monitor
 from routers import (
     company,
     cv,
@@ -68,6 +70,21 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def record_runtime_metrics(request: Request, call_next):
+    """Track lightweight per-request metrics for runtime inspection."""
+    started_at = perf_counter()
+    response = await call_next(request)
+    duration_ms = (perf_counter() - started_at) * 1000
+    monitor.record_request(
+        route=request.url.path,
+        method=request.method,
+        status=response.status_code,
+        duration_ms=duration_ms,
+    )
+    return response
 
 
 @app.exception_handler(Exception)
