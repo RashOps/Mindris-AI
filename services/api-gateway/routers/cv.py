@@ -6,6 +6,7 @@ from typing import Annotated, Literal
 
 from database.session import Session, get_session
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, UploadFile, status
+from monitoring import monitor
 from persistence import (
     get_current_cv,
     save_ats_report,
@@ -117,6 +118,7 @@ async def upload_pdf_cv(
             timeout=settings.pipeline_timeout_seconds,
         )
     except TimeoutError as exc:
+        monitor.increment_pipeline_failure("cv_upload_pdf")
         raise HTTPException(
             status_code=504,
             detail="PDF parsing timed out.",
@@ -147,6 +149,7 @@ async def calculate_ats_score_route(request: ScoreRequest, session: SessionDep) 
             timeout=settings.pipeline_timeout_seconds,
         )
     except TimeoutError as exc:
+        monitor.increment_pipeline_failure("ats_score")
         raise HTTPException(status_code=504, detail="ATS scoring timed out.") from exc
     save_ats_report(session, report, request.provider, request.model_name)
     return {"status": "success", "report": report, "ats_report": report}
@@ -172,6 +175,7 @@ async def generate_cover_letter_route(
             timeout=settings.pipeline_timeout_seconds,
         )
     except TimeoutError as exc:
+        monitor.increment_pipeline_failure("cover_letter")
         raise HTTPException(
             status_code=504,
             detail="Cover letter generation timed out.",

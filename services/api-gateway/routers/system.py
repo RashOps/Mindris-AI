@@ -5,6 +5,7 @@ from pathlib import Path
 
 from database.session import DB_PATH, engine
 from fastapi import APIRouter
+from monitoring import monitor
 from sqlalchemy import text
 from utils.config import settings
 from utils.logger import get_logger
@@ -62,6 +63,12 @@ async def readiness_checks() -> dict:
         "service": "api-gateway",
         "checks": checks,
     }
+
+
+@router.get("/api/v1/system/metrics")
+async def runtime_metrics() -> dict:
+    """Return lightweight in-memory runtime metrics."""
+    return monitor.snapshot(readiness=await readiness_checks())
 
 
 def _dir_check(path: Path) -> dict:
