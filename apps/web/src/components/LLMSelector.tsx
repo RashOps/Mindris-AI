@@ -6,6 +6,10 @@ import { useCVStore, type AppSettings, type LLMProvider } from "@/store/useCVSto
 
 type TaskKey = keyof AppSettings;
 type Catalogue = Record<string, { id: string; label: string }[]>;
+type ProviderStatus = Record<
+  string,
+  { configured: boolean; mode: "local" | "cloud"; reason: string }
+>;
 
 interface LLMSelectorProps {
   taskKey: TaskKey;
@@ -15,19 +19,27 @@ interface LLMSelectorProps {
 export function LLMSelector({ taskKey, label = "Model" }: LLMSelectorProps) {
   const { appSettings, setAppSettings } = useCVStore();
   const [catalogue, setCatalogue] = useState<Catalogue>({});
+  const [providersStatus, setProvidersStatus] = useState<ProviderStatus>({});
   const current = appSettings[taskKey];
 
   useEffect(() => {
     fetch(apiUrl("/api/v1/llm/catalogue"), { headers: jsonHeaders() })
       .then((res) => (res.ok ? res.json() : null))
-      .then((data) => data?.catalogue && setCatalogue(data.catalogue))
-      .catch(() => setCatalogue({}));
+      .then((data) => {
+        if (data?.catalogue) setCatalogue(data.catalogue);
+        if (data?.providers) setProvidersStatus(data.providers);
+      })
+      .catch(() => {
+        setCatalogue({});
+        setProvidersStatus({});
+      });
   }, []);
 
   const providers = Object.keys(catalogue).length
     ? Object.keys(catalogue)
     : ["groq", "gemini", "openai", "mistral", "ollama"];
   const models = catalogue[current.provider] ?? [{ id: current.model_name, label: current.model_name }];
+  const providerMeta = providersStatus[current.provider];
 
   const update = (next: { provider?: LLMProvider; model_name?: string }) => {
     setAppSettings({ [taskKey]: { ...current, ...next } } as Partial<AppSettings>);
@@ -46,7 +58,13 @@ export function LLMSelector({ taskKey, label = "Model" }: LLMSelectorProps) {
         className="h-9 cursor-pointer rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-700 shadow-sm outline-none focus:border-slate-500"
       >
         {providers.map((provider) => (
-          <option key={provider} value={provider}>{provider}</option>
+          <option
+            key={provider}
+            value={provider}
+            disabled={providersStatus[provider]?.configured === false}
+          >
+            {provider}
+          </option>
         ))}
       </select>
       <select
@@ -58,6 +76,16 @@ export function LLMSelector({ taskKey, label = "Model" }: LLMSelectorProps) {
           <option key={model.id} value={model.id}>{model.label}</option>
         ))}
       </select>
+      {providerMeta && (
+        <span
+          className={`text-[10px] ${
+            providerMeta.configured ? "text-slate-500" : "text-amber-700"
+          }`}
+          title={providerMeta.reason || undefined}
+        >
+          {providerMeta.configured ? providerMeta.mode : "setup required"}
+        </span>
+      )}
     </div>
   );
 }
