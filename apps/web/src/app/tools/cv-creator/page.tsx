@@ -7,6 +7,7 @@ import { StylePanel } from "@/components/StylePanel";
 import { JobInsightsPanel } from "@/components/JobInsightsPanel";
 import { CoverLetterModal } from "@/components/CoverLetterModal";
 import { LLMSelector } from "@/components/LLMSelector";
+import { PdfIngestionModeSelect } from "@/components/PdfIngestionModeSelect";
 import { useCVStore } from "@/store/useCVStore";
 import { cvDataFromImport, resumeNameFromImport, type CompanyInsight, type JobInsights } from "@/store/useCVStore";
 import { Button } from "@/components/ui/button";
@@ -272,6 +273,7 @@ export default function AppPage() {
       formData.append("file", file);
       formData.append("provider", appSettings.optimize_llm.provider);
       formData.append("model_name", appSettings.optimize_llm.model_name);
+      formData.append("ingestion_mode", appSettings.pdf_ingestion_mode);
       const res = await fetch(apiUrl("/api/v1/cv/upload-pdf"), { method: "POST", headers: apiHeaders(), body: formData });
       if (!res.ok) { const err = await res.json(); throw new Error(err.detail ?? "Upload failed"); }
       const data = await res.json();
@@ -550,6 +552,7 @@ export default function AppPage() {
           </div>
 
           <div className="flex items-center gap-2">
+          <PdfIngestionModeSelect label="PDF parse" />
           <LLMSelector taskKey="optimize_llm" label="Optimize" />
           <button
             onClick={() => {
