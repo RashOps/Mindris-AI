@@ -77,6 +77,59 @@ MODEL_CATALOGUE: dict[str, list[dict[str, str]]] = {
 }
 
 
+def provider_configuration_status() -> dict[str, dict[str, str | bool]]:
+    """Return user-facing provider availability metadata."""
+    return {
+        "groq": {
+            "configured": settings.groq_api_key is not None,
+            "mode": "cloud",
+            "reason": ""
+            if settings.groq_api_key is not None
+            else "Set GROQ_API_KEY in the environment.",
+        },
+        "gemini": {
+            "configured": settings.gemini_api_key is not None,
+            "mode": "cloud",
+            "reason": ""
+            if settings.gemini_api_key is not None
+            else "Set GEMINI_API_KEY in the environment.",
+        },
+        "openai": {
+            "configured": settings.openai_api_key is not None,
+            "mode": "cloud",
+            "reason": ""
+            if settings.openai_api_key is not None
+            else "Set OPENAI_API_KEY in the environment.",
+        },
+        "mistral": {
+            "configured": settings.mistral_api_key is not None,
+            "mode": "cloud",
+            "reason": ""
+            if settings.mistral_api_key is not None
+            else "Set MISTRAL_API_KEY in the environment.",
+        },
+        "ollama": {
+            "configured": bool(settings.ollama_api_base.strip()),
+            "mode": "local",
+            "reason": ""
+            if settings.ollama_api_base.strip()
+            else "Set OLLAMA_API_BASE to a local Ollama endpoint.",
+        },
+    }
+
+
+def ensure_provider_configured(provider: str) -> None:
+    """Raise a clear error when a selected provider is unavailable locally."""
+    status = provider_configuration_status().get(provider)
+    if not status:
+        raise ValueError(f"Unsupported LLM provider: '{provider}'.")
+    if status["configured"]:
+        return
+    raise ValueError(
+        f"Provider '{provider}' is not configured on this instance. {status['reason']}"
+    )
+
+
 # ── Factory ───────────────────────────────────────────────────────────────────
 
 
@@ -97,6 +150,8 @@ def get_llm(
         ValueError: If an unsupported provider is specified.
     """
     from crewai import LLM
+
+    ensure_provider_configured(provider)
 
     if provider == "ollama":
         name = (
