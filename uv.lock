@@ -178,7 +178,7 @@ wheels = [
 
 [[package]]
 name = "api-gateway"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "services/api-gateway" }
 dependencies = [
     { name = "database" },
@@ -734,7 +734,7 @@ nvtx = [
 
 [[package]]
 name = "database"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "packages/database" }
 dependencies = [
     { name = "pydantic" },
@@ -1365,7 +1365,7 @@ wheels = [
 
 [[package]]
 name = "intelligence"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "services/intelligence" }
 dependencies = [
     { name = "crewai", extra = ["tools"] },
@@ -4114,7 +4114,7 @@ wheels = [
 
 [[package]]
 name = "scraper"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "services/scraper" }
 dependencies = [
     { name = "database" },
@@ -4631,7 +4631,7 @@ wheels = [
 
 [[package]]
 name = "utils"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "packages/utils" }
 dependencies = [
     { name = "pydantic" },

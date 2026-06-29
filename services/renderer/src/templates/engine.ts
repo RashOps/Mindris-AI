@@ -21,6 +21,7 @@ function buildTokenOverrides(settings?: any): string {
     const colors = settings.colors ?? {};
     const page = settings.page ?? {};
     const layout = settings.layout ?? {};
+    const onePageChallenge = page.one_page_challenge === true;
 
     const primaryColor = colors.primary ?? settings.primary_color;
     if (primaryColor)
@@ -131,7 +132,61 @@ function buildTokenOverrides(settings?: any): string {
         props.push(`  --entry-spacing: ${densitySpacing};`);
     }
 
-    return props.length ? `:host {\n${props.join("\n")}\n}` : "";
+    if (onePageChallenge) {
+        props.push(`  --font-size-base: ${smallerCssSize(typography.base_size ?? settings.font_size, "11.5px")};`);
+        props.push(`  --line-height: ${smallerLineHeight(typography.line_height ?? settings.line_height, "1.35")};`);
+        props.push(`  --margin-page-h: ${smallerCssSize(page.margins?.horizontal ?? settings.margin_h ?? "64px", "36px")};`);
+        props.push(`  --margin-page-v: ${smallerCssSize(page.margins?.vertical ?? settings.margin_v ?? "48px", "28px")};`);
+        props.push(`  --entry-spacing: ${smallerCssSize(settings.entry_spacing ?? "20px", "10px")};`);
+        props.push(`  --resume-density: compact;`);
+        props.push(`  --section-title-spacing: 5px;`);
+    }
+
+    const blocks: string[] = [];
+    if (props.length) {
+        blocks.push(`:host {\n${props.join("\n")}\n}`);
+    }
+    if (onePageChallenge) {
+        blocks.push(`
+.one-page-warning {
+  display: block;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid #f59e0b;
+  border-radius: 10px;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 11px;
+  line-height: 1.4;
+}
+@media print {
+  .one-page-warning {
+    display: none;
+  }
+}
+`);
+    }
+    return blocks.join("\n\n");
+}
+
+function smallerCssSize(current: string, fallback: string): string {
+    const currentValue = numericPrefix(current);
+    const fallbackValue = numericPrefix(fallback);
+    if (currentValue === null || fallbackValue === null) return fallback;
+    return currentValue <= fallbackValue ? current : fallback;
+}
+
+function smallerLineHeight(current: string, fallback: string): string {
+    const currentValue = Number.parseFloat(current);
+    const fallbackValue = Number.parseFloat(fallback);
+    if (Number.isNaN(currentValue) || Number.isNaN(fallbackValue)) return fallback;
+    return currentValue <= fallbackValue ? current : fallback;
+}
+
+function numericPrefix(value: string): number | null {
+    const candidate = String(value).trim().replace(/(px|%)$/, "");
+    const parsed = Number.parseFloat(candidate);
+    return Number.isNaN(parsed) ? null : parsed;
 }
 
 const shellTemplate = Handlebars.compile(`<!DOCTYPE html>
@@ -499,6 +554,7 @@ function renderSection(cvData: any, section: SectionConfig): string {
 function renderCvContent(cvData: any): string {
     const sectionsConfig = configuredSections(cvData);
     const usedTypes = new Set(sectionsConfig.map((section) => section.type));
+    const warning = renderOnePageWarning(cvData);
     const sections = sectionsConfig
         .map((section) => renderSection(cvData, section))
         .concat(renderFallbackSections(cvData, usedTypes))
@@ -506,8 +562,46 @@ function renderCvContent(cvData: any): string {
         .join("");
     return `<div class="cv-wrapper">
       ${renderHeader(cvData)}
+      ${warning}
       <div class="main-grid">${sections}</div>
     </div>`;
+}
+
+function renderOnePageWarning(cvData: any): string {
+    if (cvData?.global_settings?.page?.one_page_challenge !== true) return "";
+    const risk = onePageOverflowRisk(cvData);
+    if (risk === "fit") return "";
+    const message =
+        risk === "high"
+            ? "One-page challenge is active, but this resume is likely to overflow one page. Reduce content or switch to a denser template."
+            : "One-page challenge is active. This resume is close to the one-page limit.";
+    return `<aside class="one-page-warning" data-overflow-risk="${risk}">${html(message)}</aside>`;
+}
+
+function onePageOverflowRisk(cvData: any): "fit" | "medium" | "high" {
+    const score =
+        items(cvData?.experience).length * 20 +
+        items(cvData?.projects).length * 14 +
+        items(cvData?.education).length * 10 +
+        items(cvData?.skills).length * 6 +
+        items(cvData?.languages).length * 4 +
+        items(cvData?.certifications).length * 8 +
+        items(cvData?.volunteering).length * 8 +
+        items(cvData?.publications).length * 8 +
+        items(cvData?.references).length * 6 +
+        items(cvData?.custom_sections).length * 8 +
+        markdownWeight(cvData?.profile?.text_markdown) +
+        markdownWeight(items(cvData?.experience).map((item) => item?.description_markdown).join(" ")) +
+        markdownWeight(items(cvData?.projects).map((item) => item?.description_markdown).join(" "));
+
+    if (score >= 180) return "high";
+    if (score >= 130) return "medium";
+    return "fit";
+}
+
+function markdownWeight(value: unknown): number {
+    if (typeof value !== "string" || !value.trim()) return 0;
+    return Math.ceil(value.length / 120);
 }
 
 function pageSize(settings?: any): { pageWidth: string; pageHeight: string } {

@@ -204,4 +204,58 @@ describe("generateHtml semantic sections", () => {
     expect(html).toContain("Awards");
     expect(html).toContain("Hackathon winner");
   });
+
+  test("tightens layout and emits an overflow warning for one page challenge", () => {
+    const html = generateHtml(
+      {
+        ...baseCv,
+        global_settings: {
+          ...baseCv.global_settings,
+          page: {
+            format: "A4",
+            one_page_challenge: true,
+            margins: { horizontal: "64px", vertical: "48px" },
+          },
+          layout: {
+            columns: 2,
+            sidebar_position: "right",
+            density: "senior",
+            photo: { enabled: true, shape: "round" },
+          },
+          typography: {
+            base_size: "13px",
+            line_height: "1.5",
+            date_style: "normal",
+          },
+        },
+        experience: Array.from({ length: 6 }, (_, index) => ({
+          id: `exp-${index}`,
+          role: `Engineer ${index}`,
+          company: "Analytical Engines",
+          period: "1842 - 1843",
+          location: { city: "London", country: "UK" },
+          description_markdown:
+            "- Built structured notes and shipped dense resume content for one page review.",
+          keywords: ["Mathematics", "Optimization"],
+        })),
+        projects: Array.from({ length: 4 }, (_, index) => ({
+          id: `proj-${index}`,
+          name: `Project ${index}`,
+          description_markdown:
+            "Longer project description designed to increase one-page pressure in the renderer.",
+          tech_stack: ["Python", "FastAPI", "SQLite"],
+        })),
+      },
+      "modern",
+    );
+
+    expect(html).toContain("--font-size-base: 11.5px;");
+    expect(html).toContain("--line-height: 1.35;");
+    expect(html).toContain("--margin-page-h: 36px;");
+    expect(html).toContain("--margin-page-v: 28px;");
+    expect(html).toContain("--entry-spacing: 10px;");
+    expect(html).toContain("--resume-density: compact;");
+    expect(html).toContain('data-overflow-risk="high"');
+    expect(html).toContain("likely to overflow one page");
+  });
 });

@@ -31,7 +31,7 @@ type JobResultPayload = Partial<JobInsights> & {
   company_insight?: CompanyInsight;
 };
 
-type ResumeExportFormat = "json" | "markdown" | "html" | "docx";
+type ResumeExportFormat = "json" | "markdown" | "html" | "docx" | "latex" | "typst";
 
 const RESUME_EXPORTS: Record<
   ResumeExportFormat,
@@ -41,6 +41,8 @@ const RESUME_EXPORTS: Record<
   markdown: { endpoint: "export-markdown", extension: "md", label: "Markdown" },
   html: { endpoint: "export-html", extension: "html", label: "HTML" },
   docx: { endpoint: "export-docx", extension: "docx", label: "DOCX" },
+  latex: { endpoint: "export-latex", extension: "tex", label: "LaTeX" },
+  typst: { endpoint: "export-typst", extension: "typ", label: "Typst" },
 };
 
 function asDragPayload(value: unknown): DragPayload | null {
@@ -470,6 +472,20 @@ export default function AppPage() {
             })}
               className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50">
               ↓ DOCX
+            </button>
+
+            <button onClick={() => void handleExportResume("latex").catch((err: unknown) => {
+              showToast(errorMessage(err, "LaTeX export failed"), 6000);
+            })}
+              className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50">
+              ↓ TEX
+            </button>
+
+            <button onClick={() => void handleExportResume("typst").catch((err: unknown) => {
+              showToast(errorMessage(err, "Typst export failed"), 6000);
+            })}
+              className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50">
+              ↓ TYP
             </button>
 
             <button onClick={() => setShowGhost((v) => !v)}

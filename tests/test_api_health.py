@@ -44,6 +44,10 @@ def test_llm_catalogue_accepts_api_key_query_for_sse_compat() -> None:
     api = client()
     response = api.get("/api/v1/llm/catalogue?api_key=dev-mindris-api-key")
     assert response.status_code == 200
+    payload = response.json()
+    assert "providers" in payload
+    assert payload["providers"]["ollama"]["mode"] == "local"
+    assert payload["providers"]["groq"]["mode"] == "cloud"
 
 
 def test_invalid_provider_or_model_is_rejected() -> None:

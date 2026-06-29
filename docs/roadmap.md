@@ -62,3 +62,9 @@
 - [ ] **Studio UI backend-driven :** Exposer les contrôles avancés sans logique métier côté front.
 - [ ] **Sections avancées :** Certifications, bénévolat, publications, références et sections personnalisées.
 - [ ] **Validation ATS & accessibilité :** Garde-fous de contraste, mode ATS strict et tests E2E de personnalisation.
+
+## 🔵 Phase 9 : Différenciation open-source v1
+- [ ] **Export LaTeX/Typst :** Produire des exports texte natifs et réutilisables.
+- [ ] **Comparaison de versions :** Diff sémantique entre snapshots de CV.
+- [ ] **Mode “1 page challenge” :** Optimiser la densité sans perdre de données.
+- [ ] **Local-first / BYOK / Ollama :** Durcir la configuration locale et les providers IA sans ajouter de service côté front.

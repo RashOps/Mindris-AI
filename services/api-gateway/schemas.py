@@ -171,6 +171,7 @@ class CVPageSettings(CVBaseModel):
     format: Literal["A4", "Letter"] = "A4"
     margins: CVPageMargins = Field(default_factory=CVPageMargins)
     page_break_mode: Literal["auto", "manual"] = "auto"
+    one_page_challenge: bool = False
 
 
 class CVPhotoSettings(CVBaseModel):
@@ -354,7 +355,66 @@ class CVGlobalSettings(CVBaseModel):
             self.typography.bullet_style = "dash"
             self.colors.monochrome = True
 
+        if self.page.one_page_challenge:
+            self.page.page_break_mode = "auto"
+            self.layout.density = "compact"
+            self.layout.photo.enabled = False
+            self.typography.date_style = (
+                "small"
+                if self.typography.date_style in {"normal", "italic"}
+                else self.typography.date_style
+            )
+            self.typography.base_size = _min_css_size(
+                self.typography.base_size,
+                "11.5px",
+            )
+            self.typography.line_height = _min_line_height(
+                self.typography.line_height,
+                "1.35",
+            )
+            self.page.margins.horizontal = _min_css_size(
+                self.page.margins.horizontal,
+                "36px",
+            )
+            self.page.margins.vertical = _min_css_size(
+                self.page.margins.vertical,
+                "28px",
+            )
+            self.entry_spacing = _min_css_size(self.entry_spacing, "10px")
+
+        self.font_size = self.typography.base_size
+        self.line_height = self.typography.line_height
+        self.margin_h = self.page.margins.horizontal
+        self.margin_v = self.page.margins.vertical
+
         return self
+
+
+def _min_css_size(current: str, fallback: str) -> str:
+    current_value = _numeric_prefix(current)
+    fallback_value = _numeric_prefix(fallback)
+    if current_value is None or fallback_value is None:
+        return fallback
+    return current if current_value <= fallback_value else fallback
+
+
+def _min_line_height(current: str, fallback: str) -> str:
+    try:
+        current_value = float(current)
+        fallback_value = float(fallback)
+    except (TypeError, ValueError):
+        return fallback
+    return current if current_value <= fallback_value else fallback
+
+
+def _numeric_prefix(value: str) -> float | None:
+    if not isinstance(value, str):
+        return None
+    candidate = value.strip().removesuffix("px").removesuffix("%")
+    try:
+        return float(candidate)
+    except ValueError:
+        return None
 
 
 class CVProfile(CVBaseModel):
@@ -558,6 +618,36 @@ class ResumeRevisionItem(BaseModel):
     source: str
     label: str | None = None
     createdAt: str
+
+
+class ResumeRevisionChangeItem(BaseModel):
+    """Single field-level change between two resume revisions."""
+
+    path: str
+    kind: Literal["added", "removed", "changed"]
+    before: Any | None = None
+    after: Any | None = None
+
+
+class ResumeRevisionSectionItem(BaseModel):
+    """Semantic summary for a top-level CV section diff."""
+
+    section: str
+    label: str
+    status: Literal["added", "removed", "changed", "unchanged"]
+    beforeCount: int = 0
+    afterCount: int = 0
+
+
+class ResumeRevisionCompareItem(BaseModel):
+    """Comparison payload for two resume snapshots."""
+
+    resumeId: str
+    baseRevision: ResumeRevisionItem
+    targetRevision: ResumeRevisionItem
+    changeCount: int
+    sectionSummaries: list[ResumeRevisionSectionItem]
+    changes: list[ResumeRevisionChangeItem]
 
 
 class CompanyAnalyzeRequest(LLMRequest):
