@@ -38,7 +38,7 @@ spec: `docs/staging/specs/2026-06-29-runtime-polish-and-local-ops.md`
   acceptance: `UV_CACHE_DIR=/tmp/uv-cache uv run --no-sync pytest tests/test_api_health.py tests/test_resumes_api.py -q`
   spec: `docs/staging/specs/2026-06-29-runtime-polish-and-local-ops.md#t6-ingestion-modes`
 
-- [ ] T7: Lightweight monitoring
+- [x] T7: Lightweight monitoring
   goal: Add runtime instrumentation without introducing a heavy observability stack.
   files: `services/api-gateway`, `services/renderer`, `docs`
   acceptance: `UV_CACHE_DIR=/tmp/uv-cache uv run --no-sync pytest tests/test_api_health.py -q`
