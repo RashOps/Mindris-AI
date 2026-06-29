@@ -26,7 +26,7 @@ spec: `docs/staging/specs/2026-06-29-runtime-polish-and-local-ops.md`
   acceptance: `cd services/renderer && bun run typecheck && bun run build`
   spec: `docs/staging/specs/2026-06-29-runtime-polish-and-local-ops.md#t4t5-logging`
 
-- [ ] T5: Python logger refactor
+- [x] T5: Python logger refactor
   goal: Rework `packages/utils/logger.py` into a cleaner multi-service logging base.
   files: `packages/utils/logger.py`, `services/api-gateway`, `services/intelligence`, `services/scraper`
   acceptance: `UV_CACHE_DIR=/tmp/uv-cache uv run --no-sync pytest tests/test_api_health.py -q`
