@@ -258,4 +258,53 @@ describe("generateHtml semantic sections", () => {
     expect(html).toContain('data-overflow-risk="high"');
     expect(html).toContain("likely to overflow one page");
   });
+
+  test("applies advanced css token overrides inside the shadow tree", () => {
+    const html = generateHtml(
+      {
+        ...baseCv,
+        global_settings: {
+          ...baseCv.global_settings,
+          advanced_css: {
+            enabled: true,
+            mode: "tokens",
+            css_text: ":host { --primary-color: #111827; --heading-scale: 1.12; }",
+          },
+        },
+      },
+      "modern",
+    );
+
+    expect(html).toContain("--primary-color: #111827;");
+    expect(html).toContain("--heading-scale: 1.12;");
+    expect(html).not.toContain("advanced-css-warning");
+  });
+
+  test("strips unsafe advanced css selectors and functions while preserving safe rules", () => {
+    const html = generateHtml(
+      {
+        ...baseCv,
+        global_settings: {
+          ...baseCv.global_settings,
+          advanced_css: {
+            enabled: true,
+            mode: "css_patch",
+            css_text: [
+              "body { background: red; }",
+              ".section-title { color: #0f766e; }",
+              ".tag { background-image: url('https://evil.test/tag.png'); }",
+            ].join("\n"),
+          },
+        },
+      },
+      "modern",
+    );
+
+    expect(html).toContain(".section-title {");
+    expect(html).toContain("color: #0f766e;");
+    expect(html).not.toContain("body { background: red; }");
+    expect(html).not.toContain("evil.test");
+    expect(html).toContain("advanced-css-warning");
+    expect(html).toContain("Advanced CSS dropped unsupported rules");
+  });
 });
