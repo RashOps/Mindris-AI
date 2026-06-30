@@ -174,6 +174,13 @@ function resolveSettings(
       label_language: current?.locale?.label_language ?? "fr",
       text_direction: current?.locale?.text_direction ?? "ltr",
     },
+    advanced_css: {
+      enabled: current?.advanced_css?.enabled ?? false,
+      mode: current?.advanced_css?.mode ?? "off",
+      css_text: current?.advanced_css?.css_text ?? "",
+      preset_id: current?.advanced_css?.preset_id ?? null,
+      warnings: current?.advanced_css?.warnings ?? [],
+    },
     font_family: bodyFont,
     font_size: current?.font_size ?? "13px",
     primary_color: primaryColor,
@@ -191,7 +198,7 @@ function resolveSettings(
 
 // ── Main Panel ────────────────────────────────────────────────────────────────
 
-type Tab = "design" | "typography" | "layout" | "sections";
+type Tab = "design" | "typography" | "layout" | "sections" | "advanced";
 
 interface StylePanelProps {
   open: boolean;
@@ -225,6 +232,13 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
   const layoutSettings = settings.layout ?? {};
   const pageSettings = settings.page ?? {};
   const localeSettings = settings.locale ?? {};
+  const advancedCssSettings = settings.advanced_css ?? {
+    enabled: false,
+    mode: "off",
+    css_text: "",
+    preset_id: null,
+    warnings: [],
+  };
   const resetSettings = useMemo(
     () => resolveSettings(undefined, catalogue),
     [catalogue],
@@ -272,6 +286,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
     { key: "typography", label: "Typography", icon: "Aa" },
     { key: "layout", label: "Layout", icon: "◫" },
     { key: "sections", label: "Sections", icon: "≡" },
+    { key: "advanced", label: "Advanced", icon: "{}" },
   ];
 
   const sectionPlacements = options.sectionPlacements;
@@ -1060,6 +1075,129 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                     </div>
                   ))}
                 </div>
+              </section>
+            </>
+          )}
+
+          {tab === "advanced" && (
+            <>
+              <section>
+                <SectionLabel>Advanced CSS</SectionLabel>
+                <div className="grid gap-2">
+                  <label className="flex items-center justify-between rounded-lg border border-slate-300 bg-white px-3 py-2">
+                    <div>
+                      <span className="block text-xs font-medium text-slate-700">
+                        Enable expert CSS
+                      </span>
+                      <span className="block text-[11px] text-slate-500">
+                        Applied by the renderer inside the CV Shadow DOM only.
+                      </span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={advancedCssSettings.enabled ?? false}
+                      onChange={(e) =>
+                        update({
+                          advanced_css: {
+                            ...advancedCssSettings,
+                            enabled: e.target.checked,
+                            mode: e.target.checked
+                              ? advancedCssSettings.mode === "off"
+                                ? "tokens"
+                                : advancedCssSettings.mode
+                              : "off",
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                  <select
+                    value={advancedCssSettings.mode ?? "off"}
+                    onChange={(e) =>
+                      update({
+                        advanced_css: {
+                          ...advancedCssSettings,
+                          enabled: e.target.value !== "off",
+                          mode: e.target.value as "off" | "tokens" | "css_patch",
+                        },
+                      })
+                    }
+                    className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                  >
+                    {catalogue.advancedCss.modes.map((mode) => (
+                      <option key={mode} value={mode}>
+                        {mode}
+                      </option>
+                    ))}
+                  </select>
+                  <textarea
+                    value={advancedCssSettings.css_text ?? ""}
+                    onChange={(e) =>
+                      update({
+                        advanced_css: {
+                          ...advancedCssSettings,
+                          css_text: e.target.value,
+                        },
+                      })
+                    }
+                    aria-label="Advanced CSS editor"
+                    maxLength={catalogue.advancedCss.maxLength}
+                    spellCheck={false}
+                    className="min-h-48 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-xs text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                    placeholder=":host { --primary-color: #0f172a; }"
+                  />
+                  <div className="flex items-center justify-between text-[11px] text-slate-500">
+                    <span>
+                      {advancedCssSettings.css_text?.length ?? 0}/
+                      {catalogue.advancedCss.maxLength}
+                    </span>
+                    <span>{catalogue.advancedCss.allowedScopes.join(" · ")}</span>
+                  </div>
+                </div>
+              </section>
+
+              <section>
+                <SectionLabel>Snippets</SectionLabel>
+                <div className="grid gap-2">
+                  {catalogue.advancedCss.examples.map((example) => (
+                    <button
+                      key={example}
+                      type="button"
+                      onClick={() =>
+                        update({
+                          advanced_css: {
+                            ...advancedCssSettings,
+                            enabled: true,
+                            mode:
+                              advancedCssSettings.mode === "off"
+                                ? "tokens"
+                                : advancedCssSettings.mode,
+                            css_text: example,
+                          },
+                        })
+                      }
+                      className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-left font-mono text-[11px] text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+                    >
+                      {example}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <section>
+                <SectionLabel>Guardrails</SectionLabel>
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
+                  <p>Blocked: {catalogue.advancedCss.blockedAtRules.join(", ")}</p>
+                  <p>Filtered: {catalogue.advancedCss.blockedFunctions.join(", ")}</p>
+                </div>
+                {advancedCssSettings.warnings &&
+                  advancedCssSettings.warnings.length > 0 && (
+                    <div className="mt-2 rounded-lg border border-amber-300 bg-white px-3 py-2 text-[11px] text-amber-800">
+                      {advancedCssSettings.warnings.map((warning) => (
+                        <p key={warning}>{warning}</p>
+                      ))}
+                    </div>
+                  )}
               </section>
             </>
           )}
