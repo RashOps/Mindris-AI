@@ -23,6 +23,7 @@ class ApiClient:
 
     def request(self, method: str, path: str, **kwargs: Any) -> Response:
         """Send a request to the in-process ASGI application."""
+
         async def _run() -> Response:
             transport = ASGITransport(app=app)
             async with AsyncClient(

@@ -90,8 +90,7 @@ COMMUNITY_TEMPLATES = [
         id="bilingual",
         name="Bilingual FR/EN",
         description=(
-            "Community template tuned for bilingual CVs and "
-            "international applications."
+            "Community template tuned for bilingual CVs and international applications."
         ),
         status="community",
         category="international",
