@@ -58,6 +58,13 @@ export interface GlobalSettings {
     label_language?: "fr" | "en" | "de" | "es";
     text_direction?: "ltr" | "rtl";
   };
+  advanced_css?: {
+    enabled?: boolean;
+    mode?: "off" | "tokens" | "css_patch";
+    css_text?: string;
+    preset_id?: string | null;
+    warnings?: string[];
+  };
   // Typography
   font_family:   string;
   font_size:     string;     // e.g. "13px"
@@ -480,6 +487,13 @@ const initialCV: CVData = {
     col_left_width: '65',
     col_swap:       'false',
     template_id:    'modern',
+    advanced_css: {
+      enabled: false,
+      mode: 'off',
+      css_text: '',
+      preset_id: null,
+      warnings: [],
+    },
   },
   profile: {
     full_name: 'Jean Dupont',
@@ -601,6 +615,13 @@ export function normalizeCVData(
       ...blank.global_settings,
       ...settings,
       template_id: settings.template_id ?? blank.global_settings.template_id,
+      advanced_css: {
+        ...blank.global_settings.advanced_css,
+        ...(settings.advanced_css ?? {}),
+        warnings: Array.isArray(settings.advanced_css?.warnings)
+          ? settings.advanced_css?.warnings
+          : [],
+      },
     },
     profile: {
       ...blank.profile,

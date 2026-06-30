@@ -61,4 +61,31 @@ describe("useCVStore normalization", () => {
     expect(merged[1]?.type).toBe("projects");
     expect(merged[2]?.type).toBe("experience");
   });
+
+  test("normalizes advanced css settings and warnings from partial CV data", () => {
+    const normalized = normalizeCVData({
+      profile: {
+        full_name: "Ada Lovelace",
+        title: "Engineer",
+        phone: "",
+        email: "ada@example.com",
+        location: { city: "Paris", country: "France" },
+        socials: [],
+        text_markdown: "",
+      },
+      global_settings: {
+        template_id: "modern",
+        advanced_css: {
+          enabled: true,
+          mode: "css_patch",
+          css_text: ".section-title { color: #0f766e; }",
+        },
+      } as never,
+      experience: [],
+    });
+
+    expect(normalized.global_settings.advanced_css?.enabled).toBe(true);
+    expect(normalized.global_settings.advanced_css?.mode).toBe("css_patch");
+    expect(normalized.global_settings.advanced_css?.warnings).toEqual([]);
+  });
 });
