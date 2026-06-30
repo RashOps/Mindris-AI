@@ -83,3 +83,9 @@
 - [ ] **Sanitation renderer :** Filtrer et appliquer le CSS custom uniquement dans le Shadow DOM du CV.
 - [ ] **UI éditeur expert :** Ajouter un panneau CSS avancé, warnings et snippets sans déplacer de logique métier côté front.
 - [ ] **Validation export :** Garantir preview/PDF stables et ignorer le CSS avancé pour les exports sémantiques.
+
+## 🔵 Phase 12 : Multilingual CV System
+- [ ] **Variantes de langue backend-owned :** Supporter plusieurs locales sous un meme resume logique.
+- [ ] **Edition ciblee par locale :** Permettre au builder de creer, selectionner et modifier une variante sans fusion cote front.
+- [ ] **Exports et versioning par locale :** Resoudre preview, exports et revisions depuis la variante selectionnee.
+- [ ] **Compatibilite ascendante :** Migrer les resumes mono-langue existants sans rupture de contrat.
