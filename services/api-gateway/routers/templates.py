@@ -230,6 +230,24 @@ CUSTOMIZATION_CATALOGUE = {
         "languages": ["fr", "en", "de", "es"],
         "directions": ["ltr", "rtl"],
     },
+    "advancedCss": {
+        "enabled": True,
+        "maxLength": 8000,
+        "modes": ["off", "tokens", "css_patch"],
+        "allowedScopes": [
+            ":host",
+            ".cv-shell",
+            "[data-section]",
+            "[data-section-type]",
+            "[data-section-placement]",
+        ],
+        "blockedAtRules": ["@import"],
+        "blockedFunctions": ["expression(", "javascript:", "url("],
+        "examples": [
+            ":host { --primary-color: #0f172a; --heading-scale: 1.1; }",
+            "[data-section-type='experience'] h2 { color: #0f766e; }",
+        ],
+    },
     "templates": {
         "modern": {"compatibleLayouts": [1, 2]},
         "compact": {"compatibleLayouts": [1, 2]},

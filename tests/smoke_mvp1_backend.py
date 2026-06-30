@@ -53,6 +53,11 @@ def main() -> None:
             "template_id": "ats",
             "layout": {"columns": 1, "sidebar_position": "none"},
             "colors": {"monochrome": True},
+            "advanced_css": {
+                "enabled": True,
+                "mode": "css_patch",
+                "css_text": ".section-title { color: #0f766e; }",
+            },
             "sections": [
                 {"id": "profile", "type": "profile", "label": "Profil"},
                 {"id": "projects", "type": "projects", "label": "Projets"},
@@ -113,6 +118,8 @@ def main() -> None:
             raise SystemExit("Markdown label smoke check failed.")
         if "## Langues" in markdown:
             raise SystemExit("Markdown hidden section smoke check failed.")
+        if ".section-title { color: #0f766e; }" in markdown:
+            raise SystemExit("Markdown advanced CSS leakage smoke check failed.")
         if markdown.index("## Projets") > markdown.index("## Parcours professionnel"):
             raise SystemExit("Markdown ordering smoke check failed.")
         if "Phase 5" not in html or "<script" in html.lower():
@@ -121,6 +128,8 @@ def main() -> None:
             raise SystemExit("HTML label smoke check failed.")
         if "<h2>Langues</h2>" in html:
             raise SystemExit("HTML hidden section smoke check failed.")
+        if ".section-title { color: #0f766e; }" in html:
+            raise SystemExit("HTML advanced CSS leakage smoke check failed.")
         if html.index("<h2>Projets</h2>") > html.index(
             "<h2>Parcours professionnel</h2>"
         ):
@@ -139,6 +148,8 @@ def main() -> None:
                 raise SystemExit("DOCX label smoke check failed.")
             if "Langues" in document:
                 raise SystemExit("DOCX hidden section smoke check failed.")
+            if ".section-title { color: #0f766e; }" in document:
+                raise SystemExit("DOCX advanced CSS leakage smoke check failed.")
             if document.index("Projets") > document.index("Parcours professionnel"):
                 raise SystemExit("DOCX ordering smoke check failed.")
         update_resume(session, resume, name="Phase 5 CV Updated")

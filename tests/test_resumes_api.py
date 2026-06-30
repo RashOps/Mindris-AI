@@ -26,6 +26,7 @@ from routers.resumes import (
     restore_resume_revision_route,
     update_resume_route,
 )
+from routers.templates import list_customization_catalogue
 from schemas import (
     CVDataModel,
     ResumeCreateRequest,
@@ -548,6 +549,98 @@ def test_cv_schema_rejects_low_contrast_colors() -> None:
 
     with pytest.raises(ValidationError, match="contrast"):
         CVDataModel.model_validate(payload)
+
+
+def test_cv_schema_accepts_advanced_css_contract() -> None:
+    payload = _cv_payload("modern")
+    payload["global_settings"] = {
+        "template_id": "modern",
+        "advanced_css": {
+            "enabled": True,
+            "mode": "css_patch",
+            "css_text": ":host { --primary-color: #111827; }\n.resume-name { letter-spacing: 0; }",
+        },
+    }
+
+    cv_data = CVDataModel.model_validate(payload).model_dump(mode="json")
+    settings = cv_data["global_settings"]
+    assert settings["advanced_css"]["enabled"] is True
+    assert settings["advanced_css"]["mode"] == "css_patch"
+    assert ":host" in settings["advanced_css"]["css_text"]
+
+
+def test_cv_schema_rejects_unsafe_advanced_css() -> None:
+    payload = _cv_payload("modern")
+    payload["global_settings"] = {
+        "template_id": "modern",
+        "advanced_css": {
+            "enabled": True,
+            "mode": "css_patch",
+            "css_text": "@import url('https://evil.test/x.css');",
+        },
+    }
+
+    with pytest.raises(ValidationError, match="advanced_css"):
+        CVDataModel.model_validate(payload)
+
+
+def test_customization_catalogue_exposes_advanced_css_capabilities() -> None:
+    payload = list_customization_catalogue()["item"]
+
+    assert payload["advancedCss"]["enabled"] is True
+    assert payload["advancedCss"]["maxLength"] >= 2000
+    assert ":host" in payload["advancedCss"]["allowedScopes"]
+    assert "@import" in payload["advancedCss"]["blockedAtRules"]
+    assert "expression(" in payload["advancedCss"]["blockedFunctions"]
+
+
+def test_semantic_exports_ignore_advanced_css_payload() -> None:
+    payload = _cv_payload("modern")
+    payload["global_settings"] = {
+        "template_id": "modern",
+        "advanced_css": {
+            "enabled": True,
+            "mode": "css_patch",
+            "css_text": ".section-title { color: #0f766e; }",
+        },
+    }
+    payload["experience"] = [
+        {
+            "id": "exp-1",
+            "role": "Lead Engineer",
+            "company": "Mindris",
+            "period": "2025",
+            "location": {"city": "Paris", "country": "France"},
+            "description_markdown": "- Shipped advanced CSS support",
+        }
+    ]
+
+    with _session() as session:
+        resume = create_resume_route(
+            ResumeCreateRequest(
+                name="Styled CV",
+                cv_data=payload,
+                template_id="modern",
+            ),
+            session,
+        )["item"]
+
+        exported = export_resume_json(int(resume["id"]), session)
+        document = json.loads(exported.body)
+        markdown = export_resume_markdown(int(resume["id"]), session).body.decode()
+        html = export_resume_html(int(resume["id"]), session).body.decode()
+        docx = export_resume_docx(int(resume["id"]), session)
+
+        assert (
+            document["cvData"]["global_settings"]["advanced_css"]["css_text"]
+            == ".section-title { color: #0f766e; }"
+        )
+        assert ".section-title { color: #0f766e; }" not in markdown
+        assert ".section-title { color: #0f766e; }" not in html
+
+        with ZipFile(io.BytesIO(docx.body)) as package:
+            xml = package.read("word/document.xml").decode()
+            assert ".section-title { color: #0f766e; }" not in xml
 
 
 def test_resume_create_rejects_invalid_cv_shape() -> None:

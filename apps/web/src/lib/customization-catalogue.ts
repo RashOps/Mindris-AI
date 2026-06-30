@@ -64,6 +64,15 @@ export type CustomizationCatalogue = {
     languages: string[];
     directions: string[];
   };
+  advancedCss: {
+    enabled: boolean;
+    maxLength: number;
+    modes: string[];
+    allowedScopes: string[];
+    blockedAtRules: string[];
+    blockedFunctions: string[];
+    examples: string[];
+  };
   templates: Record<
     string,
     {
@@ -157,6 +166,24 @@ export const FALLBACK_CUSTOMIZATION_CATALOGUE: CustomizationCatalogue = {
   locale: {
     languages: ["fr", "en", "de", "es"],
     directions: ["ltr", "rtl"],
+  },
+  advancedCss: {
+    enabled: true,
+    maxLength: 8000,
+    modes: ["off", "tokens", "css_patch"],
+    allowedScopes: [
+      ":host",
+      ".cv-shell",
+      "[data-section]",
+      "[data-section-type]",
+      "[data-section-placement]",
+    ],
+    blockedAtRules: ["@import"],
+    blockedFunctions: ["expression(", "javascript:", "url("],
+    examples: [
+      ":host { --primary-color: #0f172a; --heading-scale: 1.1; }",
+      "[data-section-type='experience'] .section-title { color: #0f766e; }",
+    ],
   },
   templates: {
     modern: { compatibleLayouts: [1, 2] },
@@ -332,6 +359,34 @@ export function normalizeCustomizationCatalogue(
       directions: copyArray(
         value.locale?.directions,
         FALLBACK_CUSTOMIZATION_CATALOGUE.locale.directions,
+      ),
+    },
+    advancedCss: {
+      enabled:
+        value.advancedCss?.enabled ??
+        FALLBACK_CUSTOMIZATION_CATALOGUE.advancedCss.enabled,
+      maxLength:
+        value.advancedCss?.maxLength ??
+        FALLBACK_CUSTOMIZATION_CATALOGUE.advancedCss.maxLength,
+      modes: copyArray(
+        value.advancedCss?.modes,
+        FALLBACK_CUSTOMIZATION_CATALOGUE.advancedCss.modes,
+      ),
+      allowedScopes: copyArray(
+        value.advancedCss?.allowedScopes,
+        FALLBACK_CUSTOMIZATION_CATALOGUE.advancedCss.allowedScopes,
+      ),
+      blockedAtRules: copyArray(
+        value.advancedCss?.blockedAtRules,
+        FALLBACK_CUSTOMIZATION_CATALOGUE.advancedCss.blockedAtRules,
+      ),
+      blockedFunctions: copyArray(
+        value.advancedCss?.blockedFunctions,
+        FALLBACK_CUSTOMIZATION_CATALOGUE.advancedCss.blockedFunctions,
+      ),
+      examples: copyArray(
+        value.advancedCss?.examples,
+        FALLBACK_CUSTOMIZATION_CATALOGUE.advancedCss.examples,
       ),
     },
     templates: mergeTemplates(value.templates, FALLBACK_CUSTOMIZATION_CATALOGUE.templates),

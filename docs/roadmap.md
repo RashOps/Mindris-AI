@@ -77,3 +77,9 @@
 - [x] **Logger Python refondu :** Reprendre `packages/utils/logger.py` pour une base plus robuste et plus lisible.
 - [x] **Ingestion PDF duale :** Conserver `llama-parse` et ajouter une option full local sélectionnable.
 - [x] **Monitoring léger :** Instrumentation minimale des services sans stack d'observabilité lourde.
+
+## 🔵 Phase 11 : Advanced CSS Editor
+- [ ] **Contrat CSS avancé :** Etendre le contrat `global_settings` avec un bloc `advanced_css` backend-owned.
+- [ ] **Sanitation renderer :** Filtrer et appliquer le CSS custom uniquement dans le Shadow DOM du CV.
+- [ ] **UI éditeur expert :** Ajouter un panneau CSS avancé, warnings et snippets sans déplacer de logique métier côté front.
+- [ ] **Validation export :** Garantir preview/PDF stables et ignorer le CSS avancé pour les exports sémantiques.
