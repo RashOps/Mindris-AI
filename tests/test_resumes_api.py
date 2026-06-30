@@ -5,13 +5,18 @@ import json
 from zipfile import ZipFile
 
 import pytest
+from database.records import ResumeRecord
 from database.session import SessionLocal, init_db
 from fastapi import HTTPException
+from persistence import load_json
 from pydantic import ValidationError
 from routers.resumes import (
+    activate_resume_locale_route,
     compare_resume_revisions_route,
+    create_resume_locale_route,
     create_resume_revision_route,
     create_resume_route,
+    delete_resume_locale_route,
     delete_resume_route,
     duplicate_resume_route,
     export_resume_docx,
@@ -20,6 +25,7 @@ from routers.resumes import (
     export_resume_latex,
     export_resume_markdown,
     export_resume_typst,
+    get_resume_route,
     import_resume_json,
     list_resume_revisions_route,
     list_resumes,
@@ -31,6 +37,7 @@ from schemas import (
     CVDataModel,
     ResumeCreateRequest,
     ResumeImportRequest,
+    ResumeLocaleCreateRequest,
     ResumeUpdateRequest,
 )
 
@@ -200,6 +207,116 @@ def test_resume_crud_duplicate_and_export() -> None:
 
         deleted = delete_resume_route(int(duplicate["id"]), session)
         assert deleted["status"] == "success"
+
+
+def test_resume_create_exposes_multilingual_metadata() -> None:
+    with _session() as session:
+        resume = create_resume_route(
+            ResumeCreateRequest(
+                name="FR CV",
+                cv_data=_cv_payload(),
+                template_id="modern",
+            ),
+            session,
+        )["item"]
+
+        assert resume["locale"] == "fr"
+        assert resume["multilingual"] == {
+            "defaultLocale": "fr",
+            "activeLocale": "fr",
+            "availableLocales": ["fr"],
+        }
+        assert "multilingual" not in resume["cvData"]
+
+
+def test_legacy_resume_is_lazy_migrated_to_multilingual_shape() -> None:
+    with _session() as session:
+        legacy = ResumeRecord(
+            name="Legacy CV",
+            data_json=json.dumps(_cv_payload(), ensure_ascii=False),
+            template_id="modern",
+            locale="fr",
+            source="manual",
+        )
+        session.add(legacy)
+        session.commit()
+        session.refresh(legacy)
+
+        fetched = get_resume_route(int(legacy.id), session)["item"]
+        assert fetched["multilingual"] == {
+            "defaultLocale": "fr",
+            "activeLocale": "fr",
+            "availableLocales": ["fr"],
+        }
+        assert fetched["cvData"]["profile"]["full_name"] == "Ada Lovelace"
+
+        session.refresh(legacy)
+        stored = load_json(legacy.data_json, {})
+        assert stored["multilingual"]["default_locale"] == "fr"
+        assert stored["multilingual"]["active_locale"] == "fr"
+        assert stored["multilingual"]["variants"]["fr"]["profile"]["full_name"] == (
+            "Ada Lovelace"
+        )
+
+
+def test_resume_locale_variants_are_backend_owned() -> None:
+    with _session() as session:
+        resume = create_resume_route(
+            ResumeCreateRequest(
+                name="Multilingual CV",
+                cv_data=_cv_payload(),
+                template_id="modern",
+            ),
+            session,
+        )["item"]
+
+        localized = create_resume_locale_route(
+            int(resume["id"]),
+            ResumeLocaleCreateRequest(locale="en", source_locale="fr"),
+            session,
+        )["item"]
+        assert localized["multilingual"] == {
+            "defaultLocale": "fr",
+            "activeLocale": "en",
+            "availableLocales": ["fr", "en"],
+        }
+        assert localized["cvData"]["global_settings"]["locale"]["label_language"] == "en"
+        assert localized["cvData"]["profile"]["full_name"] == "Ada Lovelace"
+
+        en_payload = _cv_payload()
+        en_payload["global_settings"]["locale"] = {"label_language": "en"}
+        en_payload["profile"]["title"] = "AI Engineer EN"
+        updated = update_resume_route(
+            int(resume["id"]),
+            ResumeUpdateRequest(cv_data=en_payload, target_locale="en"),
+            session,
+        )["item"]
+        assert updated["multilingual"]["activeLocale"] == "en"
+        assert updated["cvData"]["profile"]["title"] == "AI Engineer EN"
+
+        session.refresh(session.get(ResumeRecord, int(resume["id"])))
+        stored = load_json(session.get(ResumeRecord, int(resume["id"])).data_json, {})
+        assert stored["multilingual"]["variants"]["fr"]["profile"]["title"] == (
+            "AI Engineer"
+        )
+        assert stored["multilingual"]["variants"]["en"]["profile"]["title"] == (
+            "AI Engineer EN"
+        )
+
+        with pytest.raises(HTTPException):
+            delete_resume_locale_route(int(resume["id"]), "fr", session)
+
+        activated = activate_resume_locale_route(int(resume["id"]), "fr", session)[
+            "item"
+        ]
+        assert activated["multilingual"]["activeLocale"] == "fr"
+
+        deleted = delete_resume_locale_route(int(resume["id"]), "en", session)["item"]
+        assert deleted["multilingual"] == {
+            "defaultLocale": "fr",
+            "activeLocale": "fr",
+            "availableLocales": ["fr"],
+        }
 
 
 def test_resume_exports_include_advanced_sections() -> None:
