@@ -270,6 +270,45 @@ class CVLocaleSettings(CVBaseModel):
     text_direction: Literal["ltr", "rtl"] = "ltr"
 
 
+def _contains_unsafe_css_fragment(value: str) -> str | None:
+    lowered = value.lower()
+    blocked_fragments = (
+        "@import",
+        "javascript:",
+        "expression(",
+    )
+    for fragment in blocked_fragments:
+        if fragment in lowered:
+            return fragment
+    return None
+
+
+class CVAdvancedCssSettings(CVBaseModel):
+    """Advanced CSS customization persisted with a resume."""
+
+    enabled: bool = False
+    mode: Literal["off", "tokens", "css_patch"] = "off"
+    css_text: str = ""
+    preset_id: str | None = None
+    warnings: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_css_payload(self) -> "CVAdvancedCssSettings":
+        """Reject oversized or obviously unsafe CSS payloads."""
+        if len(self.css_text) > 8000:
+            raise ValueError("advanced_css.css_text exceeds the maximum length.")
+        blocked = _contains_unsafe_css_fragment(self.css_text)
+        if blocked:
+            raise ValueError(
+                f"advanced_css.css_text contains blocked construct: {blocked}"
+            )
+        if self.mode == "off":
+            self.enabled = False
+        elif self.enabled is False and self.css_text.strip():
+            self.enabled = True
+        return self
+
+
 def default_cv_sections() -> list[CVSectionSettings]:
     """Return the default semantic section order."""
     return [
@@ -316,6 +355,7 @@ class CVGlobalSettings(CVBaseModel):
     colors: CVColorSettings = Field(default_factory=CVColorSettings)
     sections: list[CVSectionSettings] = Field(default_factory=default_cv_sections)
     locale: CVLocaleSettings = Field(default_factory=CVLocaleSettings)
+    advanced_css: CVAdvancedCssSettings = Field(default_factory=CVAdvancedCssSettings)
 
     # Legacy flat keys are kept for backward compatibility with the MVP1 frontend.
     font_family: str = "Inter"
