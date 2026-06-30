@@ -14,9 +14,12 @@ from exporters import (
 )
 from fastapi import APIRouter, Depends, HTTPException, Response
 from persistence import (
+    activate_resume_locale_variant,
     compare_resume_revisions,
+    create_resume_locale_variant,
     create_resume,
     create_resume_revision,
+    delete_resume_locale_variant,
     dump_json,
     get_resume_revision,
     list_resume_revisions,
@@ -30,6 +33,7 @@ from schemas import (
     CVDataModel,
     ResumeCreateRequest,
     ResumeImportRequest,
+    ResumeLocaleCreateRequest,
     ResumeUpdateRequest,
 )
 from sqlalchemy import select
@@ -126,6 +130,7 @@ def update_resume_route(
         _get_resume(session, resume_id),
         name=request.name,
         cv_data=cv_data,
+        target_locale=request.target_locale,
         template_id=request.template_id,
         locale=request.locale,
         source=request.source,
@@ -157,6 +162,64 @@ def duplicate_resume_route(resume_id: int, session: SessionDep) -> dict:
         locale=source.locale,
         source="duplicate",
     )
+    return {"status": "success", "item": serialize_resume(session, record)}
+
+
+@router.post("/{resume_id}/locales")
+def create_resume_locale_route(
+    resume_id: int,
+    request: ResumeLocaleCreateRequest,
+    session: SessionDep,
+) -> dict:
+    """Create a locale variant for an existing resume."""
+    logger.info("Creating locale '%s' for resume %s", request.locale, resume_id)
+    try:
+        record = create_resume_locale_variant(
+            session,
+            _get_resume(session, resume_id),
+            locale=request.locale,
+            source_locale=request.source_locale,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"status": "success", "item": serialize_resume(session, record)}
+
+
+@router.post("/{resume_id}/locales/{locale}/activate")
+def activate_resume_locale_route(
+    resume_id: int,
+    locale: str,
+    session: SessionDep,
+) -> dict:
+    """Switch the active locale variant for an existing resume."""
+    logger.info("Activating locale '%s' for resume %s", locale, resume_id)
+    try:
+        record = activate_resume_locale_variant(
+            session,
+            _get_resume(session, resume_id),
+            locale=locale,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"status": "success", "item": serialize_resume(session, record)}
+
+
+@router.delete("/{resume_id}/locales/{locale}")
+def delete_resume_locale_route(
+    resume_id: int,
+    locale: str,
+    session: SessionDep,
+) -> dict:
+    """Delete a locale variant from an existing resume."""
+    logger.info("Deleting locale '%s' for resume %s", locale, resume_id)
+    try:
+        record = delete_resume_locale_variant(
+            session,
+            _get_resume(session, resume_id),
+            locale=locale,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     return {"status": "success", "item": serialize_resume(session, record)}
 
 
