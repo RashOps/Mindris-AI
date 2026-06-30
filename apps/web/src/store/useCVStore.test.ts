@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { normalizeAppSettings, normalizeCVData } from "./useCVStore";
+import { normalizeAppSettings, normalizeCVData, normalizeResumeDocument } from "./useCVStore";
 import { mergeSections } from "../components/StylePanel";
 import { FALLBACK_CUSTOMIZATION_CATALOGUE } from "../lib/customization-catalogue";
 
@@ -87,5 +87,36 @@ describe("useCVStore normalization", () => {
     expect(normalized.global_settings.advanced_css?.enabled).toBe(true);
     expect(normalized.global_settings.advanced_css?.mode).toBe("css_patch");
     expect(normalized.global_settings.advanced_css?.warnings).toEqual([]);
+  });
+
+  test("normalizes legacy resume documents into multilingual metadata", () => {
+    const normalized = normalizeResumeDocument({
+      id: "resume-1",
+      name: "Ada Resume",
+      templateId: "modern",
+      locale: "fr",
+      cvData: {
+        profile: {
+          full_name: "Ada Lovelace",
+          title: "Engineer",
+          phone: "",
+          email: "ada@example.com",
+          location: { city: "Paris", country: "France" },
+          socials: [],
+          text_markdown: "",
+        },
+        global_settings: { template_id: "modern" } as never,
+        experience: [],
+      },
+      createdAt: "2026-06-30T00:00:00.000Z",
+      updatedAt: "2026-06-30T00:00:00.000Z",
+    } as never);
+
+    expect(normalized.locale).toBe("fr");
+    expect(normalized.multilingual).toEqual({
+      defaultLocale: "fr",
+      activeLocale: "fr",
+      availableLocales: ["fr"],
+    });
   });
 });
