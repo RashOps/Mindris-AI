@@ -42,7 +42,9 @@ def _get_api_key() -> str:
 # ── PDF → Markdown ─────────────────────────────────────────────────────────────
 
 
-async def pdf_to_markdown_llama_parse(pdf_bytes: bytes, filename: str = "cv.pdf") -> str:
+async def pdf_to_markdown_llama_parse(
+    pdf_bytes: bytes, filename: str = "cv.pdf"
+) -> str:
     """Parse a PDF file bytes to Markdown using the LlamaCloud parsing API.
 
     Args:
@@ -102,7 +104,9 @@ async def pdf_to_markdown_local_text(pdf_bytes: bytes, filename: str = "cv.pdf")
     return markdown_content
 
 
-def _resolve_ingestion_mode(ingestion_mode: PDFIngestionMode) -> Literal["llama_parse", "local_text"]:
+def _resolve_ingestion_mode(
+    ingestion_mode: PDFIngestionMode,
+) -> Literal["llama_parse", "local_text"]:
     if ingestion_mode == "llama_parse":
         return "llama_parse"
     if ingestion_mode == "local_text":
@@ -250,6 +254,7 @@ async def parse_pdf_cv(
         filename: Original filename for LlamaCloud hint.
         provider: LLM provider for structuring.
         model_name: LLM model name for structuring.
+        ingestion_mode: Preferred extraction path: local, LlamaParse, or auto.
 
     Returns:
         Structured CV dictionary ready for ChromaDB ingestion.

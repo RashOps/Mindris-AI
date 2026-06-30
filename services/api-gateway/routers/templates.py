@@ -67,7 +67,10 @@ COMMUNITY_TEMPLATES = [
     TemplateCatalogItem(
         id="opensource",
         name="Open Source",
-        description="Community-made template for developers, GitHub links, and OSS contributions.",
+        description=(
+            "Community-made template for developers, GitHub links, "
+            "and OSS contributions."
+        ),
         status="community",
         category="developer",
         accent="#0f766e",
@@ -86,7 +89,10 @@ COMMUNITY_TEMPLATES = [
     TemplateCatalogItem(
         id="bilingual",
         name="Bilingual FR/EN",
-        description="Community template tuned for bilingual CVs and international applications.",
+        description=(
+            "Community template tuned for bilingual CVs and "
+            "international applications."
+        ),
         status="community",
         category="international",
         accent="#7c3aed",
@@ -140,7 +146,9 @@ def resolve_template_defaults(template_id: str) -> dict[str, Any]:
     return {}
 
 
-def apply_template_defaults(cv_data: dict[str, Any], template_id: str) -> dict[str, Any]:
+def apply_template_defaults(
+    cv_data: dict[str, Any], template_id: str
+) -> dict[str, Any]:
     """Overlay template defaults on top of a CV payload."""
     defaults = resolve_template_defaults(template_id)
     if not defaults:

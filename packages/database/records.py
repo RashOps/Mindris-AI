@@ -44,9 +44,7 @@ class ResumeRevisionRecord(Base):
     __tablename__ = "resumerevisionrecord"
 
     id: Mapped[int | None] = mapped_column(primary_key=True, default=None)
-    resume_id: Mapped[int] = mapped_column(
-        ForeignKey("resumerecord.id"), index=True
-    )
+    resume_id: Mapped[int] = mapped_column(ForeignKey("resumerecord.id"), index=True)
     revision: Mapped[int] = mapped_column(index=True)
     name: Mapped[str] = mapped_column(default="Untitled CV")
     data_json: Mapped[str] = mapped_column(Text)

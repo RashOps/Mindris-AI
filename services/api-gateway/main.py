@@ -7,8 +7,8 @@ from time import perf_counter
 from auth import verify_api_key
 from database.session import init_db
 from fastapi import Depends, FastAPI, HTTPException, Request
-from fastapi.exceptions import RequestValidationError
 from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from intelligence.event_bus import cleanup_stale_queues

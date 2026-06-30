@@ -16,8 +16,8 @@ import urllib.error
 import urllib.request
 from io import BytesIO
 from pathlib import Path
-from zipfile import ZipFile
 from typing import Any
+from zipfile import ZipFile
 
 from playwright.sync_api import Page, expect, sync_playwright
 
@@ -217,7 +217,9 @@ def assert_download(page: Page, menu_name: str, item_name: str, suffix: str) -> 
     suggested = download.suggested_filename
     path = download.path()
     if path is None:
-        raise AssertionError(f"{menu_name} > {item_name} did not produce a local download path")
+        raise AssertionError(
+            f"{menu_name} > {item_name} did not produce a local download path"
+        )
     size = Path(path).stat().st_size
     if not suggested.lower().endswith(suffix):
         raise AssertionError(f"Expected {suffix} download, got {suggested}")
@@ -243,9 +245,9 @@ def run(args: argparse.Namespace) -> None:
         page = context.new_page()
         page.on(
             "console",
-            lambda message: console_errors.append(message.text)
-            if message.type == "error"
-            else None,
+            lambda message: (
+                console_errors.append(message.text) if message.type == "error" else None
+            ),
         )
         page.on("pageerror", lambda error: page_errors.append(str(error)))
 
@@ -311,12 +313,16 @@ def run(args: argparse.Namespace) -> None:
         assert "## Parcours professionnel" in markdown
         assert "## Projets" in markdown
         assert "## Languages" not in markdown
-        assert markdown.index("## Projets") < markdown.index("## Parcours professionnel")
+        assert markdown.index("## Projets") < markdown.index(
+            "## Parcours professionnel"
+        )
 
         assert "<h2>Parcours professionnel</h2>" in html
         assert "<h2>Projets</h2>" in html
         assert "Languages" not in html
-        assert html.index("<h2>Projets</h2>") < html.index("<h2>Parcours professionnel</h2>")
+        assert html.index("<h2>Projets</h2>") < html.index(
+            "<h2>Parcours professionnel</h2>"
+        )
 
         assert "Parcours professionnel" in document
         assert "Languages" not in document

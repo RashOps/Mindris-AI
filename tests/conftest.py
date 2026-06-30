@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import sys
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "services" / "api-gateway"))
@@ -20,7 +21,8 @@ from utils.config import settings  # noqa: E402
 class ApiClient:
     """Minimal sync wrapper around httpx ASGI transport for backend tests."""
 
-    def request(self, method: str, path: str, **kwargs) -> Response:
+    def request(self, method: str, path: str, **kwargs: Any) -> Response:
+        """Send a request to the in-process ASGI application."""
         async def _run() -> Response:
             transport = ASGITransport(app=app)
             async with AsyncClient(
@@ -31,19 +33,24 @@ class ApiClient:
 
         return asyncio.run(_run())
 
-    def get(self, path: str, **kwargs) -> Response:
+    def get(self, path: str, **kwargs: Any) -> Response:
+        """Send a GET request to the in-process ASGI application."""
         return self.request("GET", path, **kwargs)
 
-    def post(self, path: str, **kwargs) -> Response:
+    def post(self, path: str, **kwargs: Any) -> Response:
+        """Send a POST request to the in-process ASGI application."""
         return self.request("POST", path, **kwargs)
 
-    def put(self, path: str, **kwargs) -> Response:
+    def put(self, path: str, **kwargs: Any) -> Response:
+        """Send a PUT request to the in-process ASGI application."""
         return self.request("PUT", path, **kwargs)
 
-    def patch(self, path: str, **kwargs) -> Response:
+    def patch(self, path: str, **kwargs: Any) -> Response:
+        """Send a PATCH request to the in-process ASGI application."""
         return self.request("PATCH", path, **kwargs)
 
-    def delete(self, path: str, **kwargs) -> Response:
+    def delete(self, path: str, **kwargs: Any) -> Response:
+        """Send a DELETE request to the in-process ASGI application."""
         return self.request("DELETE", path, **kwargs)
 
 

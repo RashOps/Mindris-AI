@@ -8,7 +8,8 @@ def test_get_logger_writes_to_service_specific_file(tmp_path, monkeypatch):
 
     logger = get_logger("routers.cv", service_name="api-gateway")
     file_handlers = [
-        handler for handler in logger.handlers
+        handler
+        for handler in logger.handlers
         if isinstance(handler, logging.FileHandler)
         and getattr(handler, "_mindris_handler", False)
     ]
@@ -17,11 +18,12 @@ def test_get_logger_writes_to_service_specific_file(tmp_path, monkeypatch):
     assert file_handlers[0].baseFilename == str(tmp_path / "api-gateway.log")
 
 
-def test_get_logger_ignores_parent_handlers_and_configures_its_own(tmp_path, monkeypatch):
+def test_get_logger_ignores_parent_handlers_and_configures_its_own(
+    tmp_path, monkeypatch
+):
     monkeypatch.setattr("utils.logger.settings.logs_dir", tmp_path)
 
     parent = logging.getLogger("services")
-    child = logging.getLogger("services.api")
     parent_handler = logging.StreamHandler()
     parent.addHandler(parent_handler)
 

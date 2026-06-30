@@ -9,9 +9,9 @@ from database.session import SessionLocal, init_db
 from fastapi import HTTPException
 from pydantic import ValidationError
 from routers.resumes import (
-    create_resume_route,
-    create_resume_revision_route,
     compare_resume_revisions_route,
+    create_resume_revision_route,
+    create_resume_route,
     delete_resume_route,
     duplicate_resume_route,
     export_resume_docx,
@@ -21,8 +21,8 @@ from routers.resumes import (
     export_resume_markdown,
     export_resume_typst,
     import_resume_json,
-    list_resumes,
     list_resume_revisions_route,
+    list_resumes,
     restore_resume_revision_route,
     update_resume_route,
 )
@@ -262,8 +262,17 @@ def test_hidden_configured_sections_stay_hidden_even_when_data_exists() -> None:
         "sections": [
             {"id": "profile", "type": "profile", "label": "Profil"},
             {"id": "projects", "type": "projects", "label": "Projets"},
-            {"id": "experience", "type": "experience", "label": "Parcours professionnel"},
-            {"id": "languages", "type": "languages", "label": "Langues", "visible": False},
+            {
+                "id": "experience",
+                "type": "experience",
+                "label": "Parcours professionnel",
+            },
+            {
+                "id": "languages",
+                "type": "languages",
+                "label": "Langues",
+                "visible": False,
+            },
         ],
     }
 
@@ -396,7 +405,9 @@ def test_resume_revision_comparison_returns_semantic_diff() -> None:
         assert compare["baseRevision"]["revision"] == older
         assert compare["targetRevision"]["revision"] == newest
         assert compare["changeCount"] >= 2
-        assert any(item["section"] == "experience" for item in compare["sectionSummaries"])
+        assert any(
+            item["section"] == "experience" for item in compare["sectionSummaries"]
+        )
         assert any(change["path"] == "name" for change in compare["changes"])
         assert any("experience" in change["path"] for change in compare["changes"])
 

@@ -190,9 +190,9 @@ class CVLayoutSettings(CVBaseModel):
     density: Literal["student", "compact", "normal", "senior"] = "normal"
     header_alignment: Literal["left", "center", "right"] = "left"
     photo: CVPhotoSettings = Field(default_factory=CVPhotoSettings)
-    section_placement: dict[
-        str, Literal["main", "sidebar"]
-    ] = Field(default_factory=dict)
+    section_placement: dict[str, Literal["main", "sidebar"]] = Field(
+        default_factory=dict
+    )
 
 
 class CVTypographySettings(CVBaseModel):

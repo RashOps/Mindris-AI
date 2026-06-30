@@ -53,7 +53,9 @@ def test_upload_pdf_rejects_unknown_ingestion_mode() -> None:
     assert response.json()["status"] == "error"
 
 
-def test_upload_pdf_forwards_explicit_ingestion_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_upload_pdf_forwards_explicit_ingestion_mode(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     seen: dict[str, str] = {}
 
     async def fake_parse_pdf_cv(
@@ -117,7 +119,9 @@ async def test_parse_pdf_cv_auto_falls_back_to_local_text_without_llama_cloud_ke
     monkeypatch.setattr(
         pdf_parser,
         "markdown_to_cv_json",
-        lambda markdown, provider="groq", model_name="llama-3.3-70b-versatile": _parsed_cv_payload(),
+        lambda markdown, provider="groq", model_name="llama-3.3-70b-versatile": (
+            _parsed_cv_payload()
+        ),
     )
 
     result = await pdf_parser.parse_pdf_cv(

@@ -32,7 +32,9 @@ def load_json(value: str | None, fallback: Any) -> Any:
     try:
         return json.loads(value)
     except json.JSONDecodeError:
-        logger.warning("Invalid JSON payload encountered in persistence layer; using fallback")
+        logger.warning(
+            "Invalid JSON payload encountered in persistence layer; using fallback"
+        )
         return fallback
 
 
@@ -125,7 +127,12 @@ def create_resume(
     source: str = "manual",
 ) -> ResumeRecord:
     """Create a persisted resume document."""
-    logger.info("Creating persisted resume '%s' (template=%s, source=%s)", name, template_id, source)
+    logger.info(
+        "Creating persisted resume '%s' (template=%s, source=%s)",
+        name,
+        template_id,
+        source,
+    )
     now = datetime.now()
     locale = _locale_from_cv_data(cv_data, locale or "fr")
     record = ResumeRecord(
@@ -186,7 +193,9 @@ def create_resume_revision(
 ) -> ResumeRevisionRecord:
     """Store a snapshot for a resume version."""
     next_revision = _latest_resume_revision(session, record.id) + 1
-    logger.info("Creating revision %s for resume %s (label=%s)", next_revision, record.id, label)
+    logger.info(
+        "Creating revision %s for resume %s (label=%s)", next_revision, record.id, label
+    )
     revision = ResumeRevisionRecord(
         resume_id=int(record.id or 0),
         revision=next_revision,
@@ -317,7 +326,9 @@ def _diff_revision_metadata(
         )
 
 
-def _diff_values(path: str, before: Any, after: Any, changes: list[dict[str, Any]]) -> None:
+def _diff_values(
+    path: str, before: Any, after: Any, changes: list[dict[str, Any]]
+) -> None:
     if before == after:
         return
     if isinstance(before, dict) and isinstance(after, dict):
@@ -325,26 +336,62 @@ def _diff_values(path: str, before: Any, after: Any, changes: list[dict[str, Any
         for key in keys:
             nested_path = f"{path}.{key}" if path else key
             if key not in before:
-                changes.append({"path": nested_path, "kind": "added", "before": None, "after": after[key]})
+                changes.append(
+                    {
+                        "path": nested_path,
+                        "kind": "added",
+                        "before": None,
+                        "after": after[key],
+                    }
+                )
                 continue
             if key not in after:
-                changes.append({"path": nested_path, "kind": "removed", "before": before[key], "after": None})
+                changes.append(
+                    {
+                        "path": nested_path,
+                        "kind": "removed",
+                        "before": before[key],
+                        "after": None,
+                    }
+                )
                 continue
             _diff_values(nested_path, before[key], after[key], changes)
         return
 
     if isinstance(before, list) and isinstance(after, list):
         if all(isinstance(item, dict) and item.get("id") for item in before + after):
-            before_map = {str(item["id"]): item for item in before if isinstance(item, dict) and item.get("id")}
-            after_map = {str(item["id"]): item for item in after if isinstance(item, dict) and item.get("id")}
+            before_map = {
+                str(item["id"]): item
+                for item in before
+                if isinstance(item, dict) and item.get("id")
+            }
+            after_map = {
+                str(item["id"]): item
+                for item in after
+                if isinstance(item, dict) and item.get("id")
+            }
             keys = sorted(set(before_map) | set(after_map))
             for key in keys:
                 nested_path = f"{path}[{key}]" if path else f"[{key}]"
                 if key not in before_map:
-                    changes.append({"path": nested_path, "kind": "added", "before": None, "after": after_map[key]})
+                    changes.append(
+                        {
+                            "path": nested_path,
+                            "kind": "added",
+                            "before": None,
+                            "after": after_map[key],
+                        }
+                    )
                     continue
                 if key not in after_map:
-                    changes.append({"path": nested_path, "kind": "removed", "before": before_map[key], "after": None})
+                    changes.append(
+                        {
+                            "path": nested_path,
+                            "kind": "removed",
+                            "before": before_map[key],
+                            "after": None,
+                        }
+                    )
                     continue
                 _diff_values(nested_path, before_map[key], after_map[key], changes)
             return
@@ -353,18 +400,36 @@ def _diff_values(path: str, before: Any, after: Any, changes: list[dict[str, Any
         for index in range(max_length):
             nested_path = f"{path}[{index}]"
             if index >= len(before):
-                changes.append({"path": nested_path, "kind": "added", "before": None, "after": after[index]})
+                changes.append(
+                    {
+                        "path": nested_path,
+                        "kind": "added",
+                        "before": None,
+                        "after": after[index],
+                    }
+                )
                 continue
             if index >= len(after):
-                changes.append({"path": nested_path, "kind": "removed", "before": before[index], "after": None})
+                changes.append(
+                    {
+                        "path": nested_path,
+                        "kind": "removed",
+                        "before": before[index],
+                        "after": None,
+                    }
+                )
                 continue
             _diff_values(nested_path, before[index], after[index], changes)
         return
 
-    changes.append({"path": path or "root", "kind": "changed", "before": before, "after": after})
+    changes.append(
+        {"path": path or "root", "kind": "changed", "before": before, "after": after}
+    )
 
 
-def _section_diff_summary(before: dict[str, Any], after: dict[str, Any]) -> list[dict[str, Any]]:
+def _section_diff_summary(
+    before: dict[str, Any], after: dict[str, Any]
+) -> list[dict[str, Any]]:
     sections = [
         ("profile", "Profile"),
         ("experience", "Experience"),
@@ -434,9 +499,7 @@ def upsert_workspace_draft(
     """Create or replace a cross-page UI draft in the backend."""
     now = datetime.now()
     record = session.exec(
-        select(WorkspaceDraftRecord).where(
-            WorkspaceDraftRecord.draft_key == draft_key
-        )
+        select(WorkspaceDraftRecord).where(WorkspaceDraftRecord.draft_key == draft_key)
     ).first()
     if record:
         record.data_json = dump_json(data)

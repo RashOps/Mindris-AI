@@ -77,7 +77,9 @@ def resume_to_markdown(record: ResumeRecord) -> str:
         rendered_types.add(section_type)
         section_title = _section_title(section)
         if section_type == "profile":
-            _append_markdown_section(lines, section_title, _text(profile.get("text_markdown")))
+            _append_markdown_section(
+                lines, section_title, _text(profile.get("text_markdown"))
+            )
         elif section_type == "experience":
             _append_experience(lines, cv_data.get("experience"), section_title)
         elif section_type == "projects":
@@ -106,19 +108,31 @@ def resume_to_markdown(record: ResumeRecord) -> str:
             continue
         section_data = _section_data_for_type(cv_data, section_type, profile)
         if section_type == "profile":
-            _append_markdown_section(lines, DEFAULT_SECTION_TITLES[section_type], section_data)
+            _append_markdown_section(
+                lines, DEFAULT_SECTION_TITLES[section_type], section_data
+            )
         elif section_type == "experience":
-            _append_experience(lines, section_data, DEFAULT_SECTION_TITLES[section_type])
+            _append_experience(
+                lines, section_data, DEFAULT_SECTION_TITLES[section_type]
+            )
         elif section_type == "projects":
             _append_projects(lines, section_data, DEFAULT_SECTION_TITLES[section_type])
         elif section_type == "certifications":
-            _append_certifications(lines, section_data, DEFAULT_SECTION_TITLES[section_type])
+            _append_certifications(
+                lines, section_data, DEFAULT_SECTION_TITLES[section_type]
+            )
         elif section_type == "volunteering":
-            _append_volunteering(lines, section_data, DEFAULT_SECTION_TITLES[section_type])
+            _append_volunteering(
+                lines, section_data, DEFAULT_SECTION_TITLES[section_type]
+            )
         elif section_type == "publications":
-            _append_publications(lines, section_data, DEFAULT_SECTION_TITLES[section_type])
+            _append_publications(
+                lines, section_data, DEFAULT_SECTION_TITLES[section_type]
+            )
         elif section_type == "references":
-            _append_references(lines, section_data, DEFAULT_SECTION_TITLES[section_type])
+            _append_references(
+                lines, section_data, DEFAULT_SECTION_TITLES[section_type]
+            )
         elif section_type == "custom":
             _append_custom_sections(lines, section_data)
         elif section_type == "skills":
@@ -176,7 +190,9 @@ def resume_to_html(record: ResumeRecord) -> str:
         elif section_type == "projects":
             rendered = _projects_html(cv_data.get("projects"), section_title)
         elif section_type == "certifications":
-            rendered = _certifications_html(cv_data.get("certifications"), section_title)
+            rendered = _certifications_html(
+                cv_data.get("certifications"), section_title
+            )
         elif section_type == "volunteering":
             rendered = _volunteering_html(cv_data.get("volunteering"), section_title)
         elif section_type == "publications":
@@ -204,25 +220,41 @@ def resume_to_html(record: ResumeRecord) -> str:
         if section_type == "profile":
             rendered = _html_section(DEFAULT_SECTION_TITLES[section_type], profile_html)
         elif section_type == "experience":
-            rendered = _experience_html(section_data, DEFAULT_SECTION_TITLES[section_type])
+            rendered = _experience_html(
+                section_data, DEFAULT_SECTION_TITLES[section_type]
+            )
         elif section_type == "projects":
-            rendered = _projects_html(section_data, DEFAULT_SECTION_TITLES[section_type])
+            rendered = _projects_html(
+                section_data, DEFAULT_SECTION_TITLES[section_type]
+            )
         elif section_type == "certifications":
-            rendered = _certifications_html(section_data, DEFAULT_SECTION_TITLES[section_type])
+            rendered = _certifications_html(
+                section_data, DEFAULT_SECTION_TITLES[section_type]
+            )
         elif section_type == "volunteering":
-            rendered = _volunteering_html(section_data, DEFAULT_SECTION_TITLES[section_type])
+            rendered = _volunteering_html(
+                section_data, DEFAULT_SECTION_TITLES[section_type]
+            )
         elif section_type == "publications":
-            rendered = _publications_html(section_data, DEFAULT_SECTION_TITLES[section_type])
+            rendered = _publications_html(
+                section_data, DEFAULT_SECTION_TITLES[section_type]
+            )
         elif section_type == "references":
-            rendered = _references_html(section_data, DEFAULT_SECTION_TITLES[section_type])
+            rendered = _references_html(
+                section_data, DEFAULT_SECTION_TITLES[section_type]
+            )
         elif section_type == "custom":
             rendered = _custom_sections_html(section_data)
         elif section_type == "skills":
             rendered = _skills_html(section_data, DEFAULT_SECTION_TITLES[section_type])
         elif section_type == "education":
-            rendered = _education_html(section_data, DEFAULT_SECTION_TITLES[section_type])
+            rendered = _education_html(
+                section_data, DEFAULT_SECTION_TITLES[section_type]
+            )
         elif section_type == "languages":
-            rendered = _languages_html(section_data, DEFAULT_SECTION_TITLES[section_type])
+            rendered = _languages_html(
+                section_data, DEFAULT_SECTION_TITLES[section_type]
+            )
         elif section_type == "interests":
             rendered = _hobbies_html(section_data, DEFAULT_SECTION_TITLES[section_type])
         else:
@@ -239,7 +271,7 @@ def resume_to_html(record: ResumeRecord) -> str:
         )
 
     rendered = f"""<!doctype html>
-<html lang="{escape(str(record.locale or 'en'))}">
+<html lang="{escape(str(record.locale or "en"))}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -310,7 +342,7 @@ def resume_to_html(record: ResumeRecord) -> str:
   <main>
     <header>
       <h1>{escape(full_name)}</h1>
-      {f'<p class="title">{escape(title)}</p>' if title else ''}
+      {f'<p class="title">{escape(title)}</p>' if title else ""}
       {contact_html}
     </header>
     {body_sections}
@@ -351,7 +383,9 @@ def _markdown_to_latex(markdown: str) -> str:
                 in_list = False
             title = _latex_escape(_strip_markdown_formatting(line[2:]))
             if not seen_title:
-                lines.extend([rf"\begin{{center}}", rf"{{\LARGE {title}}}", r"\end{center}"])
+                lines.extend(
+                    [r"\begin{center}", rf"{{\LARGE {title}}}", r"\end{center}"]
+                )
                 seen_title = True
             else:
                 lines.append(rf"\section*{{{title}}}")
@@ -361,7 +395,9 @@ def _markdown_to_latex(markdown: str) -> str:
             if in_list:
                 lines.append(r"\end{itemize}")
                 in_list = False
-            lines.append(rf"\section*{{{_latex_escape(_strip_markdown_formatting(line[3:]))}}}")
+            lines.append(
+                rf"\section*{{{_latex_escape(_strip_markdown_formatting(line[3:]))}}}"
+            )
             continue
 
         if line.startswith("### "):
@@ -377,7 +413,9 @@ def _markdown_to_latex(markdown: str) -> str:
             if not in_list:
                 lines.append(r"\begin{itemize}[leftmargin=*]")
                 in_list = True
-            lines.append(rf"\item {_latex_escape(_strip_markdown_formatting(line[2:]))}")
+            lines.append(
+                rf"\item {_latex_escape(_strip_markdown_formatting(line[2:]))}"
+            )
             continue
 
         if in_list:
@@ -394,7 +432,7 @@ def _markdown_to_latex(markdown: str) -> str:
 def _markdown_to_typst(markdown: str) -> str:
     lines = [
         "#set page(margin: 1in)",
-        "#set text(font: \"Liberation Serif\", size: 11pt)",
+        '#set text(font: "Liberation Serif", size: 11pt)',
         "",
     ]
     for raw_line in markdown.splitlines():
@@ -475,11 +513,17 @@ def resume_to_docx(record: ResumeRecord) -> bytes:
         elif section_type == "projects":
             _docx_projects(blocks, section_data, DEFAULT_SECTION_TITLES[section_type])
         elif section_type == "certifications":
-            _docx_certifications(blocks, section_data, DEFAULT_SECTION_TITLES[section_type])
+            _docx_certifications(
+                blocks, section_data, DEFAULT_SECTION_TITLES[section_type]
+            )
         elif section_type == "volunteering":
-            _docx_volunteering(blocks, section_data, DEFAULT_SECTION_TITLES[section_type])
+            _docx_volunteering(
+                blocks, section_data, DEFAULT_SECTION_TITLES[section_type]
+            )
         elif section_type == "publications":
-            _docx_publications(blocks, section_data, DEFAULT_SECTION_TITLES[section_type])
+            _docx_publications(
+                blocks, section_data, DEFAULT_SECTION_TITLES[section_type]
+            )
         elif section_type == "references":
             _docx_references(blocks, section_data, DEFAULT_SECTION_TITLES[section_type])
         elif section_type == "custom":
@@ -578,10 +622,14 @@ def _configured_section_types(cv_data: dict[str, Any]) -> set[str]:
 
 def _section_title(section: dict[str, Any]) -> str:
     section_type = _text(section.get("type"))
-    return _text(section.get("label")) or DEFAULT_SECTION_TITLES.get(section_type, section_type.title())
+    return _text(section.get("label")) or DEFAULT_SECTION_TITLES.get(
+        section_type, section_type.title()
+    )
 
 
-def _section_data_for_type(cv_data: dict[str, Any], section_type: str, profile: dict[str, Any]) -> Any:
+def _section_data_for_type(
+    cv_data: dict[str, Any], section_type: str, profile: dict[str, Any]
+) -> Any:
     if section_type == "profile":
         return _text(profile.get("text_markdown"))
     if section_type == "experience":
@@ -650,9 +698,7 @@ def _append_markdown_section(lines: list[str], title: str, content: str) -> None
 def _append_experience(lines: list[str], value: Any, title: str = "Experience") -> None:
     items = [_mapping(item) for item in _items(value)]
     items = [
-        item
-        for item in items
-        if _text(item.get("company")) or _text(item.get("role"))
+        item for item in items if _text(item.get("company")) or _text(item.get("role"))
     ]
     if not items:
         return
@@ -696,12 +742,12 @@ def _append_projects(lines: list[str], value: Any, title: str = "Projects") -> N
             lines.append("Stack: " + ", ".join(stack))
 
 
-def _append_certifications(lines: list[str], value: Any, title: str = "Certifications") -> None:
+def _append_certifications(
+    lines: list[str], value: Any, title: str = "Certifications"
+) -> None:
     items = [_mapping(item) for item in _items(value)]
     items = [
-        item
-        for item in items
-        if _text(item.get("name")) or _text(item.get("issuer"))
+        item for item in items if _text(item.get("name")) or _text(item.get("issuer"))
     ]
     if not items:
         return
@@ -720,7 +766,9 @@ def _append_certifications(lines: list[str], value: Any, title: str = "Certifica
             lines.extend(["", description])
 
 
-def _append_volunteering(lines: list[str], value: Any, title: str = "Volunteering") -> None:
+def _append_volunteering(
+    lines: list[str], value: Any, title: str = "Volunteering"
+) -> None:
     items = [_mapping(item) for item in _items(value)]
     items = [
         item
@@ -746,7 +794,9 @@ def _append_volunteering(lines: list[str], value: Any, title: str = "Volunteerin
             lines.extend(["", description])
 
 
-def _append_publications(lines: list[str], value: Any, title: str = "Publications") -> None:
+def _append_publications(
+    lines: list[str], value: Any, title: str = "Publications"
+) -> None:
     items = [_mapping(item) for item in _items(value)]
     items = [item for item in items if _text(item.get("title"))]
     if not items:
@@ -771,9 +821,7 @@ def _append_publications(lines: list[str], value: Any, title: str = "Publication
 def _append_references(lines: list[str], value: Any, title: str = "References") -> None:
     items = [_mapping(item) for item in _items(value)]
     items = [
-        item
-        for item in items
-        if _text(item.get("name")) or _text(item.get("company"))
+        item for item in items if _text(item.get("name")) or _text(item.get("company"))
     ]
     if not items:
         return
@@ -888,7 +936,7 @@ def _certifications_html(value: Any, title: str = "Certifications") -> str:
         cards.append(
             f'<article class="item"><h3>{escape(entry_title or "Certification")}</h3>'
             f"{_meta_html(meta)}"
-            f"{f'<p class=\"meta\">{escape(url)}</p>' if url else ''}"
+            f"{f'<p class="meta">{escape(url)}</p>' if url else ''}"
             f"{body}</article>"
         )
     return _html_section(title, "\n  ".join(cards))
@@ -930,7 +978,7 @@ def _publications_html(value: Any, title: str = "Publications") -> str:
         cards.append(
             f'<article class="item"><h3>{escape(entry_title)}</h3>'
             f"{_meta_html(meta)}"
-            f"{f'<p class=\"meta\">{escape(url)}</p>' if url else ''}"
+            f"{f'<p class="meta">{escape(url)}</p>' if url else ''}"
             f"{_markdownish_html(_text(item.get('description_markdown')))}</article>"
         )
     return _html_section(title, "\n  ".join(cards))
@@ -953,7 +1001,7 @@ def _references_html(value: Any, title: str = "References") -> str:
         content = _markdownish_html(_text(item.get("description_markdown")))
         cards.append(
             f'<article class="item"><h3>{escape(entry_title)}</h3>'
-            f"{f'<p class=\"meta\">{escape(contact)}</p>' if contact else ''}"
+            f"{f'<p class="meta">{escape(contact)}</p>' if contact else ''}"
             f"{content}</article>"
         )
     return _html_section(title, "\n  ".join(cards))
@@ -972,19 +1020,21 @@ def _custom_sections_html(value: Any) -> str:
     return "\n  ".join(section for section in sections if section)
 
 
-def _docx_profile(blocks: list[dict[str, Any]], content: str, title: str = "Profile") -> None:
+def _docx_profile(
+    blocks: list[dict[str, Any]], content: str, title: str = "Profile"
+) -> None:
     if not content:
         return
     blocks.append({"style": "Heading1", "text": title})
     _docx_markdownish(blocks, content)
 
 
-def _docx_experience(blocks: list[dict[str, Any]], value: Any, title: str = "Experience") -> None:
+def _docx_experience(
+    blocks: list[dict[str, Any]], value: Any, title: str = "Experience"
+) -> None:
     items = [_mapping(item) for item in _items(value)]
     items = [
-        item
-        for item in items
-        if _text(item.get("company")) or _text(item.get("role"))
+        item for item in items if _text(item.get("company")) or _text(item.get("role"))
     ]
     if not items:
         return
@@ -1004,7 +1054,9 @@ def _docx_experience(blocks: list[dict[str, Any]], value: Any, title: str = "Exp
             blocks.append({"style": "Meta", "text": "Keywords: " + ", ".join(keywords)})
 
 
-def _docx_projects(blocks: list[dict[str, Any]], value: Any, title: str = "Projects") -> None:
+def _docx_projects(
+    blocks: list[dict[str, Any]], value: Any, title: str = "Projects"
+) -> None:
     items = [_mapping(item) for item in _items(value)]
     items = [item for item in items if _text(item.get("name"))]
     if not items:
@@ -1021,7 +1073,9 @@ def _docx_projects(blocks: list[dict[str, Any]], value: Any, title: str = "Proje
             blocks.append({"style": "Meta", "text": "Stack: " + ", ".join(stack)})
 
 
-def _docx_skills(blocks: list[dict[str, Any]], value: Any, title: str = "Skills") -> None:
+def _docx_skills(
+    blocks: list[dict[str, Any]], value: Any, title: str = "Skills"
+) -> None:
     groups = [_mapping(item) for item in _items(value)]
     rows = []
     for item in groups:
@@ -1035,7 +1089,9 @@ def _docx_skills(blocks: list[dict[str, Any]], value: Any, title: str = "Skills"
             blocks.append({"style": "Bullet", "text": row})
 
 
-def _docx_education(blocks: list[dict[str, Any]], value: Any, title: str = "Education") -> None:
+def _docx_education(
+    blocks: list[dict[str, Any]], value: Any, title: str = "Education"
+) -> None:
     items = [_mapping(item) for item in _items(value)]
     items = [
         item
@@ -1059,7 +1115,9 @@ def _docx_education(blocks: list[dict[str, Any]], value: Any, title: str = "Educ
         _docx_markdownish(blocks, _text(item.get("description_markdown")))
 
 
-def _docx_languages(blocks: list[dict[str, Any]], value: Any, title: str = "Languages") -> None:
+def _docx_languages(
+    blocks: list[dict[str, Any]], value: Any, title: str = "Languages"
+) -> None:
     labels = [
         _join_non_empty(
             [_text(item.get("language")), _text(item.get("level"))],
@@ -1074,19 +1132,21 @@ def _docx_languages(blocks: list[dict[str, Any]], value: Any, title: str = "Lang
             blocks.append({"style": "Bullet", "text": label})
 
 
-def _docx_hobbies(blocks: list[dict[str, Any]], value: Any, title: str = "Interests") -> None:
+def _docx_hobbies(
+    blocks: list[dict[str, Any]], value: Any, title: str = "Interests"
+) -> None:
     values = [item for item in _items(value) if isinstance(item, str) and item.strip()]
     if values:
         blocks.append({"style": "Heading1", "text": title})
         blocks.append({"style": "Normal", "text": ", ".join(values)})
 
 
-def _docx_certifications(blocks: list[dict[str, Any]], value: Any, title: str = "Certifications") -> None:
+def _docx_certifications(
+    blocks: list[dict[str, Any]], value: Any, title: str = "Certifications"
+) -> None:
     items = [_mapping(item) for item in _items(value)]
     items = [
-        item
-        for item in items
-        if _text(item.get("name")) or _text(item.get("issuer"))
+        item for item in items if _text(item.get("name")) or _text(item.get("issuer"))
     ]
     if not items:
         return
@@ -1101,7 +1161,9 @@ def _docx_certifications(blocks: list[dict[str, Any]], value: Any, title: str = 
         _docx_markdownish(blocks, _text(item.get("description_markdown")))
 
 
-def _docx_volunteering(blocks: list[dict[str, Any]], value: Any, title: str = "Volunteering") -> None:
+def _docx_volunteering(
+    blocks: list[dict[str, Any]], value: Any, title: str = "Volunteering"
+) -> None:
     items = [_mapping(item) for item in _items(value)]
     items = [
         item
@@ -1125,7 +1187,9 @@ def _docx_volunteering(blocks: list[dict[str, Any]], value: Any, title: str = "V
         _docx_markdownish(blocks, _text(item.get("description_markdown")))
 
 
-def _docx_publications(blocks: list[dict[str, Any]], value: Any, title: str = "Publications") -> None:
+def _docx_publications(
+    blocks: list[dict[str, Any]], value: Any, title: str = "Publications"
+) -> None:
     items = [_mapping(item) for item in _items(value)]
     items = [item for item in items if _text(item.get("title"))]
     if not items:
@@ -1144,12 +1208,12 @@ def _docx_publications(blocks: list[dict[str, Any]], value: Any, title: str = "P
         _docx_markdownish(blocks, _text(item.get("description_markdown")))
 
 
-def _docx_references(blocks: list[dict[str, Any]], value: Any, title: str = "References") -> None:
+def _docx_references(
+    blocks: list[dict[str, Any]], value: Any, title: str = "References"
+) -> None:
     items = [_mapping(item) for item in _items(value)]
     items = [
-        item
-        for item in items
-        if _text(item.get("name")) or _text(item.get("company"))
+        item for item in items if _text(item.get("name")) or _text(item.get("company"))
     ]
     if not items:
         return
@@ -1372,9 +1436,7 @@ def _experience_html(value: Any, title: str = "Experience") -> str:
     items = [_mapping(item) for item in _items(value)]
     cards = []
     for item in items:
-        heading = _join_non_empty(
-            [_text(item.get("role")), _text(item.get("company"))]
-        )
+        heading = _join_non_empty([_text(item.get("role")), _text(item.get("company"))])
         if not heading:
             continue
         meta = _join_non_empty(
@@ -1418,8 +1480,8 @@ def _skills_html(value: Any, title: str = "Skills") -> str:
         skills = _string_items(item.get("skills"))
         if category or skills:
             rows.append(
-                f'<p><strong>{escape(category)}:</strong> '
-                f'{escape(", ".join(skills))}</p>'
+                f"<p><strong>{escape(category)}:</strong> "
+                f"{escape(', '.join(skills))}</p>"
             )
     return _html_section(title, "\n  ".join(rows))
 
@@ -1471,9 +1533,11 @@ def _meta_html(value: str) -> str:
 def _chips_html(values: list[str]) -> str:
     if not values:
         return ""
-    return '<div class="chips">' + "".join(
-        f'<span class="chip">{escape(value)}</span>' for value in values
-    ) + "</div>"
+    return (
+        '<div class="chips">'
+        + "".join(f'<span class="chip">{escape(value)}</span>' for value in values)
+        + "</div>"
+    )
 
 
 def _list_html(values: list[str]) -> str:

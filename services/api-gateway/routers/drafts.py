@@ -17,9 +17,7 @@ logger = get_logger(__name__, service_name="api-gateway")
 
 def _get_draft(session: Session, draft_key: str) -> WorkspaceDraftRecord:
     record = session.exec(
-        select(WorkspaceDraftRecord).where(
-            WorkspaceDraftRecord.draft_key == draft_key
-        )
+        select(WorkspaceDraftRecord).where(WorkspaceDraftRecord.draft_key == draft_key)
     )
     record = record.first()
     if not record:

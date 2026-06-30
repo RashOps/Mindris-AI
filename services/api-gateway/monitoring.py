@@ -19,13 +19,13 @@ class RouteStats:
     methods: dict[str, int] = field(default_factory=dict)
 
     def record(self, method: str, status: int, duration_ms: float) -> None:
+        """Update the route aggregate with one completed request."""
         self.total_count += 1
         if status >= 400:
             self.error_count += 1
         self.avg_duration_ms = (
-            ((self.avg_duration_ms * (self.total_count - 1)) + duration_ms)
-            / self.total_count
-        )
+            (self.avg_duration_ms * (self.total_count - 1)) + duration_ms
+        ) / self.total_count
         self.max_duration_ms = max(self.max_duration_ms, duration_ms)
         self.last_duration_ms = duration_ms
         self.last_status = status
@@ -55,6 +55,7 @@ class RuntimeMonitor:
         status: int,
         duration_ms: float,
     ) -> None:
+        """Store one request measurement for the given route."""
         with self._lock:
             self._total_count += 1
             if status >= 400:
@@ -63,10 +64,14 @@ class RuntimeMonitor:
             stats.record(method=method, status=status, duration_ms=duration_ms)
 
     def increment_pipeline_failure(self, pipeline: str) -> None:
+        """Increment the failure counter for a named pipeline."""
         with self._lock:
-            self._pipeline_failures[pipeline] = self._pipeline_failures.get(pipeline, 0) + 1
+            self._pipeline_failures[pipeline] = (
+                self._pipeline_failures.get(pipeline, 0) + 1
+            )
 
     def snapshot(self, *, readiness: dict | None = None) -> dict:
+        """Return a serializable monitoring snapshot for the service."""
         with self._lock:
             total_count = self._total_count
             error_count = self._error_count

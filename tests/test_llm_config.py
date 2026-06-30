@@ -1,6 +1,9 @@
 """LLM configuration guardrail tests."""
 
-from intelligence.llm_config import ensure_provider_configured, provider_configuration_status
+from intelligence.llm_config import (
+    ensure_provider_configured,
+    provider_configuration_status,
+)
 
 
 def test_provider_configuration_status_exposes_local_and_cloud_modes() -> None:

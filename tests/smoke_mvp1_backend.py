@@ -121,7 +121,9 @@ def main() -> None:
             raise SystemExit("HTML label smoke check failed.")
         if "<h2>Langues</h2>" in html:
             raise SystemExit("HTML hidden section smoke check failed.")
-        if html.index("<h2>Projets</h2>") > html.index("<h2>Parcours professionnel</h2>"):
+        if html.index("<h2>Projets</h2>") > html.index(
+            "<h2>Parcours professionnel</h2>"
+        ):
             raise SystemExit("HTML ordering smoke check failed.")
         if "\\begin{document}" not in latex or "Phase 5" not in latex:
             raise SystemExit("LaTeX export smoke check failed.")

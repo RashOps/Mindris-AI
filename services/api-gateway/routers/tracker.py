@@ -77,9 +77,13 @@ async def list_applications(session: SessionDep) -> dict:
 
 
 @router.post("/applications")
-async def create_application(request: ApplicationCreateRequest, session: SessionDep) -> dict:
+async def create_application(
+    request: ApplicationCreateRequest, session: SessionDep
+) -> dict:
     """Create an application tracker item."""
-    logger.info("Creating application for company=%s role=%s", request.company, request.role)
+    logger.info(
+        "Creating application for company=%s role=%s", request.company, request.role
+    )
     _ensure_status(request.status)
     max_pos = len(
         session.exec(
@@ -140,7 +144,12 @@ async def move_application(
     if not row:
         logger.warning("Application %s not found for move", application_id)
         raise HTTPException(status_code=404, detail="Application not found.")
-    logger.info("Moving application %s to %s/%s", application_id, request.status, request.position)
+    logger.info(
+        "Moving application %s to %s/%s",
+        application_id,
+        request.status,
+        request.position,
+    )
     row.status = request.status
     row.position = request.position
     if request.status == "applied" and not row.applied_at:

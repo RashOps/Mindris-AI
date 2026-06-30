@@ -32,7 +32,8 @@ def _service_log_path(service_name: str | None) -> str:
 
 def _mindris_handlers(logger: logging.Logger) -> list[logging.Handler]:
     return [
-        handler for handler in logger.handlers
+        handler
+        for handler in logger.handlers
         if getattr(handler, _HANDLER_MARKER, False)
     ]
 

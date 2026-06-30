@@ -58,3 +58,4 @@ convention = "google"
 "services/scraper/__init__.py" = ["D"]
 "packages/database/schemas/__init__.py" = ["D", "ANN"]
 "packages/database/schemas/cv_schema.py" = ["D", "ANN"]
+"services/api-gateway/schemas.py" = ["N815"]

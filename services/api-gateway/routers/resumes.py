@@ -7,8 +7,8 @@ from database.session import Session, get_session
 from exporters import (
     resume_to_docx,
     resume_to_html,
-    resume_to_markdown,
     resume_to_latex,
+    resume_to_markdown,
     resume_to_typst,
     safe_export_filename,
 )
@@ -18,9 +18,9 @@ from persistence import (
     create_resume,
     create_resume_revision,
     dump_json,
-    load_json,
     get_resume_revision,
     list_resume_revisions,
+    load_json,
     serialize_resume,
     serialize_resume_revision,
     update_resume,
@@ -76,7 +76,10 @@ def list_resumes(session: SessionDep) -> dict:
     rows = session.exec(
         select(ResumeRecord).order_by(ResumeRecord.updated_at.desc())
     ).all()
-    return {"status": "success", "items": [serialize_resume(session, row) for row in rows]}
+    return {
+        "status": "success",
+        "items": [serialize_resume(session, row) for row in rows],
+    }
 
 
 @router.post("")
@@ -84,7 +87,9 @@ def create_resume_route(request: ResumeCreateRequest, session: SessionDep) -> di
     """Create a new persisted resume."""
     logger.info("Creating resume '%s'", request.name)
     cv_data = request.cv_data.model_dump(mode="json")
-    cv_data = apply_template_defaults(cv_data, request.template_id or _template_id(cv_data))
+    cv_data = apply_template_defaults(
+        cv_data, request.template_id or _template_id(cv_data)
+    )
     record = create_resume(
         session,
         name=request.name,
@@ -190,7 +195,10 @@ def list_resume_revisions_route(resume_id: int, session: SessionDep) -> dict:
     """Return all stored revisions for a resume."""
     _get_resume(session, resume_id)
     rows = list_resume_revisions(session, resume_id)
-    return {"status": "success", "items": [serialize_resume_revision(row) for row in rows]}
+    return {
+        "status": "success",
+        "items": [serialize_resume_revision(row) for row in rows],
+    }
 
 
 @router.post("/{resume_id}/revisions")
@@ -203,7 +211,9 @@ def create_resume_revision_route(resume_id: int, session: SessionDep) -> dict:
 
 
 @router.post("/{resume_id}/revisions/{revision}/restore")
-def restore_resume_revision_route(resume_id: int, revision: int, session: SessionDep) -> dict:
+def restore_resume_revision_route(
+    resume_id: int, revision: int, session: SessionDep
+) -> dict:
     """Restore a previous resume snapshot."""
     logger.info("Restoring revision %s for resume %s", revision, resume_id)
     record = _get_resume(session, resume_id)
@@ -231,7 +241,9 @@ def compare_resume_revisions_route(
 ) -> dict:
     """Compare two snapshots for the same resume."""
     _get_resume(session, resume_id)
-    payload = compare_resume_revisions(session, resume_id, base_revision, target_revision)
+    payload = compare_resume_revisions(
+        session, resume_id, base_revision, target_revision
+    )
     if not payload:
         raise HTTPException(status_code=404, detail="Revision not found.")
     return {"status": "success", "item": payload}
@@ -304,8 +316,7 @@ def export_resume_docx(resume_id: int, session: SessionDep) -> Response:
     return Response(
         content=resume_to_docx(record),
         media_type=(
-            "application/vnd.openxmlformats-officedocument."
-            "wordprocessingml.document"
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         ),
         headers={
             "Content-Disposition": (
