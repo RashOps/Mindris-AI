@@ -4,6 +4,10 @@ All notable changes to Mindris AI are documented here.
 
 ## Unreleased
 
+No unreleased changes.
+
+## v0.2.0 - 2026-06-30
+
 ### Added
 
 - Backend-owned LaTeX and Typst exports for reusable native resume sources.
@@ -14,8 +18,6 @@ All notable changes to Mindris AI are documented here.
 ### Verified
 
 - Phase 9 open-source differentiation run is complete and covered by backend, frontend, and renderer validation.
-
-## v0.1.1 - 2026-06-25
 
 ### Added
 
