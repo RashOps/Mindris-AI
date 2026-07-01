@@ -148,6 +148,45 @@ def sample_cv(unique: str) -> dict[str, Any]:
     }
 
 
+def community_template_package() -> bytes:
+    """Build a portable community template fixture for browser import."""
+    buffer = BytesIO()
+    with ZipFile(buffer, "w") as archive:
+        archive.writestr(
+            "manifest.json",
+            json.dumps(
+                {
+                    "id": "mindris/community-open-source",
+                    "name": "Community Open Source",
+                    "version": "1.0.0",
+                    "author": "Mindris Community",
+                    "license": "MIT",
+                    "description": "Community template for OSS contributors.",
+                    "category": "developer",
+                    "tags": ["opensource", "developer"],
+                    "engine_version": "1",
+                }
+            ),
+        )
+        archive.writestr(
+            "template.json",
+            json.dumps(
+                {
+                    "base_template_id": "modern",
+                    "preset_settings": {
+                        "global_settings": {
+                            "template_id": "modern",
+                            "colors": {"palette_preset": "tech"},
+                        }
+                    },
+                }
+            ),
+        )
+        archive.writestr("styles.css", ":host { --primary-color: #0f766e; }")
+        archive.writestr("preview.png", b"\x89PNG\r\n\x1a\npreview")
+    return buffer.getvalue()
+
+
 def seed_resume(api_url: str, api_key: str, unique: str) -> str:
     """Create a resume so the builder has backend-owned data to load."""
     response = request_json(
@@ -235,6 +274,7 @@ def run(args: argparse.Namespace) -> None:
 
     console_errors: list[str] = []
     page_errors: list[str] = []
+    response_errors: list[str] = []
 
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=not args.headed)
@@ -250,19 +290,50 @@ def run(args: argparse.Namespace) -> None:
             ),
         )
         page.on("pageerror", lambda error: page_errors.append(str(error)))
+        page.on(
+            "response",
+            lambda response: (
+                response_errors.append(
+                    f"{response.status} {response.request.method} {response.url}"
+                )
+                if response.status >= 400
+                else None
+            ),
+        )
+
+        page.goto(f"{args.base_url.rstrip('/')}/dashboard")
+        page.get_by_test_id("template-package-input").set_input_files(
+            {
+                "name": "community-open-source.mindris-template",
+                "mimeType": "application/zip",
+                "buffer": community_template_package(),
+            }
+        )
+        expect(
+            page.get_by_test_id("template-card-mindris-community-open-source")
+        ).to_be_visible(timeout=15_000)
+        with page.expect_download(timeout=30_000) as template_download_info:
+            page.get_by_test_id("template-export-mindris-community-open-source").click()
+        template_download = template_download_info.value
+        template_path = template_download.path()
+        if template_path is None or Path(template_path).stat().st_size <= 0:
+            raise AssertionError("Community template export is empty")
+        page.get_by_test_id("template-use-mindris-community-open-source").click()
+        expect(page).to_have_url(
+            f"{args.base_url.rstrip('/')}/tools/cv-creator", timeout=15_000
+        )
 
         page.goto(f"{args.base_url.rstrip('/')}/tools/cv-creator")
+        page.locator('select[title="Active resume"]').select_option(resume_id)
         expect(page.locator('select[title="Active resume"]')).to_have_value(
             resume_id,
             timeout=20_000,
         )
-        page.locator('select[title="Select a new locale variant"]').select_option("en")
-        page.locator(
-            'button[title="Create a locale variant from the active locale"]'
-        ).click()
-        expect(page.locator('button[title="Switch to EN"]')).to_be_visible(timeout=10_000)
-        page.locator('button[title="Switch to EN"]').click()
-        expect(page.locator('button[title="Switch to EN"]')).to_have_css(
+        page.get_by_test_id("locale-create-select").select_option("en")
+        page.get_by_test_id("locale-create-button").click()
+        expect(page.get_by_test_id("locale-switch-en")).to_be_visible(timeout=10_000)
+        page.get_by_test_id("locale-switch-en").click()
+        expect(page.get_by_test_id("locale-switch-en")).to_have_css(
             "background-color",
             "rgb(15, 23, 42)",
         )
@@ -301,6 +372,8 @@ def run(args: argparse.Namespace) -> None:
         assert settings["layout"]["sidebar_position"] == "none"
         assert settings["colors"]["monochrome"] is True
         assert settings["page"]["one_page_challenge"] is True
+        assert sorted(resume["multilingual"]["availableLocales"]) == ["en", "fr"]
+        assert resume["multilingual"]["activeLocale"] == "en"
 
         markdown = request_text(
             args.api_url,
@@ -348,18 +421,18 @@ def run(args: argparse.Namespace) -> None:
         page.goto(f"{args.base_url.rstrip('/')}/tools/tracker")
         company = f"E2E Co {unique}"
         role = f"E2E Role {unique}"
-        page.get_by_placeholder("Company").fill(company)
-        page.get_by_placeholder("Role").fill(role)
-        page.get_by_placeholder("Job URL").fill("https://example.com/jobs/e2e")
-        page.get_by_role("button", name="Add application").click()
+        page.get_by_test_id("tracker-company-input").fill(company)
+        page.get_by_test_id("tracker-role-input").fill(role)
+        page.get_by_test_id("tracker-url-input").fill("https://example.com/jobs/e2e")
+        page.get_by_test_id("tracker-add-button").click()
         card = page.locator("article", has_text=company).first
         expect(card).to_be_visible(timeout=15_000)
         card.get_by_role("button", name="Applied").click()
         applied_column = page.locator("section", has_text="Applied").first
         expect(applied_column.get_by_text(company)).to_be_visible(timeout=15_000)
 
-        if console_errors or page_errors:
-            details = "\n".join(console_errors + page_errors)
+        if console_errors or page_errors or response_errors:
+            details = "\n".join(console_errors + page_errors + response_errors)
             raise AssertionError(f"Browser errors detected:\n{details}")
 
         context.close()
@@ -369,7 +442,14 @@ def run(args: argparse.Namespace) -> None:
         {
             "status": "ok",
             "resume_id": resume_id,
-            "flows": ["cv-builder", "docx", "pdf", "ats-draft", "tracker"],
+            "flows": [
+                "community-template-import-export",
+                "cv-builder",
+                "docx",
+                "pdf",
+                "ats-draft",
+                "tracker",
+            ],
         },
         indent=2,
     )

@@ -9,12 +9,15 @@ from database.session import SessionLocal, init_db
 from fastapi import HTTPException
 from routers.templates import (
     export_installed_template_package,
+    export_installed_template_preview,
     import_template_package,
     inspect_template_package,
+    resolve_template_defaults,
     get_template,
     list_community_templates,
     list_customization_catalogue,
     list_templates,
+    router,
 )
 
 
@@ -150,3 +153,31 @@ def test_template_package_export_round_trip_preserves_manifest() -> None:
     package = inspect_template_package(exported)
     assert package["manifest"]["id"] == "mindris/community-open-source"
     assert package["template"]["base_template_id"] == "modern"
+
+
+def test_imported_template_exposes_preview_and_css_defaults() -> None:
+    with _session() as session:
+        import_template_package(session, _template_package_bytes())
+        preview = export_installed_template_preview(
+            session, "mindris/community-open-source"
+        )
+        detail = get_template("mindris/community-open-source", session)["item"]
+        defaults = resolve_template_defaults(
+            "mindris/community-open-source", session=session
+        )
+
+    assert preview.startswith(b"\x89PNG\r\n\x1a\n")
+    assert detail["previewAvailable"] is True
+    assert detail["manifest"]["id"] == "mindris/community-open-source"
+    advanced_css = defaults["global_settings"]["advanced_css"]
+    assert advanced_css["enabled"] is True
+    assert advanced_css["mode"] == "css_patch"
+    assert "--primary-color: #0f766e" in advanced_css["css_text"]
+    assert defaults["global_settings"]["template_id"] == "modern"
+
+
+def test_namespaced_template_routes_capture_slashes_in_template_ids() -> None:
+    route_paths = {route.path for route in router.routes}
+
+    assert "/api/v1/templates/{template_id:path}/preview" in route_paths
+    assert "/api/v1/templates/{template_id:path}/package" in route_paths
