@@ -219,7 +219,7 @@ def _configuration_payload() -> dict[str, Any]:
         ),
         app=app_config,
         secrets=SystemConfigurationSecrets(
-            api_key=_secret_slot(settings.api_key),
+            api_key=_stored_secret_slot("api_key", settings.api_key),
             openai_api_key=_stored_secret_slot(
                 "openai_api_key",
                 settings.openai_api_key,
