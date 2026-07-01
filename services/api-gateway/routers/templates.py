@@ -7,7 +7,7 @@ from typing import Annotated
 from typing import Any
 from zipfile import BadZipFile, ZipFile
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
 from database.records import CommunityTemplateRecord
 from database.session import Session, get_session
 from pydantic import ValidationError
@@ -286,6 +286,18 @@ def export_installed_template_package(session: Session, template_id: str) -> byt
     return bytes(record.package_bytes)
 
 
+def export_installed_template_preview(session: Session, template_id: str) -> bytes:
+    """Export the preview PNG embedded in a persisted community template package."""
+    package_bytes = export_installed_template_package(session, template_id)
+    with ZipFile(BytesIO(package_bytes)) as archive:
+        try:
+            return archive.read("preview.png")
+        except KeyError as exc:
+            raise HTTPException(
+                status_code=404, detail="Installed template preview not found."
+            ) from exc
+
+
 def _deep_merge(base: Any, patch: Any) -> Any:
     if isinstance(base, dict) and isinstance(patch, dict):
         merged = deepcopy(base)
@@ -312,22 +324,55 @@ def _deep_merge(base: Any, patch: Any) -> Any:
     return deepcopy(patch)
 
 
-def resolve_template_defaults(template_id: str) -> dict[str, Any]:
+def resolve_template_defaults(
+    template_id: str, session: Session | None = None
+) -> dict[str, Any]:
     """Return the preset settings associated with a template."""
     for template in TEMPLATE_CATALOG:
         if template.id == template_id:
             return template.preset_settings
+    if session is not None:
+        record = session.exec(
+            select(CommunityTemplateRecord).where(
+                CommunityTemplateRecord.template_id == template_id
+            )
+        ).first()
+        if record is not None:
+            template_config = json.loads(record.template_json)
+            preset_settings = deepcopy(template_config.get("preset_settings", {}))
+            package_bytes = bytes(record.package_bytes)
+            with ZipFile(BytesIO(package_bytes)) as archive:
+                stylesheet = archive.read("styles.css").decode("utf-8")
+            global_settings = preset_settings.setdefault("global_settings", {})
+            if record.base_template_id:
+                global_settings["template_id"] = record.base_template_id
+            global_settings["advanced_css"] = {
+                "enabled": True,
+                "mode": "css_patch",
+                "css_text": stylesheet,
+            }
+            return preset_settings
     return {}
 
 
 def apply_template_defaults(
-    cv_data: dict[str, Any], template_id: str
+    cv_data: dict[str, Any], template_id: str, session: Session | None = None
 ) -> dict[str, Any]:
     """Overlay template defaults on top of a CV payload."""
-    defaults = resolve_template_defaults(template_id)
+    defaults = resolve_template_defaults(template_id, session=session)
     if not defaults:
         return cv_data
-    return _deep_merge(defaults, cv_data)
+    merged = _deep_merge(defaults, cv_data)
+    if session is not None:
+        record = session.exec(
+            select(CommunityTemplateRecord).where(
+                CommunityTemplateRecord.template_id == template_id
+            )
+        ).first()
+        if record is not None and record.base_template_id:
+            global_settings = merged.setdefault("global_settings", {})
+            global_settings["template_id"] = record.base_template_id
+    return merged
 
 
 CUSTOMIZATION_CATALOGUE = {
@@ -479,11 +524,57 @@ def list_customization_catalogue() -> dict:
     return {"status": "success", "item": CUSTOMIZATION_CATALOGUE}
 
 
-@router.get("/{template_id}")
-def get_template(template_id: str) -> dict:
+@router.get("/{template_id:path}/preview")
+def get_template_preview(template_id: str, session: SessionDep) -> Response:
+    """Return the preview image for an installed community template."""
+    return Response(
+        content=export_installed_template_preview(session, template_id),
+        media_type="image/png",
+    )
+
+
+@router.post("/import")
+async def import_template_package_route(
+    session: SessionDep,
+    file: UploadFile = File(...),
+) -> dict[str, Any]:
+    """Import a portable community template package."""
+    package_bytes = await file.read()
+    if not package_bytes:
+        raise HTTPException(status_code=422, detail="Template package file is empty.")
+    return import_template_package(session, package_bytes)
+
+
+@router.get("/{template_id:path}/package")
+def export_template_package_route(template_id: str, session: SessionDep) -> Response:
+    """Export a persisted community template package."""
+    package_bytes = export_installed_template_package(session, template_id)
+    filename = f"{template_id.rsplit('/', 1)[-1]}.mindris-template"
+    return Response(
+        content=package_bytes,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/{template_id:path}")
+def get_template_route(template_id: str, session: SessionDep) -> dict:
+    """HTTP route for one resume template."""
+    return get_template(template_id, session)
+
+
+def get_template(template_id: str, session: Session | None = None) -> dict:
     """Return one resume template."""
     for template in TEMPLATE_CATALOG:
         if template.id == template_id:
             return {"status": "success", "item": template.model_dump(mode="json")}
+    if session is not None:
+        record = session.exec(
+            select(CommunityTemplateRecord).where(
+                CommunityTemplateRecord.template_id == template_id
+            )
+        ).first()
+        if record is not None:
+            return {"status": "success", "item": _serialize_installed_template(record)}
     logger.warning("Template '%s' not found", template_id)
     raise HTTPException(status_code=404, detail="Template not found.")
