@@ -79,13 +79,21 @@
 - [x] **Monitoring léger :** Instrumentation minimale des services sans stack d'observabilité lourde.
 
 ## 🔵 Phase 11 : Advanced CSS Editor
-- [ ] **Contrat CSS avancé :** Etendre le contrat `global_settings` avec un bloc `advanced_css` backend-owned.
-- [ ] **Sanitation renderer :** Filtrer et appliquer le CSS custom uniquement dans le Shadow DOM du CV.
-- [ ] **UI éditeur expert :** Ajouter un panneau CSS avancé, warnings et snippets sans déplacer de logique métier côté front.
-- [ ] **Validation export :** Garantir preview/PDF stables et ignorer le CSS avancé pour les exports sémantiques.
+- [x] **Contrat CSS avancé :** Etendre le contrat `global_settings` avec un bloc `advanced_css` backend-owned.
+- [x] **Sanitation renderer :** Filtrer et appliquer le CSS custom uniquement dans le Shadow DOM du CV.
+- [x] **UI éditeur expert :** Ajouter un panneau CSS avancé, warnings et snippets sans déplacer de logique métier côté front.
+- [x] **Validation export :** Garantir preview/PDF stables et ignorer le CSS avancé pour les exports sémantiques.
 
 ## 🔵 Phase 12 : Multilingual CV System
 - [x] **Variantes de langue backend-owned :** Supporter plusieurs locales sous un meme resume logique.
 - [x] **Edition ciblee par locale :** Permettre au builder de creer, selectionner et modifier une variante sans fusion cote front.
 - [x] **Exports et versioning par locale :** Resoudre preview, exports et revisions depuis la variante selectionnee.
 - [x] **Compatibilite ascendante :** Migrer les resumes mono-langue existants sans rupture de contrat.
+
+## 🔵 Phase 13 : QA Hardening & Community Templates
+- [ ] **E2E navigateur en CI ou job manuel :** Executer automatiquement les parcours critiques sur stack locale ou pipeline dedie.
+- [ ] **Couverture multilingue :** Verifier explicitement les flows FR/EN et les regressions de variantes de langue.
+- [ ] **Selecteurs UI robustes :** Durcir les affordances et les tests pour eviter les collisions de labels dans Playwright.
+- [ ] **Format de template communautaire :** Definir un package import/export avec manifeste, metadonnees, preset settings, CSS autorise et preview.
+- [ ] **Import/export de templates :** Permettre de telecharger, installer, exporter et reinstaller un template sans edition manuelle fragile.
+- [ ] **Contribution flow & marketplace bootstrap :** Preparer le circuit auteur -> publication -> installation Mindris avec validation et moderation minimales.
