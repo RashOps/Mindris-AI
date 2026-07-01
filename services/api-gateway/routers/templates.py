@@ -1,14 +1,19 @@
 """Resume template catalogue routes."""
 
 from copy import deepcopy
+import json
+from io import BytesIO
 from typing import Any
+from zipfile import BadZipFile, ZipFile
 
 from fastapi import APIRouter, HTTPException
-from schemas import TemplateCatalogItem
+from pydantic import ValidationError
+from schemas import CommunityTemplateConfig, CommunityTemplateManifest, TemplateCatalogItem
 from utils.logger import get_logger
 
 router = APIRouter(prefix="/api/v1/templates", tags=["templates"])
 logger = get_logger(__name__, service_name="api-gateway")
+SUPPORTED_TEMPLATE_ENGINE_VERSION = "1"
 
 
 READY_TEMPLATES = [
@@ -109,6 +114,85 @@ COMMUNITY_TEMPLATES = [
 ]
 
 TEMPLATE_CATALOG = [*READY_TEMPLATES, *COMMUNITY_TEMPLATES]
+
+
+def _read_package_json(archive: ZipFile, path: str) -> dict[str, Any]:
+    try:
+        raw = archive.read(path).decode("utf-8")
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=422, detail=f"Template package is missing required file: {path}"
+        ) from exc
+    try:
+        value = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Template package contains invalid JSON: {path}",
+        ) from exc
+    if not isinstance(value, dict):
+        raise HTTPException(
+            status_code=422,
+            detail=f"Template package JSON must be an object: {path}",
+        )
+    return value
+
+
+def inspect_template_package(package_bytes: bytes) -> dict[str, Any]:
+    """Validate a V1 portable community template package."""
+    try:
+        archive = ZipFile(BytesIO(package_bytes))
+    except BadZipFile as exc:
+        raise HTTPException(status_code=422, detail="Invalid template package archive.") from exc
+
+    with archive:
+        try:
+            manifest = CommunityTemplateManifest.model_validate(
+                _read_package_json(archive, "manifest.json")
+            )
+            template = CommunityTemplateConfig.model_validate(
+                _read_package_json(archive, "template.json")
+            )
+        except ValidationError as exc:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Invalid template package metadata: {exc}",
+            ) from exc
+        try:
+            archive.read("styles.css")
+        except KeyError as exc:
+            raise HTTPException(
+                status_code=422,
+                detail="Template package is missing required file: styles.css",
+            ) from exc
+        preview_path = "preview.png"
+        try:
+            preview_bytes = archive.read(preview_path)
+        except KeyError as exc:
+            raise HTTPException(
+                status_code=422,
+                detail="Template package is missing required file: preview.png",
+            ) from exc
+        if not preview_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+            raise HTTPException(
+                status_code=422,
+                detail="Template package preview.png is not a valid PNG file.",
+            )
+        if manifest.engine_version != SUPPORTED_TEMPLATE_ENGINE_VERSION:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "Unsupported template package engine_version: "
+                    f"{manifest.engine_version}"
+                ),
+            )
+
+    return {
+        "status": "success",
+        "manifest": manifest.model_dump(mode="json"),
+        "template": template.model_dump(mode="json"),
+        "files": {"preview": preview_path, "stylesheet": "styles.css"},
+    }
 
 
 def _deep_merge(base: Any, patch: Any) -> Any:
