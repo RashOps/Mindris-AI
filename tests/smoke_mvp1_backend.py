@@ -38,6 +38,16 @@ from routers.system import readiness_checks  # noqa: E402
 from routers.templates import list_templates  # noqa: E402
 from routers.templates import export_installed_template_package, import_template_package  # noqa: E402
 
+VALID_PREVIEW_PNG = (
+    b"\x89PNG\r\n\x1a\n"
+    b"\x00\x00\x00\rIHDR"
+    b"\x00\x00\x00\x01\x00\x00\x00\x01\x08\x04\x00\x00\x00"
+    b"\xb5\x1c\x0c\x02"
+    b"\x00\x00\x00\x0bIDATx\xdac\xfc\xff\x1f\x00\x03\x03\x02\x00"
+    b"\xef\x9c'\xa9"
+    b"\x00\x00\x00\x00IEND\xaeB`\x82"
+)
+
 
 def _community_template_package() -> bytes:
     buffer = BytesIO()
@@ -70,7 +80,7 @@ def _community_template_package() -> bytes:
             ),
         )
         archive.writestr("styles.css", ":host { --primary-color: #0f766e; }")
-        archive.writestr("preview.png", b"\x89PNG\r\n\x1a\npreview")
+        archive.writestr("preview.png", VALID_PREVIEW_PNG)
     return buffer.getvalue()
 
 

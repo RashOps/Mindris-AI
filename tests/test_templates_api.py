@@ -20,6 +20,16 @@ from routers.templates import (
     router,
 )
 
+VALID_PREVIEW_PNG = (
+    b"\x89PNG\r\n\x1a\n"
+    b"\x00\x00\x00\rIHDR"
+    b"\x00\x00\x00\x01\x00\x00\x00\x01\x08\x04\x00\x00\x00"
+    b"\xb5\x1c\x0c\x02"
+    b"\x00\x00\x00\x0bIDATx\xdac\xfc\xff\x1f\x00\x03\x03\x02\x00"
+    b"\xef\x9c'\xa9"
+    b"\x00\x00\x00\x00IEND\xaeB`\x82"
+)
+
 
 def test_template_catalog_lists_ready_templates() -> None:
     items = list_templates()["items"]
@@ -66,7 +76,12 @@ def test_customization_catalogue_exposes_backend_owned_options() -> None:
     assert options["templates"]["ats"]["enforced"]["layout"]["columns"] == 1
 
 
-def _template_package_bytes(*, include_preview: bool = True, engine_version: str = "1") -> bytes:
+def _template_package_bytes(
+    *,
+    include_preview: bool = True,
+    engine_version: str = "1",
+    preview_bytes: bytes = VALID_PREVIEW_PNG,
+) -> bytes:
     buffer = BytesIO()
     with ZipFile(buffer, "w", ZIP_DEFLATED) as archive:
         archive.writestr(
@@ -101,7 +116,7 @@ def _template_package_bytes(*, include_preview: bool = True, engine_version: str
         )
         archive.writestr("styles.css", ":host { --primary-color: #0f766e; }")
         if include_preview:
-            archive.writestr("preview.png", b"\x89PNG\r\n\x1a\npreview")
+            archive.writestr("preview.png", preview_bytes)
     return buffer.getvalue()
 
 
@@ -125,6 +140,15 @@ def test_template_package_inspection_rejects_unsupported_engine_version() -> Non
         inspect_template_package(_template_package_bytes(engine_version="99"))
     assert exc_info.value.status_code == 422
     assert "engine_version" in str(exc_info.value.detail)
+
+
+def test_template_package_inspection_rejects_truncated_preview_png() -> None:
+    with pytest.raises(HTTPException) as exc_info:
+        inspect_template_package(
+            _template_package_bytes(preview_bytes=b"\x89PNG\r\n\x1a\npreview")
+        )
+    assert exc_info.value.status_code == 422
+    assert "preview.png" in str(exc_info.value.detail)
 
 
 def _session():

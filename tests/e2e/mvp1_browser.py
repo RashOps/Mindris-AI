@@ -21,6 +21,16 @@ from zipfile import ZipFile
 
 from playwright.sync_api import Page, expect, sync_playwright
 
+VALID_PREVIEW_PNG = (
+    b"\x89PNG\r\n\x1a\n"
+    b"\x00\x00\x00\rIHDR"
+    b"\x00\x00\x00\x01\x00\x00\x00\x01\x08\x04\x00\x00\x00"
+    b"\xb5\x1c\x0c\x02"
+    b"\x00\x00\x00\x0bIDATx\xdac\xfc\xff\x1f\x00\x03\x03\x02\x00"
+    b"\xef\x9c'\xa9"
+    b"\x00\x00\x00\x00IEND\xaeB`\x82"
+)
+
 
 def request_json(
     base_url: str,
@@ -183,7 +193,7 @@ def community_template_package() -> bytes:
             ),
         )
         archive.writestr("styles.css", ":host { --primary-color: #0f766e; }")
-        archive.writestr("preview.png", b"\x89PNG\r\n\x1a\npreview")
+        archive.writestr("preview.png", VALID_PREVIEW_PNG)
     return buffer.getvalue()
 
 
@@ -312,6 +322,13 @@ def run(args: argparse.Namespace) -> None:
         expect(
             page.get_by_test_id("template-card-mindris-community-open-source")
         ).to_be_visible(timeout=15_000)
+        preview = page.locator(
+            '[data-testid="template-card-mindris-community-open-source"] img'
+        )
+        expect(preview).to_be_visible(timeout=15_000)
+        natural_width = preview.evaluate("img => img.naturalWidth")
+        if natural_width <= 0:
+            raise AssertionError("Community template preview image did not decode")
         with page.expect_download(timeout=30_000) as template_download_info:
             page.get_by_test_id("template-export-mindris-community-open-source").click()
         template_download = template_download_info.value
