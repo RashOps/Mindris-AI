@@ -1,4 +1,4 @@
-import { apiHeaders, apiUrl, jsonHeaders } from "@/lib/api";
+import { apiHeaders, apiUrl, authenticatedApiUrl, jsonHeaders } from "@/lib/api";
 
 export type ResumeTemplateManifest = {
   id: string;
@@ -77,5 +77,5 @@ export async function exportResumeTemplatePackage(templateId: string): Promise<B
 }
 
 export function resumeTemplatePreviewUrl(templateId: string): string {
-  return apiUrl(`/api/v1/templates/${templateId}/preview`);
+  return authenticatedApiUrl(`/api/v1/templates/${templateId}/preview`);
 }
