@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Text
+from sqlalchemy import DateTime, ForeignKey, LargeBinary, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -153,5 +153,26 @@ class ApplicationRecord(Base):
     ats_report_id: Mapped[int | None] = mapped_column(
         ForeignKey("atsreportrecord.id"), default=None
     )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+
+class CommunityTemplateRecord(Base):
+    """Installed community template package persisted by the backend."""
+
+    __tablename__ = "communitytemplaterecord"
+
+    id: Mapped[int | None] = mapped_column(primary_key=True, default=None)
+    template_id: Mapped[str] = mapped_column(unique=True, index=True)
+    name: Mapped[str]
+    author: Mapped[str]
+    description: Mapped[str] = mapped_column(Text, default="")
+    category: Mapped[str] = mapped_column(default="general")
+    accent: Mapped[str] = mapped_column(default="#2563eb")
+    layout: Mapped[str] = mapped_column(default="two-column")
+    base_template_id: Mapped[str | None] = mapped_column(default=None)
+    manifest_json: Mapped[str] = mapped_column(Text)
+    template_json: Mapped[str] = mapped_column(Text)
+    package_bytes: Mapped[bytes] = mapped_column(LargeBinary)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
