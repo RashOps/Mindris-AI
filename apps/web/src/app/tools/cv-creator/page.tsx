@@ -136,6 +136,7 @@ export default function AppPage() {
     loadResumes,
     resumes, activeResumeId, setActiveResume,
     createResume, duplicateResume, deleteResume,
+    createResumeLocale, activateResumeLocale, deleteResumeLocale,
     renameResume,
     flushResumeSave, retryResumeSave,
     resumeSaveStatus, resumeSaveError, lastResumeSavedAt,
@@ -149,6 +150,7 @@ export default function AppPage() {
   const [showInsights, setShowInsights] = useState(false);
   const [showCoverLetter, setShowCoverLetter] = useState(false);
   const [activeHeaderMenu, setActiveHeaderMenu] = useState<HeaderMenuId | null>(null);
+  const [localeToCreate, setLocaleToCreate] = useState<"" | "fr" | "en" | "de" | "es">("");
   const [toast, setToast]         = useState<string | null>(null);
 
   const pdfInputRef  = useRef<HTMLInputElement>(null);
@@ -188,6 +190,11 @@ export default function AppPage() {
   }, [activeHeaderMenu]);
 
   const activeResume = resumes.find((resume) => resume.id === activeResumeId);
+  const activeLocale = activeResume?.multilingual.activeLocale ?? activeResume?.locale ?? "fr";
+  const availableLocales = activeResume?.multilingual.availableLocales ?? [activeLocale];
+  const inactiveLocales = (["fr", "en", "de", "es"] as const).filter(
+    (locale) => !availableLocales.includes(locale),
+  );
   const saveStatusText =
     resumeSaveStatus === "dirty"
       ? "Unsaved changes"
@@ -318,7 +325,8 @@ export default function AppPage() {
   const handleExportResume = async (format: ResumeExportFormat) => {
     await flushResumeSave();
     const exportConfig = RESUME_EXPORTS[format];
-    const response = await fetch(apiUrl(`/api/v1/resumes/${activeResumeId}/${exportConfig.endpoint}`), {
+    const localeQuery = activeLocale ? `?locale=${encodeURIComponent(activeLocale)}` : "";
+    const response = await fetch(apiUrl(`/api/v1/resumes/${activeResumeId}/${exportConfig.endpoint}${localeQuery}`), {
       headers: apiHeaders(),
     });
     if (!response.ok) throw new Error(`${exportConfig.label} export failed`);
@@ -468,7 +476,6 @@ export default function AppPage() {
       },
     },
   ];
-
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
       <main className="flex h-[calc(100vh-4rem)] w-full flex-col overflow-hidden bg-slate-50 text-slate-950">
@@ -549,6 +556,79 @@ export default function AppPage() {
             >
               Delete
             </button>
+            <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-1 py-1">
+              {availableLocales.map((locale) => (
+                <button
+                  key={locale}
+                  type="button"
+                  onClick={() => {
+                    if (locale === activeLocale) return;
+                    void activateResumeLocale(locale).then(() => {
+                      showToast(`${locale.toUpperCase()} variant active`);
+                    }).catch((err: unknown) => {
+                      showToast(errorMessage(err, "Locale switch failed"), 6000);
+                    });
+                  }}
+                  className="inline-flex h-7 min-w-10 cursor-pointer items-center justify-center rounded-md px-2 text-[11px] font-semibold transition-colors"
+                  style={locale === activeLocale
+                    ? { background: '#0f172a', color: '#fff' }
+                    : { background: '#fff', color: '#475569' }}
+                  title={`Switch to ${locale.toUpperCase()}`}
+                >
+                  {locale.toUpperCase()}
+                </button>
+              ))}
+              {inactiveLocales.length > 0 ? (
+                <>
+                  <select
+                    value={localeToCreate}
+                    onChange={(e) => setLocaleToCreate(e.target.value as typeof localeToCreate)}
+                    className="h-7 cursor-pointer rounded-md border border-slate-200 bg-white px-2 text-[11px] font-medium text-slate-700 outline-none"
+                    title="Select a new locale variant"
+                  >
+                    <option value="">Add locale</option>
+                    {inactiveLocales.map((locale) => (
+                      <option key={locale} value={locale}>
+                        {locale.toUpperCase()}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    disabled={!localeToCreate}
+                    onClick={() => {
+                      if (!localeToCreate) return;
+                      void createResumeLocale(localeToCreate, activeLocale).then(() => {
+                        showToast(`${localeToCreate.toUpperCase()} variant created`);
+                        setLocaleToCreate("");
+                      }).catch((err: unknown) => {
+                        showToast(errorMessage(err, "Locale creation failed"), 6000);
+                      });
+                    }}
+                    className="inline-flex h-7 cursor-pointer items-center justify-center rounded-md border border-slate-200 bg-white px-2 text-[11px] font-semibold text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    title="Create a locale variant from the active locale"
+                  >
+                    Add
+                  </button>
+                </>
+              ) : null}
+              {availableLocales.length > 1 && activeLocale !== activeResume?.multilingual.defaultLocale ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    void deleteResumeLocale(activeLocale).then(() => {
+                      showToast(`${activeLocale.toUpperCase()} variant deleted`);
+                    }).catch((err: unknown) => {
+                      showToast(errorMessage(err, "Locale delete failed"), 6000);
+                    });
+                  }}
+                  className="inline-flex h-7 cursor-pointer items-center justify-center rounded-md border border-red-200 bg-red-50 px-2 text-[11px] font-semibold text-red-700 transition-colors hover:bg-red-100"
+                  title={`Delete ${activeLocale.toUpperCase()} variant`}
+                >
+                  Remove
+                </button>
+              ) : null}
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
