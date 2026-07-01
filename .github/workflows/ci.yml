@@ -2,7 +2,10 @@ name: CI
 
 on:
   push:
+    branches:
+      - main
   pull_request:
+  workflow_dispatch:
 
 jobs:
   backend:
@@ -34,3 +37,39 @@ jobs:
         run: bun run typecheck
       - working-directory: services/renderer
         run: bun run build
+
+  browser-e2e:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: oven-sh/setup-bun@v2
+      - run: uv sync --all-packages --frozen
+      - run: uv run playwright install chromium
+      - working-directory: apps/web
+        run: bun install --frozen-lockfile
+      - working-directory: services/renderer
+        run: bun install --frozen-lockfile
+      - run: |
+          if [ ! -f .env ] && [ -f .env.example ]; then
+            cp .env.example .env
+          fi
+      - run: ./scripts/dev_local.sh > /tmp/mindris-dev-local.log 2>&1 &
+      - run: |
+          for attempt in $(seq 1 30); do
+            if ./scripts/smoke_local.sh; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Local stack did not become ready in time" >&2
+          exit 1
+      - run: ./scripts/e2e_browser.sh
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-e2e-logs
+          path: |
+            .logs
+            /tmp/mindris-dev-local.log
