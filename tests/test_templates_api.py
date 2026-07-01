@@ -1,8 +1,13 @@
 """Template and customization catalogue tests."""
 
+import json
+from io import BytesIO
+from zipfile import ZIP_DEFLATED, ZipFile
+
 import pytest
 from fastapi import HTTPException
 from routers.templates import (
+    inspect_template_package,
     get_template,
     list_community_templates,
     list_customization_catalogue,
@@ -53,3 +58,64 @@ def test_customization_catalogue_exposes_backend_owned_options() -> None:
     assert options["locale"]["languages"] == ["fr", "en", "de", "es"]
     assert options["locale"]["directions"] == ["ltr", "rtl"]
     assert options["templates"]["ats"]["enforced"]["layout"]["columns"] == 1
+
+
+def _template_package_bytes(*, include_preview: bool = True, engine_version: str = "1") -> bytes:
+    buffer = BytesIO()
+    with ZipFile(buffer, "w", ZIP_DEFLATED) as archive:
+        archive.writestr(
+            "manifest.json",
+            json.dumps(
+                {
+                    "id": "mindris/community-open-source",
+                    "name": "Community Open Source",
+                    "version": "1.0.0",
+                    "author": "Mindris Community",
+                    "license": "MIT",
+                    "description": "Community template for OSS contributors.",
+                    "category": "developer",
+                    "tags": ["opensource", "developer"],
+                    "engine_version": engine_version,
+                }
+            ),
+        )
+        archive.writestr(
+            "template.json",
+            json.dumps(
+                {
+                    "base_template_id": "modern",
+                    "preset_settings": {
+                        "global_settings": {
+                            "template_id": "modern",
+                            "colors": {"palette_preset": "tech"},
+                        }
+                    },
+                }
+            ),
+        )
+        archive.writestr("styles.css", ":host { --primary-color: #0f766e; }")
+        if include_preview:
+            archive.writestr("preview.png", b"\x89PNG\r\n\x1a\npreview")
+    return buffer.getvalue()
+
+
+def test_template_package_inspection_accepts_valid_v1_archive() -> None:
+    package = inspect_template_package(_template_package_bytes())
+    assert package["manifest"]["id"] == "mindris/community-open-source"
+    assert package["manifest"]["engine_version"] == "1"
+    assert package["template"]["base_template_id"] == "modern"
+    assert package["files"]["preview"] == "preview.png"
+
+
+def test_template_package_inspection_rejects_missing_preview() -> None:
+    with pytest.raises(HTTPException) as exc_info:
+        inspect_template_package(_template_package_bytes(include_preview=False))
+    assert exc_info.value.status_code == 422
+    assert "preview" in str(exc_info.value.detail).lower()
+
+
+def test_template_package_inspection_rejects_unsupported_engine_version() -> None:
+    with pytest.raises(HTTPException) as exc_info:
+        inspect_template_package(_template_package_bytes(engine_version="99"))
+    assert exc_info.value.status_code == 422
+    assert "engine_version" in str(exc_info.value.detail)
