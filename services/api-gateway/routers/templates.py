@@ -3,17 +3,22 @@
 from copy import deepcopy
 import json
 from io import BytesIO
+from typing import Annotated
 from typing import Any
 from zipfile import BadZipFile, ZipFile
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from database.records import CommunityTemplateRecord
+from database.session import Session, get_session
 from pydantic import ValidationError
 from schemas import CommunityTemplateConfig, CommunityTemplateManifest, TemplateCatalogItem
+from sqlalchemy import select
 from utils.logger import get_logger
 
 router = APIRouter(prefix="/api/v1/templates", tags=["templates"])
 logger = get_logger(__name__, service_name="api-gateway")
 SUPPORTED_TEMPLATE_ENGINE_VERSION = "1"
+SessionDep = Annotated[Session, Depends(get_session)]
 
 
 READY_TEMPLATES = [
@@ -195,6 +200,92 @@ def inspect_template_package(package_bytes: bytes) -> dict[str, Any]:
     }
 
 
+def _base_template_item(base_template_id: str | None) -> TemplateCatalogItem | None:
+    if not base_template_id:
+        return None
+    for template in TEMPLATE_CATALOG:
+        if template.id == base_template_id:
+            return template
+    return None
+
+
+def _serialize_installed_template(record: CommunityTemplateRecord) -> dict[str, Any]:
+    manifest = json.loads(record.manifest_json)
+    template_config = json.loads(record.template_json)
+    base = _base_template_item(record.base_template_id)
+    item = TemplateCatalogItem(
+        id=record.template_id,
+        name=record.name,
+        description=record.description,
+        status="community",
+        category=record.category,
+        accent=record.accent or (base.accent if base else "#2563eb"),
+        layout=record.layout if record.layout in {"single", "two-column"} else "two-column",
+        base_template_id=record.base_template_id,
+        author=record.author,
+        preset_settings=template_config.get("preset_settings", {}),
+    )
+    payload = item.model_dump(mode="json")
+    payload["manifest"] = manifest
+    payload["previewAvailable"] = True
+    return payload
+
+
+def import_template_package(session: Session, package_bytes: bytes) -> dict[str, Any]:
+    """Import and persist a portable community template package."""
+    package = inspect_template_package(package_bytes)
+    manifest = package["manifest"]
+    template_config = package["template"]
+    base = _base_template_item(template_config.get("base_template_id"))
+    record = session.exec(
+        select(CommunityTemplateRecord).where(
+            CommunityTemplateRecord.template_id == manifest["id"]
+        )
+    ).first()
+    if record is None:
+        record = CommunityTemplateRecord(
+            template_id=manifest["id"],
+            name=manifest["name"],
+            author=manifest["author"],
+            description=manifest["description"],
+            category=manifest["category"],
+            accent=base.accent if base else "#2563eb",
+            layout=base.layout if base else "two-column",
+            base_template_id=template_config.get("base_template_id"),
+            manifest_json=json.dumps(manifest, ensure_ascii=False),
+            template_json=json.dumps(template_config, ensure_ascii=False),
+            package_bytes=package_bytes,
+        )
+        session.add(record)
+    else:
+        record.name = manifest["name"]
+        record.author = manifest["author"]
+        record.description = manifest["description"]
+        record.category = manifest["category"]
+        record.base_template_id = template_config.get("base_template_id")
+        record.manifest_json = json.dumps(manifest, ensure_ascii=False)
+        record.template_json = json.dumps(template_config, ensure_ascii=False)
+        record.package_bytes = package_bytes
+        if base:
+            record.accent = base.accent
+            record.layout = base.layout
+    session.commit()
+    session.refresh(record)
+    return {"status": "success", "item": _serialize_installed_template(record)}
+
+
+def export_installed_template_package(session: Session, template_id: str) -> bytes:
+    """Export a persisted community template package."""
+    record = session.exec(
+        select(CommunityTemplateRecord).where(
+            CommunityTemplateRecord.template_id == template_id
+        )
+    ).first()
+    if record is None:
+        raise HTTPException(status_code=404, detail="Installed template not found.")
+    return bytes(record.package_bytes)
+
+
 def _deep_merge(base: Any, patch: Any) -> Any:
     if isinstance(base, dict) and isinstance(patch, dict):
         merged = deepcopy(base)
@@ -350,14 +441,27 @@ CUSTOMIZATION_CATALOGUE = {
 }
 
 
-@router.get("")
-def list_templates() -> dict:
+def list_templates(session: Session | None = None) -> dict:
     """List resume templates owned by the backend catalogue."""
-    logger.debug("Listing %d templates", len(TEMPLATE_CATALOG))
+    items = [template.model_dump(mode="json") for template in TEMPLATE_CATALOG]
+    if session is not None:
+        installed = session.exec(
+            select(CommunityTemplateRecord).order_by(
+                CommunityTemplateRecord.updated_at.desc()
+            )
+        ).all()
+        items.extend(_serialize_installed_template(record) for record in installed)
+    logger.debug("Listing %d templates", len(items))
     return {
         "status": "success",
-        "items": [template.model_dump(mode="json") for template in TEMPLATE_CATALOG],
+        "items": items,
     }
+
+
+@router.get("")
+def list_templates_route(session: SessionDep) -> dict:
+    """HTTP route for listing backend and installed templates."""
+    return list_templates(session)
 
 
 @router.get("/community")
