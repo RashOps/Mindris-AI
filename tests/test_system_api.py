@@ -3,8 +3,20 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from conftest import auth_headers, client
+
+
+def _isolate_runtime_storage(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(
+        "utils.runtime_config.CONFIG_PATH",
+        tmp_path / "runtime-config.json",
+    )
+    monkeypatch.setattr(
+        "utils.runtime_config.SECRETS_PATH",
+        tmp_path / "runtime-secrets.json",
+    )
 
 
 def test_system_configuration_requires_api_key() -> None:
@@ -14,7 +26,11 @@ def test_system_configuration_requires_api_key() -> None:
     assert response.json()["status"] == "error"
 
 
-def test_system_configuration_returns_masked_backend_owned_settings() -> None:
+def test_system_configuration_returns_masked_backend_owned_settings(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    _isolate_runtime_storage(monkeypatch, tmp_path)
     api = client()
     response = api.get("/api/v1/system/configuration", headers=auth_headers())
 
@@ -35,7 +51,11 @@ def test_system_configuration_returns_masked_backend_owned_settings() -> None:
     assert "OPENAI_API_KEY" not in serialized
 
 
-def test_system_configuration_update_persists_runtime_defaults() -> None:
+def test_system_configuration_update_persists_runtime_defaults(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    _isolate_runtime_storage(monkeypatch, tmp_path)
     api = client()
     response = api.put(
         "/api/v1/system/configuration",
@@ -56,7 +76,11 @@ def test_system_configuration_update_persists_runtime_defaults() -> None:
     assert item["app"]["pdf_ingestion_mode"] == "local_text"
 
 
-def test_system_secret_update_marks_slot_as_configured_without_leaking_value() -> None:
+def test_system_secret_update_marks_slot_as_configured_without_leaking_value(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    _isolate_runtime_storage(monkeypatch, tmp_path)
     api = client()
     response = api.put(
         "/api/v1/system/secrets/openai_api_key",
@@ -72,3 +96,27 @@ def test_system_secret_update_marks_slot_as_configured_without_leaking_value() -
     payload = config_response.json()
     assert payload["item"]["secrets"]["openai_api_key"]["configured"] is True
     assert "sk-test-value" not in json.dumps(payload)
+
+
+def test_runtime_api_key_slot_overrides_default_auth(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    _isolate_runtime_storage(monkeypatch, tmp_path)
+
+    api = client()
+    rotate = api.put(
+        "/api/v1/system/secrets/api_key",
+        headers=auth_headers(),
+        json={"value": "rotated-api-key"},
+    )
+    assert rotate.status_code == 200
+
+    old_key_response = api.get("/api/v1/llm/catalogue", headers=auth_headers())
+    assert old_key_response.status_code == 401
+
+    new_key_response = api.get(
+        "/api/v1/llm/catalogue",
+        headers={"X-API-Key": "rotated-api-key"},
+    )
+    assert new_key_response.status_code == 200
