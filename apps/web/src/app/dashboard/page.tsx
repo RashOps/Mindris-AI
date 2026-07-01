@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -25,7 +26,15 @@ import {
   type CVData,
 } from "@/store/useCVStore";
 import { apiHeaders, apiUrl, jsonHeaders } from "@/lib/api";
-import { fetchResumeTemplates, type ResumeTemplate } from "@/lib/templates";
+import {
+  exportResumeTemplatePackage,
+  fetchResumeTemplates,
+  importResumeTemplatePackage,
+  resumeTemplatePreviewUrl,
+  templateHandle,
+  templatePackageFileName,
+  type ResumeTemplate,
+} from "@/lib/templates";
 
 const FALLBACK_TEMPLATES: ResumeTemplate[] = [
   {
@@ -176,6 +185,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const jsonInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
+  const templatePackageInputRef = useRef<HTMLInputElement>(null);
   const {
     resumes,
     activeResumeId,
@@ -205,6 +215,14 @@ export default function DashboardPage() {
     window.setTimeout(() => setStatus(null), 3500);
   }, []);
 
+  const reloadTemplates = useCallback(async () => {
+    const items = await fetchResumeTemplates();
+    if (items.length > 0) {
+      setTemplates(items);
+    }
+    return items;
+  }, []);
+
   const saveStatusText =
     resumeSaveStatus === "dirty"
       ? "Unsaved changes"
@@ -213,6 +231,10 @@ export default function DashboardPage() {
         : resumeSaveStatus === "error"
           ? "Save failed"
           : "Saved";
+  const activePersistedResumeId =
+    activeResumeId && /^\d+$/.test(String(activeResumeId))
+      ? String(activeResumeId)
+      : null;
 
   useEffect(() => {
     void loadResumes().catch((err: unknown) => {
@@ -221,21 +243,34 @@ export default function DashboardPage() {
   }, [loadResumes, showStatus]);
 
   useEffect(() => {
-    void fetchResumeTemplates()
+    let cancelled = false;
+
+    fetchResumeTemplates()
       .then((items) => {
-        if (items.length > 0) setTemplates(items);
+        if (!cancelled && items.length > 0) {
+          setTemplates(items);
+        }
       })
       .catch((err: unknown) => {
-        showStatus(err instanceof Error ? err.message : "Template loading failed");
+        if (!cancelled) {
+          showStatus(err instanceof Error ? err.message : "Template loading failed");
+        }
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [showStatus]);
 
   useEffect(() => {
     const loadRevisions = async () => {
-      if (!activeResumeId) return;
+      if (!activePersistedResumeId) {
+        setRevisions([]);
+        return;
+      }
       setRevisionsLoading(true);
       try {
-        const response = await fetch(apiUrl(`/api/v1/resumes/${activeResumeId}/revisions`), {
+        const response = await fetch(apiUrl(`/api/v1/resumes/${activePersistedResumeId}/revisions`), {
           headers: apiHeaders(),
         });
         if (!response.ok) throw new Error("Revision loading failed");
@@ -250,7 +285,7 @@ export default function DashboardPage() {
     };
 
     void loadRevisions();
-  }, [activeResumeId, showStatus]);
+  }, [activePersistedResumeId, showStatus]);
 
   const openResume = (id: string) => {
     setActiveResume(id);
@@ -263,8 +298,8 @@ export default function DashboardPage() {
   };
 
   const createSnapshot = async () => {
-    if (!activeResumeId) return;
-    const response = await fetch(apiUrl(`/api/v1/resumes/${activeResumeId}/revisions`), {
+    if (!activePersistedResumeId) return;
+    const response = await fetch(apiUrl(`/api/v1/resumes/${activePersistedResumeId}/revisions`), {
       method: "POST",
       headers: apiHeaders(),
     });
@@ -278,9 +313,9 @@ export default function DashboardPage() {
   };
 
   const restoreRevision = async (revision: number) => {
-    if (!activeResumeId) return;
+    if (!activePersistedResumeId) return;
     const response = await fetch(
-      apiUrl(`/api/v1/resumes/${activeResumeId}/revisions/${revision}/restore`),
+      apiUrl(`/api/v1/resumes/${activePersistedResumeId}/revisions/${revision}/restore`),
       {
         method: "POST",
         headers: apiHeaders(),
@@ -295,12 +330,12 @@ export default function DashboardPage() {
   };
 
   const compareRevision = async (baseRevision: number, targetRevision: number) => {
-    if (!activeResumeId) return;
+    if (!activePersistedResumeId) return;
     setCompareLoading(true);
     try {
       const response = await fetch(
         apiUrl(
-          `/api/v1/resumes/${activeResumeId}/revisions/compare?base_revision=${baseRevision}&target_revision=${targetRevision}`
+          `/api/v1/resumes/${activePersistedResumeId}/revisions/compare?base_revision=${baseRevision}&target_revision=${targetRevision}`
         ),
         {
           headers: apiHeaders(),
@@ -374,6 +409,48 @@ export default function DashboardPage() {
     }
   };
 
+  const handleTemplatePackageImport = async (file: File) => {
+    try {
+      const item = await importResumeTemplatePackage(file);
+      await reloadTemplates();
+      showStatus(`Template imported: ${item.name}`);
+    } catch (err: unknown) {
+      showStatus(err instanceof Error ? err.message : "Template import failed");
+    }
+  };
+
+  const downloadTemplatePackage = async (template: ResumeTemplate) => {
+    const blob = await exportResumeTemplatePackage(template.id);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = templatePackageFileName(template.id);
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const renderTemplatePreview = (template: ResumeTemplate) => {
+    if (template.previewAvailable) {
+      return (
+        <Image
+          src={resumeTemplatePreviewUrl(template.id)}
+          alt={`${template.name} preview`}
+          width={480}
+          height={192}
+          unoptimized
+          className="h-full w-full rounded-md object-cover"
+        />
+      );
+    }
+    return (
+      <div className="h-full p-3">
+        <div className="mb-2 h-3 w-24 rounded-full" style={{ background: template.accent }} />
+        <div className="mb-1 h-2 w-32 rounded-full bg-slate-200" />
+        <div className="h-2 w-20 rounded-full bg-slate-200" />
+      </div>
+    );
+  };
+
   return (
     <AppShell
       title="Resume Library"
@@ -415,7 +492,27 @@ export default function DashboardPage() {
                   e.currentTarget.value = "";
                 }}
               />
+              <input
+                ref={templatePackageInputRef}
+                type="file"
+                accept=".mindris-template,.zip,application/zip"
+                className="hidden"
+                data-testid="template-package-input"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void handleTemplatePackageImport(file);
+                  e.currentTarget.value = "";
+                }}
+              />
               <PdfIngestionModeSelect compact />
+              <Button
+                variant="outline"
+                onClick={() => templatePackageInputRef.current?.click()}
+                data-testid="template-package-button"
+              >
+                <FolderOpen size={15} />
+                Template
+              </Button>
               <Button
                 variant="outline"
                 onClick={() => jsonInputRef.current?.click()}
@@ -585,11 +682,7 @@ export default function DashboardPage() {
                               background: `linear-gradient(135deg, ${template.accent}18, white 55%)`,
                             }}
                           >
-                            <div className="h-full p-3">
-                              <div className="mb-2 h-3 w-24 rounded-full" style={{ background: template.accent }} />
-                              <div className="mb-1 h-2 w-32 rounded-full bg-slate-200" />
-                              <div className="h-2 w-20 rounded-full bg-slate-200" />
-                            </div>
+                            {renderTemplatePreview(template)}
                           </div>
                           <div className="flex items-center justify-between gap-2">
                             <p className="text-sm font-semibold">{template.name}</p>
@@ -607,10 +700,10 @@ export default function DashboardPage() {
                     <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-500">Community</p>
                     <div className="grid gap-3 md:grid-cols-2">
                       {templates.filter((template) => template.status === "community").map((template) => (
-                        <button
+                        <div
                           key={template.id}
-                          onClick={() => void createFromTemplate(template.id, template.name)}
-                          className="rounded-lg border border-slate-200 bg-white p-4 text-left shadow-sm transition-colors enabled:hover:border-slate-300"
+                          data-testid={`template-card-${templateHandle(template.id)}`}
+                          className="rounded-lg border border-slate-200 bg-white p-4 text-left shadow-sm"
                         >
                           <div
                             className="mb-3 h-24 rounded-md border border-slate-200"
@@ -618,11 +711,7 @@ export default function DashboardPage() {
                               background: `linear-gradient(135deg, ${template.accent}18, white 55%)`,
                             }}
                           >
-                            <div className="h-full p-3">
-                              <div className="mb-2 h-3 w-24 rounded-full" style={{ background: template.accent }} />
-                              <div className="mb-1 h-2 w-32 rounded-full bg-slate-200" />
-                              <div className="h-2 w-20 rounded-full bg-slate-200" />
-                            </div>
+                            {renderTemplatePreview(template)}
                           </div>
                           <div className="flex items-center justify-between gap-2">
                             <p className="text-sm font-semibold">{template.name}</p>
@@ -631,7 +720,36 @@ export default function DashboardPage() {
                             </span>
                           </div>
                           <p className="mt-2 text-xs leading-5 text-slate-500">{template.description}</p>
-                        </button>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <button
+                              onClick={() => void createFromTemplate(template.id, template.name)}
+                              data-testid={`template-use-${templateHandle(template.id)}`}
+                              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-slate-950 px-2.5 text-xs font-semibold text-white"
+                            >
+                              <Plus size={13} />
+                              Use template
+                            </button>
+                            {template.previewAvailable && (
+                              <button
+                                onClick={() => {
+                                  void downloadTemplatePackage(template).then(() => {
+                                    showStatus(`Template exported: ${template.name}`);
+                                  }).catch((err: unknown) => {
+                                    showStatus(err instanceof Error ? err.message : "Template export failed");
+                                  });
+                                }}
+                                data-testid={`template-export-${templateHandle(template.id)}`}
+                                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 px-2.5 text-xs font-medium text-slate-700"
+                              >
+                                <Download size={13} />
+                                Export package
+                              </button>
+                            )}
+                            <span className="inline-flex h-8 items-center rounded-md bg-slate-100 px-2.5 text-[11px] font-medium text-slate-600">
+                              {template.author ?? "Community"}
+                            </span>
+                          </div>
+                        </div>
                       ))}
                     </div>
                   </div>

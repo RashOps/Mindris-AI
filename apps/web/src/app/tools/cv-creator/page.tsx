@@ -574,6 +574,7 @@ export default function AppPage() {
                     ? { background: '#0f172a', color: '#fff' }
                     : { background: '#fff', color: '#475569' }}
                   title={`Switch to ${locale.toUpperCase()}`}
+                  data-testid={`locale-switch-${locale}`}
                 >
                   {locale.toUpperCase()}
                 </button>
@@ -585,6 +586,7 @@ export default function AppPage() {
                     onChange={(e) => setLocaleToCreate(e.target.value as typeof localeToCreate)}
                     className="h-7 cursor-pointer rounded-md border border-slate-200 bg-white px-2 text-[11px] font-medium text-slate-700 outline-none"
                     title="Select a new locale variant"
+                    data-testid="locale-create-select"
                   >
                     <option value="">Add locale</option>
                     {inactiveLocales.map((locale) => (
@@ -607,6 +609,7 @@ export default function AppPage() {
                     }}
                     className="inline-flex h-7 cursor-pointer items-center justify-center rounded-md border border-slate-200 bg-white px-2 text-[11px] font-semibold text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                     title="Create a locale variant from the active locale"
+                    data-testid="locale-create-button"
                   >
                     Add
                   </button>
