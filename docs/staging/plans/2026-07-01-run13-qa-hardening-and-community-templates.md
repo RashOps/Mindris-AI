@@ -8,7 +8,7 @@ spec: `docs/staging/specs/2026-07-01-run13-qa-hardening-and-community-templates.
   acceptance: `UV_CACHE_DIR=/tmp/uv-cache uv run --no-sync pytest tests/test_templates_api.py -q`
   spec: `docs/staging/specs/2026-07-01-run13-qa-hardening-and-community-templates.md#run-13-qa-hardening-and-community-templates`
 
-- [ ] T2: Template package import/export and preview persistence
+- [x] T2: Template package import/export and preview persistence
   goal: Import and export `.mindris-template` packages through backend-owned APIs and expose preview-ready installed template metadata to the frontend.
   files: `services/api-gateway/routers/templates.py`, `services/api-gateway/persistence.py`, `tests/test_templates_api.py`, `tests/smoke_mvp1_backend.py`
   acceptance: `UV_CACHE_DIR=/tmp/uv-cache uv run --no-sync pytest tests/test_templates_api.py -q` and `UV_CACHE_DIR=/tmp/uv-cache STORAGE_DIR=/tmp/mindris-ai-run13 uv run --no-sync python tests/smoke_mvp1_backend.py`

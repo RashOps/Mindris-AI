@@ -81,6 +81,7 @@ data: `template.json` includes backend-owned template defaults and rendering met
 - layout defaults
 
 data: Installed community templates are persisted as data records, not executable extensions.
+data: V1 stores the original package bytes server-side so export is a round trip of the same portable artifact.
 
 data: V1 package validation currently requires a PNG preview file named `preview.png`.
 
