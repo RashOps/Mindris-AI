@@ -23,6 +23,7 @@ from persistence import (
     dump_json,
     get_resume_revision,
     list_resume_revisions,
+    localized_resume_record,
     load_json,
     serialize_resume,
     serialize_resume_revision,
@@ -239,11 +240,19 @@ def import_resume_json(request: ResumeImportRequest, session: SessionDep) -> dic
 
 
 @router.get("/{resume_id}/export-json")
-def export_resume_json(resume_id: int, session: SessionDep) -> Response:
+def export_resume_json(
+    resume_id: int, session: SessionDep, locale: str | None = None
+) -> Response:
     """Return a resume document JSON export."""
     record = _get_resume(session, resume_id)
+    item = serialize_resume(session, record)
+    if locale is not None:
+        localized = localized_resume_record(record, locale=locale)
+        item["cvData"] = load_json(localized.data_json, {})
+        item["locale"] = localized.locale
+        item["multilingual"]["activeLocale"] = localized.locale
     return Response(
-        content=dump_json(serialize_resume(session, record)),
+        content=dump_json(item),
         media_type="application/json",
         headers={
             "Content-Disposition": (
@@ -301,11 +310,12 @@ def compare_resume_revisions_route(
     base_revision: int,
     target_revision: int,
     session: SessionDep,
+    locale: str | None = None,
 ) -> dict:
     """Compare two snapshots for the same resume."""
     _get_resume(session, resume_id)
     payload = compare_resume_revisions(
-        session, resume_id, base_revision, target_revision
+        session, resume_id, base_revision, target_revision, locale=locale
     )
     if not payload:
         raise HTTPException(status_code=404, detail="Revision not found.")
@@ -313,9 +323,11 @@ def compare_resume_revisions_route(
 
 
 @router.get("/{resume_id}/export-markdown")
-def export_resume_markdown(resume_id: int, session: SessionDep) -> Response:
+def export_resume_markdown(
+    resume_id: int, session: SessionDep, locale: str | None = None
+) -> Response:
     """Return a resume document Markdown export."""
-    record = _get_resume(session, resume_id)
+    record = localized_resume_record(_get_resume(session, resume_id), locale=locale)
     return Response(
         content=resume_to_markdown(record),
         media_type="text/markdown; charset=utf-8",
@@ -328,9 +340,11 @@ def export_resume_markdown(resume_id: int, session: SessionDep) -> Response:
 
 
 @router.get("/{resume_id}/export-latex")
-def export_resume_latex(resume_id: int, session: SessionDep) -> Response:
+def export_resume_latex(
+    resume_id: int, session: SessionDep, locale: str | None = None
+) -> Response:
     """Return a resume document LaTeX export."""
-    record = _get_resume(session, resume_id)
+    record = localized_resume_record(_get_resume(session, resume_id), locale=locale)
     return Response(
         content=resume_to_latex(record),
         media_type="application/x-latex; charset=utf-8",
@@ -343,9 +357,11 @@ def export_resume_latex(resume_id: int, session: SessionDep) -> Response:
 
 
 @router.get("/{resume_id}/export-typst")
-def export_resume_typst(resume_id: int, session: SessionDep) -> Response:
+def export_resume_typst(
+    resume_id: int, session: SessionDep, locale: str | None = None
+) -> Response:
     """Return a resume document Typst export."""
-    record = _get_resume(session, resume_id)
+    record = localized_resume_record(_get_resume(session, resume_id), locale=locale)
     return Response(
         content=resume_to_typst(record),
         media_type="text/typst; charset=utf-8",
@@ -358,9 +374,11 @@ def export_resume_typst(resume_id: int, session: SessionDep) -> Response:
 
 
 @router.get("/{resume_id}/export-html")
-def export_resume_html(resume_id: int, session: SessionDep) -> Response:
+def export_resume_html(
+    resume_id: int, session: SessionDep, locale: str | None = None
+) -> Response:
     """Return a standalone resume document HTML export."""
-    record = _get_resume(session, resume_id)
+    record = localized_resume_record(_get_resume(session, resume_id), locale=locale)
     return Response(
         content=resume_to_html(record),
         media_type="text/html; charset=utf-8",
@@ -373,9 +391,11 @@ def export_resume_html(resume_id: int, session: SessionDep) -> Response:
 
 
 @router.get("/{resume_id}/export-docx")
-def export_resume_docx(resume_id: int, session: SessionDep) -> Response:
+def export_resume_docx(
+    resume_id: int, session: SessionDep, locale: str | None = None
+) -> Response:
     """Return a recruiter-friendly DOCX resume export."""
-    record = _get_resume(session, resume_id)
+    record = localized_resume_record(_get_resume(session, resume_id), locale=locale)
     return Response(
         content=resume_to_docx(record),
         media_type=(

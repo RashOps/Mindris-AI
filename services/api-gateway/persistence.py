@@ -1,6 +1,7 @@
 """Persistence helpers shared by API routers."""
 
 import json
+from copy import copy
 from copy import deepcopy
 from datetime import datetime
 from typing import Any
@@ -189,6 +190,40 @@ def _persist_lazy_resume_migration(session: Session, record: ResumeRecord) -> di
         session.commit()
         session.refresh(record)
     return normalized
+
+
+def resolve_resume_variant(
+    record: ResumeRecord,
+    *,
+    locale: str | None = None,
+) -> tuple[dict[str, Any], str]:
+    """Resolve one locale variant from a stored resume record."""
+    normalized, _ = _active_resume_payload(
+        load_json(record.data_json, {}),
+        record.locale or "fr",
+    )
+    multilingual = normalized["multilingual"]
+    variants = multilingual["variants"]
+    target_locale = _normalize_resume_locale(
+        locale or multilingual["active_locale"],
+        multilingual["default_locale"],
+    )
+    if target_locale not in variants:
+        raise ValueError(f"Unknown locale variant '{target_locale}'.")
+    return deepcopy(variants[target_locale]), target_locale
+
+
+def localized_resume_record(
+    record: ResumeRecord,
+    *,
+    locale: str | None = None,
+) -> ResumeRecord:
+    """Return a lightweight localized record view for exports."""
+    payload, target_locale = resolve_resume_variant(record, locale=locale)
+    localized = copy(record)
+    localized.data_json = dump_json(payload)
+    localized.locale = target_locale
+    return localized
 
 
 def create_resume_locale_variant(
@@ -462,6 +497,7 @@ def create_resume_revision(
 ) -> ResumeRevisionRecord:
     """Store a snapshot for a resume version."""
     next_revision = _latest_resume_revision(session, record.id) + 1
+    _, active_locale = resolve_resume_variant(record)
     logger.info(
         "Creating revision %s for resume %s (label=%s)", next_revision, record.id, label
     )
@@ -471,7 +507,7 @@ def create_resume_revision(
         name=record.name,
         data_json=record.data_json,
         template_id=record.template_id,
-        locale=record.locale,
+        locale=active_locale,
         source=record.source,
         label=label,
         created_at=datetime.now(),
@@ -530,6 +566,7 @@ def compare_resume_revisions(
     resume_id: int,
     base_revision: int,
     target_revision: int,
+    locale: str | None = None,
 ) -> dict[str, Any]:
     """Return a semantic diff between two resume revisions."""
     base = get_resume_revision(session, resume_id, base_revision)
@@ -549,16 +586,20 @@ def compare_resume_revisions(
         target_revision,
     )
 
-    base_data = load_json(base.data_json, {})
-    target_data = load_json(target.data_json, {})
+    base_data, base_locale = resolve_resume_variant(base, locale=locale)
+    target_data, target_locale = resolve_resume_variant(target, locale=locale)
     changes: list[dict[str, Any]] = []
     _diff_revision_metadata(base, target, changes)
     _diff_values("", base_data, target_data, changes)
     section_summaries = _section_diff_summary(base_data, target_data)
+    base_item = serialize_resume_revision(base)
+    target_item = serialize_resume_revision(target)
+    base_item["locale"] = base_locale
+    target_item["locale"] = target_locale
     return {
         "resumeId": str(resume_id),
-        "baseRevision": serialize_resume_revision(base),
-        "targetRevision": serialize_resume_revision(target),
+        "baseRevision": base_item,
+        "targetRevision": target_item,
         "changeCount": len(changes),
         "sectionSummaries": section_summaries,
         "changes": changes,
