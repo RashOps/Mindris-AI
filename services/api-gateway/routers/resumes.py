@@ -14,12 +14,16 @@ from exporters import (
 )
 from fastapi import APIRouter, Depends, HTTPException, Response
 from persistence import (
+    activate_resume_locale_variant,
     compare_resume_revisions,
+    create_resume_locale_variant,
     create_resume,
     create_resume_revision,
+    delete_resume_locale_variant,
     dump_json,
     get_resume_revision,
     list_resume_revisions,
+    localized_resume_record,
     load_json,
     serialize_resume,
     serialize_resume_revision,
@@ -30,6 +34,7 @@ from schemas import (
     CVDataModel,
     ResumeCreateRequest,
     ResumeImportRequest,
+    ResumeLocaleCreateRequest,
     ResumeUpdateRequest,
 )
 from sqlalchemy import select
@@ -126,6 +131,7 @@ def update_resume_route(
         _get_resume(session, resume_id),
         name=request.name,
         cv_data=cv_data,
+        target_locale=request.target_locale,
         template_id=request.template_id,
         locale=request.locale,
         source=request.source,
@@ -160,6 +166,64 @@ def duplicate_resume_route(resume_id: int, session: SessionDep) -> dict:
     return {"status": "success", "item": serialize_resume(session, record)}
 
 
+@router.post("/{resume_id}/locales")
+def create_resume_locale_route(
+    resume_id: int,
+    request: ResumeLocaleCreateRequest,
+    session: SessionDep,
+) -> dict:
+    """Create a locale variant for an existing resume."""
+    logger.info("Creating locale '%s' for resume %s", request.locale, resume_id)
+    try:
+        record = create_resume_locale_variant(
+            session,
+            _get_resume(session, resume_id),
+            locale=request.locale,
+            source_locale=request.source_locale,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"status": "success", "item": serialize_resume(session, record)}
+
+
+@router.post("/{resume_id}/locales/{locale}/activate")
+def activate_resume_locale_route(
+    resume_id: int,
+    locale: str,
+    session: SessionDep,
+) -> dict:
+    """Switch the active locale variant for an existing resume."""
+    logger.info("Activating locale '%s' for resume %s", locale, resume_id)
+    try:
+        record = activate_resume_locale_variant(
+            session,
+            _get_resume(session, resume_id),
+            locale=locale,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"status": "success", "item": serialize_resume(session, record)}
+
+
+@router.delete("/{resume_id}/locales/{locale}")
+def delete_resume_locale_route(
+    resume_id: int,
+    locale: str,
+    session: SessionDep,
+) -> dict:
+    """Delete a locale variant from an existing resume."""
+    logger.info("Deleting locale '%s' for resume %s", locale, resume_id)
+    try:
+        record = delete_resume_locale_variant(
+            session,
+            _get_resume(session, resume_id),
+            locale=locale,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"status": "success", "item": serialize_resume(session, record)}
+
+
 @router.post("/import-json")
 def import_resume_json(request: ResumeImportRequest, session: SessionDep) -> dict:
     """Import raw CV data or a ResumeDocument-like JSON object."""
@@ -176,11 +240,19 @@ def import_resume_json(request: ResumeImportRequest, session: SessionDep) -> dic
 
 
 @router.get("/{resume_id}/export-json")
-def export_resume_json(resume_id: int, session: SessionDep) -> Response:
+def export_resume_json(
+    resume_id: int, session: SessionDep, locale: str | None = None
+) -> Response:
     """Return a resume document JSON export."""
     record = _get_resume(session, resume_id)
+    item = serialize_resume(session, record)
+    if locale is not None:
+        localized = localized_resume_record(record, locale=locale)
+        item["cvData"] = load_json(localized.data_json, {})
+        item["locale"] = localized.locale
+        item["multilingual"]["activeLocale"] = localized.locale
     return Response(
-        content=dump_json(serialize_resume(session, record)),
+        content=dump_json(item),
         media_type="application/json",
         headers={
             "Content-Disposition": (
@@ -238,11 +310,12 @@ def compare_resume_revisions_route(
     base_revision: int,
     target_revision: int,
     session: SessionDep,
+    locale: str | None = None,
 ) -> dict:
     """Compare two snapshots for the same resume."""
     _get_resume(session, resume_id)
     payload = compare_resume_revisions(
-        session, resume_id, base_revision, target_revision
+        session, resume_id, base_revision, target_revision, locale=locale
     )
     if not payload:
         raise HTTPException(status_code=404, detail="Revision not found.")
@@ -250,9 +323,11 @@ def compare_resume_revisions_route(
 
 
 @router.get("/{resume_id}/export-markdown")
-def export_resume_markdown(resume_id: int, session: SessionDep) -> Response:
+def export_resume_markdown(
+    resume_id: int, session: SessionDep, locale: str | None = None
+) -> Response:
     """Return a resume document Markdown export."""
-    record = _get_resume(session, resume_id)
+    record = localized_resume_record(_get_resume(session, resume_id), locale=locale)
     return Response(
         content=resume_to_markdown(record),
         media_type="text/markdown; charset=utf-8",
@@ -265,9 +340,11 @@ def export_resume_markdown(resume_id: int, session: SessionDep) -> Response:
 
 
 @router.get("/{resume_id}/export-latex")
-def export_resume_latex(resume_id: int, session: SessionDep) -> Response:
+def export_resume_latex(
+    resume_id: int, session: SessionDep, locale: str | None = None
+) -> Response:
     """Return a resume document LaTeX export."""
-    record = _get_resume(session, resume_id)
+    record = localized_resume_record(_get_resume(session, resume_id), locale=locale)
     return Response(
         content=resume_to_latex(record),
         media_type="application/x-latex; charset=utf-8",
@@ -280,9 +357,11 @@ def export_resume_latex(resume_id: int, session: SessionDep) -> Response:
 
 
 @router.get("/{resume_id}/export-typst")
-def export_resume_typst(resume_id: int, session: SessionDep) -> Response:
+def export_resume_typst(
+    resume_id: int, session: SessionDep, locale: str | None = None
+) -> Response:
     """Return a resume document Typst export."""
-    record = _get_resume(session, resume_id)
+    record = localized_resume_record(_get_resume(session, resume_id), locale=locale)
     return Response(
         content=resume_to_typst(record),
         media_type="text/typst; charset=utf-8",
@@ -295,9 +374,11 @@ def export_resume_typst(resume_id: int, session: SessionDep) -> Response:
 
 
 @router.get("/{resume_id}/export-html")
-def export_resume_html(resume_id: int, session: SessionDep) -> Response:
+def export_resume_html(
+    resume_id: int, session: SessionDep, locale: str | None = None
+) -> Response:
     """Return a standalone resume document HTML export."""
-    record = _get_resume(session, resume_id)
+    record = localized_resume_record(_get_resume(session, resume_id), locale=locale)
     return Response(
         content=resume_to_html(record),
         media_type="text/html; charset=utf-8",
@@ -310,9 +391,11 @@ def export_resume_html(resume_id: int, session: SessionDep) -> Response:
 
 
 @router.get("/{resume_id}/export-docx")
-def export_resume_docx(resume_id: int, session: SessionDep) -> Response:
+def export_resume_docx(
+    resume_id: int, session: SessionDep, locale: str | None = None
+) -> Response:
     """Return a recruiter-friendly DOCX resume export."""
-    record = _get_resume(session, resume_id)
+    record = localized_resume_record(_get_resume(session, resume_id), locale=locale)
     return Response(
         content=resume_to_docx(record),
         media_type=(

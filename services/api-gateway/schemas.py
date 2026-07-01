@@ -611,9 +611,17 @@ class ResumeUpdateRequest(BaseModel):
 
     name: str | None = Field(default=None, min_length=1)
     cv_data: CVDataModel | None = None
+    target_locale: str | None = None
     template_id: str | None = None
     locale: str | None = None
     source: str | None = None
+
+
+class ResumeLocaleCreateRequest(BaseModel):
+    """Create a new locale variant for an existing resume."""
+
+    locale: Literal["fr", "en", "de", "es"]
+    source_locale: Literal["fr", "en", "de", "es"] | None = None
 
 
 class ResumeImportRequest(BaseModel):

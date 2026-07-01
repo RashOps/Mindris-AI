@@ -343,7 +343,12 @@ export interface ResumeDocument {
   name: string;
   cvData: CVData;
   templateId: string;
-  locale: 'fr' | 'en';
+  locale: 'fr' | 'en' | 'de' | 'es';
+  multilingual: {
+    defaultLocale: 'fr' | 'en' | 'de' | 'es';
+    activeLocale: 'fr' | 'en' | 'de' | 'es';
+    availableLocales: Array<'fr' | 'en' | 'de' | 'es'>;
+  };
   revision?: number;
   createdAt: string;
   updatedAt: string;
@@ -394,6 +399,9 @@ interface CVStore {
   deleteResume: (id: string) => Promise<void>;
   renameResume: (id: string, name: string) => void;
   setActiveResume: (id: string) => void;
+  createResumeLocale: (locale: 'fr' | 'en' | 'de' | 'es', sourceLocale?: 'fr' | 'en' | 'de' | 'es') => Promise<void>;
+  activateResumeLocale: (locale: 'fr' | 'en' | 'de' | 'es') => Promise<void>;
+  deleteResumeLocale: (locale: 'fr' | 'en' | 'de' | 'es') => Promise<void>;
   exportActiveResume: () => Promise<ResumeDocument>;
   flushResumeSave: () => Promise<void>;
   retryResumeSave: () => Promise<void>;
@@ -645,8 +653,17 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
-function resumeLocaleFromCVData(cvData: CVData): 'fr' | 'en' {
-  return cvData.global_settings?.locale?.label_language === 'en' ? 'en' : 'fr';
+function normalizeResumeLocale(
+  value: unknown,
+  fallback: 'fr' | 'en' | 'de' | 'es' = 'fr',
+): 'fr' | 'en' | 'de' | 'es' {
+  return value === 'fr' || value === 'en' || value === 'de' || value === 'es'
+    ? value
+    : fallback;
+}
+
+function resumeLocaleFromCVData(cvData: CVData): 'fr' | 'en' | 'de' | 'es' {
+  return normalizeResumeLocale(cvData.global_settings?.locale?.label_language, 'fr');
 }
 
 function errorMessage(error: unknown): string {
@@ -655,18 +672,59 @@ function errorMessage(error: unknown): string {
 
 function createResumeDocument(name: string, cvData: CVData): ResumeDocument {
   const timestamp = nowIso();
+  const normalized = normalizeCVData(cvData);
+  const locale = resumeLocaleFromCVData(normalized);
   return {
     id: uid(),
     name,
-    cvData: normalizeCVData(cvData),
-    templateId: cvData.global_settings.template_id || 'modern',
-    locale: resumeLocaleFromCVData(normalizeCVData(cvData)),
+    cvData: normalized,
+    templateId: normalized.global_settings.template_id || 'modern',
+    locale,
+    multilingual: {
+      defaultLocale: locale,
+      activeLocale: locale,
+      availableLocales: [locale],
+    },
     createdAt: timestamp,
     updatedAt: timestamp,
   };
 }
 
 const initialResume = createResumeDocument('CV principal', initialCV);
+
+export function normalizeResumeDocument(data: Partial<ResumeDocument>): ResumeDocument {
+  const locale = normalizeResumeLocale(
+    data.locale ?? data.cvData?.global_settings?.locale?.label_language,
+    'fr',
+  );
+  const templateId =
+    data.templateId ||
+    data.cvData?.global_settings?.template_id ||
+    'modern';
+  const multilingual = data.multilingual;
+  const activeLocale = normalizeResumeLocale(multilingual?.activeLocale, locale);
+  const defaultLocale = normalizeResumeLocale(multilingual?.defaultLocale, locale);
+  const availableLocales = Array.isArray(multilingual?.availableLocales)
+    ? multilingual.availableLocales.map((item) => normalizeResumeLocale(item, locale))
+    : [defaultLocale];
+  const uniqueLocales = Array.from(new Set([defaultLocale, activeLocale, ...availableLocales]));
+  const cvData = normalizeCVData(data.cvData, templateId);
+  return {
+    id: data.id ?? uid(),
+    name: data.name?.trim() || 'Untitled CV',
+    cvData,
+    templateId,
+    locale,
+    multilingual: {
+      defaultLocale,
+      activeLocale,
+      availableLocales: uniqueLocales,
+    },
+    revision: data.revision,
+    createdAt: data.createdAt ?? nowIso(),
+    updatedAt: data.updatedAt ?? nowIso(),
+  };
+}
 
 function syncActiveResume(state: CVStore, cvData: CVData): Pick<CVStore, 'cvData' | 'resumes'> {
   const timestamp = nowIso();
@@ -684,7 +742,7 @@ function syncActiveResume(state: CVStore, cvData: CVData): Pick<CVStore, 'cvData
     ...activeResume,
     cvData: normalized,
     templateId: normalized.global_settings.template_id || activeResume.templateId,
-    locale: resumeLocaleFromCVData(normalized),
+    locale: activeResume.locale,
     updatedAt: timestamp,
   };
 
@@ -693,6 +751,7 @@ function syncActiveResume(state: CVStore, cvData: CVData): Pick<CVStore, 'cvData
     cvData: updatedResume.cvData,
     templateId: updatedResume.templateId,
     locale: updatedResume.locale,
+    multilingual: updatedResume.multilingual,
   });
 
   return {
@@ -725,6 +784,7 @@ async function persistResume(resumeId: string, patch: Partial<ResumeDocument>) {
       cv_data: patch.cvData,
       template_id: patch.templateId,
       locale: patch.locale,
+      target_locale: patch.multilingual?.activeLocale,
       source: 'editor',
     }),
   });
@@ -771,10 +831,12 @@ async function saveResumeSnapshot(snapshot: PendingResumeSave) {
     if (snapshot.revision === resumeSaveRevision) {
       useCVStore.setState((state) => ({
         resumes: state.resumes.map((resume) =>
-          resume.id === data.item.id ? data.item : resume
+          resume.id === data.item.id ? normalizeResumeDocument(data.item) : resume
         ),
         cvData:
-          state.activeResumeId === data.item.id ? data.item.cvData : state.cvData,
+          state.activeResumeId === data.item.id
+            ? normalizeResumeDocument(data.item).cvData
+            : state.cvData,
         resumeSaveStatus: 'saved',
         resumeSaveError: null,
         lastResumeSavedAt: nowIso(),
@@ -843,12 +905,9 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       const activeResume =
         data.items.find((resume) => resume.id === activeId) ?? data.items[0];
       set({
-        resumes: data.items.map((resume) => ({
-          ...resume,
-          cvData: normalizeCVData(resume.cvData, resume.templateId),
-        })),
+        resumes: data.items.map((resume) => normalizeResumeDocument(resume)),
         activeResumeId: activeResume.id,
-        cvData: normalizeCVData(activeResume.cvData, activeResume.templateId),
+        cvData: normalizeResumeDocument(activeResume).cvData,
         jobInsights: null,
         resumeSaveStatus: 'idle',
         resumeSaveError: null,
@@ -872,11 +931,11 @@ export const useCVStore = create<CVStore>()((set, get) => ({
     });
     set((state) => ({
       resumes: [
-        { ...data.item, cvData: normalizeCVData(data.item.cvData, data.item.templateId) },
+        normalizeResumeDocument(data.item),
         ...state.resumes,
       ],
       activeResumeId: data.item.id,
-      cvData: normalizeCVData(data.item.cvData, data.item.templateId),
+      cvData: normalizeResumeDocument(data.item).cvData,
       jobInsights: null,
       resumeSaveStatus: 'saved',
       resumeSaveError: null,
@@ -896,11 +955,11 @@ export const useCVStore = create<CVStore>()((set, get) => ({
     });
     set((state) => ({
       resumes: [
-        { ...data.item, cvData: normalizeCVData(data.item.cvData, data.item.templateId) },
+        normalizeResumeDocument(data.item),
         ...state.resumes,
       ],
       activeResumeId: data.item.id,
-      cvData: normalizeCVData(data.item.cvData, data.item.templateId),
+      cvData: normalizeResumeDocument(data.item).cvData,
       jobInsights: null,
       resumeSaveStatus: 'saved',
       resumeSaveError: null,
@@ -917,11 +976,11 @@ export const useCVStore = create<CVStore>()((set, get) => ({
     );
     set((state) => ({
       resumes: [
-        { ...data.item, cvData: normalizeCVData(data.item.cvData, data.item.templateId) },
+        normalizeResumeDocument(data.item),
         ...state.resumes,
       ],
       activeResumeId: data.item.id,
-      cvData: normalizeCVData(data.item.cvData, data.item.templateId),
+      cvData: normalizeResumeDocument(data.item).cvData,
       jobInsights: null,
       resumeSaveStatus: 'saved',
       resumeSaveError: null,
@@ -972,6 +1031,73 @@ export const useCVStore = create<CVStore>()((set, get) => ({
         jobInsights: null,
       };
     }),
+
+  createResumeLocale: async (locale, sourceLocale) => {
+    await flushPendingResumeSave();
+    const state = get();
+    const data = await requestJson<{ item: ResumeDocument }>(
+      `/api/v1/resumes/${state.activeResumeId}/locales`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          locale,
+          source_locale: sourceLocale,
+        }),
+      },
+    );
+    const normalized = normalizeResumeDocument(data.item);
+    set((current) => ({
+      resumes: current.resumes.map((resume) =>
+        resume.id === normalized.id ? normalized : resume
+      ),
+      cvData: current.activeResumeId === normalized.id ? normalized.cvData : current.cvData,
+      resumeSaveStatus: 'saved',
+      resumeSaveError: null,
+      lastResumeSavedAt: nowIso(),
+    }));
+  },
+
+  activateResumeLocale: async (locale) => {
+    await flushPendingResumeSave();
+    const state = get();
+    const data = await requestJson<{ item: ResumeDocument }>(
+      `/api/v1/resumes/${state.activeResumeId}/locales/${locale}/activate`,
+      {
+        method: 'POST',
+      },
+    );
+    const normalized = normalizeResumeDocument(data.item);
+    set((current) => ({
+      resumes: current.resumes.map((resume) =>
+        resume.id === normalized.id ? normalized : resume
+      ),
+      cvData: current.activeResumeId === normalized.id ? normalized.cvData : current.cvData,
+      resumeSaveStatus: 'saved',
+      resumeSaveError: null,
+      lastResumeSavedAt: nowIso(),
+    }));
+  },
+
+  deleteResumeLocale: async (locale) => {
+    await flushPendingResumeSave();
+    const state = get();
+    const data = await requestJson<{ item: ResumeDocument }>(
+      `/api/v1/resumes/${state.activeResumeId}/locales/${locale}`,
+      {
+        method: 'DELETE',
+      },
+    );
+    const normalized = normalizeResumeDocument(data.item);
+    set((current) => ({
+      resumes: current.resumes.map((resume) =>
+        resume.id === normalized.id ? normalized : resume
+      ),
+      cvData: current.activeResumeId === normalized.id ? normalized.cvData : current.cvData,
+      resumeSaveStatus: 'saved',
+      resumeSaveError: null,
+      lastResumeSavedAt: nowIso(),
+    }));
+  },
 
   exportActiveResume: async () => {
     await flushPendingResumeSave();
