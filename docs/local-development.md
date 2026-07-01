@@ -86,8 +86,11 @@ Une fois les trois services lances et le smoke check OK :
 
 Ce parcours automatise :
 
+- import d'un community template package ;
+- export du package depuis le dashboard ;
 - creation d'un CV fixture via l'API ;
 - ouverture du CV Builder ;
+- creation et activation d'une variante multilingue FR/EN ;
 - changement de template ;
 - export DOCX ;
 - export PDF via le renderer ;
@@ -102,6 +105,18 @@ RENDERER_URL=http://localhost:4010 \
 WEB_URL=http://localhost:3010 \
 ./scripts/smoke_local.sh
 ```
+
+## Job navigateur manuel en CI
+
+Le workflow GitHub Actions expose aussi un job manuel `browser-e2e` via `workflow_dispatch`.
+
+Il :
+
+- installe les dependances `uv` et `bun` ;
+- lance la stack locale via `./scripts/dev_local.sh` ;
+- attend le `smoke_local.sh` ;
+- execute `./scripts/e2e_browser.sh` ;
+- publie les logs `.logs` en artefact.
 
 ## Notes
 
