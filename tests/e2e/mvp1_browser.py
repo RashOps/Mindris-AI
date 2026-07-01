@@ -159,7 +159,7 @@ def seed_resume(api_url: str, api_key: str, unique: str) -> str:
             "name": f"E2E Resume {unique}",
             "cv_data": sample_cv(unique),
             "template_id": "modern",
-            "locale": "en",
+            "locale": "fr",
             "source": "e2e",
         },
     )
@@ -255,6 +255,16 @@ def run(args: argparse.Namespace) -> None:
         expect(page.locator('select[title="Active resume"]')).to_have_value(
             resume_id,
             timeout=20_000,
+        )
+        page.locator('select[title="Select a new locale variant"]').select_option("en")
+        page.locator(
+            'button[title="Create a locale variant from the active locale"]'
+        ).click()
+        expect(page.locator('button[title="Switch to EN"]')).to_be_visible(timeout=10_000)
+        page.locator('button[title="Switch to EN"]').click()
+        expect(page.locator('button[title="Switch to EN"]')).to_have_css(
+            "background-color",
+            "rgb(15, 23, 42)",
         )
         expect(page.get_by_role("button", name="Style")).to_be_visible()
         page.get_by_role("button", name="Style").click()

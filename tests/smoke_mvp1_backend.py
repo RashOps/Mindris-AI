@@ -26,7 +26,9 @@ from exporters import (  # noqa: E402
     resume_to_typst,
 )
 from persistence import (  # noqa: E402
+    create_resume_locale_variant,
     create_resume,
+    localized_resume_record,
     serialize_draft,
     update_resume,
     upsert_workspace_draft,
@@ -153,6 +155,35 @@ def main() -> None:
             if document.index("Projets") > document.index("Parcours professionnel"):
                 raise SystemExit("DOCX ordering smoke check failed.")
         update_resume(session, resume, name="Phase 5 CV Updated")
+        create_resume_locale_variant(
+            session,
+            resume,
+            locale="en",
+            source_locale="fr",
+        )
+        resume = update_resume(
+            session,
+            resume,
+            cv_data={
+                **cv_data,
+                "global_settings": {
+                    **cv_data["global_settings"],
+                    "locale": {"label_language": "en"},
+                },
+                "profile": {
+                    **cv_data["profile"],
+                    "full_name": "Phase 5 EN",
+                    "title": "QA EN",
+                },
+            },
+            target_locale="en",
+            source="smoke",
+        )
+        localized_markdown = resume_to_markdown(
+            localized_resume_record(resume, locale="en")
+        )
+        if "# Phase 5 EN" not in localized_markdown:
+            raise SystemExit("Localized Markdown export smoke check failed.")
         draft = upsert_workspace_draft(
             session,
             draft_key="phase5",

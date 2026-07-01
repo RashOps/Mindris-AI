@@ -530,6 +530,110 @@ def test_resume_revision_comparison_returns_semantic_diff() -> None:
         assert any("experience" in change["path"] for change in compare["changes"])
 
 
+def test_resume_exports_resolve_selected_locale_variant() -> None:
+    with _session() as session:
+        created = create_resume_route(
+            ResumeCreateRequest(
+                name="Localized Export CV",
+                cv_data=_cv_payload("modern"),
+                template_id="modern",
+            ),
+            session,
+        )["item"]
+
+        create_resume_locale_route(
+            int(created["id"]),
+            ResumeLocaleCreateRequest(locale="en", source_locale="fr"),
+            session,
+        )
+        en_payload = _cv_payload("modern")
+        en_payload["global_settings"]["locale"] = {"label_language": "en"}
+        en_payload["profile"]["full_name"] = "Ada Lovelace EN"
+        en_payload["profile"]["title"] = "Platform Engineer EN"
+        update_resume_route(
+            int(created["id"]),
+            ResumeUpdateRequest(cv_data=en_payload, target_locale="en"),
+            session,
+        )
+
+        markdown_fr = export_resume_markdown(int(created["id"]), session).body.decode()
+        markdown_en = export_resume_markdown(
+            int(created["id"]),
+            session,
+            locale="en",
+        ).body.decode()
+        html_en = export_resume_html(
+            int(created["id"]),
+            session,
+            locale="en",
+        ).body.decode()
+
+        assert "# Ada Lovelace" in markdown_fr
+        assert "# Ada Lovelace EN" in markdown_en
+        assert "Platform Engineer EN" in markdown_en
+        assert "Ada Lovelace EN" in html_en
+        assert "<html lang=\"en\">" in html_en
+
+
+def test_resume_revision_compare_can_target_locale_variant() -> None:
+    with _session() as session:
+        created = create_resume_route(
+            ResumeCreateRequest(
+                name="Locale Diff CV",
+                cv_data=_cv_payload("modern"),
+                template_id="modern",
+            ),
+            session,
+        )["item"]
+
+        create_resume_locale_route(
+            int(created["id"]),
+            ResumeLocaleCreateRequest(locale="en", source_locale="fr"),
+            session,
+        )
+        update_resume_route(
+            int(created["id"]),
+            ResumeUpdateRequest(
+                cv_data={
+                    **_cv_payload("modern"),
+                    "global_settings": {
+                        **_cv_payload("modern")["global_settings"],
+                        "locale": {"label_language": "en"},
+                    },
+                    "profile": {
+                        **_cv_payload("modern")["profile"],
+                        "title": "Platform Engineer EN",
+                    },
+                },
+                target_locale="en",
+            ),
+            session,
+        )
+
+        revisions = list_resume_revisions_route(int(created["id"]), session)["items"]
+        newest = revisions[0]["revision"]
+        older = next(
+            item["revision"]
+            for item in reversed(revisions)
+            if item["locale"] == "en"
+        )
+        compare = compare_resume_revisions_route(
+            int(created["id"]),
+            base_revision=older,
+            target_revision=newest,
+            session=session,
+            locale="en",
+        )["item"]
+
+        assert compare["baseRevision"]["locale"] == "en"
+        assert compare["targetRevision"]["locale"] == "en"
+        assert any(
+            change["path"] == "profile.title"
+            and change["after"] == "Platform Engineer EN"
+            for change in compare["changes"]
+        )
+
+
 def test_resume_create_migrates_legacy_global_settings_direct_route() -> None:
     payload = _cv_payload("modern")
     payload["global_settings"].update(
