@@ -31,3 +31,9 @@ export function eventSourceUrl(path: string): string {
   url.searchParams.set("api_key", API_KEY);
   return url.toString();
 }
+
+export function authenticatedApiUrl(path: string): string {
+  const url = new URL(apiUrl(path));
+  url.searchParams.set("api_key", API_KEY);
+  return url.toString();
+}

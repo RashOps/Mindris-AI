@@ -654,6 +654,27 @@ class TemplateCatalogItem(BaseModel):
     preset_settings: dict[str, Any] = Field(default_factory=dict)
 
 
+class CommunityTemplateManifest(BaseModel):
+    """Portable community template package manifest."""
+
+    id: str = Field(min_length=3)
+    name: str = Field(min_length=1)
+    version: str = Field(min_length=1)
+    author: str = Field(min_length=1)
+    license: str = Field(min_length=1)
+    description: str = Field(min_length=1)
+    category: str = Field(min_length=1)
+    tags: list[str] = Field(default_factory=list)
+    engine_version: Literal["1"]
+
+
+class CommunityTemplateConfig(BaseModel):
+    """Portable community template rendering config."""
+
+    base_template_id: str = Field(min_length=1)
+    preset_settings: dict[str, Any] = Field(default_factory=dict)
+
+
 class ResumeRevisionItem(BaseModel):
     """Snapshot entry returned by the resume versioning API."""
 

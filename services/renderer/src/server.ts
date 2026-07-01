@@ -1,17 +1,30 @@
 import { buildRendererApp } from "./app";
 import { createRendererLogger } from "./logger";
 
-const PORT = 4000;
-const BASE_URL = `http://localhost:${PORT}`;
+export function resolveRendererPort(value: string | undefined): number {
+    const parsed = Number.parseInt(value ?? "", 10);
+    if (Number.isNaN(parsed) || parsed <= 0) {
+        return 4000;
+    }
+    return parsed;
+}
 
-const app = buildRendererApp(BASE_URL);
-const logger = createRendererLogger();
+export async function startRendererServer(): Promise<void> {
+    const port = resolveRendererPort(process.env.PORT);
+    const baseUrl = `http://localhost:${port}`;
+    const app = buildRendererApp(baseUrl);
+    const logger = createRendererLogger();
 
-app.listen(PORT);
+    app.listen(port);
 
-await logger.log({
-    level: "info",
-    event: "server.started",
-    message: "Renderer started",
-    route: BASE_URL,
-});
+    await logger.log({
+        level: "info",
+        event: "server.started",
+        message: "Renderer started",
+        route: baseUrl,
+    });
+}
+
+if (import.meta.main) {
+    await startRendererServer();
+}

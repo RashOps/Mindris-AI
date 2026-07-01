@@ -218,18 +218,21 @@ export default function TrackerPage() {
                 value={draft.company}
                 onChange={(e) => setDraft({ ...draft, company: e.target.value })}
                 placeholder="Company"
+                data-testid="tracker-company-input"
                 className="h-10 border-slate-300 bg-white text-slate-800 shadow-sm placeholder:text-slate-400 focus-visible:border-slate-500"
               />
               <Input
                 value={draft.role}
                 onChange={(e) => setDraft({ ...draft, role: e.target.value })}
                 placeholder="Role"
+                data-testid="tracker-role-input"
                 className="h-10 border-slate-300 bg-white text-slate-800 shadow-sm placeholder:text-slate-400 focus-visible:border-slate-500"
               />
               <Input
                 value={draft.url}
                 onChange={(e) => setDraft({ ...draft, url: e.target.value })}
                 placeholder="Job URL"
+                data-testid="tracker-url-input"
                 className="h-10 border-slate-300 bg-white text-slate-800 shadow-sm placeholder:text-slate-400 focus-visible:border-slate-500"
               />
             </div>
@@ -243,6 +246,7 @@ export default function TrackerPage() {
               <Button
                 onClick={create}
                 disabled={isSubmitting || !canCreate}
+                data-testid="tracker-add-button"
                 className="h-10 cursor-pointer px-4 disabled:cursor-not-allowed"
                 title={!canCreate ? "Company and role are required" : "Add application"}
               >

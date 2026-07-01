@@ -307,4 +307,26 @@ describe("generateHtml semantic sections", () => {
     expect(html).toContain("advanced-css-warning");
     expect(html).toContain("Advanced CSS dropped unsupported rules");
   });
+
+  test("sanitizes community-template css passed through advanced css defaults", () => {
+    const html = generateHtml(
+      {
+        ...baseCv,
+        global_settings: {
+          ...baseCv.global_settings,
+          advanced_css: {
+            enabled: true,
+            mode: "css_patch",
+            css_text: ":host { --primary-color: #0f766e; }\nbody { color: red; }\n[data-section-type='experience'] { background: url(https://evil.test/a.png); }",
+          },
+        },
+      },
+      "modern",
+    );
+
+    expect(html).toContain("--primary-color: #0f766e;");
+    expect(html).not.toContain("body { color: red; }");
+    expect(html).not.toContain("url(https://evil.test/a.png)");
+    expect(html).toContain("Advanced CSS dropped unsupported rules.");
+  });
 });

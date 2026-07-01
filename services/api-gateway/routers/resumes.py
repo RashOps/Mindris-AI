@@ -93,7 +93,9 @@ def create_resume_route(request: ResumeCreateRequest, session: SessionDep) -> di
     logger.info("Creating resume '%s'", request.name)
     cv_data = request.cv_data.model_dump(mode="json")
     cv_data = apply_template_defaults(
-        cv_data, request.template_id or _template_id(cv_data)
+        cv_data,
+        request.template_id or _template_id(cv_data),
+        session=session,
     )
     record = create_resume(
         session,
@@ -125,7 +127,11 @@ def update_resume_route(
     logger.info("Updating resume %s", resume_id)
     cv_data = request.cv_data.model_dump(mode="json") if request.cv_data else None
     if cv_data is not None and request.template_id:
-        cv_data = apply_template_defaults(cv_data, request.template_id)
+        cv_data = apply_template_defaults(
+            cv_data,
+            request.template_id,
+            session=session,
+        )
     record = update_resume(
         session,
         _get_resume(session, resume_id),
