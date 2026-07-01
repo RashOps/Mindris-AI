@@ -14,7 +14,7 @@ spec: `docs/staging/specs/2026-07-02-foundation-hardening-and-product-roadmap.md
   acceptance: `cd apps/web && bun run lint && bun run typecheck && bun test src/store/useCVStore.test.ts`
   spec: `docs/staging/specs/2026-07-02-foundation-hardening-and-product-roadmap.md#foundation-hardening-and-product-roadmap`
 
-- [ ] T3: Secret redaction and runtime trust-boundary hardening
+- [x] T3: Secret redaction and runtime trust-boundary hardening
   goal: Ensure secrets never leak through logs or API reads, and tighten runtime validation around local auth and provider configuration.
   files: `packages/utils/logger.py`, `packages/utils/config.py`, `services/api-gateway/auth.py`, `tests/test_logger.py`, `tests/test_system_api.py`
   acceptance: `UV_CACHE_DIR=/tmp/uv-cache uv run --no-sync pytest tests/test_logger.py tests/test_system_api.py -q`
