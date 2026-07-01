@@ -251,6 +251,22 @@ export interface AppSettings {
   pdf_ingestion_mode: PdfIngestionMode;
 }
 
+interface BackendTaskConfig {
+  provider?: unknown;
+  model_name?: unknown;
+}
+
+interface BackendSystemConfiguration {
+  app?: {
+    defaults?: Record<string, BackendTaskConfig>;
+    pdf_ingestion_mode?: unknown;
+  };
+  llm?: {
+    defaults?: Record<string, BackendTaskConfig>;
+    providers?: Record<string, unknown>;
+  };
+}
+
 const APP_SETTINGS_STORAGE_KEY = 'mindris:app-settings:v1';
 
 const DEFAULT_APP_SETTINGS: AppSettings = {
@@ -274,6 +290,19 @@ export function normalizeAppSettings(value: unknown): AppSettings {
       DEFAULT_APP_SETTINGS.pdf_ingestion_mode,
     ),
   };
+}
+
+export function systemConfigurationToAppSettings(
+  value: BackendSystemConfiguration | null | undefined,
+): AppSettings {
+  const defaults = value?.app?.defaults ?? value?.llm?.defaults ?? {};
+  return normalizeAppSettings({
+    optimize_llm: defaults.optimize,
+    cover_letter_llm: defaults.cover_letter,
+    ats_llm: defaults.ats_score,
+    patch_llm: defaults.patch,
+    pdf_ingestion_mode: value?.app?.pdf_ingestion_mode,
+  });
 }
 
 function normalizeLLMConfig(value: unknown, fallback: LLMConfig): LLMConfig {
@@ -422,6 +451,7 @@ interface CVStore {
   // App settings (multi-LLM per task)
   appSettings: AppSettings;
   setAppSettings: (s: Partial<AppSettings>) => void;
+  hydrateAppSettings: () => Promise<void>;
 
   // Generic setters
   setGlobalSettings: (s: Partial<GlobalSettings>) => void;
@@ -1167,6 +1197,18 @@ export const useCVStore = create<CVStore>()((set, get) => ({
     persistAppSettings(next);
     return { appSettings: next };
   }),
+  hydrateAppSettings: async () => {
+    try {
+      const data = await requestJson<{ item: BackendSystemConfiguration }>(
+        "/api/v1/system/configuration",
+      );
+      const next = systemConfigurationToAppSettings(data.item);
+      persistAppSettings(next);
+      set({ appSettings: next });
+    } catch {
+      // Keep local cache/defaults when backend configuration is temporarily unavailable.
+    }
+  },
 
   setGlobalSettings: (s) =>
     set((state) =>

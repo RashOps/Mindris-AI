@@ -97,3 +97,38 @@
 - [x] **Format de template communautaire :** Definir un package import/export avec manifeste, metadonnees, preset settings, CSS autorise et preview.
 - [x] **Import/export de templates :** Permettre de telecharger, installer, exporter et reinstaller un template sans edition manuelle fragile.
 - [x] **Contribution flow & marketplace bootstrap :** Preparer le circuit auteur -> publication -> installation Mindris avec validation et moderation minimales.
+
+## 🔵 Phase 14 : Security & Secret Boundary Hardening
+- [ ] **BYOK securise via UI :** Saisie backend-owned, secrets masques, write-only, redaction logs.
+- [ ] **Audit des frontieres de confiance :** Uploads, templates, exports, auth locale, hygiene CI/release.
+- [ ] **Hygiène repo & contribution :** Purge des fichiers morts, repurposing utile, `AGENTS.md`.
+
+## 🔵 Phase 15 : Configuration & Local Runtime Control
+- [ ] **Section Configuration AppShell :** Providers, modeles, toggles runtime et etat applicatif.
+- [ ] **Detection Ollama locale :** Probe backend des modeles installes et selection assistee.
+- [ ] **Ergonomie dev locale :** Reload Bun en developpement et diagnostics runtime.
+
+## 🔵 Phase 16 : ATS Transparency & Evaluation Integrity
+- [ ] **Rubric ATS explicite :** Methode de scoring visible, severites et deductions.
+- [ ] **Modes d'evaluation :** Standard vs strict ATS avec preuves et explications.
+- [ ] **Traçabilite des scores :** Lien score ↔ CV ↔ offre ↔ contexte d'evaluation.
+
+## 🔵 Phase 17 : Unified Activity History
+- [ ] **Ledger d'activite backend :** Historique unifie scrapes, CV, LM, ATS, tracker, LLM runs.
+- [ ] **Lineage des artefacts :** Liens entre opportunites, revisions de CV, LM et rapports.
+- [ ] **UI d'audit :** Consultation et filtrage de l'historique depuis l'application.
+
+## 🔵 Phase 18 : Workflow Automation
+- [ ] **Opportunity workflow :** Scrape -> opportunite -> CV lie -> LM liee -> tracker.
+- [ ] **Automatisation explicite :** Creation guidee des artefacts avec etats metier auditable.
+- [ ] **Rappels & relances :** Taches de suivi integrees au Job Tracker.
+
+## 🔵 Phase 19 : Recruiter Intelligence Layer
+- [ ] **Enrichissement entreprise :** Profil borne de l'entreprise et contexte de recrutement.
+- [ ] **Role-fit hints :** Signaux utiles pour adapter CV et LM.
+- [ ] **Risk & unknowns :** Alertes sur zones d'incertitude ou signaux faibles.
+
+## 🔵 Phase 20 : Product Polish & Secondary UX
+- [ ] **Guide interne Mindris :** Aide produit integree et contextuelle dans l'AppShell.
+- [ ] **Theme system :** Dark/light mode aligne au design system.
+- [ ] **Markdown workspace plus riche :** Export DOCX et finitions du convertisseur.

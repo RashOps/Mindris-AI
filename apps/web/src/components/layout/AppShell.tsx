@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronLeft, ChevronRight, Menu, Server, X } from "lucide-react";
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 
+import { ConfigurationDrawer } from "@/components/settings/ConfigurationDrawer";
 import { Button } from "@/components/ui/button";
 import { APP_NAV_ITEMS, SIDEBAR_WIDTH_EXPANDED } from "@/config/layout";
 import { cn } from "@/lib/utils";
 import { RuntimeGate } from "@/components/layout/RuntimeGate";
+import { useCVStore } from "@/store/useCVStore";
 
 interface AppShellProps {
   children: ReactNode;
@@ -81,9 +83,14 @@ export function AppShell({
   actions,
   contentClassName,
 }: AppShellProps) {
+  const hydrateAppSettings = useCVStore((state) => state.hydrateAppSettings);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [desktopCollapsed, setDesktopCollapsed] = useState(false);
   const sidebarWidth = desktopCollapsed ? 72 : SIDEBAR_WIDTH_EXPANDED;
+
+  useEffect(() => {
+    void hydrateAppSettings();
+  }, [hydrateAppSettings]);
 
   return (
     <RuntimeGate>
@@ -170,7 +177,10 @@ export function AppShell({
                   )}
                 </div>
               </div>
-              {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+              <div className="flex shrink-0 items-center gap-2">
+                {actions}
+                <ConfigurationDrawer />
+              </div>
             </div>
           </header>
           <main className={cn("min-h-[calc(100vh-4rem)]", contentClassName)}>
