@@ -6,6 +6,26 @@ All notable changes to Mindris AI are documented here.
 
 No unreleased changes.
 
+## v0.3.0 - 2026-07-02
+
+### Added
+
+- Portable community template packages with manifest validation, backend import/export, preview delivery, and dashboard install/export flows.
+- Browser E2E coverage for community templates, CV Builder, multilingual FR/EN variant handling, exports, ATS fixture flow, and Job Tracker.
+- Manual CI `browser-e2e` workflow for stack-level regression checks with log artifact upload.
+- Stable frontend test selectors for template, locale, and tracker critical actions.
+
+### Fixed
+
+- Community template preview routing now supports namespaced template ids containing `/`.
+- Community template previews now load through authenticated browser-safe URLs and reject invalid PNG payloads server-side.
+- Dashboard revision calls no longer hit backend endpoints with temporary non-persisted local resume ids.
+- Renderer startup now respects `PORT`, making alternate local port runs behave as documented.
+
+### Verified
+
+- Run 13 QA hardening and community templates is complete with green local smoke, backend validation, frontend lint/typecheck, renderer tests, and browser E2E.
+
 ## v0.2.0 - 2026-06-30
 
 ### Added

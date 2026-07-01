@@ -36,7 +36,7 @@ export function buildOpenApiDocument(serverUrl: string): OpenApiDocument {
         openapi: "3.1.0",
         info: {
             title: "Mindris Renderer API",
-            version: "0.2.0",
+            version: "0.3.0",
             description: "Renderer service for CV PDF generation and Markdown to PDF conversion.",
         },
         servers: [{ url: serverUrl }],

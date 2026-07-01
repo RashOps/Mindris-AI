@@ -91,9 +91,9 @@
 - [x] **Compatibilite ascendante :** Migrer les resumes mono-langue existants sans rupture de contrat.
 
 ## 🔵 Phase 13 : QA Hardening & Community Templates
-- [ ] **E2E navigateur en CI ou job manuel :** Executer automatiquement les parcours critiques sur stack locale ou pipeline dedie.
-- [ ] **Couverture multilingue :** Verifier explicitement les flows FR/EN et les regressions de variantes de langue.
-- [ ] **Selecteurs UI robustes :** Durcir les affordances et les tests pour eviter les collisions de labels dans Playwright.
-- [ ] **Format de template communautaire :** Definir un package import/export avec manifeste, metadonnees, preset settings, CSS autorise et preview.
-- [ ] **Import/export de templates :** Permettre de telecharger, installer, exporter et reinstaller un template sans edition manuelle fragile.
-- [ ] **Contribution flow & marketplace bootstrap :** Preparer le circuit auteur -> publication -> installation Mindris avec validation et moderation minimales.
+- [x] **E2E navigateur en CI ou job manuel :** Executer automatiquement les parcours critiques sur stack locale ou pipeline dedie.
+- [x] **Couverture multilingue :** Verifier explicitement les flows FR/EN et les regressions de variantes de langue.
+- [x] **Selecteurs UI robustes :** Durcir les affordances et les tests pour eviter les collisions de labels dans Playwright.
+- [x] **Format de template communautaire :** Definir un package import/export avec manifeste, metadonnees, preset settings, CSS autorise et preview.
+- [x] **Import/export de templates :** Permettre de telecharger, installer, exporter et reinstaller un template sans edition manuelle fragile.
+- [x] **Contribution flow & marketplace bootstrap :** Preparer le circuit auteur -> publication -> installation Mindris avec validation et moderation minimales.
