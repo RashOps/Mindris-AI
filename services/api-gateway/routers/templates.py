@@ -143,6 +143,38 @@ def _read_package_json(archive: ZipFile, path: str) -> dict[str, Any]:
     return value
 
 
+def _is_valid_png(preview_bytes: bytes) -> bool:
+    if not preview_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+        return False
+    if len(preview_bytes) < 20:
+        return False
+
+    offset = 8
+    seen_ihdr = False
+    seen_iend = False
+
+    while offset + 8 <= len(preview_bytes):
+        length = int.from_bytes(preview_bytes[offset : offset + 4], "big")
+        chunk_type = preview_bytes[offset + 4 : offset + 8]
+        data_start = offset + 8
+        data_end = data_start + length
+        crc_end = data_end + 4
+        if crc_end > len(preview_bytes):
+            return False
+
+        if chunk_type == b"IHDR":
+            seen_ihdr = True
+            if length != 13:
+                return False
+        if chunk_type == b"IEND":
+            seen_iend = True
+            return seen_ihdr and crc_end == len(preview_bytes)
+
+        offset = crc_end
+
+    return False
+
+
 def inspect_template_package(package_bytes: bytes) -> dict[str, Any]:
     """Validate a V1 portable community template package."""
     try:
@@ -178,7 +210,7 @@ def inspect_template_package(package_bytes: bytes) -> dict[str, Any]:
                 status_code=422,
                 detail="Template package is missing required file: preview.png",
             ) from exc
-        if not preview_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+        if not _is_valid_png(preview_bytes):
             raise HTTPException(
                 status_code=422,
                 detail="Template package preview.png is not a valid PNG file.",
