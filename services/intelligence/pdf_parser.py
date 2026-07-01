@@ -16,6 +16,7 @@ from typing import Literal
 from llama_cloud import AsyncLlamaCloud
 from utils.config import settings
 from utils.logger import get_logger
+from utils.runtime_config import resolve_secret_slot
 
 logger = get_logger(__name__, service_name="intelligence")
 PDFIngestionMode = Literal["auto", "llama_parse", "local_text"]
@@ -26,11 +27,7 @@ PDFIngestionMode = Literal["auto", "llama_parse", "local_text"]
 
 def _get_api_key() -> str:
     """Get the LlamaCloud API key from settings."""
-    api_key = (
-        settings.llama_cloud_api_key.get_secret_value()
-        if settings.llama_cloud_api_key
-        else None
-    )
+    api_key = resolve_secret_slot("llama_cloud_api_key", settings.llama_cloud_api_key)
     if not api_key:
         raise ValueError(
             "LLAMA_CLOUD_API_KEY is not set. "
@@ -111,11 +108,7 @@ def _resolve_ingestion_mode(
         return "llama_parse"
     if ingestion_mode == "local_text":
         return "local_text"
-    api_key = (
-        settings.llama_cloud_api_key.get_secret_value()
-        if settings.llama_cloud_api_key
-        else ""
-    )
+    api_key = resolve_secret_slot("llama_cloud_api_key", settings.llama_cloud_api_key) or ""
     return "llama_parse" if api_key else "local_text"
 
 

@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING
 
 from utils.config import settings
 from utils.logger import get_logger
+from utils.runtime_config import load_runtime_configuration, resolve_secret_slot
 
 if TYPE_CHECKING:
     from crewai import LLM
@@ -79,33 +80,35 @@ MODEL_CATALOGUE: dict[str, list[dict[str, str]]] = {
 
 def provider_configuration_status() -> dict[str, dict[str, str | bool]]:
     """Return user-facing provider availability metadata."""
+    groq_api_key = resolve_secret_slot("groq_api_key", settings.groq_api_key)
+    gemini_api_key = resolve_secret_slot("gemini_api_key", settings.gemini_api_key)
+    openai_api_key = resolve_secret_slot("openai_api_key", settings.openai_api_key)
+    mistral_api_key = resolve_secret_slot("mistral_api_key", settings.mistral_api_key)
     return {
         "groq": {
-            "configured": settings.groq_api_key is not None,
+            "configured": bool(groq_api_key),
             "mode": "cloud",
-            "reason": ""
-            if settings.groq_api_key is not None
-            else "Set GROQ_API_KEY in the environment.",
+            "reason": "" if groq_api_key else "Set GROQ_API_KEY in the environment.",
         },
         "gemini": {
-            "configured": settings.gemini_api_key is not None,
+            "configured": bool(gemini_api_key),
             "mode": "cloud",
             "reason": ""
-            if settings.gemini_api_key is not None
+            if gemini_api_key
             else "Set GEMINI_API_KEY in the environment.",
         },
         "openai": {
-            "configured": settings.openai_api_key is not None,
+            "configured": bool(openai_api_key),
             "mode": "cloud",
             "reason": ""
-            if settings.openai_api_key is not None
+            if openai_api_key
             else "Set OPENAI_API_KEY in the environment.",
         },
         "mistral": {
-            "configured": settings.mistral_api_key is not None,
+            "configured": bool(mistral_api_key),
             "mode": "cloud",
             "reason": ""
-            if settings.mistral_api_key is not None
+            if mistral_api_key
             else "Set MISTRAL_API_KEY in the environment.",
         },
         "ollama": {
@@ -166,29 +169,26 @@ def get_llm(
 
     if provider == "groq":
         name = model_name if model_name.startswith("groq/") else f"groq/{model_name}"
-        api_key = settings.groq_api_key
-        return LLM(model=name, api_key=api_key.get_secret_value() if api_key else None)
+        api_key = resolve_secret_slot("groq_api_key", settings.groq_api_key)
+        return LLM(model=name, api_key=api_key)
 
     if provider == "gemini":
         name = (
             model_name if model_name.startswith("gemini/") else f"gemini/{model_name}"
         )
-        api_key = settings.gemini_api_key
-        return LLM(model=name, api_key=api_key.get_secret_value() if api_key else None)
+        api_key = resolve_secret_slot("gemini_api_key", settings.gemini_api_key)
+        return LLM(model=name, api_key=api_key)
 
     if provider == "openai":
-        api_key = settings.openai_api_key
-        return LLM(
-            model=model_name,
-            api_key=api_key.get_secret_value() if api_key else None,
-        )
+        api_key = resolve_secret_slot("openai_api_key", settings.openai_api_key)
+        return LLM(model=model_name, api_key=api_key)
 
     if provider == "mistral":
         name = (
             model_name if model_name.startswith("mistral/") else f"mistral/{model_name}"
         )
-        api_key = settings.mistral_api_key
-        return LLM(model=name, api_key=api_key.get_secret_value() if api_key else None)
+        api_key = resolve_secret_slot("mistral_api_key", settings.mistral_api_key)
+        return LLM(model=name, api_key=api_key)
 
     raise ValueError(
         f"Unsupported LLM provider: '{provider}'. "
@@ -205,5 +205,5 @@ def get_task_llm(task: str) -> LLM:
     Returns:
         A configured :class:`crewai.LLM` for the given task.
     """
-    cfg = TASK_DEFAULTS.get(task, TASK_DEFAULTS["optimize"])
+    cfg = load_runtime_configuration()["defaults"].get(task, TASK_DEFAULTS["optimize"])
     return get_llm(provider=cfg["provider"], model_name=cfg["model_name"])
