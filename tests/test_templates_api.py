@@ -5,8 +5,11 @@ from io import BytesIO
 from zipfile import ZIP_DEFLATED, ZipFile
 
 import pytest
+from database.session import SessionLocal, init_db
 from fastapi import HTTPException
 from routers.templates import (
+    export_installed_template_package,
+    import_template_package,
     inspect_template_package,
     get_template,
     list_community_templates,
@@ -119,3 +122,31 @@ def test_template_package_inspection_rejects_unsupported_engine_version() -> Non
         inspect_template_package(_template_package_bytes(engine_version="99"))
     assert exc_info.value.status_code == 422
     assert "engine_version" in str(exc_info.value.detail)
+
+
+def _session():
+    init_db()
+    return SessionLocal()
+
+
+def test_template_package_import_persists_installed_template() -> None:
+    with _session() as session:
+        imported = import_template_package(session, _template_package_bytes())
+        assert imported["item"]["id"] == "mindris/community-open-source"
+        assert imported["item"]["status"] == "community"
+        assert imported["item"]["author"] == "Mindris Community"
+
+        items = list_templates(session)["items"]
+        assert any(item["id"] == "mindris/community-open-source" for item in items)
+
+
+def test_template_package_export_round_trip_preserves_manifest() -> None:
+    with _session() as session:
+        import_template_package(session, _template_package_bytes())
+        exported = export_installed_template_package(
+            session, "mindris/community-open-source"
+        )
+
+    package = inspect_template_package(exported)
+    assert package["manifest"]["id"] == "mindris/community-open-source"
+    assert package["template"]["base_template_id"] == "modern"

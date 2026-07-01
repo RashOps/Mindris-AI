@@ -10,6 +10,7 @@ import asyncio
 import sys
 from io import BytesIO
 from pathlib import Path
+import json
 from zipfile import ZipFile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,6 +36,42 @@ from persistence import (  # noqa: E402
 )
 from routers.system import readiness_checks  # noqa: E402
 from routers.templates import list_templates  # noqa: E402
+from routers.templates import export_installed_template_package, import_template_package  # noqa: E402
+
+
+def _community_template_package() -> bytes:
+    buffer = BytesIO()
+    with ZipFile(buffer, "w") as archive:
+        archive.writestr(
+            "manifest.json",
+            json.dumps(
+                {
+                    "id": "mindris/smoke-template",
+                    "name": "Smoke Template",
+                    "version": "1.0.0",
+                    "author": "Mindris QA",
+                    "license": "MIT",
+                    "description": "Smoke community template",
+                    "category": "developer",
+                    "tags": ["smoke"],
+                    "engine_version": "1",
+                }
+            ),
+        )
+        archive.writestr(
+            "template.json",
+            json.dumps(
+                {
+                    "base_template_id": "modern",
+                    "preset_settings": {
+                        "global_settings": {"template_id": "modern"}
+                    },
+                }
+            ),
+        )
+        archive.writestr("styles.css", ":host { --primary-color: #0f766e; }")
+        archive.writestr("preview.png", b"\x89PNG\r\n\x1a\npreview")
+    return buffer.getvalue()
 
 
 def main() -> None:
@@ -184,6 +221,16 @@ def main() -> None:
         )
         if "# Phase 5 EN" not in localized_markdown:
             raise SystemExit("Localized Markdown export smoke check failed.")
+        template_import = import_template_package(session, _community_template_package())
+        if template_import["item"]["id"] != "mindris/smoke-template":
+            raise SystemExit("Community template import smoke check failed.")
+        template_export = export_installed_template_package(
+            session, "mindris/smoke-template"
+        )
+        with ZipFile(BytesIO(template_export)) as archive:
+            manifest = json.loads(archive.read("manifest.json").decode())
+            if manifest["id"] != "mindris/smoke-template":
+                raise SystemExit("Community template export smoke check failed.")
         draft = upsert_workspace_draft(
             session,
             draft_key="phase5",
