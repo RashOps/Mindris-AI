@@ -145,3 +145,23 @@ def resolve_secret_slot(slot: str, fallback: SecretStr | None = None) -> str | N
 def secret_slot_configured(slot: str, fallback: SecretStr | None = None) -> bool:
     """Return whether a secret slot is configured by storage or environment."""
     return bool(resolve_secret_slot(slot, fallback))
+
+
+def iter_configured_secret_values() -> list[str]:
+    """Return the current non-empty backend-managed secret values."""
+    values = list(_load_secret_slots().values())
+    fallback_map = {
+        "api_key": settings.api_key,
+        "openai_api_key": settings.openai_api_key,
+        "groq_api_key": settings.groq_api_key,
+        "gemini_api_key": settings.gemini_api_key,
+        "mistral_api_key": settings.mistral_api_key,
+        "llama_cloud_api_key": settings.llama_cloud_api_key,
+        "scrape_do_api_key": settings.scrape_do_api_key,
+        "scrapingbee_api_key": settings.scrapingbee_api_key,
+    }
+    for slot, fallback in fallback_map.items():
+        value = resolve_secret_slot(slot, fallback)
+        if value:
+            values.append(value)
+    return sorted({value for value in values if value})
