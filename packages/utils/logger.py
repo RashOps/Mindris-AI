@@ -7,6 +7,7 @@ Usage::
     logger.info("Pipeline started")
 """
 
+import json
 import logging
 from logging.handlers import RotatingFileHandler
 
@@ -60,9 +61,19 @@ def _redact_text(value: str) -> str:
 
 
 def _configured_secrets() -> list[str]:
-    from .runtime_config import iter_configured_secret_values
-
-    values = iter_configured_secret_values()
+    values = []
+    secrets_path = settings.storage_dir / "runtime-secrets.json"
+    if secrets_path.exists():
+        try:
+            raw = json.loads(secrets_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            raw = {}
+        if isinstance(raw, dict):
+            values.extend(
+                value
+                for value in raw.values()
+                if isinstance(value, str) and value.strip()
+            )
     for attr in (
         "api_key",
         "openai_api_key",
