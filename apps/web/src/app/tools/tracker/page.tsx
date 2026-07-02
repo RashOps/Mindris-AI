@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { apiUrl, jsonHeaders } from "@/lib/api";
+import { compactTrackerSummary, toggleExpandedTrackerCard } from "@/lib/tracker-ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -83,6 +84,7 @@ export default function TrackerPage() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [draft, setDraft] = useState({ company: "", role: "", url: "" });
+  const [expandedIds, setExpandedIds] = useState<number[]>([]);
   const [reminderDrafts, setReminderDrafts] = useState<
     Record<number, { title: string; dueAt: string }>
   >({});
@@ -158,6 +160,7 @@ export default function TrackerPage() {
         );
       }
       setDraft({ company: "", role: "", url: "" });
+      setExpandedIds([]);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Tracker create failed");
@@ -384,6 +387,14 @@ export default function TrackerPage() {
                     ) : (
                       itemsForStatus.map((item, index) => {
                         const itemTone = statTone(item.status);
+                        const expanded = expandedIds.includes(item.id);
+                        const summaryBadges = compactTrackerSummary({
+                          notes: item.notes,
+                          reminderCounts: item.reminder_counts,
+                          nextReminderLabel: item.next_reminder?.due_at
+                            ? formatDate(item.next_reminder.due_at)
+                            : null,
+                        });
                         return (
                           <article key={item.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
                             <div className="flex items-start justify-between gap-3">
@@ -403,6 +414,17 @@ export default function TrackerPage() {
                               </span>
                             </div>
 
+                            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                              {summaryBadges.map((badge) => (
+                                <span
+                                  key={badge}
+                                  className="inline-flex rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-medium text-slate-600"
+                                >
+                                  {badge}
+                                </span>
+                              ))}
+                            </div>
+
                             {item.url && (
                               <a
                                 href={item.url}
@@ -415,10 +437,30 @@ export default function TrackerPage() {
                               </a>
                             )}
 
-                            {item.notes && (
+                            {expanded && item.notes && (
                               <p className="mt-2 line-clamp-3 text-xs leading-5 text-slate-600">{item.notes}</p>
                             )}
 
+                            <div className="mt-3 flex items-center justify-between gap-2">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setExpandedIds((current) =>
+                                    toggleExpandedTrackerCard(current, item.id),
+                                  )
+                                }
+                                className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-900"
+                              >
+                                {expanded ? "Hide details" : "Show details"}
+                              </button>
+                              {item.applied_at && (
+                                <p className="text-[10px] uppercase tracking-wide text-slate-400">
+                                  Applied {formatDate(item.applied_at)}
+                                </p>
+                              )}
+                            </div>
+
+                            {expanded && (
                             <div className="mt-3 rounded-lg border border-slate-200 bg-white p-2.5">
                               <div className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -538,7 +580,9 @@ export default function TrackerPage() {
                                 </Button>
                               </div>
                             </div>
+                            )}
 
+                            {expanded && (
                             <div className="mt-3 flex flex-wrap gap-1.5">
                               {STATUSES.filter((candidate) => candidate.id !== item.status).map((target) => (
                                 <button
@@ -558,11 +602,6 @@ export default function TrackerPage() {
                                 Delete
                               </button>
                             </div>
-
-                            {item.applied_at && (
-                              <p className="mt-3 text-[10px] uppercase tracking-wide text-slate-400">
-                                Applied {formatDate(item.applied_at)}
-                              </p>
                             )}
                           </article>
                         );
