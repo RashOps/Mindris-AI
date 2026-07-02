@@ -83,33 +83,28 @@ function SidebarUtilities({ collapsed = false }: { collapsed?: boolean }) {
   return (
     <div className="space-y-3">
       {configuration && (
-        <div
-          className={cn(
-            "rounded-lg border border-slate-200 bg-white p-3",
-            collapsed && "hidden",
+        <ConfigurationDrawer
+          trigger={(
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950",
+                collapsed ? "justify-center px-2" : "justify-start gap-3",
+              )}
+              title={collapsed ? configuration.label : undefined}
+            >
+              <configuration.icon size={17} />
+              {!collapsed && <span className="min-w-0 flex-1 truncate text-left">{configuration.label}</span>}
+            </Button>
           )}
-        >
-          <div className="mb-2 flex items-center gap-2 text-xs font-medium text-slate-700">
-            <configuration.icon size={14} />
-            {configuration.label}
-          </div>
-          <p className="mb-3 text-xs leading-5 text-slate-500">{configuration.description}</p>
-          <ConfigurationDrawer
-            trigger={(
-              <Button variant="outline" className="w-full justify-start gap-2">
-                <configuration.icon size={15} />
-                Open configuration
-              </Button>
-            )}
-          />
-        </div>
+        />
       )}
 
       {localServices && (
         <div
           className={cn(
-            "rounded-lg border border-slate-200 bg-slate-50 p-3",
-            collapsed && "hidden",
+            "overflow-hidden rounded-lg border border-slate-200 bg-slate-50 transition-all duration-200",
+            collapsed ? "max-h-0 border-transparent p-0 opacity-0" : "max-h-40 p-3 opacity-100",
           )}
         >
           <div className="mb-2 flex items-center gap-2 text-xs font-medium text-slate-700">

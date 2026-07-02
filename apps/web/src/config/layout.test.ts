@@ -10,4 +10,12 @@ describe("app shell sidebar layout", () => {
     expect(ids).toContain("local-services");
     expect(ids.indexOf("configuration") < ids.indexOf("local-services")).toBe(true);
   });
+
+  test("keeps configuration visible as an icon entry when the sidebar collapses", () => {
+    const configuration = APP_SIDEBAR_SECTIONS.find((section) => section.id === "configuration");
+    const localServices = APP_SIDEBAR_SECTIONS.find((section) => section.id === "local-services");
+
+    expect(configuration?.collapseMode).toBe("icon");
+    expect(localServices?.collapseMode).toBe("hidden");
+  });
 });

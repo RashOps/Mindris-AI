@@ -26,6 +26,7 @@ export interface AppSidebarSectionDefinition {
   label: string;
   icon: LucideIcon;
   description: string;
+  collapseMode: "icon" | "hidden";
 }
 
 export const APP_NAV_ITEMS: ToolDefinition[] = [
@@ -89,12 +90,14 @@ export const APP_SIDEBAR_SECTIONS: AppSidebarSectionDefinition[] = [
     label: "Configuration",
     icon: Settings2,
     description: "Configure providers, models, secrets and local runtime behavior.",
+    collapseMode: "icon",
   },
   {
     id: "local-services",
     label: "Local services",
     icon: Server,
     description: "Current local endpoints and runtime ports for the workspace.",
+    collapseMode: "hidden",
   },
 ] as const;
 
