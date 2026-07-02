@@ -170,42 +170,39 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
       )}
 
       <aside
-        className={`fixed top-0 right-0 h-full z-50 w-80 flex flex-col transition-transform duration-300 ease-in-out
+        className={`theme-dark-tool fixed top-0 right-0 z-50 flex h-full w-80 flex-col border-l border-white/10 bg-slate-950 transition-transform duration-300 ease-in-out
           ${open ? "translate-x-0" : "translate-x-full"}`}
-        style={{ background: 'rgba(10,15,26,0.97)', borderLeft: '1px solid rgba(255,255,255,0.08)', boxShadow: '-8px 0 40px rgba(0,0,0,0.6)' }}
+        style={{ boxShadow: "-8px 0 40px rgba(0,0,0,0.6)" }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'rgba(15,23,42,0.8)' }}>
+        <div className="flex shrink-0 items-center justify-between border-b border-white/10 bg-slate-900/90 px-4 py-3">
           <div className="flex items-center gap-2">
             <span className="text-base">💼</span>
-            <h2 className="text-sm font-semibold" style={{ color: '#f1f5f9', fontFamily: 'var(--font-space)' }}>Job Insights</h2>
+            <h2 className="text-sm font-semibold text-slate-100" style={{ fontFamily: "var(--font-space)" }}>Job Insights</h2>
           </div>
           <button
             onClick={onClose}
-            className="w-6 h-6 flex items-center justify-center rounded text-sm transition-colors"
-            style={{ color: '#475569' }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#e2e8f0')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#475569')}
+            className="flex h-6 w-6 items-center justify-center rounded text-sm text-slate-500 transition-colors hover:text-slate-200"
           >✕</button>
         </div>
 
         {/* No insights yet */}
         {!jobInsights ? (
-          <div className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-3" style={{ color: '#334155' }}>
-            <div className="w-12 h-12 rounded-full flex items-center justify-center text-2xl" style={{ background: 'rgba(255,255,255,0.04)' }}>🎯</div>
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center text-slate-500">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/5 text-2xl">🎯</div>
             <div>
-              <p className="text-sm font-medium" style={{ color: '#64748b' }}>No job insights yet</p>
-              <p className="text-xs mt-1" style={{ color: '#334155' }}>Paste a job URL and click ⚡ Optimize to generate tailored content.</p>
+              <p className="text-sm font-medium text-slate-400">No job insights yet</p>
+              <p className="mt-1 text-xs text-slate-500">Paste a job URL and click Optimize to generate tailored content.</p>
             </div>
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto">
 
             {/* Job summary */}
-            <div className="px-4 py-3 flex flex-col gap-2" style={{ background: 'rgba(15,23,42,0.6)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="flex flex-col gap-2 border-b border-white/10 bg-slate-900/70 px-4 py-3">
               <div>
-                <p className="text-sm font-semibold" style={{ color: '#e2e8f0' }}>{jobInsights.job_title}</p>
-                <p className="text-xs" style={{ color: '#64748b' }}>{jobInsights.company}</p>
+                <p className="text-sm font-semibold text-slate-100">{jobInsights.job_title}</p>
+                <p className="text-xs text-slate-400">{jobInsights.company}</p>
               </div>
               {/* ATS Score widget */}
               <AtsScoreWidget
@@ -229,8 +226,7 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
                   setIsScoring(false);
                 }}
                 disabled={isScoring}
-                className="w-full py-1.5 text-[10px] font-medium rounded border disabled:opacity-50 flex items-center justify-center gap-1 transition-colors"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#64748b' }}
+                className="flex w-full items-center justify-center gap-1 rounded border border-white/10 bg-white/5 py-1.5 text-[10px] font-medium text-slate-400 transition-colors hover:bg-white/10 disabled:opacity-50"
               >
                 {isScoring ? <span className="w-2 h-2 border border-slate-500 border-t-transparent rounded-full animate-spin" /> : "🏅"}
                 Deep Score my CV
@@ -238,11 +234,11 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
             </div>
 
             {/* Auto-inject mode */}
-            <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="border-b border-white/10 px-4 py-3">
               <div className="flex items-center justify-between mb-2">
                 <div>
-                  <p className="text-xs font-semibold" style={{ color: '#cbd5e1' }}>Mode Auto</p>
-                  <p className="text-[10px]" style={{ color: '#475569' }}>LLM patch directly into editor</p>
+                  <p className="text-xs font-semibold text-slate-200">Mode Auto</p>
+                  <p className="text-[10px] text-slate-500">LLM patch directly into editor</p>
                 </div>
                 <button
                   onClick={() => handleAutoInjectToggle(!autoInjectMode)}
@@ -263,16 +259,14 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
                     setProvider(nextProvider);
                     setModelName(MODELS[nextProvider]?.[0]?.id ?? modelName);
                   }}
-                  className="flex-1 text-xs rounded px-2 py-1 focus:outline-none"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#cbd5e1' }}
+                  className="flex-1 rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 focus:outline-none"
                 >
                   {PROVIDERS.map(p => <option key={p.id} value={p.id} style={{ background: '#0a0f1a' }}>{p.label}</option>)}
                 </select>
                 <select
                   value={modelName}
                   onChange={(e) => setModelName(e.target.value)}
-                  className="flex-1 text-xs rounded px-2 py-1 focus:outline-none"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#cbd5e1' }}
+                  className="flex-1 rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 focus:outline-none"
                 >
                   {(MODELS[provider] ?? []).map(m => <option key={m.id} value={m.id} style={{ background: '#0a0f1a' }}>{m.label}</option>)}
                 </select>
@@ -289,7 +283,7 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
                   : "⚡ Apply to CV"
                 }
               </button>
-              {patchStatus && <p className="text-xs text-center mt-1.5" style={{ color: '#64748b' }}>{patchStatus}</p>}
+              {patchStatus && <p className="mt-1.5 text-center text-xs text-slate-400">{patchStatus}</p>}
             </div>
 
 
@@ -421,13 +415,10 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
 
         {/* Footer actions */}
         {jobInsights && (
-          <div className="px-4 py-3 shrink-0 flex gap-2" style={{ borderTop: '1px solid rgba(255,255,255,0.07)', background: 'rgba(15,23,42,0.6)' }}>
+          <div className="flex shrink-0 gap-2 border-t border-white/10 bg-slate-900/70 px-4 py-3">
             <button
               onClick={copyToClipboard}
-              className="flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors"
-              style={{ border: '1px solid rgba(255,255,255,0.08)', color: '#64748b', background: 'rgba(255,255,255,0.03)' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
+              className="flex-1 rounded-lg border border-white/10 bg-white/5 py-1.5 text-xs font-medium text-slate-400 transition-colors hover:bg-white/10"
             >
               📋 Copy
             </button>
@@ -435,19 +426,13 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
               onClick={() => {
                 void openInMarkdown();
               }}
-              className="flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors"
-              style={{ border: '1px solid rgba(255,255,255,0.08)', color: '#64748b', background: 'rgba(255,255,255,0.03)' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
+              className="flex-1 rounded-lg border border-white/10 bg-white/5 py-1.5 text-xs font-medium text-slate-400 transition-colors hover:bg-white/10"
             >
               → Markdown
             </button>
             <button
               onClick={() => { clearJobInsights(); }}
-              className="py-1.5 px-2 text-xs transition-colors"
-              style={{ color: '#475569' }}
-              onMouseEnter={e => (e.currentTarget.style.color = '#f87171')}
-              onMouseLeave={e => (e.currentTarget.style.color = '#475569')}
+              className="px-2 py-1.5 text-xs text-slate-500 transition-colors hover:text-rose-400"
               title="Clear"
             >✕</button>
           </div>

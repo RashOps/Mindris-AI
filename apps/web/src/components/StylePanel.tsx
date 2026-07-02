@@ -59,7 +59,7 @@ function Slider({
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="mb-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+    <h3 className="mb-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
       {children}
     </h3>
   );
@@ -303,40 +303,36 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
       )}
 
       <aside
-        className={`fixed top-0 right-0 z-50 flex h-full w-[24rem] flex-col transition-transform duration-300 ease-in-out ${
+        style={{ boxShadow: "-8px 0 32px rgba(15,23,42,0.18)" }}
+        className={`fixed top-0 right-0 z-50 flex h-full w-[24rem] flex-col border-l border-slate-200 bg-white transition-transform duration-300 ease-in-out dark:border-slate-800 dark:bg-slate-950 ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
-        style={{
-          background: "#ffffff",
-          borderLeft: "1px solid #cbd5e1",
-          boxShadow: "-8px 0 32px rgba(15,23,42,0.18)",
-        }}
         aria-label="Style panel"
       >
-        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-5 py-3.5">
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-5 py-3.5 dark:border-slate-800">
           <div className="min-w-0">
-            <h2 className="truncate text-sm font-semibold text-slate-950">Design Studio</h2>
-            <p className="text-[10px] uppercase tracking-widest text-slate-500">
+            <h2 className="truncate text-sm font-semibold text-slate-950 dark:text-slate-100">Design Studio</h2>
+            <p className="text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400">
               Backend catalogue driven
             </p>
           </div>
           <button
             onClick={onClose}
-            className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-sm text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
+            className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-sm text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-slate-100"
           >
             ✕
           </button>
         </div>
 
-        <div className="flex shrink-0 border-b border-slate-200">
+        <div className="flex shrink-0 border-b border-slate-200 dark:border-slate-800">
           {TABS.map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
               className={`flex flex-1 cursor-pointer flex-col items-center gap-0.5 border-b-2 py-2.5 text-[11px] font-semibold transition-colors ${
                 tab === t.key
-                  ? "border-violet-600 bg-violet-50 text-violet-700"
-                  : "border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                  ? "border-violet-600 bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300"
+                  : "border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-slate-100"
               }`}
             >
               {t.icon && <span className="text-sm leading-none">{t.icon}</span>}
@@ -367,10 +363,10 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                           : { border: "1px solid #cbd5e1", background: "#fff" }
                       }
                     >
-                      <span className="text-sm font-semibold text-slate-900">
+                      <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                         {template.label}
                       </span>
-                      <span className="text-[10px] text-slate-500">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400">
                         {template.compatibleLayouts.join("/")}-col
                       </span>
                     </button>
@@ -422,8 +418,8 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                     </label>
                   ))}
                 </div>
-                <label className="mt-3 flex items-center justify-between rounded-lg border border-slate-300 bg-white px-3 py-2">
-                  <span className="text-xs font-medium text-slate-700">Monochrome</span>
+                <label className="mt-3 flex items-center justify-between rounded-lg border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900">
+                  <span className="text-xs font-medium text-slate-700 dark:text-slate-200">Monochrome</span>
                   <input
                     type="checkbox"
                     checked={colorSettings.monochrome ?? false}
@@ -441,7 +437,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
 
               <section>
                 <SectionLabel>Template notes</SectionLabel>
-                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
                   The backend keeps template compatibility and enforcement. This panel only
                   sends API state.
                 </div>
