@@ -262,12 +262,34 @@ export interface HistoryLedgerItem {
 
 export interface CompanyInsight {
   name: string;
+  canonical_domain?: string | null;
+  homepage_url?: string | null;
+  careers_url?: string | null;
   industry: string;
   size: string;
+  work_mode?: string;
+  locations?: string[];
   culture_values: string[];
   recent_news: string[];
   glassdoor_summary?: string | null;
   tech_stack_known: string[];
+  role_fit?: {
+    skills_to_foreground?: string[];
+    wording_to_mirror?: string[];
+    priority_experiences?: string[];
+    cv_emphasis?: string[];
+    cover_letter_emphasis?: string[];
+  };
+  risk_flags?: Array<{
+    code: string;
+    severity: string;
+    title: string;
+    detail: string;
+    provenance: string;
+  }>;
+  evidence?: Record<string, string[]>;
+  provenance?: Record<string, string>;
+  cache?: Record<string, string>;
   unavailable_reason?: string | null;
 }
 
