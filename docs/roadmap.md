@@ -114,9 +114,9 @@
 - [x] **Traçabilite des scores :** Lien score ↔ CV ↔ offre ↔ contexte d'evaluation.
 
 ## 🔵 Phase 17 : Unified Activity History
-- [ ] **Ledger d'activite backend :** Historique unifie scrapes, CV, LM, ATS, tracker, LLM runs.
-- [ ] **Lineage des artefacts :** Liens entre opportunites, revisions de CV, LM et rapports.
-- [ ] **UI d'audit :** Consultation et filtrage de l'historique depuis l'application.
+- [x] **Ledger d'activite backend :** Historique unifie scrapes, CV, LM, ATS, tracker, LLM runs.
+- [x] **Lineage des artefacts :** Liens entre opportunites, revisions de CV, LM et rapports.
+- [x] **UI d'audit :** Consultation et filtrage de l'historique depuis l'application.
 
 ## 🔵 Phase 18 : Workflow Automation
 - [ ] **Opportunity workflow :** Scrape -> opportunite -> CV lie -> LM liee -> tracker.
