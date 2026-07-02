@@ -67,7 +67,9 @@ function subjectTone(subjectType: HistoryLedgerItem["subject_type"]): string {
 export default function HistoryPage() {
   const [items, setItems] = useState<HistoryLedgerItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [clearing, setClearing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [subjectType, setSubjectType] =
     useState<(typeof SUBJECT_OPTIONS)[number]["id"]>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -75,6 +77,7 @@ export default function HistoryPage() {
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setNotice(null);
     try {
       const params = new URLSearchParams();
       if (subjectType !== "all") params.set("subject_type", subjectType);
@@ -112,6 +115,38 @@ export default function HistoryPage() {
     [items, selectedId],
   );
 
+  const clearHistory = useCallback(async () => {
+    const confirmed = window.confirm(
+      "Delete all history artifacts permanently? This clears jobs, ATS reports, cover letters, workflow events, tracker history, and resume revisions. Source resumes stay intact.",
+    );
+    if (!confirmed) return;
+
+    setClearing(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const response = await fetch(apiUrl("/api/v1/history/ledger"), {
+        method: "DELETE",
+        headers: jsonHeaders(),
+      });
+      if (!response.ok) {
+        throw new Error("Unable to clear unified history.");
+      }
+      setSelectedId(null);
+      setItems([]);
+      setNotice("Unified history cleared permanently.");
+      await load();
+    } catch (clearError) {
+      setError(
+        clearError instanceof Error
+          ? clearError.message
+          : "Unable to clear unified history.",
+      );
+    } finally {
+      setClearing(false);
+    }
+  }, [load]);
+
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-slate-50 text-slate-950">
       <div className="mx-auto max-w-[1500px] px-4 py-4 lg:px-6">
@@ -138,6 +173,14 @@ export default function HistoryPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => void clearHistory()}
+                disabled={clearing || loading || items.length === 0}
+                className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 transition-colors hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {clearing ? "Clearing..." : "Clear history"}
+              </button>
               <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
                 <Filter size={14} />
                 <span>Filter</span>
@@ -165,6 +208,12 @@ export default function HistoryPage() {
         {error && (
           <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
             {error}
+          </div>
+        )}
+
+        {notice && (
+          <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            {notice}
           </div>
         )}
 
