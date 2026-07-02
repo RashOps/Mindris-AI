@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  BookOpen,
   Briefcase,
   FileText,
   GitBranch,
@@ -17,6 +18,7 @@ export type AppNavItemId =
   | "workflow"
   | "tracker"
   | "history"
+  | "guide"
   | "markdown";
 
 export interface ToolDefinition {
@@ -100,6 +102,16 @@ export const APP_NAV_ITEMS: ToolDefinition[] = [
     description: "Unified activity ledger and artifact lineage",
   },
   {
+    id: "guide",
+    label: "Guide",
+    shortLabel: "Guide",
+    icon: BookOpen,
+    href: "/tools/guide",
+    accentColor: "#334155",
+    accentVar: "--tool-guide",
+    description: "Internal product guide, workflow documentation and operating rules",
+  },
+  {
     id: "markdown",
     label: "Markdown PDF",
     shortLabel: "PDF",
@@ -131,3 +143,38 @@ export const APP_SIDEBAR_SECTIONS: AppSidebarSectionDefinition[] = [
 ] as const;
 
 export const SIDEBAR_WIDTH_EXPANDED = 236;
+
+export function resolveDesktopSidebarLayout(compact: boolean): {
+  asideWidth: number;
+  reserveWidth: number;
+  compact: boolean;
+} {
+  return {
+    asideWidth: SIDEBAR_WIDTH_EXPANDED,
+    reserveWidth: SIDEBAR_WIDTH_EXPANDED,
+    compact,
+  };
+}
+
+export type DesktopSidebarTrigger =
+  | "pointer-enter"
+  | "pointer-leave"
+  | "focus-enter"
+  | "manual-toggle";
+
+export function nextDesktopSidebarCompactState(
+  compact: boolean,
+  trigger: DesktopSidebarTrigger,
+): boolean {
+  switch (trigger) {
+    case "pointer-enter":
+    case "focus-enter":
+      return false;
+    case "pointer-leave":
+      return true;
+    case "manual-toggle":
+      return !compact;
+    default:
+      return compact;
+  }
+}
