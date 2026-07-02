@@ -127,8 +127,16 @@ Depuis la racine du projet :
 
 ```bash
 cd services/renderer
+bun run dev
+```
+
+Mode production local minimal :
+
+```bash
 bun run start
 ```
+
+Le mode `dev` active le reload automatique Bun uniquement pour le developpement local.
 
 URL :
 
@@ -139,6 +147,8 @@ http://localhost:4000
 Healthcheck :
 
 ```bash
+bun run typecheck
+bun run build
 curl http://localhost:4000/
 curl http://localhost:4000/ready
 curl http://localhost:4000/openapi.json

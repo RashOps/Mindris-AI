@@ -20,13 +20,13 @@ spec: `docs/staging/specs/2026-07-02-foundation-hardening-and-product-roadmap.md
   acceptance: `UV_CACHE_DIR=/tmp/uv-cache uv run --no-sync pytest tests/test_logger.py tests/test_system_api.py -q`
   spec: `docs/staging/specs/2026-07-02-foundation-hardening-and-product-roadmap.md#foundation-hardening-and-product-roadmap`
 
-- [ ] T4: Upload and template package security review hardening
+- [x] T4: Upload and template package security review hardening
   goal: Tighten validation for uploaded documents and community template packages, including explicit failure behavior for malformed or unsafe inputs.
   files: `services/api-gateway/routers/cv.py`, `services/api-gateway/routers/templates.py`, `tests/test_templates_api.py`, `tests/test_cv_upload_api.py`
   acceptance: `UV_CACHE_DIR=/tmp/uv-cache uv run --no-sync pytest tests/test_templates_api.py tests/test_cv_upload_api.py -q`
   spec: `docs/staging/specs/2026-07-02-foundation-hardening-and-product-roadmap.md#foundation-hardening-and-product-roadmap`
 
-- [ ] T5: Repo hygiene, contributor agent guide, and Bun dev reload
+- [x] T5: Repo hygiene, contributor agent guide, and Bun dev reload
   goal: Remove or repurpose dead files, add contributor guidance for coding agents, and make renderer development reload changes automatically in development only.
   files: `AGENTS.md`, `services/renderer/package.json`, `services/renderer/src/server.ts`, `docs/command_control.md`, `docs/local-development.md`
   acceptance: `cd services/renderer && bun run typecheck && bun run build`
