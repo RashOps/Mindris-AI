@@ -16,6 +16,26 @@ from intelligence.llm_config import get_llm
 
 logger = get_logger(__name__, service_name="intelligence")
 
+ATS_RUBRIC_VERSION = "ats-v1"
+ATS_MODE_WEIGHTS = {
+    "standard": {
+        "keyword_match": 30,
+        "experience_relevance": 25,
+        "formatting_structure": 15,
+        "quantification": 10,
+        "title_alignment": 10,
+        "overall_coherence": 10,
+    },
+    "strict": {
+        "keyword_match": 35,
+        "experience_relevance": 25,
+        "formatting_structure": 15,
+        "quantification": 10,
+        "title_alignment": 10,
+        "overall_coherence": 5,
+    },
+}
+
 
 # ── Pydantic models ───────────────────────────────────────────────────────────
 
@@ -46,21 +66,76 @@ class ScoringCriteria(BaseModel):
     explanation: str = Field(description="Why this score was assigned")
 
 
+class AtsRubricDimension(BaseModel):
+    """Published ATS rubric dimension."""
+
+    key: str = Field(description="Stable rubric key")
+    label: str = Field(description="User-facing rubric label")
+    weight: int = Field(description="Weight used in the total score")
+    description: str = Field(description="What the dimension evaluates")
+
+
+class AtsRubric(BaseModel):
+    """Published rubric metadata used for ATS scoring."""
+
+    version: str = Field(description="Rubric version")
+    mode: str = Field(description="Evaluation mode applied to this report")
+    dimensions: list[AtsRubricDimension] = Field(
+        description="Weighted rubric dimensions applied to this report"
+    )
+
+
+class AtsDeduction(BaseModel):
+    """Structured deduction that explains a score reduction."""
+
+    code: str = Field(description="Stable deduction code")
+    title: str = Field(description="Short deduction title")
+    severity: str = Field(description="Severity: high, medium, or low")
+    points_lost: int = Field(description="Points lost because of this deduction")
+    evidence: str = Field(description="Evidence behind the deduction")
+    recommendation: str = Field(description="Recommended corrective action")
+
+
+class AtsReportContext(BaseModel):
+    """Traceability metadata for one ATS evaluation."""
+
+    job_title: str = Field(default="", description="Job title used for the scoring")
+    job_company: str = Field(
+        default="", description="Company name used for the scoring"
+    )
+    job_id: int | None = Field(default=None, description="Linked scraped job id")
+    resume_id: int | None = Field(default=None, description="Linked resume id")
+    resume_locale: str | None = Field(
+        default=None, description="Active locale or variant used for scoring"
+    )
+    provider: str = Field(default="", description="LLM provider used")
+    model_name: str = Field(default="", description="LLM model used")
+
+
 class AtsReport(BaseModel):
     """Detailed ATS evaluation report."""
 
     score: int = Field(description="Overall ATS match score between 0 and 100")
+    mode: str = Field(description="Evaluation mode: standard or strict")
     summary: str = Field(
         description="A 2-3 sentence executive summary of the candidate's fit"
     )
+    rubric: AtsRubric = Field(description="Published scoring rubric metadata")
     scoring_breakdown: list[ScoringCriteria] = Field(
         description="Transparent weighted scoring breakdown"
+    )
+    deductions: list[AtsDeduction] = Field(
+        default_factory=list,
+        description="Structured deductions that reduced the final score",
     )
     keyword_analysis: list[KeywordStatus] = Field(
         description="Detailed analysis of required hard and soft skills"
     )
     recommendations: list[str] = Field(
         description="Actionable steps the candidate can take to improve the CV"
+    )
+    context: AtsReportContext = Field(
+        description="Traceability metadata for the ATS evaluation"
     )
 
 
@@ -97,6 +172,94 @@ def _build_cv_text(cv_data: dict) -> str:
     return "\n".join(text)
 
 
+def build_ats_rubric(mode: str) -> AtsRubric:
+    """Return the published rubric metadata for one ATS mode."""
+    weights = ATS_MODE_WEIGHTS.get(mode, ATS_MODE_WEIGHTS["standard"])
+    labels = {
+        "keyword_match": (
+            "Keyword Match Rate",
+            "Coverage of required hard and soft skills from the target job.",
+        ),
+        "experience_relevance": (
+            "Experience Relevance",
+            "How directly the candidate experience maps to the target role.",
+        ),
+        "formatting_structure": (
+            "Formatting & Structure",
+            "Clarity, semantic structure, and ATS readability of the resume.",
+        ),
+        "quantification": (
+            "Quantification",
+            "Presence of metrics, outcomes, and measurable impact in bullets.",
+        ),
+        "title_alignment": (
+            "Title & Role Alignment",
+            "How well the resume title and role framing match the job target.",
+        ),
+        "overall_coherence": (
+            "Overall Coherence",
+            "Consistency and clarity of the resume for the specific application.",
+        ),
+    }
+    return AtsRubric(
+        version=ATS_RUBRIC_VERSION,
+        mode=mode,
+        dimensions=[
+            AtsRubricDimension(
+                key=key,
+                label=labels[key][0],
+                weight=weight,
+                description=labels[key][1],
+            )
+            for key, weight in weights.items()
+        ],
+    )
+
+
+def build_fallback_ats_report(
+    *,
+    mode: str,
+    provider: str,
+    model_name: str,
+    reason: str,
+    context: dict | None = None,
+) -> dict:
+    """Return a transparent fallback ATS report when structured output fails."""
+    context_payload = dict(context or {})
+    context_payload.setdefault("provider", provider)
+    context_payload.setdefault("model_name", model_name)
+    return AtsReport(
+        score=50,
+        mode=mode,
+        summary="Error generating detailed ATS report.",
+        rubric=build_ats_rubric(mode),
+        scoring_breakdown=[
+            ScoringCriteria(
+                criterion="Fallback Score",
+                weight=100,
+                score=50,
+                max_score=100,
+                explanation=(
+                    "The LLM provider did not return a valid structured ATS report."
+                ),
+            )
+        ],
+        deductions=[
+            AtsDeduction(
+                code="llm_output_invalid",
+                title="Structured ATS output unavailable",
+                severity="high",
+                points_lost=0,
+                evidence=reason,
+                recommendation="Retry the ATS analysis or switch provider/model.",
+            )
+        ],
+        keyword_analysis=[],
+        recommendations=["Retry later or switch to another ATS provider/model."],
+        context=AtsReportContext.model_validate(context_payload),
+    ).model_dump(mode="json")
+
+
 # ── Public API ────────────────────────────────────────────────────────────────
 
 
@@ -105,6 +268,7 @@ async def calculate_ats_score(
     job_insights: dict,
     provider: str,
     model_name: str,
+    mode: str = "standard",
 ) -> dict:
     """Calculate the detailed ATS report for a CV against a job offer.
 
@@ -113,14 +277,16 @@ async def calculate_ats_score(
         job_insights: Structured job data (title, company, skills, bullets).
         provider:     LLM provider identifier.
         model_name:   Model name for the selected provider.
+        mode:         ATS evaluation mode (`standard` or `strict`).
 
     Returns:
         Dictionary matching :class:`AtsReport` schema.
     """
-    logger.info("🎯 Calculating ATS score via %s/%s", provider, model_name)
+    logger.info("🎯 Calculating ATS score via %s/%s (%s)", provider, model_name, mode)
     cv_text = _build_cv_text(cv_data)
 
     job_title = job_insights.get("job_title", "Unknown")
+    job_company = job_insights.get("company", "")
     hard_skills = job_insights.get("hard_skills", [])
     soft_skills = job_insights.get("soft_skills", [])
 
@@ -128,6 +294,12 @@ async def calculate_ats_score(
         f"Job Title: {job_title}\n"
         f"Required Hard Skills: {', '.join(hard_skills)}\n"
         f"Required Soft Skills: {', '.join(soft_skills)}"
+    )
+
+    rubric = build_ats_rubric(mode)
+    rubric_lines = "\n".join(
+        f"- {dimension.label}: {dimension.weight} ({dimension.description})"
+        for dimension in rubric.dimensions
     )
 
     llm = get_llm(provider=provider, model_name=model_name)
@@ -154,20 +326,21 @@ async def calculate_ats_score(
             f"=== CANDIDATE CV ===\n{cv_text}\n\n"
             "Task: Perform a deep ATS audit of the candidate's CV "
             "against the job requirements.\n"
+            f"Evaluation mode: {mode}.\n"
+            "Published rubric:\n"
+            f"{rubric_lines}\n"
             "1. Calculate an overall match score (0-100).\n"
             "2. Write a brief executive summary.\n"
             "3. Analyze EACH required hard and soft skill. Determine if it was found, "
             "its density (e.g., 'Mentioned 2 times'), and the severity if missing.\n"
-            "4. Build a scoring_breakdown using exactly these weights: "
-            "Keyword Match Rate 40, Experience Relevance 25, "
-            "Formatting & Structure 15, Quantification 10, "
-            "Overall Coherence 10. The criterion scores must explain "
+            "4. Build a scoring_breakdown using the published rubric weights above. "
+            "The criterion scores must explain "
             "the final score.\n"
-            "5. Apply strict penalties: every missing hard skill costs "
-            "at least 5 points, weak experience relevance costs up to "
-            "25 points, missing metrics in bullets costs up to 10 points, "
-            "and a non-aligned CV title costs 10 points.\n"
-            "6. Provide 3-5 specific, actionable recommendations to improve "
+            "5. Return a structured deductions list. Each deduction must include "
+            "a code, title, severity, points_lost, evidence, and recommendation.\n"
+            "6. In strict mode, apply more conservative penalties for missing hard "
+            "skills, weak title alignment, and poor ATS structure.\n"
+            "7. Provide 3-5 specific, actionable recommendations to improve "
             "the CV for this specific job."
         ),
         expected_output="A structured JSON object containing the ATS report.",
@@ -185,24 +358,27 @@ async def calculate_ats_score(
         # CrewAI with output_pydantic returns the model in result.pydantic
         if hasattr(result, "pydantic") and result.pydantic:
             logger.info("✅ ATS report generated (score=%s)", result.pydantic.score)
-            return result.pydantic.model_dump()
+            report = result.pydantic.model_dump(mode="json")
+            report["mode"] = mode
+            report["rubric"] = rubric.model_dump(mode="json")
+            report["context"] = AtsReportContext(
+                job_title=job_title,
+                job_company=job_company,
+                provider=provider,
+                model_name=model_name,
+            ).model_dump(mode="json")
+            report.setdefault("deductions", [])
+            return AtsReport.model_validate(report).model_dump(mode="json")
         raise ValueError("No pydantic output found")
     except Exception as e:
         logger.error("Error parsing ATS Pydantic output: %s", e)
-        return {
-            "score": 50,
-            "summary": "Error generating detailed report.",
-            "scoring_breakdown": [
-                {
-                    "criterion": "Fallback Score",
-                    "weight": 100,
-                    "score": 50,
-                    "max_score": 100,
-                    "explanation": (
-                        "The LLM provider did not return a valid structured report."
-                    ),
-                }
-            ],
-            "keyword_analysis": [],
-            "recommendations": ["Try again later or check API provider quotas."],
-        }
+        return build_fallback_ats_report(
+            mode=mode,
+            provider=provider,
+            model_name=model_name,
+            reason=str(e),
+            context={
+                "job_title": job_title,
+                "job_company": job_company,
+            },
+        )
