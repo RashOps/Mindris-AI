@@ -161,6 +161,24 @@ class ApplicationRecord(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
 
 
+class ApplicationReminderRecord(Base):
+    """Follow-up reminder linked to one tracked application."""
+
+    __tablename__ = "applicationreminderrecord"
+
+    id: Mapped[int | None] = mapped_column(primary_key=True, default=None)
+    application_id: Mapped[int] = mapped_column(
+        ForeignKey("applicationrecord.id"), index=True
+    )
+    title: Mapped[str]
+    due_at: Mapped[datetime] = mapped_column(DateTime, index=True)
+    status: Mapped[str] = mapped_column(default="pending", index=True)
+    notes: Mapped[str] = mapped_column(Text, default="")
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime, default=None)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+
 class OpportunityRecord(Base):
     """Backend-owned workflow anchor for one application attempt."""
 
