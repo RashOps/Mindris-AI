@@ -7,7 +7,7 @@ import {
   Cell,
 } from 'recharts';
 import { useCVStore } from '@/store/useCVStore';
-import type { AtsReport, KeywordStatus } from '@/store/useCVStore';
+import { normalizeAtsReport, type AtsReport, type KeywordStatus } from '@/store/useCVStore';
 import { CVUploadZone } from '@/components/CVUploadZone';
 import { LLMSelector } from '@/components/LLMSelector';
 import Link from 'next/link';
@@ -265,13 +265,15 @@ function Recommendations({ recs }: { recs: string[] }) {
 interface HeroProps {
   jobUrl: string;
   setJobUrl: (v: string) => void;
+  atsMode: "standard" | "strict";
+  setAtsMode: (value: "standard" | "strict") => void;
   onAnalyze: () => void;
   isAnalyzing: boolean;
   cvLoaded: boolean;
   onCvLoaded: (data: object) => void;
 }
 
-function AtsHero({ jobUrl, setJobUrl, onAnalyze, isAnalyzing, cvLoaded, onCvLoaded }: HeroProps) {
+function AtsHero({ jobUrl, setJobUrl, atsMode, setAtsMode, onAnalyze, isAnalyzing, cvLoaded, onCvLoaded }: HeroProps) {
   return (
     <div className="mx-auto max-w-2xl space-y-8 pb-4 pt-8 text-center">
       {/* Title */}
@@ -329,6 +331,34 @@ function AtsHero({ jobUrl, setJobUrl, onAnalyze, isAnalyzing, cvLoaded, onCvLoad
         </div>
 
         <LLMSelector taskKey="ats_llm" label="ATS Model" />
+
+        <div>
+          <p className="mb-2.5 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-violet-700">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-100 text-[10px] font-black text-violet-700">3</span>
+            Evaluation Mode
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {(["standard", "strict"] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setAtsMode(mode)}
+                className={`rounded-lg border px-4 py-2.5 text-left text-sm transition-all ${
+                  atsMode === mode
+                    ? 'border-violet-300 bg-violet-50 text-violet-800'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'
+                }`}
+              >
+                <p className="font-semibold capitalize">{mode}</p>
+                <p className="mt-1 text-xs">
+                  {mode === 'strict'
+                    ? 'Conservative penalties for rigid ATS environments.'
+                    : 'Balanced scoring for modern ATS workflows.'}
+                </p>
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Analyze button */}
         <button
@@ -388,6 +418,7 @@ type AtsReportDraft = {
 export default function AtsScorePage() {
   const { cvData, appSettings } = useCVStore();
   const [jobUrl, setJobUrl]         = useState('');
+  const [atsMode, setAtsMode]       = useState<"standard" | "strict">('standard');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [report, setReport]         = useState<AtsReport | null>(null);
   const [sseMessages, setSseMessages] = useState<string[]>([]);
@@ -400,7 +431,7 @@ export default function AtsScorePage() {
     void loadDraft<AtsReportDraft>("ats-report")
       .then(async (draft) => {
         if (cancelled || !draft?.report) return;
-        setReport(draft.report);
+        setReport(normalizeAtsReport(draft.report));
         await deleteDraft("ats-report");
       })
       .catch(() => undefined);
@@ -459,11 +490,12 @@ export default function AtsScorePage() {
               job_insights: insights,
               provider:     appSettings.ats_llm.provider,
               model_name:   appSettings.ats_llm.model_name,
+              ats_mode:     atsMode,
             }),
           });
           if (scoreRes.ok) {
             const atsData = await scoreRes.json();
-            const newReport: AtsReport = atsData.ats_report ?? atsData;
+            const newReport = normalizeAtsReport(atsData.ats_report ?? atsData);
             setReport(newReport);
             await saveDraft("ats-report", { report: newReport });
           }
@@ -489,7 +521,7 @@ export default function AtsScorePage() {
       setError(err instanceof Error ? err.message : 'Unknown error');
       setIsAnalyzing(false);
     }
-  }, [cvLoaded, jobUrl, cvData, appSettings]);
+  }, [cvLoaded, jobUrl, cvData, appSettings, atsMode]);
 
   // ── Computed stats ──────────────────────────────────────────────────────────
   const foundCount   = report?.keyword_analysis.filter(k => k.found).length ?? 0;
@@ -504,6 +536,8 @@ export default function AtsScorePage() {
         <AtsHero
           jobUrl={jobUrl}
           setJobUrl={setJobUrl}
+          atsMode={atsMode}
+          setAtsMode={setAtsMode}
           onAnalyze={handleAnalyze}
           isAnalyzing={isAnalyzing}
           cvLoaded={cvLoaded}
@@ -556,7 +590,12 @@ export default function AtsScorePage() {
             {/* Summary + Bar chart */}
             <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm md:col-span-2">
               <div>
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">Executive Summary</p>
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Executive Summary</p>
+                  <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+                    {report.mode} mode
+                  </span>
+                </div>
                 <p className="text-sm leading-relaxed text-slate-700">{report.summary}</p>
               </div>
               <div>
@@ -610,6 +649,79 @@ export default function AtsScorePage() {
               </div>
             </div>
           )}
+
+          {report.rubric?.dimensions?.length > 0 && (
+            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                  Published Rubric
+                </p>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                  {report.rubric.version}
+                </span>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                {report.rubric.dimensions.map((dimension) => (
+                  <div key={dimension.key} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-semibold text-slate-900">{dimension.label}</p>
+                      <span className="text-xs font-semibold text-slate-500">{dimension.weight}%</span>
+                    </div>
+                    <p className="mt-2 text-xs leading-relaxed text-slate-600">{dimension.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {report.deductions?.length > 0 && (
+            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+              <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                Score Deductions
+              </p>
+              <div className="space-y-3">
+                {report.deductions.map((deduction) => {
+                  const sev = severityColor(deduction.severity);
+                  return (
+                    <div key={`${deduction.code}-${deduction.title}`} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-semibold text-slate-900">{deduction.title}</p>
+                        <span className="rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wider" style={{ background: sev.bg, color: sev.text, border: `1px solid ${sev.border}` }}>
+                          {deduction.severity}
+                        </span>
+                        <span className="text-xs font-semibold text-rose-600">-{deduction.points_lost} pts</span>
+                      </div>
+                      <p className="mt-2 text-sm text-slate-700">{deduction.evidence}</p>
+                      <p className="mt-2 text-xs text-slate-500">{deduction.recommendation}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+              <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                Evaluation Context
+              </p>
+              <div className="space-y-2 text-sm text-slate-700">
+                <p><span className="font-semibold text-slate-900">Job</span> {report.context.job_title || 'Unknown'}{report.context.job_company ? ` · ${report.context.job_company}` : ''}</p>
+                <p><span className="font-semibold text-slate-900">Resume</span> {report.context.resume_id ? `#${report.context.resume_id}` : 'Current workspace CV'}</p>
+                <p><span className="font-semibold text-slate-900">Locale</span> {report.context.resume_locale || 'default'}</p>
+              </div>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+              <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                Runtime
+              </p>
+              <div className="space-y-2 text-sm text-slate-700">
+                <p><span className="font-semibold text-slate-900">Provider</span> {report.context.provider || appSettings.ats_llm.provider}</p>
+                <p><span className="font-semibold text-slate-900">Model</span> {report.context.model_name || appSettings.ats_llm.model_name}</p>
+                <p><span className="font-semibold text-slate-900">Mode</span> {report.mode}</p>
+              </div>
+            </div>
+          </div>
           {/* ── Row 3: Full keyword table ── */}
           <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
             <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
