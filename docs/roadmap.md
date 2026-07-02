@@ -104,9 +104,9 @@
 - [x] **Hygiène repo & contribution :** Purge des fichiers morts, repurposing utile, `AGENTS.md`.
 
 ## 🔵 Phase 15 : Configuration & Local Runtime Control
-- [ ] **Section Configuration AppShell :** Providers, modeles, toggles runtime et etat applicatif.
-- [ ] **Detection Ollama locale :** Probe backend des modeles installes et selection assistee.
-- [ ] **Ergonomie dev locale :** Reload Bun en developpement et diagnostics runtime.
+- [x] **Section Configuration AppShell :** Providers, modeles, toggles runtime et etat applicatif.
+- [x] **Detection Ollama locale :** Probe backend des modeles installes et selection assistee.
+- [x] **Ergonomie dev locale :** Reload Bun en developpement et diagnostics runtime.
 
 ## 🔵 Phase 16 : ATS Transparency & Evaluation Integrity
 - [ ] **Rubric ATS explicite :** Methode de scoring visible, severites et deductions.
