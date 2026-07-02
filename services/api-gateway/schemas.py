@@ -849,6 +849,30 @@ class CompanyAnalyzeRequest(LLMRequest):
     model_name: str = "llama-3.1-8b-instant"
 
 
+class ActivityLedgerLink(BaseModel):
+    """Link from one ledger item to a related artifact."""
+
+    subject_type: str
+    subject_id: str
+    relation: str
+
+
+class ActivityLedgerItem(BaseModel):
+    """Normalized history ledger item."""
+
+    id: str
+    subject_type: str
+    subject_id: str
+    title: str
+    summary: str
+    timestamp: str
+    provider: str | None = None
+    model_name: str | None = None
+    status: str | None = None
+    links: list[ActivityLedgerLink] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class ApplicationCreateRequest(BaseModel):
     """Create an application tracker item."""
 
