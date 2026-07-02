@@ -67,6 +67,20 @@ function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
 }
 
+function triggerBlobDownload(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.style.display = "none";
+  document.body.appendChild(anchor);
+  anchor.click();
+  window.setTimeout(() => {
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  }, 1000);
+}
+
 function HeaderActionMenu({
   label,
   icon,
@@ -331,14 +345,12 @@ export default function AppPage() {
     });
     if (!response.ok) throw new Error(`${exportConfig.label} export failed`);
     const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
     const activeResume = resumes.find((resume) => resume.id === activeResumeId);
     const name = activeResume?.name || cvData.profile.full_name || "mindris_cv";
-    a.href = url;
-    a.download = `${name.replace(/\s+/g, "_") || "mindris_cv"}.${exportConfig.extension}`;
-    a.click();
-    URL.revokeObjectURL(url);
+    triggerBlobDownload(
+      blob,
+      `${name.replace(/\s+/g, "_") || "mindris_cv"}.${exportConfig.extension}`,
+    );
     showToast(`Resume ${exportConfig.label} exported`);
   };
 
@@ -358,12 +370,10 @@ export default function AppPage() {
       });
       if (!res.ok) throw new Error("Render failed");
       const blob = await res.blob();
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement("a");
-      a.href     = url;
-      a.download = `${cvData.profile.full_name.replace(/\s+/g, "_")}_CV.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
+      triggerBlobDownload(
+        blob,
+        `${cvData.profile.full_name.replace(/\s+/g, "_")}_CV.pdf`,
+      );
       showToast("PDF downloaded.");
     } catch (err: unknown) {
       showToast(errorMessage(err, "Render failed"), 5000);
