@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  normalizeAtsReport,
   normalizeAppSettings,
   normalizeCVData,
   normalizeResumeDocument,
@@ -111,6 +112,23 @@ describe("useCVStore normalization", () => {
     expect(normalized.global_settings.advanced_css?.enabled).toBe(true);
     expect(normalized.global_settings.advanced_css?.mode).toBe("css_patch");
     expect(normalized.global_settings.advanced_css?.warnings).toEqual([]);
+  });
+
+  test("normalizes ATS report transparency metadata from partial payloads", () => {
+    const normalized = normalizeAtsReport({
+      score: 74,
+      summary: "Strong fit with a few gaps.",
+      scoring_breakdown: [],
+      keyword_analysis: [],
+      recommendations: [],
+      deductions: [{ code: "missing_sql", title: "SQL missing", points_lost: 8 }],
+      context: { job_company: "Mindris" },
+    } as never);
+
+    expect(normalized.mode).toBe("standard");
+    expect(normalized.rubric.version).toBe("ats-v1");
+    expect(normalized.deductions[0]?.severity).toBe("medium");
+    expect(normalized.context.job_company).toBe("Mindris");
   });
 
   test("normalizes legacy resume documents into multilingual metadata", () => {
