@@ -529,7 +529,7 @@ export default function AtsScorePage() {
   const missingHigh  = report?.keyword_analysis.filter(k => !k.found && k.severity === 'high').length ?? 0;
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-slate-50 text-slate-950">
+    <div className="min-h-[calc(100vh-4rem)] bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-slate-100">
 
       {/* Hero section */}
       <div className="px-6">
@@ -555,7 +555,7 @@ export default function AtsScorePage() {
       {/* Error */}
       {error && (
         <div className="max-w-2xl mx-auto px-6 mt-4">
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200">
             {error}
           </div>
         </div>
@@ -569,7 +569,7 @@ export default function AtsScorePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
             {/* Score gauge */}
-            <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <ScoreGauge score={report.score} />
               <div className="flex gap-6 text-center">
                 <div>
@@ -588,7 +588,7 @@ export default function AtsScorePage() {
             </div>
 
             {/* Summary + Bar chart */}
-            <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm md:col-span-2">
+            <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:col-span-2">
               <div>
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Executive Summary</p>
@@ -609,7 +609,7 @@ export default function AtsScorePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
             {/* Radar */}
-            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
                 Skill Coverage Radar
               </p>
@@ -617,7 +617,7 @@ export default function AtsScorePage() {
             </div>
 
             {/* Recommendations */}
-            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
                 Actionable Recommendations
               </p>
@@ -631,13 +631,13 @@ export default function AtsScorePage() {
 
           {/* ── Scoring breakdown ── */}
           {report.scoring_breakdown?.length > 0 && (
-            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
                 Scoring Method
               </p>
               <div className="grid gap-3 md:grid-cols-5">
                 {report.scoring_breakdown.map((criterion) => (
-                  <div key={criterion.criterion} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <div key={criterion.criterion} className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950">
                     <p className="text-xs font-semibold text-slate-900">{criterion.criterion}</p>
                     <p className="mt-2 text-xl font-black" style={{ color: scoreColor(Math.round((criterion.score / criterion.max_score) * 100)), fontFamily: 'var(--font-space)' }}>
                       {criterion.score}/{criterion.max_score}
@@ -651,7 +651,7 @@ export default function AtsScorePage() {
           )}
 
           {report.rubric?.dimensions?.length > 0 && (
-            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
                   Published Rubric
@@ -662,7 +662,7 @@ export default function AtsScorePage() {
               </div>
               <div className="grid gap-3 md:grid-cols-2">
                 {report.rubric.dimensions.map((dimension) => (
-                  <div key={dimension.key} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <div key={dimension.key} className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950">
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-sm font-semibold text-slate-900">{dimension.label}</p>
                       <span className="text-xs font-semibold text-slate-500">{dimension.weight}%</span>
@@ -675,7 +675,7 @@ export default function AtsScorePage() {
           )}
 
           {report.deductions?.length > 0 && (
-            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
                 Score Deductions
               </p>
@@ -683,7 +683,7 @@ export default function AtsScorePage() {
                 {report.deductions.map((deduction) => {
                   const sev = severityColor(deduction.severity);
                   return (
-                    <div key={`${deduction.code}-${deduction.title}`} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                    <div key={`${deduction.code}-${deduction.title}`} className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="text-sm font-semibold text-slate-900">{deduction.title}</p>
                         <span className="rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wider" style={{ background: sev.bg, color: sev.text, border: `1px solid ${sev.border}` }}>
@@ -701,7 +701,7 @@ export default function AtsScorePage() {
           )}
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
                 Evaluation Context
               </p>
@@ -711,7 +711,7 @@ export default function AtsScorePage() {
                 <p><span className="font-semibold text-slate-900">Locale</span> {report.context.resume_locale || 'default'}</p>
               </div>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
                 Runtime
               </p>
@@ -723,7 +723,7 @@ export default function AtsScorePage() {
             </div>
           </div>
           {/* ── Row 3: Full keyword table ── */}
-          <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
               Keyword Density & Semantic Analysis
             </p>
