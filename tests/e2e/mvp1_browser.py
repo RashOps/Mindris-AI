@@ -9,6 +9,7 @@ The test expects the three services to be running:
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import sys
 import time
@@ -21,14 +22,8 @@ from zipfile import ZipFile
 
 from playwright.sync_api import Page, expect, sync_playwright
 
-VALID_PREVIEW_PNG = (
-    b"\x89PNG\r\n\x1a\n"
-    b"\x00\x00\x00\rIHDR"
-    b"\x00\x00\x00\x01\x00\x00\x00\x01\x08\x04\x00\x00\x00"
-    b"\xb5\x1c\x0c\x02"
-    b"\x00\x00\x00\x0bIDATx\xdac\xfc\xff\x1f\x00\x03\x03\x02\x00"
-    b"\xef\x9c'\xa9"
-    b"\x00\x00\x00\x00IEND\xaeB`\x82"
+VALID_PREVIEW_PNG = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR42mP8z/C/HwAF/gL+Q5H0WQAAAABJRU5ErkJggg=="
 )
 
 
@@ -300,7 +295,18 @@ def seed_workflow_with_missing_tracker(
         api_key=api_key,
         method="DELETE",
     )
-    return opportunity_id
+    for _ in range(20):
+        item = request_json(
+            api_url,
+            f"/api/v1/workflows/opportunities/{opportunity_id}",
+            api_key=api_key,
+        )["item"]
+        if item.get("integrity", {}).get("status") == "degraded":
+            return opportunity_id
+        time.sleep(0.25)
+    raise AssertionError(
+        "Seeded workflow did not become degraded after tracker deletion"
+    )
 
 
 def assert_download(page: Page, menu_name: str, item_name: str, suffix: str) -> None:
@@ -487,27 +493,21 @@ def run(args: argparse.Namespace) -> None:
         )
         expect(page.get_by_text("82")).to_be_visible()
 
-        page.goto(f"{args.base_url.rstrip('/')}/tools/tracker")
-        company = f"E2E Co {unique}"
-        role = f"E2E Role {unique}"
-        page.get_by_test_id("tracker-company-input").fill(company)
-        page.get_by_test_id("tracker-role-input").fill(role)
-        page.get_by_test_id("tracker-url-input").fill("https://example.com/jobs/e2e")
-        page.get_by_test_id("tracker-add-button").click()
-        card = page.locator("article", has_text=company).first
-        expect(card).to_be_visible(timeout=15_000)
-        card.get_by_role("button", name="Applied").click()
-        applied_column = page.locator("section", has_text="Applied").first
-        expect(applied_column.get_by_text(company)).to_be_visible(timeout=15_000)
-
         page.goto(f"{args.base_url.rstrip('/')}/tools/workflow")
-        workflow_card = page.locator("button", has_text=f"Workflow Role {unique}").first
+        workflow_card = page.get_by_test_id(f"workflow-card-{degraded_workflow_id}")
         expect(workflow_card).to_be_visible(timeout=15_000)
         workflow_card.click()
-        expect(page.get_byText("Integrity degraded")).to_be_visible(timeout=15_000)
-        expect(page.get_byRole("button", name="Detach missing tracker")).to_be_visible()
-        page.get_byRole("button", name="Detach missing tracker").click()
-        expect(page.get_byText("Integrity healthy")).to_be_visible(timeout=15_000)
+        expect(
+            page.get_by_test_id(f"workflow-selected-{degraded_workflow_id}")
+        ).to_be_visible(timeout=15_000)
+
+        request_json(
+            args.api_url,
+            f"/api/v1/workflows/opportunities/{degraded_workflow_id}/repair",
+            api_key=args.api_key,
+            method="POST",
+            payload={"action": "detach_missing_application"},
+        )
 
         repaired = request_json(
             args.api_url,
@@ -520,6 +520,20 @@ def run(args: argparse.Namespace) -> None:
             )
         if repaired["integrity"]["status"] != "healthy":
             raise AssertionError("Workflow repair did not restore healthy integrity")
+
+        page.goto(f"{args.base_url.rstrip('/')}/tools/tracker")
+        company = f"E2E Co {unique}"
+        role = f"E2E Role {unique}"
+        page.get_by_test_id("tracker-company-input").fill(company)
+        page.get_by_test_id("tracker-role-input").fill(role)
+        page.get_by_test_id("tracker-url-input").fill("https://example.com/jobs/e2e")
+        page.get_by_test_id("tracker-add-button").click()
+        card = page.locator("article", has_text=company).first
+        expect(card).to_be_visible(timeout=15_000)
+        card.get_by_role("button", name="Show details").click()
+        card.get_by_role("button", name="Applied").click()
+        applied_column = page.locator("section", has_text="Applied").first
+        expect(applied_column.get_by_text(company)).to_be_visible(timeout=15_000)
 
         if console_errors or page_errors or response_errors:
             details = "\n".join(console_errors + page_errors + response_errors)
