@@ -552,6 +552,25 @@ def resume_to_docx(record: ResumeRecord) -> bytes:
     return rendered
 
 
+def markdown_to_docx(markdown: str, *, title: str = "Document") -> bytes:
+    """Render freeform Markdown as a simple text-based DOCX document."""
+    blocks: list[dict[str, Any]] = [{"style": "Title", "text": title.strip() or "Document"}]
+    _docx_markdownish(blocks, markdown)
+    document_xml = _docx_document_xml(blocks)
+    buffer = BytesIO()
+    with ZipFile(buffer, "w", ZIP_DEFLATED) as docx:
+        docx.writestr("[Content_Types].xml", _docx_content_types())
+        docx.writestr("_rels/.rels", _docx_root_rels())
+        docx.writestr("word/_rels/document.xml.rels", _docx_document_rels())
+        docx.writestr("word/document.xml", document_xml)
+        docx.writestr("word/styles.xml", _docx_styles())
+        docx.writestr("docProps/core.xml", _docx_core_props(title.strip() or "Document"))
+        docx.writestr("docProps/app.xml", _docx_app_props())
+    rendered = buffer.getvalue()
+    logger.debug("Rendered Markdown DOCX (%d bytes)", len(rendered))
+    return rendered
+
+
 def _cv_data(record: ResumeRecord) -> dict[str, Any]:
     data = load_json(record.data_json, {})
     return data if isinstance(data, dict) else {}

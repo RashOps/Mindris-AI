@@ -1,15 +1,17 @@
 """Persistence helpers shared by API routers."""
 
 import json
-from copy import copy
-from copy import deepcopy
+from copy import copy, deepcopy
 from datetime import datetime
 from typing import Any
 
 from database.records import (
+    ApplicationRecord,
     AtsReportRecord,
     CoverLetterRecord,
     CVDocumentRecord,
+    OpportunityRecord,
+    OpportunityTransitionRecord,
     ResumeRecord,
     ResumeRevisionRecord,
     ScrapedJobRecord,
@@ -178,7 +180,9 @@ def _compose_multilingual_resume(
     return active_payload
 
 
-def _persist_lazy_resume_migration(session: Session, record: ResumeRecord) -> dict[str, Any]:
+def _persist_lazy_resume_migration(
+    session: Session, record: ResumeRecord
+) -> dict[str, Any]:
     normalized, changed = _active_resume_payload(
         load_json(record.data_json, {}),
         record.locale or "fr",
@@ -865,9 +869,13 @@ def save_ats_report(
         job_id=job_id,
         score=int(report.get("score", 0)),
         summary=report.get("summary", ""),
+        mode=report.get("mode", "standard"),
         keyword_analysis=dump_json(report.get("keyword_analysis", [])),
+        rubric_json=dump_json(report.get("rubric", {})),
         scoring_breakdown=dump_json(report.get("scoring_breakdown", [])),
+        deductions_json=dump_json(report.get("deductions", [])),
         recommendations=dump_json(report.get("recommendations", [])),
+        context_json=dump_json(report.get("context", {})),
         provider=provider,
         model_name=model_name,
     )
@@ -920,9 +928,13 @@ def serialize_ats(record: AtsReportRecord) -> dict:
         "job_id": record.job_id,
         "score": record.score,
         "summary": record.summary,
+        "mode": record.mode,
+        "rubric": load_json(record.rubric_json, {}),
         "keyword_analysis": load_json(record.keyword_analysis, []),
         "scoring_breakdown": load_json(record.scoring_breakdown, []),
+        "deductions": load_json(record.deductions_json, []),
         "recommendations": load_json(record.recommendations, []),
+        "context": load_json(record.context_json, {}),
         "provider": record.provider,
         "model_name": record.model_name,
         "generated_at": record.generated_at.isoformat(),
@@ -939,3 +951,351 @@ def serialize_cover_letter(record: CoverLetterRecord) -> dict:
         "model_name": record.model_name,
         "generated_at": record.generated_at.isoformat(),
     }
+
+
+def list_opportunity_transitions(
+    session: Session,
+    opportunity_id: int,
+) -> list[OpportunityTransitionRecord]:
+    """Return workflow transitions in chronological order."""
+    return session.exec(
+        select(OpportunityTransitionRecord)
+        .where(OpportunityTransitionRecord.opportunity_id == opportunity_id)
+        .order_by(OpportunityTransitionRecord.created_at.asc(), OpportunityTransitionRecord.id.asc())
+    ).all()
+
+
+def serialize_opportunity_transition(record: OpportunityTransitionRecord) -> dict:
+    """Convert an opportunity transition to JSON-safe output."""
+    return {
+        "id": record.id,
+        "state": record.state,
+        "action": record.action,
+        "metadata": load_json(record.metadata_json, {}),
+        "created_at": record.created_at.isoformat(),
+    }
+
+
+def _opportunity_next_actions(record: OpportunityRecord) -> list[str]:
+    actions: list[str] = []
+    if record.resume_id is None:
+        actions.append("link_resume")
+    if record.ats_report_id is None:
+        actions.append("link_ats_report")
+    if record.cover_letter_id is None:
+        actions.append("link_cover_letter")
+    if record.application_id is None:
+        actions.append("create_or_attach_tracker_entry")
+    if (
+        record.resume_id is not None
+        and record.ats_report_id is not None
+        and record.cover_letter_id is not None
+        and record.application_id is not None
+        and record.current_state != "ready_to_apply"
+    ):
+        actions.append("mark_ready_to_apply")
+    return actions
+
+
+def serialize_opportunity(session: Session, record: OpportunityRecord) -> dict:
+    """Convert an opportunity workflow aggregate to JSON-safe output."""
+    transitions = [
+        serialize_opportunity_transition(row)
+        for row in list_opportunity_transitions(session, record.id or 0)
+    ]
+    linked_artifacts: dict[str, Any] = {}
+    if record.job_id:
+        job = session.get(ScrapedJobRecord, record.job_id)
+        if job:
+            linked_artifacts["job"] = serialize_job(job)
+    if record.resume_id:
+        resume = session.get(ResumeRecord, record.resume_id)
+        if resume:
+            linked_artifacts["resume"] = {
+                "id": resume.id,
+                "name": resume.name,
+                "template_id": resume.template_id,
+                "locale": record.resume_locale or resume.locale,
+                "updated_at": resume.updated_at.isoformat(),
+            }
+    if record.ats_report_id:
+        ats = session.get(AtsReportRecord, record.ats_report_id)
+        if ats:
+            linked_artifacts["ats_report"] = serialize_ats(ats)
+    if record.cover_letter_id:
+        letter = session.get(CoverLetterRecord, record.cover_letter_id)
+        if letter:
+            linked_artifacts["cover_letter"] = serialize_cover_letter(letter)
+    if record.application_id:
+        application = session.get(ApplicationRecord, record.application_id)
+        if application:
+            linked_artifacts["application"] = {
+                "id": application.id,
+                "status": application.status,
+                "company": application.company,
+                "role": application.role,
+                "url": application.url,
+                "updated_at": application.updated_at.isoformat(),
+            }
+    return {
+        "id": record.id,
+        "job_id": record.job_id,
+        "source_url": record.source_url,
+        "company": record.company,
+        "role": record.role,
+        "current_state": record.current_state,
+        "resume_id": record.resume_id,
+        "resume_locale": record.resume_locale,
+        "ats_report_id": record.ats_report_id,
+        "cover_letter_id": record.cover_letter_id,
+        "application_id": record.application_id,
+        "notes": record.notes,
+        "metadata": load_json(record.metadata_json, {}),
+        "created_at": record.created_at.isoformat(),
+        "updated_at": record.updated_at.isoformat(),
+        "last_transition_at": record.last_transition_at.isoformat(),
+        "transitions": transitions,
+        "linked_artifacts": linked_artifacts,
+        "next_actions": _opportunity_next_actions(record),
+    }
+
+
+def append_opportunity_transition(
+    session: Session,
+    record: OpportunityRecord,
+    *,
+    state: str,
+    action: str,
+    metadata: dict[str, Any] | None = None,
+) -> OpportunityTransitionRecord:
+    """Append a workflow transition and update the current state."""
+    now = datetime.now()
+    record.current_state = state
+    record.updated_at = now
+    record.last_transition_at = now
+    session.add(record)
+    transition = OpportunityTransitionRecord(
+        opportunity_id=record.id or 0,
+        state=state,
+        action=action,
+        metadata_json=dump_json(metadata or {}),
+        created_at=now,
+    )
+    session.add(transition)
+    session.commit()
+    session.refresh(record)
+    session.refresh(transition)
+    return transition
+
+
+def create_opportunity(
+    session: Session,
+    *,
+    company: str,
+    role: str,
+    job_id: int | None = None,
+    source_url: str | None = None,
+    notes: str = "",
+    metadata: dict[str, Any] | None = None,
+) -> OpportunityRecord:
+    """Create an opportunity workflow anchor."""
+    now = datetime.now()
+    record = OpportunityRecord(
+        job_id=job_id,
+        source_url=source_url,
+        company=company,
+        role=role,
+        notes=notes,
+        metadata_json=dump_json(metadata or {}),
+        created_at=now,
+        updated_at=now,
+        last_transition_at=now,
+    )
+    session.add(record)
+    session.commit()
+    session.refresh(record)
+    if job_id is not None:
+        append_opportunity_transition(
+            session,
+            record,
+            state="scrape_completed",
+            action="seed_from_job",
+            metadata={"job_id": job_id},
+        )
+    append_opportunity_transition(
+        session,
+        record,
+        state="opportunity_created",
+        action="create_opportunity",
+        metadata={"job_id": job_id, "source_url": source_url},
+    )
+    return record
+
+
+def link_opportunity_resume(
+    session: Session,
+    record: OpportunityRecord,
+    *,
+    resume: ResumeRecord,
+    locale: str | None = None,
+) -> OpportunityRecord:
+    """Link a resume variant to an opportunity."""
+    _, target_locale = resolve_resume_variant(resume, locale=locale)
+    replaced = record.resume_id is not None and record.resume_id != resume.id
+    record.resume_id = resume.id
+    record.resume_locale = target_locale
+    append_opportunity_transition(
+        session,
+        record,
+        state="resume_linked",
+        action="link_resume",
+        metadata={
+            "resume_id": resume.id,
+            "resume_locale": target_locale,
+            "replaced": replaced,
+        },
+    )
+    return record
+
+
+def link_opportunity_ats_report(
+    session: Session,
+    record: OpportunityRecord,
+    *,
+    ats_report: AtsReportRecord,
+) -> OpportunityRecord:
+    """Link an ATS report to an opportunity."""
+    replaced = (
+        record.ats_report_id is not None and record.ats_report_id != ats_report.id
+    )
+    record.ats_report_id = ats_report.id
+    append_opportunity_transition(
+        session,
+        record,
+        state="ats_report_linked",
+        action="link_ats_report",
+        metadata={
+            "ats_report_id": ats_report.id,
+            "job_id": ats_report.job_id,
+            "replaced": replaced,
+        },
+    )
+    return record
+
+
+def link_opportunity_cover_letter(
+    session: Session,
+    record: OpportunityRecord,
+    *,
+    cover_letter: CoverLetterRecord,
+) -> OpportunityRecord:
+    """Link a cover letter to an opportunity."""
+    replaced = (
+        record.cover_letter_id is not None
+        and record.cover_letter_id != cover_letter.id
+    )
+    record.cover_letter_id = cover_letter.id
+    append_opportunity_transition(
+        session,
+        record,
+        state="cover_letter_linked",
+        action="link_cover_letter",
+        metadata={
+            "cover_letter_id": cover_letter.id,
+            "job_id": cover_letter.job_id,
+            "replaced": replaced,
+        },
+    )
+    return record
+
+
+def create_or_attach_opportunity_application(
+    session: Session,
+    record: OpportunityRecord,
+    *,
+    application: ApplicationRecord | None = None,
+    create: bool = False,
+    status: str = "wishlist",
+    notes: str = "",
+) -> tuple[OpportunityRecord, ApplicationRecord]:
+    """Create or attach a tracker application for an opportunity."""
+    if application is None and not create:
+        raise ValueError("Provide application or set create=True.")
+
+    if application is None:
+        position = len(
+            session.exec(
+                select(ApplicationRecord).where(ApplicationRecord.status == status)
+            ).all()
+        )
+        application = ApplicationRecord(
+            job_id=record.job_id,
+            status=status,
+            position=position,
+            company=record.company,
+            role=record.role,
+            url=record.source_url,
+            notes=notes or record.notes,
+            ats_report_id=record.ats_report_id,
+            cover_letter_id=record.cover_letter_id,
+        )
+        session.add(application)
+        session.commit()
+        session.refresh(application)
+    else:
+        application.job_id = application.job_id or record.job_id
+        application.ats_report_id = record.ats_report_id or application.ats_report_id
+        application.cover_letter_id = (
+            record.cover_letter_id or application.cover_letter_id
+        )
+        if notes:
+            application.notes = notes
+        application.updated_at = datetime.now()
+        session.add(application)
+        session.commit()
+        session.refresh(application)
+
+    replaced = (
+        record.application_id is not None and record.application_id != application.id
+    )
+    record.application_id = application.id
+    append_opportunity_transition(
+        session,
+        record,
+        state="tracker_entry_created",
+        action="attach_tracker_entry" if not create else "create_tracker_entry",
+        metadata={
+            "application_id": application.id,
+            "status": application.status,
+            "replaced": replaced,
+        },
+    )
+    return record, application
+
+
+def mark_opportunity_ready_to_apply(
+    session: Session,
+    record: OpportunityRecord,
+) -> OpportunityRecord:
+    """Mark an opportunity as ready once required artifacts are linked."""
+    missing: list[str] = []
+    if record.resume_id is None:
+        missing.append("resume")
+    if record.ats_report_id is None:
+        missing.append("ats_report")
+    if record.cover_letter_id is None:
+        missing.append("cover_letter")
+    if record.application_id is None:
+        missing.append("application")
+    if missing:
+        raise ValueError(
+            f"Opportunity is missing required artifacts: {', '.join(missing)}."
+        )
+    append_opportunity_transition(
+        session,
+        record,
+        state="ready_to_apply",
+        action="mark_ready_to_apply",
+        metadata={"application_id": record.application_id},
+    )
+    return record

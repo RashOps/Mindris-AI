@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { RENDERER_BASE_URL, jsonHeaders, rendererUrl } from "@/lib/api";
+import { RENDERER_BASE_URL, apiUrl, jsonHeaders, rendererUrl } from "@/lib/api";
 import { deleteDraft, loadDraft } from "@/lib/drafts";
 
 // ── Templates ─────────────────────────────────────────────────────────────────
@@ -110,6 +110,7 @@ export default function MarkdownToolPage() {
   const [previewHtml, setPreviewHtml] = useState("");
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isExportingDocx, setIsExportingDocx] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; msg: string } | null>(null);
   const [activeTemplate, setActiveTemplate] = useState<keyof typeof TEMPLATES>(initialDraft.activeTemplate);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -186,6 +187,33 @@ export default function MarkdownToolPage() {
     }
   };
 
+  const handleExportDocx = async () => {
+    if (!markdown.trim()) return;
+    setIsExportingDocx(true);
+    setStatus(null);
+    try {
+      const res = await fetch(apiUrl("/api/v1/markdown/export-docx"), {
+        method: "POST",
+        headers: jsonHeaders(),
+        body: JSON.stringify({ markdown, title }),
+      });
+      if (!res.ok) throw new Error(`DOCX export error: ${res.status}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${title.replace(/\s+/g, "_") || "document"}.docx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setStatus({ type: "success", msg: "✅ DOCX downloaded!" });
+    } catch (err: unknown) {
+      setStatus({ type: "error", msg: `❌ ${err instanceof Error ? err.message : "DOCX export failed"}` });
+    } finally {
+      setIsExportingDocx(false);
+      setTimeout(() => setStatus(null), 4000);
+    }
+  };
+
   // ── Template picker ───────────────────────────────────────────────────────
   const applyTemplate = (key: keyof typeof TEMPLATES) => {
     setActiveTemplate(key);
@@ -209,9 +237,9 @@ export default function MarkdownToolPage() {
       )}
 
       {/* ── Header ───────────────────────────────────────────────────────────── */}
-      <header className="flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-2 shadow-sm">
+      <header className="flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-2 shadow-sm dark:border-slate-800 dark:bg-slate-950">
         <div className="flex items-center gap-4">
-          <span className="text-xs font-semibold uppercase tracking-widest text-slate-500">Markdown PDF</span>
+          <span className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">Markdown PDF</span>
         </div>
 
         {/* Controls */}
@@ -222,7 +250,7 @@ export default function MarkdownToolPage() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Document title..."
-            className="h-9 w-44 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none"
+            className="h-9 w-44 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100"
           />
 
           {/* Style toggle */}
@@ -243,9 +271,21 @@ export default function MarkdownToolPage() {
 
           {/* Export */}
           <button
+            onClick={handleExportDocx}
+            disabled={isExportingDocx || !markdown.trim()}
+            className="flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+          >
+            {isExportingDocx ? (
+              <><span className="w-3 h-3 border-2 border-slate-700 border-t-transparent rounded-full animate-spin dark:border-slate-100" /> Generating...</>
+            ) : (
+              <>↓ Export DOCX</>
+            )}
+          </button>
+
+          <button
             onClick={handleExport}
             disabled={isExporting || !markdown.trim()}
-            className="flex h-9 cursor-pointer items-center gap-2 rounded-lg bg-slate-950 px-4 text-sm font-semibold text-white transition-all hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-9 cursor-pointer items-center gap-2 rounded-lg bg-slate-950 px-4 text-sm font-semibold text-white transition-all hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-slate-200"
           >
             {isExporting ? (
               <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Generating...</>
@@ -257,7 +297,7 @@ export default function MarkdownToolPage() {
       </header>
 
       {/* ── Template bar ─────────────────────────────────────────────────────────── */}
-      <div className="flex shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-4 py-2">
+      <div className="flex shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-4 py-2 dark:border-slate-800 dark:bg-slate-950">
         <span className="mr-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Template:</span>
         {(Object.keys(TEMPLATES) as Array<keyof typeof TEMPLATES>).map((key) => (
           <button

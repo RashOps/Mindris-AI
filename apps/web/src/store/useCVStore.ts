@@ -201,23 +201,281 @@ export interface ScoringCriteria {
   explanation: string;
 }
 
+export interface AtsRubricDimension {
+  key: string;
+  label: string;
+  weight: number;
+  description: string;
+}
+
+export interface AtsRubric {
+  version: string;
+  mode: "standard" | "strict";
+  dimensions: AtsRubricDimension[];
+}
+
+export interface AtsDeduction {
+  code: string;
+  title: string;
+  severity: "high" | "medium" | "low";
+  points_lost: number;
+  evidence: string;
+  recommendation: string;
+}
+
+export interface AtsReportContext {
+  job_title: string;
+  job_company: string;
+  job_id?: number | null;
+  resume_id?: number | null;
+  resume_locale?: string | null;
+  provider: string;
+  model_name: string;
+}
+
+export interface HistoryLedgerLink {
+  subject_type: string;
+  subject_id: string;
+  relation: string;
+}
+
+export interface HistoryLedgerItem {
+  id: string;
+  subject_type:
+    | "job_scrape"
+    | "resume_revision"
+    | "cover_letter"
+    | "ats_report"
+    | "opportunity"
+    | "tracker_event"
+    | "llm_run";
+  subject_id: string;
+  title: string;
+  summary: string;
+  timestamp: string;
+  provider?: string | null;
+  model_name?: string | null;
+  status?: string | null;
+  links: HistoryLedgerLink[];
+  metadata: Record<string, unknown>;
+}
+
 export interface CompanyInsight {
   name: string;
+  canonical_domain?: string | null;
+  homepage_url?: string | null;
+  careers_url?: string | null;
   industry: string;
   size: string;
+  work_mode?: string;
+  locations?: string[];
   culture_values: string[];
   recent_news: string[];
   glassdoor_summary?: string | null;
   tech_stack_known: string[];
+  role_fit?: {
+    skills_to_foreground?: string[];
+    wording_to_mirror?: string[];
+    priority_experiences?: string[];
+    cv_emphasis?: string[];
+    cover_letter_emphasis?: string[];
+  };
+  risk_flags?: Array<{
+    code: string;
+    severity: string;
+    title: string;
+    detail: string;
+    provenance: string;
+  }>;
+  evidence?: Record<string, string[]>;
+  provenance?: Record<string, string>;
+  cache?: Record<string, string>;
   unavailable_reason?: string | null;
 }
 
 export interface AtsReport {
   score: number;
+  mode: "standard" | "strict";
   summary: string;
+  rubric: AtsRubric;
   scoring_breakdown: ScoringCriteria[];
+  deductions: AtsDeduction[];
   keyword_analysis: KeywordStatus[];
   recommendations: string[];
+  context: AtsReportContext;
+}
+
+const DEFAULT_ATS_RUBRIC: AtsRubric = {
+  version: "ats-v1",
+  mode: "standard",
+  dimensions: [
+    {
+      key: "keyword_match",
+      label: "Keyword Match Rate",
+      weight: 30,
+      description: "Coverage of required hard and soft skills from the target job.",
+    },
+    {
+      key: "experience_relevance",
+      label: "Experience Relevance",
+      weight: 25,
+      description: "How directly the candidate experience maps to the target role.",
+    },
+    {
+      key: "formatting_structure",
+      label: "Formatting & Structure",
+      weight: 15,
+      description: "Clarity, semantic structure, and ATS readability of the resume.",
+    },
+    {
+      key: "quantification",
+      label: "Quantification",
+      weight: 10,
+      description: "Presence of metrics and measurable impact in bullets.",
+    },
+    {
+      key: "title_alignment",
+      label: "Title & Role Alignment",
+      weight: 10,
+      description: "Alignment between resume framing and target role.",
+    },
+    {
+      key: "overall_coherence",
+      label: "Overall Coherence",
+      weight: 10,
+      description: "Consistency and clarity for the application context.",
+    },
+  ],
+};
+
+export function normalizeAtsReport(value: AtsReport | null | undefined): AtsReport {
+  const candidate = (value ?? {}) as Partial<AtsReport>;
+  const mode = candidate.mode === "strict" ? "strict" : "standard";
+  const rubricCandidate = candidate.rubric ?? DEFAULT_ATS_RUBRIC;
+  return {
+    score: typeof candidate.score === "number" ? candidate.score : 0,
+    mode,
+    summary: typeof candidate.summary === "string" ? candidate.summary : "",
+    rubric: {
+      version:
+        typeof rubricCandidate.version === "string"
+          ? rubricCandidate.version
+          : DEFAULT_ATS_RUBRIC.version,
+      mode,
+      dimensions: Array.isArray(rubricCandidate.dimensions)
+        ? rubricCandidate.dimensions.map((dimension) => ({
+            key: typeof dimension?.key === "string" ? dimension.key : "",
+            label: typeof dimension?.label === "string" ? dimension.label : "",
+            weight: typeof dimension?.weight === "number" ? dimension.weight : 0,
+            description:
+              typeof dimension?.description === "string"
+                ? dimension.description
+                : "",
+          }))
+        : DEFAULT_ATS_RUBRIC.dimensions,
+    },
+    scoring_breakdown: Array.isArray(candidate.scoring_breakdown)
+      ? candidate.scoring_breakdown
+      : [],
+    deductions: Array.isArray(candidate.deductions)
+      ? candidate.deductions.map((deduction) => ({
+          code: typeof deduction?.code === "string" ? deduction.code : "",
+          title: typeof deduction?.title === "string" ? deduction.title : "",
+          severity:
+            deduction?.severity === "high" || deduction?.severity === "low"
+              ? deduction.severity
+              : "medium",
+          points_lost:
+            typeof deduction?.points_lost === "number" ? deduction.points_lost : 0,
+          evidence:
+            typeof deduction?.evidence === "string" ? deduction.evidence : "",
+          recommendation:
+            typeof deduction?.recommendation === "string"
+              ? deduction.recommendation
+              : "",
+        }))
+      : [],
+    keyword_analysis: Array.isArray(candidate.keyword_analysis)
+      ? candidate.keyword_analysis
+      : [],
+    recommendations: Array.isArray(candidate.recommendations)
+      ? candidate.recommendations
+      : [],
+    context: {
+      job_title:
+        typeof candidate.context?.job_title === "string"
+          ? candidate.context.job_title
+          : "",
+      job_company:
+        typeof candidate.context?.job_company === "string"
+          ? candidate.context.job_company
+          : "",
+      job_id:
+        typeof candidate.context?.job_id === "number"
+          ? candidate.context.job_id
+          : null,
+      resume_id:
+        typeof candidate.context?.resume_id === "number"
+          ? candidate.context.resume_id
+          : null,
+      resume_locale:
+        typeof candidate.context?.resume_locale === "string"
+          ? candidate.context.resume_locale
+          : null,
+      provider:
+        typeof candidate.context?.provider === "string"
+          ? candidate.context.provider
+          : "",
+      model_name:
+        typeof candidate.context?.model_name === "string"
+          ? candidate.context.model_name
+          : "",
+    },
+  };
+}
+
+export function normalizeHistoryLedgerItem(
+  value: HistoryLedgerItem | null | undefined,
+): HistoryLedgerItem {
+  const candidate = (value ?? {}) as Partial<HistoryLedgerItem>;
+  const subjectType =
+    candidate.subject_type === "job_scrape" ||
+    candidate.subject_type === "resume_revision" ||
+    candidate.subject_type === "cover_letter" ||
+    candidate.subject_type === "ats_report" ||
+    candidate.subject_type === "opportunity" ||
+    candidate.subject_type === "tracker_event" ||
+    candidate.subject_type === "llm_run"
+      ? candidate.subject_type
+      : "llm_run";
+
+  return {
+    id: typeof candidate.id === "string" ? candidate.id : "",
+    subject_type: subjectType,
+    subject_id:
+      typeof candidate.subject_id === "string" ? candidate.subject_id : "",
+    title: typeof candidate.title === "string" ? candidate.title : "",
+    summary: typeof candidate.summary === "string" ? candidate.summary : "",
+    timestamp:
+      typeof candidate.timestamp === "string" ? candidate.timestamp : "",
+    provider:
+      typeof candidate.provider === "string" ? candidate.provider : null,
+    model_name:
+      typeof candidate.model_name === "string" ? candidate.model_name : null,
+    status: typeof candidate.status === "string" ? candidate.status : null,
+    links: Array.isArray(candidate.links)
+      ? candidate.links.map((link) => ({
+          subject_type:
+            typeof link?.subject_type === "string" ? link.subject_type : "",
+          subject_id: typeof link?.subject_id === "string" ? link.subject_id : "",
+          relation: typeof link?.relation === "string" ? link.relation : "",
+        }))
+      : [],
+    metadata:
+      candidate.metadata && typeof candidate.metadata === "object"
+        ? candidate.metadata
+        : {},
+  };
 }
 
 export interface JobInsights {

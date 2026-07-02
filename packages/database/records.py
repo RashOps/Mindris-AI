@@ -110,9 +110,13 @@ class AtsReportRecord(Base):
     )
     score: Mapped[int]
     summary: Mapped[str] = mapped_column(Text, default="")
+    mode: Mapped[str] = mapped_column(default="standard")
     keyword_analysis: Mapped[str] = mapped_column(Text, default="[]")
+    rubric_json: Mapped[str] = mapped_column(Text, default="{}")
     scoring_breakdown: Mapped[str] = mapped_column(Text, default="[]")
+    deductions_json: Mapped[str] = mapped_column(Text, default="[]")
     recommendations: Mapped[str] = mapped_column(Text, default="[]")
+    context_json: Mapped[str] = mapped_column(Text, default="{}")
     provider: Mapped[str]
     model_name: Mapped[str]
     generated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
@@ -125,6 +129,7 @@ class CompanyInsightRecord(Base):
 
     id: Mapped[int | None] = mapped_column(primary_key=True, default=None)
     company_name: Mapped[str] = mapped_column(index=True)
+    cache_key: Mapped[str | None] = mapped_column(index=True, default=None)
     insight_json: Mapped[str] = mapped_column(Text)
     provider: Mapped[str] = mapped_column(default="")
     model_name: Mapped[str] = mapped_column(default="")
@@ -155,6 +160,72 @@ class ApplicationRecord(Base):
     )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+
+class ApplicationReminderRecord(Base):
+    """Follow-up reminder linked to one tracked application."""
+
+    __tablename__ = "applicationreminderrecord"
+
+    id: Mapped[int | None] = mapped_column(primary_key=True, default=None)
+    application_id: Mapped[int] = mapped_column(
+        ForeignKey("applicationrecord.id"), index=True
+    )
+    title: Mapped[str]
+    due_at: Mapped[datetime] = mapped_column(DateTime, index=True)
+    status: Mapped[str] = mapped_column(default="pending", index=True)
+    notes: Mapped[str] = mapped_column(Text, default="")
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime, default=None)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+
+class OpportunityRecord(Base):
+    """Backend-owned workflow anchor for one application attempt."""
+
+    __tablename__ = "opportunityrecord"
+
+    id: Mapped[int | None] = mapped_column(primary_key=True, default=None)
+    job_id: Mapped[int | None] = mapped_column(
+        ForeignKey("scrapedjobrecord.id"), default=None
+    )
+    source_url: Mapped[str | None] = mapped_column(Text, default=None)
+    company: Mapped[str]
+    role: Mapped[str]
+    current_state: Mapped[str] = mapped_column(default="opportunity_created", index=True)
+    resume_id: Mapped[int | None] = mapped_column(
+        ForeignKey("resumerecord.id"), default=None
+    )
+    resume_locale: Mapped[str | None] = mapped_column(default=None)
+    ats_report_id: Mapped[int | None] = mapped_column(
+        ForeignKey("atsreportrecord.id"), default=None
+    )
+    cover_letter_id: Mapped[int | None] = mapped_column(
+        ForeignKey("coverletterrecord.id"), default=None
+    )
+    application_id: Mapped[int | None] = mapped_column(
+        ForeignKey("applicationrecord.id"), default=None
+    )
+    notes: Mapped[str] = mapped_column(Text, default="")
+    metadata_json: Mapped[str] = mapped_column(Text, default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    last_transition_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+
+class OpportunityTransitionRecord(Base):
+    """Chronological state transitions for an opportunity workflow."""
+
+    __tablename__ = "opportunitytransitionrecord"
+
+    id: Mapped[int | None] = mapped_column(primary_key=True, default=None)
+    opportunity_id: Mapped[int] = mapped_column(
+        ForeignKey("opportunityrecord.id"), index=True
+    )
+    state: Mapped[str] = mapped_column(index=True)
+    action: Mapped[str] = mapped_column(default="transition")
+    metadata_json: Mapped[str] = mapped_column(Text, default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
 
 
 class CommunityTemplateRecord(Base):

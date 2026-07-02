@@ -113,7 +113,13 @@ async def run_intelligence_pipeline(
             job_record = save_job_offer(session, job_offer)
             try:
                 company_insight = await asyncio.wait_for(
-                    analyze_company(job_offer.company, provider, model_name),
+                    analyze_company(
+                        job_offer.company,
+                        provider,
+                        model_name,
+                        source_url=str(request.job_url),
+                        evidence_text=job_offer.description_markdown,
+                    ),
                     timeout=settings.service_timeout_seconds,
                 )
                 job_record.company_insight_json = dump_json(company_insight)

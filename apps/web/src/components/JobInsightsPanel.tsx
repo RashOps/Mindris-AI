@@ -80,6 +80,17 @@ function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
 }
 
+function provenanceTone(value?: string): string {
+  switch (value) {
+    case "verified":
+      return "#10b981";
+    case "derived":
+      return "#f59e0b";
+    default:
+      return "#64748b";
+  }
+}
+
 // ── Main Panel ────────────────────────────────────────────────────────────────
 
 interface JobInsightsPanelProps {
@@ -288,12 +299,79 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
                 <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: '#475569' }}>
                   🏢 Company Intel
                 </p>
-                <div className="space-y-1 text-xs" style={{ color: '#94a3b8' }}>
+                <div className="space-y-2 text-xs" style={{ color: '#94a3b8' }}>
                   <p><span style={{ color: '#cbd5e1' }}>Industry:</span> {jobInsights.company_insight.industry}</p>
                   <p><span style={{ color: '#cbd5e1' }}>Size:</span> {jobInsights.company_insight.size}</p>
+                  {jobInsights.company_insight.work_mode && (
+                    <p><span style={{ color: '#cbd5e1' }}>Work mode:</span> {jobInsights.company_insight.work_mode}</p>
+                  )}
+                  {jobInsights.company_insight.canonical_domain && (
+                    <p><span style={{ color: '#cbd5e1' }}>Domain:</span> {jobInsights.company_insight.canonical_domain}</p>
+                  )}
                   {jobInsights.company_insight.unavailable_reason && <p>{jobInsights.company_insight.unavailable_reason}</p>}
                   {jobInsights.company_insight.culture_values?.length > 0 && <p>Values: {jobInsights.company_insight.culture_values.join(', ')}</p>}
                   {jobInsights.company_insight.tech_stack_known?.length > 0 && <p>Known stack: {jobInsights.company_insight.tech_stack_known.join(', ')}</p>}
+                  {jobInsights.company_insight.provenance && (
+                    <div className="pt-1">
+                      <p className="mb-1 text-[10px] font-bold uppercase tracking-widest" style={{ color: '#475569' }}>
+                        Provenance
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {Object.entries(jobInsights.company_insight.provenance).slice(0, 6).map(([key, value]) => (
+                          <span
+                            key={key}
+                            className="rounded-full border px-2 py-0.5 text-[10px] font-medium"
+                            style={{
+                              borderColor: 'rgba(255,255,255,0.08)',
+                              color: provenanceTone(value),
+                              background: 'rgba(255,255,255,0.03)',
+                            }}
+                          >
+                            {key}: {value}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {jobInsights.company_insight.role_fit && (
+                    <div className="pt-1">
+                      <p className="mb-1 text-[10px] font-bold uppercase tracking-widest" style={{ color: '#475569' }}>
+                        Role fit
+                      </p>
+                      {jobInsights.company_insight.role_fit.skills_to_foreground?.length ? (
+                        <p><span style={{ color: '#cbd5e1' }}>Foreground:</span> {jobInsights.company_insight.role_fit.skills_to_foreground.join(', ')}</p>
+                      ) : null}
+                      {jobInsights.company_insight.role_fit.wording_to_mirror?.length ? (
+                        <p><span style={{ color: '#cbd5e1' }}>Mirror:</span> {jobInsights.company_insight.role_fit.wording_to_mirror.join(', ')}</p>
+                      ) : null}
+                      {jobInsights.company_insight.role_fit.cv_emphasis?.length ? (
+                        <p><span style={{ color: '#cbd5e1' }}>CV:</span> {jobInsights.company_insight.role_fit.cv_emphasis.join(' ')}</p>
+                      ) : null}
+                    </div>
+                  )}
+                  {jobInsights.company_insight.risk_flags && jobInsights.company_insight.risk_flags.length > 0 && (
+                    <div className="pt-1">
+                      <p className="mb-1 text-[10px] font-bold uppercase tracking-widest" style={{ color: '#475569' }}>
+                        Risks & unknowns
+                      </p>
+                      <div className="space-y-1.5">
+                        {jobInsights.company_insight.risk_flags.slice(0, 3).map((risk) => (
+                          <div
+                            key={risk.code}
+                            className="rounded-lg px-2 py-1.5"
+                            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+                          >
+                            <p className="text-[11px] font-semibold" style={{ color: '#e2e8f0' }}>
+                              {risk.title}
+                            </p>
+                            <p className="text-[11px]" style={{ color: '#94a3b8' }}>
+                              {risk.detail}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

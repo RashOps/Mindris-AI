@@ -12,6 +12,16 @@ from pydantic import (
 )
 
 Provider = Literal["ollama", "groq", "gemini", "openai", "mistral"]
+AtsMode = Literal["standard", "strict"]
+OpportunityState = Literal[
+    "scrape_completed",
+    "opportunity_created",
+    "resume_linked",
+    "cover_letter_linked",
+    "ats_report_linked",
+    "tracker_entry_created",
+    "ready_to_apply",
+]
 
 MODEL_CATALOGUE: dict[str, set[str]] = {
     "groq": {
@@ -119,6 +129,37 @@ class SystemConfigurationItem(BaseModel):
     secrets: SystemConfigurationSecrets
 
 
+class SystemDiagnosticsService(BaseModel):
+    """Read-only runtime diagnostics for a service dependency."""
+
+    status: str
+    reachable: bool
+    url: str | None = None
+    checks: dict[str, Any] = Field(default_factory=dict)
+    error: str | None = None
+
+
+class SystemDiagnosticsOllama(BaseModel):
+    """Read-only local Ollama diagnostics."""
+
+    status: str
+    reachable: bool
+    base_url: str
+    model_count: int = 0
+    items: list[dict[str, str]] = Field(default_factory=list)
+    error: str | None = None
+
+
+class SystemDiagnosticsItem(BaseModel):
+    """Aggregated backend-owned diagnostics for local runtime control."""
+
+    api: dict[str, Any]
+    renderer: SystemDiagnosticsService
+    ollama: SystemDiagnosticsOllama
+    storage: SystemConfigurationStorage
+    runtime: SystemConfigurationRuntime
+
+
 class SystemConfigurationUpdateRequest(BaseModel):
     """Patch backend-owned app configuration."""
 
@@ -186,6 +227,8 @@ class ScoreRequest(LLMRequest):
     cv_data: dict[str, Any]
     job_insights: dict[str, Any]
     model_name: str = "llama-3.1-8b-instant"
+    ats_mode: AtsMode = "standard"
+    resume_id: int | None = None
 
 
 class CVBaseModel(BaseModel):
@@ -685,6 +728,13 @@ class CVDocumentRequest(BaseModel):
     source: str = "json"
 
 
+class MarkdownDocumentRequest(BaseModel):
+    """Backend-owned request for Markdown workspace exports."""
+
+    markdown: str = ""
+    title: str = "Document"
+
+
 class ResumeCreateRequest(BaseModel):
     """Create a resume in the backend library."""
 
@@ -812,7 +862,125 @@ class CompanyAnalyzeRequest(LLMRequest):
     """Request body for company intelligence."""
 
     company_name: str = Field(min_length=1)
+    source_url: AnyHttpUrl | None = None
+    evidence_text: str = ""
+    job_insights: dict[str, Any] | None = None
+    cv_data: dict[str, Any] | None = None
+    enable_llm_summary: bool = False
     model_name: str = "llama-3.1-8b-instant"
+
+
+class ActivityLedgerLink(BaseModel):
+    """Link from one ledger item to a related artifact."""
+
+    subject_type: str
+    subject_id: str
+    relation: str
+
+
+class ActivityLedgerItem(BaseModel):
+    """Normalized history ledger item."""
+
+    id: str
+    subject_type: str
+    subject_id: str
+    title: str
+    summary: str
+    timestamp: str
+    provider: str | None = None
+    model_name: str | None = None
+    status: str | None = None
+    links: list[ActivityLedgerLink] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class OpportunityTransitionItem(BaseModel):
+    """Chronological workflow transition entry."""
+
+    id: int
+    state: OpportunityState
+    action: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    created_at: str
+
+
+class OpportunityItem(BaseModel):
+    """Serialized opportunity workflow aggregate."""
+
+    id: int
+    job_id: int | None = None
+    source_url: str | None = None
+    company: str
+    role: str
+    current_state: OpportunityState
+    resume_id: int | None = None
+    resume_locale: str | None = None
+    ats_report_id: int | None = None
+    cover_letter_id: int | None = None
+    application_id: int | None = None
+    notes: str = ""
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    created_at: str
+    updated_at: str
+    last_transition_at: str
+    transitions: list[OpportunityTransitionItem] = Field(default_factory=list)
+    linked_artifacts: dict[str, Any] = Field(default_factory=dict)
+    next_actions: list[str] = Field(default_factory=list)
+
+
+class OpportunityCreateRequest(BaseModel):
+    """Create an opportunity anchor from a job or a manual payload."""
+
+    job_id: int | None = None
+    source_url: AnyHttpUrl | None = None
+    company: str | None = Field(default=None, min_length=1)
+    role: str | None = Field(default=None, min_length=1)
+    notes: str = ""
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_source(self) -> "OpportunityCreateRequest":
+        """Require either an existing job reference or manual company/role input."""
+        if self.job_id is not None:
+            return self
+        if self.company and self.role:
+            return self
+        raise ValueError("Provide job_id or both company and role.")
+
+
+class OpportunityResumeLinkRequest(BaseModel):
+    """Link a resume locale variant to an opportunity."""
+
+    resume_id: int
+    locale: str | None = None
+
+
+class OpportunityAtsLinkRequest(BaseModel):
+    """Link an ATS report to an opportunity."""
+
+    ats_report_id: int
+
+
+class OpportunityCoverLetterLinkRequest(BaseModel):
+    """Link a cover letter to an opportunity."""
+
+    cover_letter_id: int
+
+
+class OpportunityTrackerLinkRequest(BaseModel):
+    """Create or attach a tracker application from workflow context."""
+
+    application_id: int | None = None
+    create: bool = False
+    status: str = "wishlist"
+    notes: str = ""
+
+    @model_validator(mode="after")
+    def validate_action(self) -> "OpportunityTrackerLinkRequest":
+        """Require an explicit attachment or creation intent."""
+        if self.application_id is None and not self.create:
+            raise ValueError("Provide application_id or set create=true.")
+        return self
 
 
 class ApplicationCreateRequest(BaseModel):
@@ -826,6 +994,23 @@ class ApplicationCreateRequest(BaseModel):
     notes: str = ""
     cover_letter_id: int | None = None
     ats_report_id: int | None = None
+
+
+class ApplicationReminderCreateRequest(BaseModel):
+    """Create a follow-up reminder for one application."""
+
+    title: str = Field(min_length=1)
+    due_at: str = Field(min_length=1)
+    notes: str = ""
+
+
+class ApplicationReminderUpdateRequest(BaseModel):
+    """Patch a follow-up reminder."""
+
+    title: str | None = Field(default=None, min_length=1)
+    due_at: str | None = None
+    status: Literal["pending", "completed", "dismissed"] | None = None
+    notes: str | None = None
 
 
 class ApplicationUpdateRequest(BaseModel):

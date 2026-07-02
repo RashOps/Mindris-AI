@@ -19,11 +19,13 @@ from routers import (
     drafts,
     history,
     llm,
+    markdown,
     optimize,
     resumes,
     system,
     templates,
     tracker,
+    workflows,
 )
 from utils.logger import get_logger
 
@@ -140,10 +142,12 @@ app.include_router(cv.router, dependencies=[Depends(verify_api_key)])
 app.include_router(optimize.router, dependencies=[Depends(verify_api_key)])
 app.include_router(history.router, dependencies=[Depends(verify_api_key)])
 app.include_router(tracker.router, dependencies=[Depends(verify_api_key)])
+app.include_router(workflows.router, dependencies=[Depends(verify_api_key)])
 app.include_router(company.router, dependencies=[Depends(verify_api_key)])
 app.include_router(resumes.router, dependencies=[Depends(verify_api_key)])
 app.include_router(drafts.router, dependencies=[Depends(verify_api_key)])
 app.include_router(templates.router, dependencies=[Depends(verify_api_key)])
+app.include_router(markdown.router, dependencies=[Depends(verify_api_key)])
 
 
 if __name__ == "__main__":

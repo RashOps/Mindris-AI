@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import {
+  normalizeAtsReport,
   normalizeAppSettings,
   normalizeCVData,
+  normalizeHistoryLedgerItem,
   normalizeResumeDocument,
   systemConfigurationToAppSettings,
 } from "./useCVStore";
@@ -111,6 +113,39 @@ describe("useCVStore normalization", () => {
     expect(normalized.global_settings.advanced_css?.enabled).toBe(true);
     expect(normalized.global_settings.advanced_css?.mode).toBe("css_patch");
     expect(normalized.global_settings.advanced_css?.warnings).toEqual([]);
+  });
+
+  test("normalizes ATS report transparency metadata from partial payloads", () => {
+    const normalized = normalizeAtsReport({
+      score: 74,
+      summary: "Strong fit with a few gaps.",
+      scoring_breakdown: [],
+      keyword_analysis: [],
+      recommendations: [],
+      deductions: [{ code: "missing_sql", title: "SQL missing", points_lost: 8 }],
+      context: { job_company: "Mindris" },
+    } as never);
+
+    expect(normalized.mode).toBe("standard");
+    expect(normalized.rubric.version).toBe("ats-v1");
+    expect(normalized.deductions[0]?.severity).toBe("medium");
+    expect(normalized.context.job_company).toBe("Mindris");
+  });
+
+  test("normalizes history ledger items from partial backend payloads", () => {
+    const normalized = normalizeHistoryLedgerItem({
+      id: "ats_report:12",
+      subject_type: "ats_report",
+      subject_id: "12",
+      title: "ATS report",
+      timestamp: "2026-07-02T12:00:00.000Z",
+      links: [{ subject_type: "job_scrape", subject_id: "9", relation: "evaluated_against" }],
+      metadata: { score: 88 },
+    } as never);
+
+    expect(normalized.summary).toBe("");
+    expect(normalized.links[0]?.relation).toBe("evaluated_against");
+    expect(normalized.metadata.score).toBe(88);
   });
 
   test("normalizes legacy resume documents into multilingual metadata", () => {
