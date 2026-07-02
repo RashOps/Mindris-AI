@@ -3,6 +3,8 @@ import {
   Briefcase,
   FileText,
   LayoutDashboard,
+  Settings2,
+  Server,
   type LucideIcon,
 } from "lucide-react";
 
@@ -16,6 +18,13 @@ export interface ToolDefinition {
   href: string;
   accentColor: string;
   accentVar: string;
+  description: string;
+}
+
+export interface AppSidebarSectionDefinition {
+  id: "configuration" | "local-services";
+  label: string;
+  icon: LucideIcon;
   description: string;
 }
 
@@ -73,5 +82,20 @@ export const APP_NAV_ITEMS: ToolDefinition[] = [
 ] as const;
 
 export const TOOLS = APP_NAV_ITEMS.filter((item) => item.id !== "dashboard");
+
+export const APP_SIDEBAR_SECTIONS: AppSidebarSectionDefinition[] = [
+  {
+    id: "configuration",
+    label: "Configuration",
+    icon: Settings2,
+    description: "Configure providers, models, secrets and local runtime behavior.",
+  },
+  {
+    id: "local-services",
+    label: "Local services",
+    icon: Server,
+    description: "Current local endpoints and runtime ports for the workspace.",
+  },
+] as const;
 
 export const SIDEBAR_WIDTH_EXPANDED = 236;
