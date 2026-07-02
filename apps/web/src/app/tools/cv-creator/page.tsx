@@ -494,9 +494,6 @@ export default function AppPage() {
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
                 CV Builder
               </p>
-              <p className="mt-1 text-sm font-semibold text-slate-900">
-                {activeResume?.name ?? "Active resume"}
-              </p>
             </div>
 
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
@@ -559,7 +556,6 @@ export default function AppPage() {
               >
                 Delete
               </button>
-
               <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-1 py-1">
                 {availableLocales.map((locale) => (
                   <button
@@ -638,7 +634,7 @@ export default function AppPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-2">
+            <div className="flex items-center gap-2">
               <PdfIngestionModeSelect label="PDF parse" />
               <LLMSelector taskKey="optimize_llm" label="Optimize" />
               <button
@@ -664,7 +660,8 @@ export default function AppPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex min-w-[320px] flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-2">
+            {/* Job URL */}
+            <div className="flex min-w-[280px] flex-1 items-center gap-2">
               <Input
                 value={jobUrl}
                 onChange={(e) => setJobUrl(e.target.value)}
@@ -684,11 +681,9 @@ export default function AppPage() {
               </Button>
             </div>
 
-            <div
-              ref={headerMenuRef}
-              className="flex flex-wrap items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2 py-2"
-            >
-              <input type="file" accept=".pdf"  className="hidden" ref={pdfInputRef}  onChange={handlePdfUpload} />
+            {/* Action buttons */}
+            <div ref={headerMenuRef} className="flex flex-wrap items-center gap-1.5">
+              <input type="file" accept=".pdf" className="hidden" ref={pdfInputRef} onChange={handlePdfUpload} />
               <input type="file" accept=".json" className="hidden" ref={jsonInputRef} onChange={handleJsonUpload} />
 
               <HeaderActionMenu
@@ -709,35 +704,43 @@ export default function AppPage() {
                 actions={downloadActions}
               />
 
-              <button onClick={() => setShowGhost((v) => !v)}
+              <button
+                onClick={() => setShowGhost((v) => !v)}
                 className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border px-2.5 text-xs font-medium transition-colors"
                 style={showGhost
                   ? { borderColor: "#c7d2fe", background: "#eef2ff", color: "#4338ca" }
-                  : { borderColor: "#e2e8f0", background: "#fff", color: "#475569" }}>
+                  : { borderColor: "#e2e8f0", background: "#fff", color: "#475569" }}
+              >
                 Ghost
               </button>
 
-              <button onClick={() => setShowInsights((v) => !v)}
+              <button
+                onClick={() => setShowInsights((v) => !v)}
                 className="relative inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border px-2.5 text-xs font-medium transition-colors"
                 style={showInsights
                   ? { borderColor: "#fde68a", background: "#fffbeb", color: "#92400e" }
-                  : { borderColor: "#e2e8f0", background: "#fff", color: "#475569" }}>
+                  : { borderColor: "#e2e8f0", background: "#fff", color: "#475569" }}
+              >
                 Insights
                 {jobInsights && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full" />
+                  <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-green-500" />
                 )}
               </button>
 
-              <button onClick={() => setShowCoverLetter(true)}
-                className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50">
+              <button
+                onClick={() => setShowCoverLetter(true)}
+                className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+              >
                 Cover Letter
               </button>
 
-              <button onClick={() => setShowStyle((v) => !v)}
+              <button
+                onClick={() => setShowStyle((v) => !v)}
                 className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border px-2.5 text-xs font-medium transition-colors"
                 style={showStyle
                   ? { borderColor: "#ddd6fe", background: "#f5f3ff", color: "#6d28d9" }
-                  : { borderColor: "#e2e8f0", background: "#fff", color: "#475569" }}>
+                  : { borderColor: "#e2e8f0", background: "#fff", color: "#475569" }}
+              >
                 Style
               </button>
             </div>
