@@ -10,13 +10,13 @@ from fastapi import HTTPException
 from routers.templates import (
     export_installed_template_package,
     export_installed_template_preview,
+    get_template,
     import_template_package,
     inspect_template_package,
-    resolve_template_defaults,
-    get_template,
     list_community_templates,
     list_customization_catalogue,
     list_templates,
+    resolve_template_defaults,
     router,
 )
 
@@ -81,6 +81,8 @@ def _template_package_bytes(
     include_preview: bool = True,
     engine_version: str = "1",
     preview_bytes: bytes = VALID_PREVIEW_PNG,
+    stylesheet: str = ":host { --primary-color: #0f766e; }",
+    extra_files: dict[str, bytes] | None = None,
 ) -> bytes:
     buffer = BytesIO()
     with ZipFile(buffer, "w", ZIP_DEFLATED) as archive:
@@ -114,9 +116,11 @@ def _template_package_bytes(
                 }
             ),
         )
-        archive.writestr("styles.css", ":host { --primary-color: #0f766e; }")
+        archive.writestr("styles.css", stylesheet)
         if include_preview:
             archive.writestr("preview.png", preview_bytes)
+        for path, payload in (extra_files or {}).items():
+            archive.writestr(path, payload)
     return buffer.getvalue()
 
 
@@ -149,6 +153,24 @@ def test_template_package_inspection_rejects_truncated_preview_png() -> None:
         )
     assert exc_info.value.status_code == 422
     assert "preview.png" in str(exc_info.value.detail)
+
+
+def test_template_package_inspection_rejects_unsafe_archive_entries() -> None:
+    with pytest.raises(HTTPException) as exc_info:
+        inspect_template_package(
+            _template_package_bytes(extra_files={"../escape.txt": b"nope"})
+        )
+    assert exc_info.value.status_code == 422
+    assert "unsafe" in str(exc_info.value.detail).lower()
+
+
+def test_template_package_inspection_rejects_oversized_stylesheet() -> None:
+    with pytest.raises(HTTPException) as exc_info:
+        inspect_template_package(
+            _template_package_bytes(stylesheet="a" * 9001)
+        )
+    assert exc_info.value.status_code == 422
+    assert "styles.css" in str(exc_info.value.detail).lower()
 
 
 def _session():

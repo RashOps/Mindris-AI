@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { normalizeAppSettings, normalizeCVData, normalizeResumeDocument } from "./useCVStore";
+import {
+  normalizeAppSettings,
+  normalizeCVData,
+  normalizeResumeDocument,
+  systemConfigurationToAppSettings,
+} from "./useCVStore";
 import { mergeSections } from "../components/StylePanel";
 import { FALLBACK_CUSTOMIZATION_CATALOGUE } from "../lib/customization-catalogue";
 
@@ -60,6 +65,25 @@ describe("useCVStore normalization", () => {
     expect(merged[0]?.type).toBe("profile");
     expect(merged[1]?.type).toBe("projects");
     expect(merged[2]?.type).toBe("experience");
+  });
+
+  test("maps backend system configuration into frontend app settings", () => {
+    const mapped = systemConfigurationToAppSettings({
+      app: {
+        defaults: {
+          optimize: { provider: "ollama", model_name: "llama3.2" },
+          cover_letter: { provider: "groq", model_name: "llama-3.3-70b-versatile" },
+          ats_score: { provider: "openai", model_name: "gpt-4o-mini" },
+          patch: { provider: "mistral", model_name: "mistral-small-latest" },
+        },
+        pdf_ingestion_mode: "local_text",
+      },
+    });
+
+    expect(mapped.optimize_llm).toEqual({ provider: "ollama", model_name: "llama3.2" });
+    expect(mapped.ats_llm).toEqual({ provider: "openai", model_name: "gpt-4o-mini" });
+    expect(mapped.patch_llm).toEqual({ provider: "mistral", model_name: "mistral-small-latest" });
+    expect(mapped.pdf_ingestion_mode).toBe("local_text");
   });
 
   test("normalizes advanced css settings and warnings from partial CV data", () => {

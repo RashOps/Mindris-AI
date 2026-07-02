@@ -49,6 +49,12 @@ Il conserve les lockfiles.
 ./scripts/dev_local.sh
 ```
 
+Le script demarre :
+
+- l'API Gateway avec reload Uvicorn ;
+- le renderer avec `bun run dev` et watch reload ;
+- le frontend avec `bun run dev`.
+
 Logs :
 
 ```text
@@ -61,6 +67,7 @@ Logs :
 
 `renderer.log` contient maintenant des lignes JSON structurees exploitables pour le debug local.
 Les modules Python utilisent aussi des fichiers separes par service pour eviter le melange des traces.
+Le dossier canonique pour les logs locaux est `.logs/`.
 
 Ports personnalisables :
 
@@ -121,3 +128,4 @@ Il :
 ## Notes
 
 Les scripts ne lisent pas le contenu de `.env` dans la sortie terminal et ne doivent pas afficher de secrets.
+Le dossier `logs/` est considere comme legacy local; les nouveaux flux utilisent `.logs/`.

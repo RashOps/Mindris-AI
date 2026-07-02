@@ -29,6 +29,13 @@ router = APIRouter(prefix="/api/v1", tags=["cv"])
 SessionDep = Annotated[Session, Depends(get_session)]
 
 
+def _validate_pdf_bytes(pdf_bytes: bytes) -> None:
+    if not pdf_bytes:
+        raise HTTPException(status_code=400, detail="PDF file is empty.")
+    if not pdf_bytes.startswith(b"%PDF"):
+        raise HTTPException(status_code=400, detail="Invalid PDF file signature.")
+
+
 @router.get("/cv/current")
 def current_cv(session: SessionDep) -> dict:
     """Return the current persisted CV."""
@@ -96,6 +103,7 @@ async def upload_pdf_cv(
         raise HTTPException(status_code=400, detail="Only PDF files are accepted.")
 
     pdf_bytes = await file.read()
+    _validate_pdf_bytes(pdf_bytes)
     if len(pdf_bytes) > settings.max_pdf_upload_bytes:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,

@@ -13,6 +13,7 @@ import httpx
 from markdownify import markdownify as md
 from utils.config import settings
 from utils.logger import get_logger
+from utils.runtime_config import resolve_secret_slot
 
 logger = get_logger(__name__, service_name="scraper")
 
@@ -104,10 +105,9 @@ class ScrapeDoProvider:
             httpx.HTTPStatusError: When the API returns a non-2xx status.
             ValueError: When SCRAPE_DO_API key is not configured.
         """
-        if not settings.scrape_do_api_key:
+        api_key = resolve_secret_slot("scrape_do_api_key", settings.scrape_do_api_key)
+        if not api_key:
             raise ValueError("SCRAPE_DO_API is not set. Add it to your .env file.")
-
-        api_key = settings.scrape_do_api_key.get_secret_value()
         params = {
             "token": api_key,
             "url": url,
@@ -172,10 +172,12 @@ class ScrapingBeeProvider:
             httpx.HTTPStatusError: When the API returns a non-2xx status.
             ValueError: When SCRAPINGBEE_API key is not configured.
         """
-        if not settings.scrapingbee_api_key:
+        api_key = resolve_secret_slot(
+            "scrapingbee_api_key",
+            settings.scrapingbee_api_key,
+        )
+        if not api_key:
             raise ValueError("SCRAPINGBEE_API is not set. Add it to your .env file.")
-
-        api_key = settings.scrapingbee_api_key.get_secret_value()
         params = {
             "api_key": api_key,
             "url": url,

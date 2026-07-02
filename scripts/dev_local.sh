@@ -67,7 +67,7 @@ start_service "api" "$ROOT_DIR/.logs/api-gateway.log" \
 
 cd "$ROOT_DIR/services/renderer"
 start_service "renderer" "$ROOT_DIR/.logs/renderer.log" \
-  bun run start
+  bun run dev
 
 cd "$ROOT_DIR/apps/web"
 start_service "web" "$ROOT_DIR/.logs/web.log" \

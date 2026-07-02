@@ -21,6 +21,20 @@ _SERVICE_MARKER = "_mindris_service_name"
 _LOG_PATH_MARKER = "_mindris_log_path"
 
 
+class _SecretRedactionFilter(logging.Filter):
+    """Redact configured secret values from emitted log records."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        try:
+            message = record.getMessage()
+        except Exception:  # pragma: no cover - logging fallback path
+            return True
+        redacted = _redact_text(message)
+        record.msg = redacted
+        record.args = ()
+        return True
+
+
 def _normalize_level(level_name: str) -> int:
     return getattr(logging, level_name.upper(), logging.INFO)
 
@@ -36,6 +50,36 @@ def _mindris_handlers(logger: logging.Logger) -> list[logging.Handler]:
         for handler in logger.handlers
         if getattr(handler, _HANDLER_MARKER, False)
     ]
+
+
+def _redact_text(value: str) -> str:
+    text = value
+    for secret in _configured_secrets():
+        text = text.replace(secret, "[REDACTED]")
+    return text
+
+
+def _configured_secrets() -> list[str]:
+    from .runtime_config import iter_configured_secret_values
+
+    values = iter_configured_secret_values()
+    for attr in (
+        "api_key",
+        "openai_api_key",
+        "groq_api_key",
+        "gemini_api_key",
+        "mistral_api_key",
+        "llama_cloud_api_key",
+        "scrape_do_api_key",
+        "scrapingbee_api_key",
+    ):
+        candidate = getattr(settings, attr, None)
+        getter = getattr(candidate, "get_secret_value", None)
+        if callable(getter):
+            value = getter()
+            if value:
+                values.append(value)
+    return sorted({value for value in values if value})
 
 
 def get_logger(name: str, *, service_name: str | None = None) -> logging.Logger:
@@ -78,6 +122,7 @@ def get_logger(name: str, *, service_name: str | None = None) -> logging.Logger:
     console_h = logging.StreamHandler()
     console_h.setLevel(logging.WARNING)
     console_h.setFormatter(formatter)
+    console_h.addFilter(_SecretRedactionFilter())
     setattr(console_h, _HANDLER_MARKER, True)
 
     # Rotating file — full DEBUG trace, 5 MB × 5 files
@@ -89,6 +134,7 @@ def get_logger(name: str, *, service_name: str | None = None) -> logging.Logger:
     )
     file_h.setLevel(logging.DEBUG)
     file_h.setFormatter(formatter)
+    file_h.addFilter(_SecretRedactionFilter())
     setattr(file_h, _HANDLER_MARKER, True)
 
     logger.addHandler(console_h)
