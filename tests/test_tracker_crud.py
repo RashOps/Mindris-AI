@@ -45,3 +45,133 @@ def test_tracker_rejects_invalid_url() -> None:
         json={"company": "Acme", "role": "AI Engineer", "url": "not-a-url"},
     )
     assert response.status_code == 422
+
+
+def test_tracker_full_view_exposes_ats_transparency_metadata(monkeypatch) -> None:
+    async def _fake_score(*args, **kwargs):
+        return {
+            "score": 72,
+            "mode": "strict",
+            "summary": "Strong fit with a few hard-skill gaps.",
+            "rubric": {
+                "version": "ats-v1",
+                "mode": "strict",
+                "dimensions": [
+                    {
+                        "key": "keyword_match",
+                        "label": "Keyword Match Rate",
+                        "weight": 35,
+                        "description": "Coverage of required hard and soft skills.",
+                    }
+                ],
+            },
+            "scoring_breakdown": [
+                {
+                    "criterion": "Keyword Match Rate",
+                    "weight": 35,
+                    "score": 24,
+                    "max_score": 35,
+                    "explanation": "Most required skills are present.",
+                }
+            ],
+            "deductions": [
+                {
+                    "code": "missing_sql",
+                    "title": "SQL missing",
+                    "severity": "high",
+                    "points_lost": 8,
+                    "evidence": "SQL was not found in skills or experience.",
+                    "recommendation": "Add SQL evidence in the resume.",
+                }
+            ],
+            "keyword_analysis": [],
+            "recommendations": ["Add measurable impact and SQL usage."],
+            "context": {
+                "job_title": "AI Engineer",
+                "job_company": "Acme",
+                "provider": "groq",
+                "model_name": "llama-3.1-8b-instant",
+            },
+        }
+
+    monkeypatch.setattr("intelligence.ats_score.calculate_ats_score", _fake_score)
+
+    api = client()
+    headers = auth_headers()
+
+    score_response = api.post(
+        "/api/v1/cv/score",
+        headers=headers,
+        json={
+            "cv_data": {
+                "global_settings": {
+                    "template_id": "ats",
+                    "locale": {"label_language": "en"},
+                },
+                "profile": {
+                    "full_name": "Ada Lovelace",
+                    "title": "ML Engineer",
+                    "phone": "",
+                    "email": "ada@example.com",
+                    "location": {"city": "Paris", "country": "France"},
+                    "socials": [],
+                    "text_markdown": "Built production AI systems.",
+                },
+                "experience": [],
+                "education": [],
+                "skills": [],
+                "projects": [],
+                "languages": [],
+                "hobbies": [],
+                "certifications": [],
+                "volunteering": [],
+                "publications": [],
+                "references": [],
+                "custom_sections": [],
+            },
+            "job_insights": {
+                "job_title": "AI Engineer",
+                "company": "Acme",
+                "hard_skills": ["Python", "SQL"],
+                "soft_skills": ["Ownership"],
+            },
+            "provider": "groq",
+            "model_name": "llama-3.1-8b-instant",
+            "ats_mode": "strict",
+            "resume_id": 42,
+        },
+    )
+    assert score_response.status_code == 200
+    assert score_response.json()["report"]["mode"] == "strict"
+
+    history_response = api.get("/api/v1/history/ats-reports", headers=headers)
+    assert history_response.status_code == 200
+    ats_report = history_response.json()["items"][0]
+    assert ats_report["mode"] == "strict"
+    assert ats_report["rubric"]["version"] == "ats-v1"
+    assert ats_report["deductions"][0]["code"] == "missing_sql"
+    assert ats_report["context"]["resume_id"] == 42
+    assert ats_report["context"]["resume_locale"] == "en"
+
+    application_response = api.post(
+        "/api/v1/tracker/applications",
+        headers=headers,
+        json={
+            "company": "Acme",
+            "role": "AI Engineer",
+            "status": "applied",
+            "url": "https://example.com/job",
+            "ats_report_id": ats_report["id"],
+        },
+    )
+    assert application_response.status_code == 200
+    application_id = application_response.json()["item"]["id"]
+
+    full_response = api.get(
+        f"/api/v1/tracker/applications/{application_id}/full",
+        headers=headers,
+    )
+    assert full_response.status_code == 200
+    full_payload = full_response.json()
+    assert full_payload["ats_report"]["mode"] == "strict"
+    assert full_payload["ats_report"]["context"]["job_company"] == "Acme"
