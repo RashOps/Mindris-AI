@@ -110,9 +110,13 @@ class AtsReportRecord(Base):
     )
     score: Mapped[int]
     summary: Mapped[str] = mapped_column(Text, default="")
+    mode: Mapped[str] = mapped_column(default="standard")
     keyword_analysis: Mapped[str] = mapped_column(Text, default="[]")
+    rubric_json: Mapped[str] = mapped_column(Text, default="{}")
     scoring_breakdown: Mapped[str] = mapped_column(Text, default="[]")
+    deductions_json: Mapped[str] = mapped_column(Text, default="[]")
     recommendations: Mapped[str] = mapped_column(Text, default="[]")
+    context_json: Mapped[str] = mapped_column(Text, default="{}")
     provider: Mapped[str]
     model_name: Mapped[str]
     generated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
