@@ -2,13 +2,20 @@ import {
   BarChart3,
   Briefcase,
   FileText,
+  History,
   LayoutDashboard,
   Settings2,
   Server,
   type LucideIcon,
 } from "lucide-react";
 
-export type AppNavItemId = "dashboard" | "cv-creator" | "ats-score" | "tracker" | "markdown";
+export type AppNavItemId =
+  | "dashboard"
+  | "cv-creator"
+  | "ats-score"
+  | "tracker"
+  | "history"
+  | "markdown";
 
 export interface ToolDefinition {
   id: AppNavItemId;
@@ -69,6 +76,16 @@ export const APP_NAV_ITEMS: ToolDefinition[] = [
     accentColor: "#0f766e",
     accentVar: "--tool-tracker",
     description: "Application tracking board",
+  },
+  {
+    id: "history",
+    label: "History",
+    shortLabel: "Audit",
+    icon: History,
+    href: "/tools/history",
+    accentColor: "#0f172a",
+    accentVar: "--tool-history",
+    description: "Unified activity ledger and artifact lineage",
   },
   {
     id: "markdown",
