@@ -1,5 +1,7 @@
 """Unified history API tests."""
 
+from uuid import uuid4
+
 from conftest import auth_headers, client
 from database.records import ApplicationRecord, ResumeRecord, ScrapedJobRecord
 from database.session import SessionLocal
@@ -116,7 +118,7 @@ def test_history_ledger_builds_lineage_links_for_related_artifacts() -> None:
 
     with SessionLocal() as session:
         job = ScrapedJobRecord(
-            url="https://example.com/job/ml-platform-history-ledger",
+            url=f"https://example.com/job/ml-platform-history-ledger-{uuid4().hex}",
             title="ML Platform Engineer",
             company="Mindris",
             location="Paris",
