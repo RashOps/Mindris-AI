@@ -124,9 +124,9 @@
 - [x] **Rappels & relances :** Taches de suivi integrees au Job Tracker.
 
 ## 🔵 Phase 19 : Recruiter Intelligence Layer
-- [ ] **Enrichissement entreprise :** Profil borne de l'entreprise et contexte de recrutement.
-- [ ] **Role-fit hints :** Signaux utiles pour adapter CV et LM.
-- [ ] **Risk & unknowns :** Alertes sur zones d'incertitude ou signaux faibles.
+- [x] **Enrichissement entreprise :** Profil borne de l'entreprise et contexte de recrutement.
+- [x] **Role-fit hints :** Signaux utiles pour adapter CV et LM.
+- [x] **Risk & unknowns :** Alertes sur zones d'incertitude ou signaux faibles.
 
 ## 🔵 Phase 20 : Product Polish & Secondary UX
 - [ ] **Guide interne Mindris :** Aide produit integree et contextuelle dans l'AppShell.
