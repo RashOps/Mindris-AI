@@ -129,6 +129,7 @@ class CompanyInsightRecord(Base):
 
     id: Mapped[int | None] = mapped_column(primary_key=True, default=None)
     company_name: Mapped[str] = mapped_column(index=True)
+    cache_key: Mapped[str | None] = mapped_column(index=True, default=None)
     insight_json: Mapped[str] = mapped_column(Text)
     provider: Mapped[str] = mapped_column(default="")
     model_name: Mapped[str] = mapped_column(default="")
