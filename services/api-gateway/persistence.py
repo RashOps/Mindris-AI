@@ -1,8 +1,7 @@
 """Persistence helpers shared by API routers."""
 
 import json
-from copy import copy
-from copy import deepcopy
+from copy import copy, deepcopy
 from datetime import datetime
 from typing import Any
 
@@ -178,7 +177,9 @@ def _compose_multilingual_resume(
     return active_payload
 
 
-def _persist_lazy_resume_migration(session: Session, record: ResumeRecord) -> dict[str, Any]:
+def _persist_lazy_resume_migration(
+    session: Session, record: ResumeRecord
+) -> dict[str, Any]:
     normalized, changed = _active_resume_payload(
         load_json(record.data_json, {}),
         record.locale or "fr",
@@ -865,9 +866,13 @@ def save_ats_report(
         job_id=job_id,
         score=int(report.get("score", 0)),
         summary=report.get("summary", ""),
+        mode=report.get("mode", "standard"),
         keyword_analysis=dump_json(report.get("keyword_analysis", [])),
+        rubric_json=dump_json(report.get("rubric", {})),
         scoring_breakdown=dump_json(report.get("scoring_breakdown", [])),
+        deductions_json=dump_json(report.get("deductions", [])),
         recommendations=dump_json(report.get("recommendations", [])),
+        context_json=dump_json(report.get("context", {})),
         provider=provider,
         model_name=model_name,
     )
@@ -920,9 +925,13 @@ def serialize_ats(record: AtsReportRecord) -> dict:
         "job_id": record.job_id,
         "score": record.score,
         "summary": record.summary,
+        "mode": record.mode,
+        "rubric": load_json(record.rubric_json, {}),
         "keyword_analysis": load_json(record.keyword_analysis, []),
         "scoring_breakdown": load_json(record.scoring_breakdown, []),
+        "deductions": load_json(record.deductions_json, []),
         "recommendations": load_json(record.recommendations, []),
+        "context": load_json(record.context_json, {}),
         "provider": record.provider,
         "model_name": record.model_name,
         "generated_at": record.generated_at.isoformat(),

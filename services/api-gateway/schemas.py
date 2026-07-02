@@ -12,6 +12,7 @@ from pydantic import (
 )
 
 Provider = Literal["ollama", "groq", "gemini", "openai", "mistral"]
+AtsMode = Literal["standard", "strict"]
 
 MODEL_CATALOGUE: dict[str, set[str]] = {
     "groq": {
@@ -217,6 +218,8 @@ class ScoreRequest(LLMRequest):
     cv_data: dict[str, Any]
     job_insights: dict[str, Any]
     model_name: str = "llama-3.1-8b-instant"
+    ats_mode: AtsMode = "standard"
+    resume_id: int | None = None
 
 
 class CVBaseModel(BaseModel):

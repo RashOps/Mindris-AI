@@ -153,12 +153,22 @@ async def calculate_ats_score_route(request: ScoreRequest, session: SessionDep) 
                 job_insights=request.job_insights,
                 provider=request.provider,
                 model_name=request.model_name,
+                mode=request.ats_mode,
             ),
             timeout=settings.pipeline_timeout_seconds,
         )
     except TimeoutError as exc:
         monitor.increment_pipeline_failure("ats_score")
         raise HTTPException(status_code=504, detail="ATS scoring timed out.") from exc
+    report_context = dict(report.get("context", {}))
+    report_context.setdefault("resume_id", request.resume_id)
+    report_context.setdefault(
+        "resume_locale",
+        request.cv_data.get("global_settings", {})
+        .get("locale", {})
+        .get("label_language"),
+    )
+    report["context"] = report_context
     save_ats_report(session, report, request.provider, request.model_name)
     return {"status": "success", "report": report, "ats_report": report}
 
