@@ -109,9 +109,9 @@
 - [x] **Ergonomie dev locale :** Reload Bun en developpement et diagnostics runtime.
 
 ## 🔵 Phase 16 : ATS Transparency & Evaluation Integrity
-- [ ] **Rubric ATS explicite :** Methode de scoring visible, severites et deductions.
-- [ ] **Modes d'evaluation :** Standard vs strict ATS avec preuves et explications.
-- [ ] **Traçabilite des scores :** Lien score ↔ CV ↔ offre ↔ contexte d'evaluation.
+- [x] **Rubric ATS explicite :** Methode de scoring visible, severites et deductions.
+- [x] **Modes d'evaluation :** Standard vs strict ATS avec preuves et explications.
+- [x] **Traçabilite des scores :** Lien score ↔ CV ↔ offre ↔ contexte d'evaluation.
 
 ## 🔵 Phase 17 : Unified Activity History
 - [ ] **Ledger d'activite backend :** Historique unifie scrapes, CV, LM, ATS, tracker, LLM runs.
