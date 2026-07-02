@@ -161,6 +161,54 @@ class ApplicationRecord(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
 
 
+class OpportunityRecord(Base):
+    """Backend-owned workflow anchor for one application attempt."""
+
+    __tablename__ = "opportunityrecord"
+
+    id: Mapped[int | None] = mapped_column(primary_key=True, default=None)
+    job_id: Mapped[int | None] = mapped_column(
+        ForeignKey("scrapedjobrecord.id"), default=None
+    )
+    source_url: Mapped[str | None] = mapped_column(Text, default=None)
+    company: Mapped[str]
+    role: Mapped[str]
+    current_state: Mapped[str] = mapped_column(default="opportunity_created", index=True)
+    resume_id: Mapped[int | None] = mapped_column(
+        ForeignKey("resumerecord.id"), default=None
+    )
+    resume_locale: Mapped[str | None] = mapped_column(default=None)
+    ats_report_id: Mapped[int | None] = mapped_column(
+        ForeignKey("atsreportrecord.id"), default=None
+    )
+    cover_letter_id: Mapped[int | None] = mapped_column(
+        ForeignKey("coverletterrecord.id"), default=None
+    )
+    application_id: Mapped[int | None] = mapped_column(
+        ForeignKey("applicationrecord.id"), default=None
+    )
+    notes: Mapped[str] = mapped_column(Text, default="")
+    metadata_json: Mapped[str] = mapped_column(Text, default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    last_transition_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+
+class OpportunityTransitionRecord(Base):
+    """Chronological state transitions for an opportunity workflow."""
+
+    __tablename__ = "opportunitytransitionrecord"
+
+    id: Mapped[int | None] = mapped_column(primary_key=True, default=None)
+    opportunity_id: Mapped[int] = mapped_column(
+        ForeignKey("opportunityrecord.id"), index=True
+    )
+    state: Mapped[str] = mapped_column(index=True)
+    action: Mapped[str] = mapped_column(default="transition")
+    metadata_json: Mapped[str] = mapped_column(Text, default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+
 class CommunityTemplateRecord(Base):
     """Installed community template package persisted by the backend."""
 

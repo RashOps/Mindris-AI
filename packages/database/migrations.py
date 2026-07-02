@@ -12,7 +12,7 @@ from sqlalchemy import Connection, text
 
 from .records import Base
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 
 Migration = Callable[[Connection], None]
@@ -103,11 +103,16 @@ def _migration_004_extend_ats_report_transparency(connection: Connection) -> Non
     )
 
 
+def _migration_005_create_opportunity_workflow_tables(connection: Connection) -> None:
+    Base.metadata.create_all(bind=connection)
+
+
 MIGRATIONS: dict[int, Migration] = {
     1: _migration_001_create_current_schema,
     2: _migration_002_create_revision_history,
     3: _migration_003_create_community_template_storage,
     4: _migration_004_extend_ats_report_transparency,
+    5: _migration_005_create_opportunity_workflow_tables,
 }
 
 
