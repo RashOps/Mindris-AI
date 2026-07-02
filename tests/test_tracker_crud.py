@@ -175,3 +175,64 @@ def test_tracker_full_view_exposes_ats_transparency_metadata(monkeypatch) -> Non
     full_payload = full_response.json()
     assert full_payload["ats_report"]["mode"] == "strict"
     assert full_payload["ats_report"]["context"]["job_company"] == "Acme"
+
+
+def test_tracker_reminder_lifecycle() -> None:
+    api = client()
+    headers = auth_headers()
+
+    created = api.post(
+        "/api/v1/tracker/applications",
+        headers=headers,
+        json={
+            "company": "Mindris",
+            "role": "Platform Engineer",
+            "status": "wishlist",
+            "url": "https://example.com/platform-role",
+        },
+    )
+    assert created.status_code == 200
+    application_id = created.json()["item"]["id"]
+
+    reminder = api.post(
+        f"/api/v1/tracker/applications/{application_id}/reminders",
+        headers=headers,
+        json={
+            "title": "Follow up with recruiter",
+            "due_at": "2026-07-10T09:30:00",
+            "notes": "Send a short check-in after one week.",
+        },
+    )
+    assert reminder.status_code == 200
+    reminder_item = reminder.json()["item"]
+    assert reminder_item["status"] == "pending"
+
+    listed = api.get(
+        f"/api/v1/tracker/applications/{application_id}/reminders",
+        headers=headers,
+    )
+    assert listed.status_code == 200
+    assert listed.json()["items"][0]["title"] == "Follow up with recruiter"
+
+    completed = api.patch(
+        f"/api/v1/tracker/applications/{application_id}/reminders/{reminder_item['id']}",
+        headers=headers,
+        json={"status": "completed"},
+    )
+    assert completed.status_code == 200
+    assert completed.json()["item"]["status"] == "completed"
+    assert completed.json()["item"]["completed_at"] is not None
+
+    full = api.get(
+        f"/api/v1/tracker/applications/{application_id}/full",
+        headers=headers,
+    )
+    assert full.status_code == 200
+    assert full.json()["application"]["reminder_counts"]["completed"] == 1
+    assert full.json()["reminders"][0]["id"] == reminder_item["id"]
+
+    deleted = api.delete(
+        f"/api/v1/tracker/applications/{application_id}/reminders/{reminder_item['id']}",
+        headers=headers,
+    )
+    assert deleted.status_code == 200

@@ -81,6 +81,7 @@ def test_workflow_opportunity_creation_and_linking() -> None:
         "opportunity_created",
     ]
 
+    with SessionLocal() as session:
         linked_resume = link_resume_route(
             item["id"],
             OpportunityResumeLinkRequest(resume_id=resume.id, locale="fr"),

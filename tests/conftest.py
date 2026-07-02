@@ -1,5 +1,8 @@
 """Test fixtures for API Gateway tests."""
 
+from __future__ import annotations
+
+import asyncio
 import sys
 from pathlib import Path
 from typing import Any
@@ -10,19 +13,26 @@ sys.path.insert(0, str(ROOT / "services"))
 sys.path.insert(0, str(ROOT / "packages"))
 
 from database.session import init_db  # noqa: E402
-from httpx import Response  # noqa: E402
+from httpx import ASGITransport, AsyncClient, Response  # noqa: E402
 from main import app  # noqa: E402
-from starlette.testclient import TestClient  # noqa: E402
 from utils.config import settings  # noqa: E402
 
 
 class ApiClient:
-    """Minimal sync wrapper around Starlette's in-process test client."""
+    """Minimal sync wrapper around httpx ASGI transport for backend tests."""
 
     def request(self, method: str, path: str, **kwargs: Any) -> Response:
         """Send a request to the in-process ASGI application."""
-        with TestClient(app) as test_client:
-            return test_client.request(method, path, **kwargs)
+
+        async def _run() -> Response:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(
+                transport=transport,
+                base_url="http://testserver",
+            ) as client:
+                return await client.request(method, path, **kwargs)
+
+        return asyncio.run(_run())
 
     def get(self, path: str, **kwargs: Any) -> Response:
         """Send a GET request to the in-process ASGI application."""
