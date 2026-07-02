@@ -855,6 +855,11 @@ class CompanyAnalyzeRequest(LLMRequest):
     """Request body for company intelligence."""
 
     company_name: str = Field(min_length=1)
+    source_url: AnyHttpUrl | None = None
+    evidence_text: str = ""
+    job_insights: dict[str, Any] | None = None
+    cv_data: dict[str, Any] | None = None
+    enable_llm_summary: bool = False
     model_name: str = "llama-3.1-8b-instant"
 
 
