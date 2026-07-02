@@ -984,6 +984,23 @@ class ApplicationCreateRequest(BaseModel):
     ats_report_id: int | None = None
 
 
+class ApplicationReminderCreateRequest(BaseModel):
+    """Create a follow-up reminder for one application."""
+
+    title: str = Field(min_length=1)
+    due_at: str = Field(min_length=1)
+    notes: str = ""
+
+
+class ApplicationReminderUpdateRequest(BaseModel):
+    """Patch a follow-up reminder."""
+
+    title: str | None = Field(default=None, min_length=1)
+    due_at: str | None = None
+    status: Literal["pending", "completed", "dismissed"] | None = None
+    notes: str | None = None
+
+
 class ApplicationUpdateRequest(BaseModel):
     """Patch an application tracker item."""
 
