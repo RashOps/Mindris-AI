@@ -16,6 +16,7 @@ const SUBJECT_OPTIONS: Array<{
     | "resume_revision"
     | "cover_letter"
     | "ats_report"
+    | "opportunity"
     | "tracker_event"
     | "llm_run";
   label: string;
@@ -25,6 +26,7 @@ const SUBJECT_OPTIONS: Array<{
   { id: "resume_revision", label: "Revisions" },
   { id: "cover_letter", label: "Letters" },
   { id: "ats_report", label: "ATS" },
+  { id: "opportunity", label: "Workflow" },
   { id: "tracker_event", label: "Tracker" },
   { id: "llm_run", label: "LLM runs" },
 ];
@@ -51,6 +53,8 @@ function subjectTone(subjectType: HistoryLedgerItem["subject_type"]): string {
       return "bg-emerald-50 text-emerald-700 border-emerald-200";
     case "tracker_event":
       return "bg-sky-50 text-sky-700 border-sky-200";
+    case "opportunity":
+      return "bg-blue-50 text-blue-700 border-blue-200";
     case "resume_revision":
       return "bg-amber-50 text-amber-700 border-amber-200";
     case "job_scrape":
