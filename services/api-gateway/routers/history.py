@@ -5,9 +5,11 @@ from typing import Annotated
 
 from database.records import (
     ApplicationRecord,
+    ApplicationReminderRecord,
     AtsReportRecord,
     CoverLetterRecord,
     OpportunityRecord,
+    OpportunityTransitionRecord,
     ResumeRevisionRecord,
     ScrapedJobRecord,
 )
@@ -285,6 +287,13 @@ def _build_history_ledger(session: Session) -> list[dict]:
     return sorted(items, key=lambda item: item["timestamp"], reverse=True)
 
 
+def _purge_records(session: Session, model) -> int:
+    rows = session.exec(select(model)).all()
+    for row in rows:
+        session.delete(row)
+    return len(rows)
+
+
 @router.get("/jobs")
 async def list_jobs(session: SessionDep, limit: int = 50, offset: int = 0) -> dict:
     """List scraped jobs."""
@@ -378,6 +387,37 @@ async def list_history_ledger(
         "total": total,
         "limit": limit,
         "offset": offset,
+    }
+
+
+@router.delete("/ledger")
+async def clear_history_ledger(session: SessionDep) -> dict:
+    """Delete persisted history artifacts without deleting source resumes."""
+    logger.warning("Clearing unified history ledger and dependent artifacts")
+    deleted: dict[str, int] = {}
+    try:
+        deleted["application_reminders"] = _purge_records(
+            session, ApplicationReminderRecord
+        )
+        deleted["opportunity_transitions"] = _purge_records(
+            session, OpportunityTransitionRecord
+        )
+        deleted["opportunities"] = _purge_records(session, OpportunityRecord)
+        deleted["applications"] = _purge_records(session, ApplicationRecord)
+        deleted["ats_reports"] = _purge_records(session, AtsReportRecord)
+        deleted["cover_letters"] = _purge_records(session, CoverLetterRecord)
+        deleted["jobs"] = _purge_records(session, ScrapedJobRecord)
+        deleted["resume_revisions"] = _purge_records(session, ResumeRevisionRecord)
+        session.commit()
+    except Exception:
+        session.rollback()
+        logger.exception("Failed to clear unified history ledger")
+        raise
+
+    return {
+        "status": "success",
+        "message": "Unified history cleared.",
+        "deleted": deleted,
     }
 
 
