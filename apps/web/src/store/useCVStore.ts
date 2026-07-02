@@ -233,6 +233,32 @@ export interface AtsReportContext {
   model_name: string;
 }
 
+export interface HistoryLedgerLink {
+  subject_type: string;
+  subject_id: string;
+  relation: string;
+}
+
+export interface HistoryLedgerItem {
+  id: string;
+  subject_type:
+    | "job_scrape"
+    | "resume_revision"
+    | "cover_letter"
+    | "ats_report"
+    | "tracker_event"
+    | "llm_run";
+  subject_id: string;
+  title: string;
+  summary: string;
+  timestamp: string;
+  provider?: string | null;
+  model_name?: string | null;
+  status?: string | null;
+  links: HistoryLedgerLink[];
+  metadata: Record<string, unknown>;
+}
+
 export interface CompanyInsight {
   name: string;
   industry: string;
@@ -382,6 +408,49 @@ export function normalizeAtsReport(value: AtsReport | null | undefined): AtsRepo
           ? candidate.context.model_name
           : "",
     },
+  };
+}
+
+export function normalizeHistoryLedgerItem(
+  value: HistoryLedgerItem | null | undefined,
+): HistoryLedgerItem {
+  const candidate = (value ?? {}) as Partial<HistoryLedgerItem>;
+  const subjectType =
+    candidate.subject_type === "job_scrape" ||
+    candidate.subject_type === "resume_revision" ||
+    candidate.subject_type === "cover_letter" ||
+    candidate.subject_type === "ats_report" ||
+    candidate.subject_type === "tracker_event" ||
+    candidate.subject_type === "llm_run"
+      ? candidate.subject_type
+      : "llm_run";
+
+  return {
+    id: typeof candidate.id === "string" ? candidate.id : "",
+    subject_type: subjectType,
+    subject_id:
+      typeof candidate.subject_id === "string" ? candidate.subject_id : "",
+    title: typeof candidate.title === "string" ? candidate.title : "",
+    summary: typeof candidate.summary === "string" ? candidate.summary : "",
+    timestamp:
+      typeof candidate.timestamp === "string" ? candidate.timestamp : "",
+    provider:
+      typeof candidate.provider === "string" ? candidate.provider : null,
+    model_name:
+      typeof candidate.model_name === "string" ? candidate.model_name : null,
+    status: typeof candidate.status === "string" ? candidate.status : null,
+    links: Array.isArray(candidate.links)
+      ? candidate.links.map((link) => ({
+          subject_type:
+            typeof link?.subject_type === "string" ? link.subject_type : "",
+          subject_id: typeof link?.subject_id === "string" ? link.subject_id : "",
+          relation: typeof link?.relation === "string" ? link.relation : "",
+        }))
+      : [],
+    metadata:
+      candidate.metadata && typeof candidate.metadata === "object"
+        ? candidate.metadata
+        : {},
   };
 }
 

@@ -3,6 +3,7 @@ import {
   normalizeAtsReport,
   normalizeAppSettings,
   normalizeCVData,
+  normalizeHistoryLedgerItem,
   normalizeResumeDocument,
   systemConfigurationToAppSettings,
 } from "./useCVStore";
@@ -129,6 +130,22 @@ describe("useCVStore normalization", () => {
     expect(normalized.rubric.version).toBe("ats-v1");
     expect(normalized.deductions[0]?.severity).toBe("medium");
     expect(normalized.context.job_company).toBe("Mindris");
+  });
+
+  test("normalizes history ledger items from partial backend payloads", () => {
+    const normalized = normalizeHistoryLedgerItem({
+      id: "ats_report:12",
+      subject_type: "ats_report",
+      subject_id: "12",
+      title: "ATS report",
+      timestamp: "2026-07-02T12:00:00.000Z",
+      links: [{ subject_type: "job_scrape", subject_id: "9", relation: "evaluated_against" }],
+      metadata: { score: 88 },
+    } as never);
+
+    expect(normalized.summary).toBe("");
+    expect(normalized.links[0]?.relation).toBe("evaluated_against");
+    expect(normalized.metadata.score).toBe(88);
   });
 
   test("normalizes legacy resume documents into multilingual metadata", () => {
