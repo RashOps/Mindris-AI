@@ -78,6 +78,20 @@ interface WorkflowTransition {
   created_at: string;
 }
 
+interface OpportunityIntegrityIssue {
+  code: string;
+  severity: string;
+  artifact: string;
+  message: string;
+  metadata: Record<string, unknown>;
+}
+
+interface OpportunityIntegrity {
+  status: "healthy" | "degraded";
+  issues: OpportunityIntegrityIssue[];
+  repair_actions: string[];
+}
+
 interface OpportunityItem {
   id: number;
   job_id?: number | null;
@@ -97,6 +111,7 @@ interface OpportunityItem {
   transitions: WorkflowTransition[];
   next_actions: string[];
   linked_artifacts?: Record<string, unknown>;
+  integrity?: OpportunityIntegrity;
 }
 
 const STATE_ORDER: WorkflowState[] = [
@@ -159,6 +174,32 @@ function stateTone(active: boolean, done: boolean): string {
   if (active) return "border-blue-600 bg-blue-600 text-white";
   if (done) return "border-emerald-200 bg-emerald-50 text-emerald-700";
   return "border-slate-200 bg-white text-slate-500";
+}
+
+function integrityTone(status?: string): string {
+  if (status === "degraded") {
+    return "border-amber-200 bg-amber-50 text-amber-700";
+  }
+  return "border-emerald-200 bg-emerald-50 text-emerald-700";
+}
+
+function repairActionLabel(action: string): string {
+  switch (action) {
+    case "detach_missing_application":
+      return "Detach missing tracker";
+    case "detach_missing_resume":
+      return "Detach missing resume";
+    case "detach_missing_ats_report":
+      return "Detach missing ATS";
+    case "detach_missing_cover_letter":
+      return "Detach missing letter";
+    case "reset_resume_locale":
+      return "Reset resume locale";
+    case "sync_application_links":
+      return "Sync tracker links";
+    default:
+      return action;
+  }
 }
 
 export default function WorkflowPage() {
@@ -275,6 +316,11 @@ export default function WorkflowPage() {
   const localeOptions = selectedResume?.multilingual?.availableLocales?.length
     ? selectedResume.multilingual.availableLocales
     : [selectedResume?.multilingual?.activeLocale ?? selectedResume?.locale ?? "fr"];
+  const integrity = selected?.integrity ?? {
+    status: "healthy" as const,
+    issues: [],
+    repair_actions: [],
+  };
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-slate-50 text-slate-950">
@@ -464,9 +510,18 @@ export default function WorkflowPage() {
                       </div>
                       <p className="mt-2 text-sm font-semibold text-slate-900">{item.role}</p>
                       <p className="mt-1 text-sm text-slate-600">{item.company}</p>
-                      <p className="mt-2 text-xs text-slate-500">
-                        {STATE_LABELS[item.current_state]}
-                      </p>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <p className="text-xs text-slate-500">
+                          {STATE_LABELS[item.current_state]}
+                        </p>
+                        <span
+                          className={`rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${
+                            integrityTone(item.integrity?.status)
+                          }`}
+                        >
+                          {item.integrity?.status === "degraded" ? "Needs repair" : "Healthy"}
+                        </span>
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -487,6 +542,13 @@ export default function WorkflowPage() {
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-blue-700">
                           {STATE_LABELS[selected.current_state]}
+                        </span>
+                        <span
+                          className={`rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${
+                            integrityTone(integrity.status)
+                          }`}
+                        >
+                          {integrity.status === "degraded" ? "Integrity degraded" : "Integrity healthy"}
                         </span>
                         <span className="text-xs text-slate-400">
                           Updated {formatTimestamp(selected.last_transition_at)}
@@ -550,6 +612,85 @@ export default function WorkflowPage() {
                       );
                     })}
                   </div>
+                </section>
+
+                <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">Integrity</p>
+                      <p className="text-xs text-slate-500">
+                        Backend-owned workflow health and bounded recovery actions.
+                      </p>
+                    </div>
+                    <span
+                      className={`rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${
+                        integrityTone(integrity.status)
+                      }`}
+                    >
+                      {integrity.status}
+                    </span>
+                  </div>
+
+                  {integrity.issues.length === 0 ? (
+                    <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm text-emerald-700">
+                      No degraded workflow links detected for this opportunity.
+                    </div>
+                  ) : (
+                    <div className="mt-3 space-y-3">
+                      {integrity.issues.map((issue) => (
+                        <div
+                          key={issue.code}
+                          className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3"
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-full border border-amber-300 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+                              {issue.artifact}
+                            </span>
+                            <span className="text-[11px] font-semibold uppercase tracking-wide text-amber-700">
+                              {issue.severity}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-sm font-medium text-slate-900">{issue.message}</p>
+                          {Object.keys(issue.metadata ?? {}).length > 0 && (
+                            <pre className="mt-2 overflow-x-auto rounded-lg bg-white px-3 py-2 text-xs text-slate-600">
+                              {JSON.stringify(issue.metadata, null, 2)}
+                            </pre>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {integrity.repair_actions.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {integrity.repair_actions.map((action) => (
+                        <Button
+                          key={action}
+                          variant="outline"
+                          className="h-9"
+                          disabled={busyAction === `repair:${action}`}
+                          onClick={() =>
+                            void runAction(`repair:${action}`, async () => {
+                              await requestJson(
+                                `/api/v1/workflows/opportunities/${selected.id}/repair`,
+                                {
+                                  method: "POST",
+                                  body: JSON.stringify({ action }),
+                                },
+                              );
+                            })
+                          }
+                        >
+                          {busyAction === `repair:${action}` ? (
+                            <Loader2 className="animate-spin" />
+                          ) : (
+                            <Sparkles size={16} />
+                          )}
+                          {repairActionLabel(action)}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
                 </section>
 
                 <section className="grid gap-4 xl:grid-cols-2">
