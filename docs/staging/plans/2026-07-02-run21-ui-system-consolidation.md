@@ -6,7 +6,7 @@ spec: docs/staging/specs/2026-07-02-run21-ui-system-consolidation.md
   acceptance: cd apps/web && bun test src/config/layout.test.ts
   spec: docs/staging/specs/2026-07-02-run21-ui-system-consolidation.md
 
-- [ ] T2: Stabilize shell behavior and normalize shared UI tokens
+- [x] T2: Stabilize shell behavior and normalize shared UI tokens
   goal: Remove shell content shifting on sidebar hover and align shared surfaces, hover states, and dark mode tokens across the AppShell baseline.
   files: apps/web/src/components/layout/AppShell.tsx, apps/web/src/app/globals.css, apps/web/src/components/ThemeToggle.tsx
   acceptance: cd apps/web && bun run lint && bun run typecheck
@@ -24,13 +24,13 @@ spec: docs/staging/specs/2026-07-02-run21-ui-system-consolidation.md
   acceptance: cd apps/web && bun run lint && bun run typecheck
   spec: docs/staging/specs/2026-07-02-run21-ui-system-consolidation.md
 
-- [ ] T5: Refactor the CV Builder header into stable toolbar zones
+- [x] T5: Refactor the CV Builder header into stable toolbar zones
   goal: Rebuild the builder header so CV context, optimization inputs, and actions remain aligned in expanded shell mode and under wrap pressure.
   files: apps/web/src/app/tools/cv-creator/page.tsx
   acceptance: cd apps/web && bun run lint && bun run typecheck
   spec: docs/staging/specs/2026-07-02-run21-ui-system-consolidation.md
 
-- [ ] T6: Finish dark-mode normalization on high-traffic tool panels
+- [x] T6: Finish dark-mode normalization on high-traffic tool panels
   goal: Remove remaining unreadable or mixed-theme surfaces from ATS, Style Panel, and Job Insights while keeping the client-only boundary intact.
   files: apps/web/src/app/tools/ats-score/page.tsx, apps/web/src/components/StylePanel.tsx, apps/web/src/components/JobInsightsPanel.tsx
   acceptance: cd apps/web && bun run lint && bun run typecheck
