@@ -2,14 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, ChevronLeft, ChevronRight, Menu, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Menu, X } from "lucide-react";
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 
-import { GuideDrawer } from "@/components/help/GuideDrawer";
 import { ConfigurationDrawer } from "@/components/settings/ConfigurationDrawer";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
-import { APP_NAV_ITEMS, APP_SIDEBAR_SECTIONS, SIDEBAR_WIDTH_EXPANDED } from "@/config/layout";
+import {
+  APP_NAV_ITEMS,
+  APP_SIDEBAR_SECTIONS,
+  nextDesktopSidebarCompactState,
+  resolveDesktopSidebarLayout,
+} from "@/config/layout";
 import { cn } from "@/lib/utils";
 import { RuntimeGate } from "@/components/layout/RuntimeGate";
 import { useCVStore } from "@/store/useCVStore";
@@ -84,22 +88,6 @@ function SidebarUtilities({ collapsed = false }: { collapsed?: boolean }) {
 
   return (
     <div className="space-y-3">
-      <GuideDrawer
-        trigger={(
-          <Button
-            variant="ghost"
-            className={cn(
-              "w-full rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-slate-100",
-              collapsed ? "justify-center px-2" : "justify-start gap-3",
-            )}
-            title={collapsed ? "Guide" : undefined}
-          >
-            <BookOpen size={17} />
-            {!collapsed && <span className="min-w-0 flex-1 truncate text-left">Guide</span>}
-          </Button>
-        )}
-      />
-
       {configuration && (
         <ConfigurationDrawer
           trigger={(
@@ -151,7 +139,7 @@ export function AppShell({
   const hydrateAppSettings = useCVStore((state) => state.hydrateAppSettings);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [desktopCollapsed, setDesktopCollapsed] = useState(false);
-  const sidebarWidth = desktopCollapsed ? 72 : SIDEBAR_WIDTH_EXPANDED;
+  const desktopSidebar = resolveDesktopSidebarLayout(desktopCollapsed);
 
   useEffect(() => {
     void hydrateAppSettings();
@@ -162,10 +150,22 @@ export function AppShell({
       <div className="min-h-screen bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-slate-100">
         <aside
           className="fixed inset-y-0 left-0 z-40 hidden border-r border-slate-200 bg-white px-3 py-5 transition-[width] duration-200 lg:block dark:border-slate-800 dark:bg-slate-950"
-          style={{ width: sidebarWidth }}
-          onMouseEnter={() => setDesktopCollapsed(false)}
-          onMouseLeave={() => setDesktopCollapsed(true)}
-          onFocus={() => setDesktopCollapsed(false)}
+          style={{ width: desktopSidebar.asideWidth }}
+          onMouseEnter={() =>
+            setDesktopCollapsed((value) =>
+              nextDesktopSidebarCompactState(value, "pointer-enter"),
+            )
+          }
+          onMouseLeave={() =>
+            setDesktopCollapsed((value) =>
+              nextDesktopSidebarCompactState(value, "pointer-leave"),
+            )
+          }
+          onFocus={() =>
+            setDesktopCollapsed((value) =>
+              nextDesktopSidebarCompactState(value, "focus-enter"),
+            )
+          }
         >
           <div className="flex items-center justify-between gap-2">
             <Brand collapsed={desktopCollapsed} />
@@ -174,7 +174,11 @@ export function AppShell({
               size="icon"
               variant="ghost"
               className="shrink-0"
-              onClick={() => setDesktopCollapsed((value) => !value)}
+              onClick={() =>
+                setDesktopCollapsed((value) =>
+                  nextDesktopSidebarCompactState(value, "manual-toggle"),
+                )
+              }
             >
               {desktopCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
             </Button>
@@ -211,7 +215,7 @@ export function AppShell({
 
         <div
           className="transition-[padding] duration-200 lg:pl-[var(--app-sidebar-width)]"
-          style={{ "--app-sidebar-width": `${sidebarWidth}px` } as CSSProperties}
+          style={{ "--app-sidebar-width": `${desktopSidebar.reserveWidth}px` } as CSSProperties}
         >
           <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
             <div className="flex min-h-16 items-center justify-between gap-4 px-4 lg:px-6">
