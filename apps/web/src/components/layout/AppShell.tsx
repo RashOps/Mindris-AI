@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronLeft, ChevronRight, Menu, Server, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Menu, X } from "lucide-react";
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 
 import { ConfigurationDrawer } from "@/components/settings/ConfigurationDrawer";
 import { Button } from "@/components/ui/button";
-import { APP_NAV_ITEMS, SIDEBAR_WIDTH_EXPANDED } from "@/config/layout";
+import { APP_NAV_ITEMS, APP_SIDEBAR_SECTIONS, SIDEBAR_WIDTH_EXPANDED } from "@/config/layout";
 import { cn } from "@/lib/utils";
 import { RuntimeGate } from "@/components/layout/RuntimeGate";
 import { useCVStore } from "@/store/useCVStore";
@@ -76,6 +76,56 @@ function NavLinks({
   );
 }
 
+function SidebarUtilities({ collapsed = false }: { collapsed?: boolean }) {
+  const configuration = APP_SIDEBAR_SECTIONS.find((section) => section.id === "configuration");
+  const localServices = APP_SIDEBAR_SECTIONS.find((section) => section.id === "local-services");
+
+  return (
+    <div className="space-y-3">
+      {configuration && (
+        <div
+          className={cn(
+            "rounded-lg border border-slate-200 bg-white p-3",
+            collapsed && "hidden",
+          )}
+        >
+          <div className="mb-2 flex items-center gap-2 text-xs font-medium text-slate-700">
+            <configuration.icon size={14} />
+            {configuration.label}
+          </div>
+          <p className="mb-3 text-xs leading-5 text-slate-500">{configuration.description}</p>
+          <ConfigurationDrawer
+            trigger={(
+              <Button variant="outline" className="w-full justify-start gap-2">
+                <configuration.icon size={15} />
+                Open configuration
+              </Button>
+            )}
+          />
+        </div>
+      )}
+
+      {localServices && (
+        <div
+          className={cn(
+            "rounded-lg border border-slate-200 bg-slate-50 p-3",
+            collapsed && "hidden",
+          )}
+        >
+          <div className="mb-2 flex items-center gap-2 text-xs font-medium text-slate-700">
+            <localServices.icon size={14} />
+            {localServices.label}
+          </div>
+          <p className="mb-2 text-xs leading-5 text-slate-500">{localServices.description}</p>
+          <p className="text-xs leading-5 text-slate-500">API : 8000</p>
+          <p className="text-xs leading-5 text-slate-500">Renderer : 4000</p>
+          <p className="text-xs leading-5 text-slate-500">Web : 3000</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function AppShell({
   children,
   title,
@@ -117,17 +167,8 @@ export function AppShell({
           <div className="mt-8">
             <NavLinks collapsed={desktopCollapsed} />
           </div>
-          <div className={cn(
-            "absolute bottom-4 left-3 right-3 rounded-lg border border-slate-200 bg-slate-50 p-3",
-            desktopCollapsed && "hidden",
-          )}>
-            <div className="mb-2 flex items-center gap-2 text-xs font-medium text-slate-700">
-              <Server size={14} />
-              Local services
-            </div>
-            <p className="text-xs leading-5 text-slate-500">API : 8000</p>
-            <p className="text-xs leading-5 text-slate-500">Renderer : 4000</p>
-            <p className="text-xs leading-5 text-slate-500">Web : 3000</p>
+          <div className="absolute bottom-4 left-3 right-3">
+            <SidebarUtilities collapsed={desktopCollapsed} />
           </div>
         </aside>
 
@@ -146,6 +187,9 @@ export function AppShell({
                 </Button>
               </div>
               <NavLinks onNavigate={() => setMobileOpen(false)} />
+              <div className="mt-6">
+                <SidebarUtilities />
+              </div>
             </div>
           </div>
         )}
@@ -177,10 +221,7 @@ export function AppShell({
                   )}
                 </div>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
-                {actions}
-                <ConfigurationDrawer />
-              </div>
+              <div className="flex shrink-0 items-center gap-2">{actions}</div>
             </div>
           </header>
           <main className={cn("min-h-[calc(100vh-4rem)]", contentClassName)}>

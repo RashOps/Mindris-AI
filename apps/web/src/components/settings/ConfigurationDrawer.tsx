@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactElement } from "react";
 import { useMemo, useState } from "react";
 import { Cloud, HardDrive, KeyRound, Loader2, Settings2, ShieldCheck } from "lucide-react";
 
@@ -15,6 +16,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { apiUrl, jsonHeaders } from "@/lib/api";
+import { summarizeSystemDiagnostics, type SystemDiagnosticsPayload } from "@/lib/system-diagnostics";
 import {
   type AppSettings,
   type LLMProvider,
@@ -51,6 +53,8 @@ type SystemConfigurationPayload = {
   };
 };
 
+type DiagnosticsCard = ReturnType<typeof summarizeSystemDiagnostics>["cards"][number];
+
 const TASK_ROWS = [
   { key: "optimize_llm", backendKey: "optimize", label: "CV optimization" },
   { key: "cover_letter_llm", backendKey: "cover_letter", label: "Cover letter" },
@@ -75,7 +79,11 @@ function taskLabel(value: string): string {
     .join(" ");
 }
 
-export function ConfigurationDrawer() {
+export function ConfigurationDrawer({
+  trigger,
+}: {
+  trigger?: ReactElement;
+}) {
   const { appSettings, setAppSettings, hydrateAppSettings } = useCVStore();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -86,6 +94,17 @@ export function ConfigurationDrawer() {
   const [providerStatus, setProviderStatus] = useState<ProviderStatus>({});
   const [secretStatus, setSecretStatus] = useState<Record<string, { configured: boolean; masked: boolean }>>({});
   const [draftSettings, setDraftSettings] = useState<AppSettings>(appSettings);
+  const [diagnosticsCards, setDiagnosticsCards] = useState<DiagnosticsCard[]>([]);
+  const [diagnosticsPaths, setDiagnosticsPaths] = useState({
+    logs_dir: "",
+    storage_dir: "",
+    chroma_db_dir: "",
+  });
+  const [diagnosticsRuntime, setDiagnosticsRuntime] = useState({
+    renderer_url: "",
+    ollama_api_base: "",
+    log_level: "",
+  });
   const [secretInputs, setSecretInputs] = useState<Record<SecretSlot, string>>({
     groq_api_key: "",
     gemini_api_key: "",
@@ -108,16 +127,20 @@ export function ConfigurationDrawer() {
     setLoading(true);
     setError(null);
     try {
-      const [catalogueResponse, configResponse, ollamaResponse] = await Promise.all([
+      const [catalogueResponse, configResponse, ollamaResponse, diagnosticsResponse] = await Promise.all([
         fetch(apiUrl("/api/v1/llm/catalogue"), { headers: jsonHeaders() }),
         fetch(apiUrl("/api/v1/system/configuration"), { headers: jsonHeaders() }),
         fetch(apiUrl("/api/v1/system/ollama-models"), { headers: jsonHeaders() }),
+        fetch(apiUrl("/api/v1/system/diagnostics"), { headers: jsonHeaders() }),
       ]);
       const catalogueData = catalogueResponse.ok ? await catalogueResponse.json() : null;
       const configData = configResponse.ok
         ? ((await configResponse.json()) as SystemConfigurationPayload)
         : null;
       const ollamaData = ollamaResponse.ok ? await ollamaResponse.json() : null;
+      const diagnosticsData = diagnosticsResponse.ok
+        ? ((await diagnosticsResponse.json()) as SystemDiagnosticsPayload)
+        : null;
 
       const nextCatalogue: Catalogue = { ...(catalogueData?.catalogue ?? {}) };
       if (Array.isArray(ollamaData?.items) && ollamaData.items.length > 0) {
@@ -126,6 +149,10 @@ export function ConfigurationDrawer() {
       setCatalogue(nextCatalogue);
       setProviderStatus(configData?.item?.llm?.providers ?? catalogueData?.providers ?? {});
       setSecretStatus(configData?.item?.secrets ?? {});
+      const diagnostics = summarizeSystemDiagnostics(diagnosticsData);
+      setDiagnosticsCards(diagnostics.cards);
+      setDiagnosticsPaths(diagnostics.paths);
+      setDiagnosticsRuntime(diagnostics.runtime);
       if (configData?.item) {
         const nextSettings = systemConfigurationToAppSettings(configData.item);
         setDraftSettings(nextSettings);
@@ -231,12 +258,12 @@ export function ConfigurationDrawer() {
       }}
     >
       <SheetTrigger
-        render={
+        render={trigger ?? (
           <Button variant="outline" className="gap-2">
             <Settings2 size={16} />
             Configuration
           </Button>
-        }
+        )}
       />
       <SheetContent className="w-full border-slate-200 bg-white p-0 sm:max-w-2xl">
         <SheetHeader className="border-b border-slate-200">
@@ -360,6 +387,47 @@ export function ConfigurationDrawer() {
                   <Button onClick={() => void saveConfiguration()} disabled={saving}>
                     {saving ? "Saving…" : "Save configuration"}
                   </Button>
+                </div>
+              </section>
+
+              <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-950">
+                  <Settings2 size={16} />
+                  Runtime diagnostics
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {diagnosticsCards.map((card) => (
+                    <div key={card.id} className="rounded-lg border border-slate-200 bg-white p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-medium text-slate-900">{card.label}</p>
+                        <span
+                          className={
+                            card.state === "ready"
+                              ? "rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-medium text-emerald-700"
+                              : "rounded-full bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-700"
+                          }
+                        >
+                          {card.state}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm text-slate-900">{card.value}</p>
+                      <p className="mt-1 text-xs leading-5 text-slate-500">{card.meta}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <div className="rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600">
+                    <p className="font-medium text-slate-900">Runtime endpoints</p>
+                    <p className="mt-2 break-all">Renderer: {diagnosticsRuntime.renderer_url || "unavailable"}</p>
+                    <p className="mt-1 break-all">Ollama: {diagnosticsRuntime.ollama_api_base || "unavailable"}</p>
+                    <p className="mt-1">Log level: {diagnosticsRuntime.log_level || "unknown"}</p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600">
+                    <p className="font-medium text-slate-900">Storage paths</p>
+                    <p className="mt-2 break-all">Logs: {diagnosticsPaths.logs_dir || "unavailable"}</p>
+                    <p className="mt-1 break-all">Storage: {diagnosticsPaths.storage_dir || "unavailable"}</p>
+                    <p className="mt-1 break-all">Chroma: {diagnosticsPaths.chroma_db_dir || "unavailable"}</p>
+                  </div>
                 </div>
               </section>
 
