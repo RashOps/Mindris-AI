@@ -489,254 +489,291 @@ export default function AppPage() {
 
         {/* ── Header ─────────────────────────────────────────────────────────── */}
         <header className="z-30 flex shrink-0 flex-col gap-3 border-b border-slate-200 bg-white px-4 py-3 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="shrink-0">
-            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-              CV Builder
-            </p>
-          </div>
-
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <select
-              value={activeResumeId}
-              onChange={(e) => setActiveResume(e.target.value)}
-              className="h-9 min-w-40 max-w-56 cursor-pointer rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-800 shadow-sm outline-none focus:border-slate-500"
-              title="Active resume"
-            >
-              {resumes.map((resume) => (
-                <option key={resume.id} value={resume.id}>
-                  {resume.name}
-                </option>
-              ))}
-            </select>
-            <input
-              value={activeResume?.name ?? ""}
-              onChange={(e) => renameResume(activeResumeId, e.target.value)}
-              placeholder="Resume name"
-              className="h-9 w-40 rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-slate-500"
-              title="Rename active resume"
-            />
-            <button
-              onClick={() => {
-                void createResume("Untitled CV")
-                  .then(() => showToast("New blank CV created"))
-                  .catch((err: unknown) => {
-                    showToast(errorMessage(err, "Create failed"), 6000);
-                  });
-              }}
-              className="h-9 cursor-pointer rounded-lg border border-slate-300 bg-white px-3 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
-              title="Create blank CV"
-            >
-              New
-            </button>
-            <button
-              onClick={() => {
-                void duplicateResume()
-                  .then(() => showToast("CV duplicated"))
-                  .catch((err: unknown) => {
-                    showToast(errorMessage(err, "Duplicate failed"), 6000);
-                  });
-              }}
-              className="h-9 cursor-pointer rounded-lg border border-slate-300 bg-white px-3 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
-              title="Duplicate active CV"
-            >
-              Duplicate
-            </button>
-            <button
-              onClick={() => {
-                void deleteResume(activeResumeId)
-                  .then(() => showToast(resumes.length > 1 ? "CV deleted" : "Keep at least one CV"))
-                  .catch((err: unknown) => {
-                    showToast(errorMessage(err, "Delete failed"), 6000);
-                  });
-              }}
-              disabled={resumes.length <= 1}
-              className="h-9 cursor-pointer rounded-lg border border-red-100 bg-red-50 px-3 text-xs font-medium text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-40"
-              title="Delete active CV"
-            >
-              Delete
-            </button>
-            <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-1 py-1">
-              {availableLocales.map((locale) => (
+          <div className="grid gap-3 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+            <section className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                    CV Context
+                  </p>
+                  <p className="text-sm font-semibold text-slate-900">
+                    {activeResume?.name ?? "Active resume"}
+                  </p>
+                </div>
                 <button
-                  key={locale}
-                  type="button"
                   onClick={() => {
-                    if (locale === activeLocale) return;
-                    void activateResumeLocale(locale).then(() => {
-                      showToast(`${locale.toUpperCase()} variant active`);
-                    }).catch((err: unknown) => {
-                      showToast(errorMessage(err, "Locale switch failed"), 6000);
-                    });
-                  }}
-                  className="inline-flex h-7 min-w-10 cursor-pointer items-center justify-center rounded-md px-2 text-[11px] font-semibold transition-colors"
-                  style={locale === activeLocale
-                    ? { background: '#0f172a', color: '#fff' }
-                    : { background: '#fff', color: '#475569' }}
-                  title={`Switch to ${locale.toUpperCase()}`}
-                  data-testid={`locale-switch-${locale}`}
-                >
-                  {locale.toUpperCase()}
-                </button>
-              ))}
-              {inactiveLocales.length > 0 ? (
-                <>
-                  <select
-                    value={localeToCreate}
-                    onChange={(e) => setLocaleToCreate(e.target.value as typeof localeToCreate)}
-                    className="h-7 cursor-pointer rounded-md border border-slate-200 bg-white px-2 text-[11px] font-medium text-slate-700 outline-none"
-                    title="Select a new locale variant"
-                    data-testid="locale-create-select"
-                  >
-                    <option value="">Add locale</option>
-                    {inactiveLocales.map((locale) => (
-                      <option key={locale} value={locale}>
-                        {locale.toUpperCase()}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    disabled={!localeToCreate}
-                    onClick={() => {
-                      if (!localeToCreate) return;
-                      void createResumeLocale(localeToCreate, activeLocale).then(() => {
-                        showToast(`${localeToCreate.toUpperCase()} variant created`);
-                        setLocaleToCreate("");
-                      }).catch((err: unknown) => {
-                        showToast(errorMessage(err, "Locale creation failed"), 6000);
+                    if (resumeSaveStatus === "error") {
+                      void retryResumeSave().catch((err: unknown) => {
+                        showToast(errorMessage(err, "Save retry failed"), 6000);
                       });
-                    }}
-                    className="inline-flex h-7 cursor-pointer items-center justify-center rounded-md border border-slate-200 bg-white px-2 text-[11px] font-semibold text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
-                    title="Create a locale variant from the active locale"
-                    data-testid="locale-create-button"
-                  >
-                    Add
-                  </button>
-                </>
-              ) : null}
-              {availableLocales.length > 1 && activeLocale !== activeResume?.multilingual.defaultLocale ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    void deleteResumeLocale(activeLocale).then(() => {
-                      showToast(`${activeLocale.toUpperCase()} variant deleted`);
-                    }).catch((err: unknown) => {
-                      showToast(errorMessage(err, "Locale delete failed"), 6000);
-                    });
+                    }
                   }}
-                  className="inline-flex h-7 cursor-pointer items-center justify-center rounded-md border border-red-200 bg-red-50 px-2 text-[11px] font-semibold text-red-700 transition-colors hover:bg-red-100"
-                  title={`Delete ${activeLocale.toUpperCase()} variant`}
+                  className="h-8 shrink-0 rounded-lg border px-3 text-xs font-medium"
+                  style={{
+                    borderColor: resumeSaveStatus === "error" ? "#fecaca" : "#e2e8f0",
+                    background: "#fff",
+                    color: saveStatusColor,
+                    cursor: resumeSaveStatus === "error" ? "pointer" : "default",
+                  }}
+                  title={resumeSaveError ?? "Backend save status"}
                 >
-                  Remove
+                  {saveStatusText}
                 </button>
-              ) : null}
-            </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={activeResumeId}
+                  onChange={(e) => setActiveResume(e.target.value)}
+                  className="h-9 min-w-44 flex-1 cursor-pointer rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                  title="Active resume"
+                >
+                  {resumes.map((resume) => (
+                    <option key={resume.id} value={resume.id}>
+                      {resume.name}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  value={activeResume?.name ?? ""}
+                  onChange={(e) => renameResume(activeResumeId, e.target.value)}
+                  placeholder="Resume name"
+                  className="h-9 min-w-40 flex-1 rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-slate-500"
+                  title="Rename active resume"
+                />
+                <button
+                  onClick={() => {
+                    void createResume("Untitled CV")
+                      .then(() => showToast("New blank CV created"))
+                      .catch((err: unknown) => {
+                        showToast(errorMessage(err, "Create failed"), 6000);
+                      });
+                  }}
+                  className="h-9 cursor-pointer rounded-lg border border-slate-300 bg-white px-3 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+                  title="Create blank CV"
+                >
+                  New
+                </button>
+                <button
+                  onClick={() => {
+                    void duplicateResume()
+                      .then(() => showToast("CV duplicated"))
+                      .catch((err: unknown) => {
+                        showToast(errorMessage(err, "Duplicate failed"), 6000);
+                      });
+                  }}
+                  className="h-9 cursor-pointer rounded-lg border border-slate-300 bg-white px-3 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+                  title="Duplicate active CV"
+                >
+                  Duplicate
+                </button>
+                <button
+                  onClick={() => {
+                    void deleteResume(activeResumeId)
+                      .then(() => showToast(resumes.length > 1 ? "CV deleted" : "Keep at least one CV"))
+                      .catch((err: unknown) => {
+                        showToast(errorMessage(err, "Delete failed"), 6000);
+                      });
+                  }}
+                  disabled={resumes.length <= 1}
+                  className="h-9 cursor-pointer rounded-lg border border-red-100 bg-red-50 px-3 text-xs font-medium text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-40"
+                  title="Delete active CV"
+                >
+                  Delete
+                </button>
+              </div>
+            </section>
+
+            <section className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                    Variants & Runtime
+                  </p>
+                  <p className="text-sm text-slate-600">
+                    Locale variants, PDF parsing, and optimization runtime.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-1 py-1">
+                  {availableLocales.map((locale) => (
+                    <button
+                      key={locale}
+                      type="button"
+                      onClick={() => {
+                        if (locale === activeLocale) return;
+                        void activateResumeLocale(locale).then(() => {
+                          showToast(`${locale.toUpperCase()} variant active`);
+                        }).catch((err: unknown) => {
+                          showToast(errorMessage(err, "Locale switch failed"), 6000);
+                        });
+                      }}
+                      className="inline-flex h-7 min-w-10 cursor-pointer items-center justify-center rounded-md px-2 text-[11px] font-semibold transition-colors"
+                      style={locale === activeLocale
+                        ? { background: "#0f172a", color: "#fff" }
+                        : { background: "#fff", color: "#475569" }}
+                      title={`Switch to ${locale.toUpperCase()}`}
+                      data-testid={`locale-switch-${locale}`}
+                    >
+                      {locale.toUpperCase()}
+                    </button>
+                  ))}
+                  {inactiveLocales.length > 0 ? (
+                    <>
+                      <select
+                        value={localeToCreate}
+                        onChange={(e) => setLocaleToCreate(e.target.value as typeof localeToCreate)}
+                        className="h-7 cursor-pointer rounded-md border border-slate-200 bg-white px-2 text-[11px] font-medium text-slate-700 outline-none"
+                        title="Select a new locale variant"
+                        data-testid="locale-create-select"
+                      >
+                        <option value="">Add locale</option>
+                        {inactiveLocales.map((locale) => (
+                          <option key={locale} value={locale}>
+                            {locale.toUpperCase()}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        disabled={!localeToCreate}
+                        onClick={() => {
+                          if (!localeToCreate) return;
+                          void createResumeLocale(localeToCreate, activeLocale).then(() => {
+                            showToast(`${localeToCreate.toUpperCase()} variant created`);
+                            setLocaleToCreate("");
+                          }).catch((err: unknown) => {
+                            showToast(errorMessage(err, "Locale creation failed"), 6000);
+                          });
+                        }}
+                        className="inline-flex h-7 cursor-pointer items-center justify-center rounded-md border border-slate-200 bg-white px-2 text-[11px] font-semibold text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        title="Create a locale variant from the active locale"
+                        data-testid="locale-create-button"
+                      >
+                        Add
+                      </button>
+                    </>
+                  ) : null}
+                  {availableLocales.length > 1 && activeLocale !== activeResume?.multilingual.defaultLocale ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void deleteResumeLocale(activeLocale).then(() => {
+                          showToast(`${activeLocale.toUpperCase()} variant deleted`);
+                        }).catch((err: unknown) => {
+                          showToast(errorMessage(err, "Locale delete failed"), 6000);
+                        });
+                      }}
+                      className="inline-flex h-7 cursor-pointer items-center justify-center rounded-md border border-red-200 bg-red-50 px-2 text-[11px] font-semibold text-red-700 transition-colors hover:bg-red-100"
+                      title={`Delete ${activeLocale.toUpperCase()} variant`}
+                    >
+                      Remove
+                    </button>
+                  ) : null}
+                </div>
+
+                <PdfIngestionModeSelect label="PDF parse" />
+                <LLMSelector taskKey="optimize_llm" label="Optimize" />
+              </div>
+            </section>
           </div>
 
-          <div className="flex items-center gap-2">
-          <PdfIngestionModeSelect label="PDF parse" />
-          <LLMSelector taskKey="optimize_llm" label="Optimize" />
-          <button
-            onClick={() => {
-              if (resumeSaveStatus === "error") {
-                void retryResumeSave().catch((err: unknown) => {
-                  showToast(errorMessage(err, "Save retry failed"), 6000);
-                });
-              }
-            }}
-            className="h-9 rounded-lg border px-3 text-xs font-medium"
-            style={{
-              borderColor: resumeSaveStatus === "error" ? "#fecaca" : "#e2e8f0",
-              background: "#fff",
-              color: saveStatusColor,
-              cursor: resumeSaveStatus === "error" ? "pointer" : "default",
-            }}
-            title={resumeSaveError ?? "Backend save status"}
-          >
-            {saveStatusText}
-          </button>
-          </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
           {/* Job URL */}
-          <div className="flex min-w-[280px] flex-1 items-center gap-2">
-            <Input
-              value={jobUrl}
-              onChange={(e) => setJobUrl(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleOptimize()}
-              placeholder="Paste job offer URL…"
-              className="h-9 border-slate-300 bg-white text-sm text-slate-800 shadow-sm placeholder:text-slate-400 focus-visible:border-slate-500"
-            />
-            <Button
-              onClick={handleOptimize}
-              disabled={isOptimizing || !jobUrl.trim()}
-              className="h-9 shrink-0 cursor-pointer bg-slate-950 px-4 text-sm text-white hover:bg-slate-800"
-            >
-              {isOptimizing
-                ? <span className="flex items-center gap-2"><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Running…</span>
-                : "Optimize"
-              }
-            </Button>
-          </div>
+          <section className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+            <div className="mb-2">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                Optimization Input
+              </p>
+              <p className="text-sm text-slate-600">
+                Paste a job URL to launch tailoring and recruiter-side insights.
+              </p>
+            </div>
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <Input
+                value={jobUrl}
+                onChange={(e) => setJobUrl(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleOptimize()}
+                placeholder="Paste job offer URL…"
+                className="h-9 min-w-56 flex-1 border-slate-300 bg-white text-sm text-slate-800 shadow-sm placeholder:text-slate-400 focus-visible:border-slate-500"
+              />
+              <Button
+                onClick={handleOptimize}
+                disabled={isOptimizing || !jobUrl.trim()}
+                className="h-9 shrink-0 cursor-pointer bg-slate-950 px-4 text-sm text-white hover:bg-slate-800"
+              >
+                {isOptimizing
+                  ? <span className="flex items-center gap-2"><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Running…</span>
+                  : "Optimize"
+                }
+              </Button>
+            </div>
+          </section>
 
           {/* Action buttons */}
-          <div ref={headerMenuRef} className="flex flex-wrap items-center gap-1.5">
-            <input type="file" accept=".pdf"  className="hidden" ref={pdfInputRef}  onChange={handlePdfUpload} />
-            <input type="file" accept=".json" className="hidden" ref={jsonInputRef} onChange={handleJsonUpload} />
+          <section className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+            <div className="mb-2">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                Actions
+              </p>
+            </div>
+            <div ref={headerMenuRef} className="flex flex-wrap items-center gap-1.5">
+              <input type="file" accept=".pdf"  className="hidden" ref={pdfInputRef}  onChange={handlePdfUpload} />
+              <input type="file" accept=".json" className="hidden" ref={jsonInputRef} onChange={handleJsonUpload} />
 
-            <HeaderActionMenu
-              label="Upload CV"
-              icon={isUploading ? <span className="h-3.5 w-3.5 rounded-full border border-sky-500 border-t-transparent animate-spin" /> : <Upload className="h-4 w-4 text-slate-600" />}
-              isOpen={activeHeaderMenu === "upload"}
-              onToggle={() => setActiveHeaderMenu((current) => current === "upload" ? null : "upload")}
-              onClose={() => setActiveHeaderMenu(null)}
-              actions={uploadActions}
-            />
+              <HeaderActionMenu
+                label="Upload CV"
+                icon={isUploading ? <span className="h-3.5 w-3.5 rounded-full border border-sky-500 border-t-transparent animate-spin" /> : <Upload className="h-4 w-4 text-slate-600" />}
+                isOpen={activeHeaderMenu === "upload"}
+                onToggle={() => setActiveHeaderMenu((current) => current === "upload" ? null : "upload")}
+                onClose={() => setActiveHeaderMenu(null)}
+                actions={uploadActions}
+              />
 
-            <HeaderActionMenu
-              label="Download CV"
-              icon={<Download className="h-4 w-4 text-slate-600" />}
-              isOpen={activeHeaderMenu === "download"}
-              onToggle={() => setActiveHeaderMenu((current) => current === "download" ? null : "download")}
-              onClose={() => setActiveHeaderMenu(null)}
-              actions={downloadActions}
-            />
+              <HeaderActionMenu
+                label="Download CV"
+                icon={<Download className="h-4 w-4 text-slate-600" />}
+                isOpen={activeHeaderMenu === "download"}
+                onToggle={() => setActiveHeaderMenu((current) => current === "download" ? null : "download")}
+                onClose={() => setActiveHeaderMenu(null)}
+                actions={downloadActions}
+              />
 
-            <button onClick={() => setShowGhost((v) => !v)}
-              className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border px-2.5 text-xs font-medium transition-colors"
-              style={showGhost
-                ? { borderColor: '#c7d2fe', background: '#eef2ff', color: '#4338ca' }
-                : { borderColor: '#e2e8f0', background: '#fff', color: '#475569' }}>
-              Ghost
-            </button>
+              <button onClick={() => setShowGhost((v) => !v)}
+                className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border px-2.5 text-xs font-medium transition-colors"
+                style={showGhost
+                  ? { borderColor: "#c7d2fe", background: "#eef2ff", color: "#4338ca" }
+                  : { borderColor: "#e2e8f0", background: "#fff", color: "#475569" }}>
+                Ghost
+              </button>
 
-            <button onClick={() => setShowInsights((v) => !v)}
-              className="relative inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border px-2.5 text-xs font-medium transition-colors"
-              style={showInsights
-                ? { borderColor: '#fde68a', background: '#fffbeb', color: '#92400e' }
-                : { borderColor: '#e2e8f0', background: '#fff', color: '#475569' }}>
-              Insights
-              {jobInsights && (
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full" />
-              )}
-            </button>
+              <button onClick={() => setShowInsights((v) => !v)}
+                className="relative inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border px-2.5 text-xs font-medium transition-colors"
+                style={showInsights
+                  ? { borderColor: "#fde68a", background: "#fffbeb", color: "#92400e" }
+                  : { borderColor: "#e2e8f0", background: "#fff", color: "#475569" }}>
+                Insights
+                {jobInsights && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full" />
+                )}
+              </button>
 
-            <button onClick={() => setShowCoverLetter(true)}
-              className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50">
-              Cover Letter
-            </button>
+              <button onClick={() => setShowCoverLetter(true)}
+                className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50">
+                Cover Letter
+              </button>
 
-            <button onClick={() => setShowStyle((v) => !v)}
-              className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border px-2.5 text-xs font-medium transition-colors"
-              style={showStyle
-                ? { borderColor: '#ddd6fe', background: '#f5f3ff', color: '#6d28d9' }
-                : { borderColor: '#e2e8f0', background: '#fff', color: '#475569' }}>
-              Style
-            </button>
-
-          </div>
+              <button onClick={() => setShowStyle((v) => !v)}
+                className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border px-2.5 text-xs font-medium transition-colors"
+                style={showStyle
+                  ? { borderColor: "#ddd6fe", background: "#f5f3ff", color: "#6d28d9" }
+                  : { borderColor: "#e2e8f0", background: "#fff", color: "#475569" }}>
+                Style
+              </button>
+            </div>
+          </section>
           </div>
         </header>
 
