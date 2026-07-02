@@ -496,6 +496,7 @@ export default function WorkflowPage() {
                       key={item.id}
                       type="button"
                       onClick={() => setSelectedId(item.id)}
+                      data-testid={`workflow-card-${item.id}`}
                       className={`w-full px-4 py-4 text-left transition-colors hover:bg-slate-50 ${
                         selected?.id === item.id ? "bg-slate-50" : "bg-white"
                       }`}
@@ -540,6 +541,12 @@ export default function WorkflowPage() {
                   <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          data-testid={`workflow-selected-${selected.id}`}
+                          className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-600"
+                        >
+                          #{selected.id}
+                        </span>
                         <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-blue-700">
                           {STATE_LABELS[selected.current_state]}
                         </span>
@@ -668,6 +675,7 @@ export default function WorkflowPage() {
                           key={action}
                           variant="outline"
                           className="h-9"
+                          data-testid={`workflow-repair-${action}`}
                           disabled={busyAction === `repair:${action}`}
                           onClick={() =>
                             void runAction(`repair:${action}`, async () => {
