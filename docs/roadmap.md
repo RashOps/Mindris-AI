@@ -139,3 +139,9 @@
 - [x] **Historique gouverne :** Purge globale avec confirmation destructive et contrat backend transactionnel.
 - [x] **Job Tracker compact :** Densite plus SaaS et details secondaires en disclosure.
 - [x] **CV Builder stabilise :** Barre d'outils refondue et alignement robuste en shell etendu.
+
+## 🔵 Phase 22 : Workflow Reliability & Data Integrity
+- [ ] **Workflow candidat fiable :** Durcir les transitions d'etat entre opportunite, ATS, CV, LM et tracker.
+- [ ] **Integrite des liens metier :** Detecter, prevenir et reparer les references orphelines ou incoherentes.
+- [ ] **Reprise et reprise sur erreur :** Exposer des etats clairs, retries bornes et recovery paths pour les workflows incomplets.
+- [ ] **QA de continuite produit :** Renforcer les tests API/E2E sur les parcours relies et les cas de donnees degradees.
