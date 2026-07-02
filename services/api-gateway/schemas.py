@@ -119,6 +119,37 @@ class SystemConfigurationItem(BaseModel):
     secrets: SystemConfigurationSecrets
 
 
+class SystemDiagnosticsService(BaseModel):
+    """Read-only runtime diagnostics for a service dependency."""
+
+    status: str
+    reachable: bool
+    url: str | None = None
+    checks: dict[str, Any] = Field(default_factory=dict)
+    error: str | None = None
+
+
+class SystemDiagnosticsOllama(BaseModel):
+    """Read-only local Ollama diagnostics."""
+
+    status: str
+    reachable: bool
+    base_url: str
+    model_count: int = 0
+    items: list[dict[str, str]] = Field(default_factory=list)
+    error: str | None = None
+
+
+class SystemDiagnosticsItem(BaseModel):
+    """Aggregated backend-owned diagnostics for local runtime control."""
+
+    api: dict[str, Any]
+    renderer: SystemDiagnosticsService
+    ollama: SystemDiagnosticsOllama
+    storage: SystemConfigurationStorage
+    runtime: SystemConfigurationRuntime
+
+
 class SystemConfigurationUpdateRequest(BaseModel):
     """Patch backend-owned app configuration."""
 

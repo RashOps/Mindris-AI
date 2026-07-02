@@ -19,6 +19,9 @@ from schemas import (
     SystemConfigurationStorage,
     SystemConfigurationTaskDefault,
     SystemConfigurationUpdateRequest,
+    SystemDiagnosticsItem,
+    SystemDiagnosticsOllama,
+    SystemDiagnosticsService,
     SystemSecretUpdateRequest,
 )
 from sqlalchemy import text
@@ -139,6 +142,38 @@ async def system_ollama_models(_: None = Depends(verify_api_key)) -> dict:
     return {"status": "success", "items": _discover_ollama_models()}
 
 
+@router.get("/api/v1/system/diagnostics")
+async def system_diagnostics(_: None = Depends(verify_api_key)) -> dict:
+    """Return aggregated backend-owned diagnostics for configuration UI."""
+    api_status = await readiness_checks()
+    return {
+        "status": "success",
+        "item": SystemDiagnosticsItem(
+            api=api_status,
+            renderer=SystemDiagnosticsService.model_validate(_renderer_diagnostics()),
+            ollama=SystemDiagnosticsOllama.model_validate(_ollama_diagnostics()),
+            storage=SystemConfigurationStorage(
+                logs_dir=str(settings.logs_dir),
+                storage_dir=str(settings.storage_dir),
+                chroma_db_dir=str(settings.chroma_db_dir),
+            ),
+            runtime=SystemConfigurationRuntime(
+                renderer_url=settings.renderer_url,
+                service_timeout_seconds=settings.service_timeout_seconds,
+                pipeline_timeout_seconds=settings.pipeline_timeout_seconds,
+                max_pdf_upload_bytes=settings.max_pdf_upload_bytes,
+                ollama_api_base=settings.ollama_api_base,
+                llm_num_ctx=settings.llm_num_ctx,
+                scraper_timeout_ms=settings.scraper_timeout_ms,
+                scraper_headless=settings.scraper_headless,
+                scraper_strategy=settings.scraper_strategy,
+                scraper_proxy_fallback=settings.scraper_proxy_fallback,
+                log_level=settings.log_level,
+            ),
+        ).model_dump(mode="json"),
+    }
+
+
 def _dir_check(path: Path) -> dict:
     exists = path.exists()
     return {
@@ -250,6 +285,38 @@ def _configuration_payload() -> dict[str, Any]:
 
 
 def _discover_ollama_models() -> list[dict[str, str]]:
+    return _ollama_diagnostics()["items"]
+
+
+def _renderer_diagnostics() -> dict[str, Any]:
+    try:
+        import httpx
+
+        response = httpx.get(
+            f"{settings.renderer_url.rstrip('/')}/ready",
+            timeout=2.0,
+        )
+        response.raise_for_status()
+        payload = response.json()
+    except Exception as exc:  # pragma: no cover - exercised against local runtime
+        return {
+            "status": "unreachable",
+            "url": settings.renderer_url,
+            "reachable": False,
+            "checks": {},
+            "error": str(exc),
+        }
+
+    return {
+        "status": payload.get("status", "ready"),
+        "url": settings.renderer_url,
+        "reachable": True,
+        "checks": payload.get("checks", {}),
+        "error": None,
+    }
+
+
+def _ollama_diagnostics() -> dict[str, Any]:
     try:
         import httpx
 
@@ -259,12 +326,26 @@ def _discover_ollama_models() -> list[dict[str, str]]:
         )
         response.raise_for_status()
         payload = response.json()
-    except Exception:  # pragma: no cover - exercised against local runtime
-        return []
+    except Exception as exc:  # pragma: no cover - exercised against local runtime
+        return {
+            "status": "unreachable",
+            "base_url": settings.ollama_api_base,
+            "reachable": False,
+            "model_count": 0,
+            "items": [],
+            "error": str(exc),
+        }
 
     models = payload.get("models")
     if not isinstance(models, list):
-        return []
+        return {
+            "status": "degraded",
+            "base_url": settings.ollama_api_base,
+            "reachable": True,
+            "model_count": 0,
+            "items": [],
+            "error": "Invalid Ollama payload.",
+        }
 
     discovered = []
     for item in models:
@@ -274,4 +355,11 @@ def _discover_ollama_models() -> list[dict[str, str]]:
         if not isinstance(name, str) or not name.strip():
             continue
         discovered.append({"id": name, "label": name})
-    return discovered
+    return {
+        "status": "ready",
+        "base_url": settings.ollama_api_base,
+        "reachable": True,
+        "model_count": len(discovered),
+        "items": discovered,
+        "error": None,
+    }
