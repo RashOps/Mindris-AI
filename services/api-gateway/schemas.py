@@ -13,6 +13,15 @@ from pydantic import (
 
 Provider = Literal["ollama", "groq", "gemini", "openai", "mistral"]
 AtsMode = Literal["standard", "strict"]
+OpportunityState = Literal[
+    "scrape_completed",
+    "opportunity_created",
+    "resume_linked",
+    "cover_letter_linked",
+    "ats_report_linked",
+    "tracker_entry_created",
+    "ready_to_apply",
+]
 
 MODEL_CATALOGUE: dict[str, set[str]] = {
     "groq": {
@@ -871,6 +880,95 @@ class ActivityLedgerItem(BaseModel):
     status: str | None = None
     links: list[ActivityLedgerLink] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class OpportunityTransitionItem(BaseModel):
+    """Chronological workflow transition entry."""
+
+    id: int
+    state: OpportunityState
+    action: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    created_at: str
+
+
+class OpportunityItem(BaseModel):
+    """Serialized opportunity workflow aggregate."""
+
+    id: int
+    job_id: int | None = None
+    source_url: str | None = None
+    company: str
+    role: str
+    current_state: OpportunityState
+    resume_id: int | None = None
+    resume_locale: str | None = None
+    ats_report_id: int | None = None
+    cover_letter_id: int | None = None
+    application_id: int | None = None
+    notes: str = ""
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    created_at: str
+    updated_at: str
+    last_transition_at: str
+    transitions: list[OpportunityTransitionItem] = Field(default_factory=list)
+    linked_artifacts: dict[str, Any] = Field(default_factory=dict)
+    next_actions: list[str] = Field(default_factory=list)
+
+
+class OpportunityCreateRequest(BaseModel):
+    """Create an opportunity anchor from a job or a manual payload."""
+
+    job_id: int | None = None
+    source_url: AnyHttpUrl | None = None
+    company: str | None = Field(default=None, min_length=1)
+    role: str | None = Field(default=None, min_length=1)
+    notes: str = ""
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_source(self) -> "OpportunityCreateRequest":
+        """Require either an existing job reference or manual company/role input."""
+        if self.job_id is not None:
+            return self
+        if self.company and self.role:
+            return self
+        raise ValueError("Provide job_id or both company and role.")
+
+
+class OpportunityResumeLinkRequest(BaseModel):
+    """Link a resume locale variant to an opportunity."""
+
+    resume_id: int
+    locale: str | None = None
+
+
+class OpportunityAtsLinkRequest(BaseModel):
+    """Link an ATS report to an opportunity."""
+
+    ats_report_id: int
+
+
+class OpportunityCoverLetterLinkRequest(BaseModel):
+    """Link a cover letter to an opportunity."""
+
+    cover_letter_id: int
+
+
+class OpportunityTrackerLinkRequest(BaseModel):
+    """Create or attach a tracker application from workflow context."""
+
+    application_id: int | None = None
+    create: bool = False
+    status: str = "wishlist"
+    notes: str = ""
+
+    @model_validator(mode="after")
+    def validate_action(self) -> "OpportunityTrackerLinkRequest":
+        """Require an explicit attachment or creation intent."""
+        if self.application_id is None and not self.create:
+            raise ValueError("Provide application_id or set create=true.")
+        return self
 
 
 class ApplicationCreateRequest(BaseModel):
