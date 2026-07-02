@@ -9,8 +9,16 @@ bun install
 ## Run
 
 ```bash
+bun run dev
+```
+
+For a plain non-watch start:
+
+```bash
 bun run start
 ```
+
+`bun run dev` is the local development entrypoint and reloads the renderer on file changes.
 
 The service listens on:
 
