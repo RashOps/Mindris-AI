@@ -129,6 +129,6 @@
 - [x] **Risk & unknowns :** Alertes sur zones d'incertitude ou signaux faibles.
 
 ## 🔵 Phase 20 : Product Polish & Secondary UX
-- [ ] **Guide interne Mindris :** Aide produit integree et contextuelle dans l'AppShell.
-- [ ] **Theme system :** Dark/light mode aligne au design system.
-- [ ] **Markdown workspace plus riche :** Export DOCX et finitions du convertisseur.
+- [x] **Guide interne Mindris :** Aide produit integree et contextuelle dans l'AppShell.
+- [x] **Theme system :** Dark/light mode aligne au design system.
+- [x] **Markdown workspace plus riche :** Export DOCX et finitions du convertisseur.
