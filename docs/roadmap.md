@@ -119,9 +119,9 @@
 - [x] **UI d'audit :** Consultation et filtrage de l'historique depuis l'application.
 
 ## 🔵 Phase 18 : Workflow Automation
-- [ ] **Opportunity workflow :** Scrape -> opportunite -> CV lie -> LM liee -> tracker.
-- [ ] **Automatisation explicite :** Creation guidee des artefacts avec etats metier auditable.
-- [ ] **Rappels & relances :** Taches de suivi integrees au Job Tracker.
+- [x] **Opportunity workflow :** Scrape -> opportunite -> CV lie -> LM liee -> tracker.
+- [x] **Automatisation explicite :** Creation guidee des artefacts avec etats metier auditable.
+- [x] **Rappels & relances :** Taches de suivi integrees au Job Tracker.
 
 ## 🔵 Phase 19 : Recruiter Intelligence Layer
 - [ ] **Enrichissement entreprise :** Profil borne de l'entreprise et contexte de recrutement.
