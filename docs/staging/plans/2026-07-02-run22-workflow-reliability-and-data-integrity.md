@@ -16,26 +16,32 @@ spec: docs/staging/specs/2026-07-02-run22-workflow-reliability-and-data-integrit
   - History ledger builders already aggregate workflow links, but they also degrade silently and cannot distinguish healthy vs detached links.
   - Current workflow tests are happy-path only; no regression coverage exists for orphan creation, degraded-state surfacing, or bounded repair flows.
 
-- [ ] T2: Add backend integrity checks and normalized degraded states
+- [x] T2: Add backend integrity checks and normalized degraded states
   goal: Detect orphaned or inconsistent workflow links and surface them through stable API metadata instead of implicit null handling.
   files: packages/database/**, services/api-gateway/**, shared workflow persistence modules
   acceptance: uv run pytest tests -q -k "workflow or history or tracker"
   spec: docs/staging/specs/2026-07-02-run22-workflow-reliability-and-data-integrity.md
 
-- [ ] T3: Implement bounded repair and retry actions
+- [x] T3: Implement bounded repair and retry actions
   goal: Allow safe re-link, retry, or detach flows for incomplete ATS / LM / tracker states without corrupting the workflow graph.
   files: services/api-gateway/routers/**, workflow services, apps/web workflow-facing pages
   acceptance: targeted API tests for retry/repair endpoints plus frontend typecheck/lint
   spec: docs/staging/specs/2026-07-02-run22-workflow-reliability-and-data-integrity.md
 
-- [ ] T4: Expose workflow integrity and recovery affordances in the UI
+- [x] T4: Expose workflow integrity and recovery affordances in the UI
   goal: Make degraded workflow states visible in opportunity/history/tracker surfaces with clear next actions and no frontend-owned workflow logic.
   files: apps/web/src/app/tools/**, apps/web/src/components/**, apps/web/src/store/**
   acceptance: cd apps/web && bun run lint && bun run typecheck
   spec: docs/staging/specs/2026-07-02-run22-workflow-reliability-and-data-integrity.md
 
-- [ ] T5: Add regression coverage for resumed and partially failed workflows
+- [x] T5: Add regression coverage for resumed and partially failed workflows
   goal: Lock the continuity contract with backend and browser tests around real linked flows.
   files: tests/**, apps/web/tests/**, scripts/** as needed
   acceptance: project-targeted pytest plus Playwright run for the workflow suite
   spec: docs/staging/specs/2026-07-02-run22-workflow-reliability-and-data-integrity.md
+  validation:
+  - `UV_CACHE_DIR=/tmp/uv-cache uv run --no-sync pytest tests/test_workflows_api.py -q`
+  - `UV_CACHE_DIR=/tmp/uv-cache uv run --no-sync ruff check services/api-gateway/persistence.py services/api-gateway/routers/workflows.py services/api-gateway/schemas.py tests/test_workflows_api.py tests/e2e/mvp1_browser.py`
+  - `cd apps/web && bun run typecheck`
+  - `cd apps/web && bun run lint`
+  - `UV_CACHE_DIR=/tmp/uv-cache uv run --no-sync python tests/e2e/mvp1_browser.py`
