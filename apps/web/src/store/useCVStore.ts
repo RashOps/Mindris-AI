@@ -246,6 +246,7 @@ export interface HistoryLedgerItem {
     | "resume_revision"
     | "cover_letter"
     | "ats_report"
+    | "opportunity"
     | "tracker_event"
     | "llm_run";
   subject_id: string;
@@ -420,6 +421,7 @@ export function normalizeHistoryLedgerItem(
     candidate.subject_type === "resume_revision" ||
     candidate.subject_type === "cover_letter" ||
     candidate.subject_type === "ats_report" ||
+    candidate.subject_type === "opportunity" ||
     candidate.subject_type === "tracker_event" ||
     candidate.subject_type === "llm_run"
       ? candidate.subject_type
