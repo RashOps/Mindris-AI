@@ -3,14 +3,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
+  BellRing,
   Briefcase,
+  CalendarClock,
   CheckCircle2,
+  CheckCheck,
   ExternalLink,
   Plus,
   Search,
   Trash2,
   Clock3,
   CircleDot,
+  X,
 } from "lucide-react";
 import { apiUrl, jsonHeaders } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -35,6 +39,19 @@ interface ApplicationItem {
   notes: string;
   applied_at?: string | null;
   ats_report_id?: number | null;
+  reminder_counts?: Record<string, number>;
+  next_reminder?: ReminderItem | null;
+  reminders?: ReminderItem[];
+}
+
+interface ReminderItem {
+  id: number;
+  application_id: number;
+  title: string;
+  due_at: string;
+  status: "pending" | "completed" | "dismissed";
+  notes: string;
+  completed_at?: string | null;
 }
 
 interface TrackerResponse {
@@ -66,6 +83,9 @@ export default function TrackerPage() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [draft, setDraft] = useState({ company: "", role: "", url: "" });
+  const [reminderDrafts, setReminderDrafts] = useState<
+    Record<number, { title: string; dueAt: string }>
+  >({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const canCreate = Boolean(draft.company.trim() && draft.role.trim());
 
@@ -170,6 +190,72 @@ export default function TrackerPage() {
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Tracker delete failed");
+    }
+  };
+
+  const createReminder = async (applicationId: number) => {
+    const draftState = reminderDrafts[applicationId] ?? { title: "", dueAt: "" };
+    if (!draftState.title.trim() || !draftState.dueAt.trim()) {
+      setError("Reminder title and due date are required.");
+      return;
+    }
+    try {
+      const res = await fetch(
+        apiUrl(`/api/v1/tracker/applications/${applicationId}/reminders`),
+        {
+          method: "POST",
+          headers: jsonHeaders(),
+          body: JSON.stringify({
+            title: draftState.title.trim(),
+            due_at: draftState.dueAt,
+          }),
+        },
+      );
+      if (!res.ok) throw new Error("Unable to create reminder");
+      setReminderDrafts((current) => ({
+        ...current,
+        [applicationId]: { title: "", dueAt: "" },
+      }));
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Reminder create failed");
+    }
+  };
+
+  const updateReminderStatus = async (
+    applicationId: number,
+    reminderId: number,
+    status: ReminderItem["status"],
+  ) => {
+    try {
+      const res = await fetch(
+        apiUrl(`/api/v1/tracker/applications/${applicationId}/reminders/${reminderId}`),
+        {
+          method: "PATCH",
+          headers: jsonHeaders(),
+          body: JSON.stringify({ status }),
+        },
+      );
+      if (!res.ok) throw new Error("Unable to update reminder");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Reminder update failed");
+    }
+  };
+
+  const deleteReminder = async (applicationId: number, reminderId: number) => {
+    try {
+      const res = await fetch(
+        apiUrl(`/api/v1/tracker/applications/${applicationId}/reminders/${reminderId}`),
+        {
+          method: "DELETE",
+          headers: jsonHeaders(),
+        },
+      );
+      if (!res.ok) throw new Error("Unable to delete reminder");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Reminder delete failed");
     }
   };
 
@@ -332,6 +418,126 @@ export default function TrackerPage() {
                             {item.notes && (
                               <p className="mt-2 line-clamp-3 text-xs leading-5 text-slate-600">{item.notes}</p>
                             )}
+
+                            <div className="mt-3 rounded-lg border border-slate-200 bg-white p-2.5">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                  <BellRing size={12} />
+                                  Follow-ups
+                                </div>
+                                <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+                                  {item.reminder_counts?.pending ?? 0} pending
+                                </span>
+                              </div>
+
+                              {item.reminders && item.reminders.length > 0 ? (
+                                <div className="mt-2 space-y-2">
+                                  {item.reminders.slice(0, 3).map((reminder) => (
+                                    <div
+                                      key={reminder.id}
+                                      className="rounded-md border border-slate-200 bg-slate-50 px-2 py-2"
+                                    >
+                                      <div className="flex items-start justify-between gap-2">
+                                        <div className="min-w-0">
+                                          <p className="truncate text-xs font-semibold text-slate-800">
+                                            {reminder.title}
+                                          </p>
+                                          <p className="mt-1 flex items-center gap-1 text-[11px] text-slate-500">
+                                            <CalendarClock size={11} />
+                                            {formatDate(reminder.due_at)}
+                                          </p>
+                                        </div>
+                                        <span
+                                          className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${
+                                            reminder.status === "completed"
+                                              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                              : reminder.status === "dismissed"
+                                                ? "border-slate-200 bg-slate-100 text-slate-500"
+                                                : "border-amber-200 bg-amber-50 text-amber-700"
+                                          }`}
+                                        >
+                                          {reminder.status}
+                                        </span>
+                                      </div>
+                                      <div className="mt-2 flex flex-wrap gap-1.5">
+                                        {reminder.status === "pending" && (
+                                          <>
+                                            <button
+                                              onClick={() =>
+                                                void updateReminderStatus(item.id, reminder.id, "completed")
+                                              }
+                                              className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-emerald-200 bg-white px-2 py-1 text-[11px] font-medium text-emerald-700"
+                                            >
+                                              <CheckCheck size={11} />
+                                              Done
+                                            </button>
+                                            <button
+                                              onClick={() =>
+                                                void updateReminderStatus(item.id, reminder.id, "dismissed")
+                                              }
+                                              className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600"
+                                            >
+                                              <X size={11} />
+                                              Dismiss
+                                            </button>
+                                          </>
+                                        )}
+                                        <button
+                                          onClick={() => void deleteReminder(item.id, reminder.id)}
+                                          className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-red-200 bg-white px-2 py-1 text-[11px] font-medium text-red-600"
+                                        >
+                                          <Trash2 size={11} />
+                                          Delete
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="mt-2 text-[11px] text-slate-400">
+                                  No follow-up scheduled.
+                                </p>
+                              )}
+
+                              <div className="mt-2 grid gap-2">
+                                <Input
+                                  value={reminderDrafts[item.id]?.title ?? ""}
+                                  onChange={(event) =>
+                                    setReminderDrafts((current) => ({
+                                      ...current,
+                                      [item.id]: {
+                                        title: event.target.value,
+                                        dueAt: current[item.id]?.dueAt ?? "",
+                                      },
+                                    }))
+                                  }
+                                  placeholder="Follow-up title"
+                                  className="h-9 border-slate-300 bg-white text-xs text-slate-800"
+                                />
+                                <Input
+                                  type="datetime-local"
+                                  value={reminderDrafts[item.id]?.dueAt ?? ""}
+                                  onChange={(event) =>
+                                    setReminderDrafts((current) => ({
+                                      ...current,
+                                      [item.id]: {
+                                        title: current[item.id]?.title ?? "",
+                                        dueAt: event.target.value,
+                                      },
+                                    }))
+                                  }
+                                  className="h-9 border-slate-300 bg-white text-xs text-slate-800"
+                                />
+                                <Button
+                                  onClick={() => void createReminder(item.id)}
+                                  variant="outline"
+                                  className="h-8 justify-center text-xs"
+                                >
+                                  <Plus size={12} />
+                                  Add follow-up
+                                </Button>
+                              </div>
+                            </div>
 
                             <div className="mt-3 flex flex-wrap gap-1.5">
                               {STATUSES.filter((candidate) => candidate.id !== item.status).map((target) => (
