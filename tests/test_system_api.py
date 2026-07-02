@@ -120,3 +120,51 @@ def test_runtime_api_key_slot_overrides_default_auth(
         headers={"X-API-Key": "rotated-api-key"},
     )
     assert new_key_response.status_code == 200
+
+
+def test_system_diagnostics_requires_api_key() -> None:
+    api = client()
+    response = api.get("/api/v1/system/diagnostics")
+    assert response.status_code == 401
+    assert response.json()["status"] == "error"
+
+
+def test_system_diagnostics_returns_aggregated_runtime_state(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    _isolate_runtime_storage(monkeypatch, tmp_path)
+    monkeypatch.setattr(
+        "routers.system._renderer_diagnostics",
+        lambda: {
+            "status": "ready",
+            "url": "http://localhost:4000",
+            "reachable": True,
+            "checks": {"templates": {"ok": True}, "pdf": {"ok": True}},
+        },
+    )
+    monkeypatch.setattr(
+        "routers.system._ollama_diagnostics",
+        lambda: {
+            "status": "ready",
+            "base_url": "http://localhost:11434",
+            "reachable": True,
+            "model_count": 2,
+            "items": [
+                {"id": "llama3.2", "label": "llama3.2"},
+                {"id": "phi4", "label": "phi4"},
+            ],
+        },
+    )
+
+    api = client()
+    response = api.get("/api/v1/system/diagnostics", headers=auth_headers())
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "success"
+    assert payload["item"]["api"]["status"] in {"ready", "degraded"}
+    assert payload["item"]["renderer"]["reachable"] is True
+    assert payload["item"]["renderer"]["checks"]["pdf"]["ok"] is True
+    assert payload["item"]["ollama"]["model_count"] == 2
+    assert payload["item"]["ollama"]["items"][0]["id"] == "llama3.2"
