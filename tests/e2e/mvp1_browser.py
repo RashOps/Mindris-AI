@@ -257,6 +257,52 @@ def seed_ats_draft(api_url: str, api_key: str) -> None:
     )
 
 
+def seed_workflow_with_missing_tracker(
+    api_url: str,
+    api_key: str,
+    *,
+    resume_id: str,
+    unique: str,
+) -> int:
+    """Create a degraded workflow with a missing tracker link for UI recovery E2E."""
+    created = request_json(
+        api_url,
+        "/api/v1/workflows/opportunities",
+        api_key=api_key,
+        method="POST",
+        payload={
+            "company": f"Workflow Co {unique}",
+            "role": f"Workflow Role {unique}",
+            "source_url": f"https://example.com/workflow/{unique}",
+            "notes": "Degraded workflow fixture for browser E2E.",
+        },
+    )["item"]
+    opportunity_id = int(created["id"])
+
+    request_json(
+        api_url,
+        f"/api/v1/workflows/opportunities/{opportunity_id}/resume-link",
+        api_key=api_key,
+        method="POST",
+        payload={"resume_id": int(resume_id), "locale": "fr"},
+    )
+    tracker = request_json(
+        api_url,
+        f"/api/v1/workflows/opportunities/{opportunity_id}/tracker-link",
+        api_key=api_key,
+        method="POST",
+        payload={"create": True, "status": "wishlist"},
+    )["item"]
+    application_id = int(tracker["application_id"])
+    request_json(
+        api_url,
+        f"/api/v1/tracker/applications/{application_id}",
+        api_key=api_key,
+        method="DELETE",
+    )
+    return opportunity_id
+
+
 def assert_download(page: Page, menu_name: str, item_name: str, suffix: str) -> None:
     """Open a grouped download menu and assert a non-empty download."""
     with page.expect_download(timeout=30_000) as download_info:
@@ -281,6 +327,12 @@ def run(args: argparse.Namespace) -> None:
     unique = str(int(time.time()))
     resume_id = seed_resume(args.api_url, args.api_key, unique)
     seed_ats_draft(args.api_url, args.api_key)
+    degraded_workflow_id = seed_workflow_with_missing_tracker(
+        args.api_url,
+        args.api_key,
+        resume_id=resume_id,
+        unique=unique,
+    )
 
     console_errors: list[str] = []
     page_errors: list[str] = []
@@ -448,6 +500,27 @@ def run(args: argparse.Namespace) -> None:
         applied_column = page.locator("section", has_text="Applied").first
         expect(applied_column.get_by_text(company)).to_be_visible(timeout=15_000)
 
+        page.goto(f"{args.base_url.rstrip('/')}/tools/workflow")
+        workflow_card = page.locator("button", has_text=f"Workflow Role {unique}").first
+        expect(workflow_card).to_be_visible(timeout=15_000)
+        workflow_card.click()
+        expect(page.get_byText("Integrity degraded")).to_be_visible(timeout=15_000)
+        expect(page.get_byRole("button", name="Detach missing tracker")).to_be_visible()
+        page.get_byRole("button", name="Detach missing tracker").click()
+        expect(page.get_byText("Integrity healthy")).to_be_visible(timeout=15_000)
+
+        repaired = request_json(
+            args.api_url,
+            f"/api/v1/workflows/opportunities/{degraded_workflow_id}",
+            api_key=args.api_key,
+        )["item"]
+        if repaired["application_id"] is not None:
+            raise AssertionError(
+                "Workflow repair did not detach the missing tracker link"
+            )
+        if repaired["integrity"]["status"] != "healthy":
+            raise AssertionError("Workflow repair did not restore healthy integrity")
+
         if console_errors or page_errors or response_errors:
             details = "\n".join(console_errors + page_errors + response_errors)
             raise AssertionError(f"Browser errors detected:\n{details}")
@@ -466,6 +539,7 @@ def run(args: argparse.Namespace) -> None:
                 "pdf",
                 "ats-draft",
                 "tracker",
+                "workflow-repair",
             ],
         },
         indent=2,
