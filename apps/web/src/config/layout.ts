@@ -2,6 +2,7 @@ import {
   BarChart3,
   Briefcase,
   FileText,
+  GitBranch,
   History,
   LayoutDashboard,
   Settings2,
@@ -13,6 +14,7 @@ export type AppNavItemId =
   | "dashboard"
   | "cv-creator"
   | "ats-score"
+  | "workflow"
   | "tracker"
   | "history"
   | "markdown";
@@ -66,6 +68,16 @@ export const APP_NAV_ITEMS: ToolDefinition[] = [
     accentColor: "#7c3aed",
     accentVar: "--tool-ats-score",
     description: "Keyword analysis and ATS compatibility report",
+  },
+  {
+    id: "workflow",
+    label: "Workflow",
+    shortLabel: "Flow",
+    icon: GitBranch,
+    href: "/tools/workflow",
+    accentColor: "#1d4ed8",
+    accentVar: "--tool-workflow",
+    description: "Guided opportunity workflow from scrape to application",
   },
   {
     id: "tracker",
