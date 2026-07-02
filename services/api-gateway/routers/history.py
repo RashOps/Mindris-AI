@@ -7,15 +7,18 @@ from database.records import (
     ApplicationRecord,
     AtsReportRecord,
     CoverLetterRecord,
+    OpportunityRecord,
     ResumeRevisionRecord,
     ScrapedJobRecord,
 )
 from database.session import Session, get_session
 from fastapi import APIRouter, Depends, HTTPException
 from persistence import (
+    list_opportunity_transitions,
     serialize_ats,
     serialize_cover_letter,
     serialize_job,
+    serialize_opportunity_transition,
     serialize_resume_revision,
 )
 from schemas import ActivityLedgerItem, ActivityLedgerLink
@@ -172,6 +175,46 @@ def _tracker_ledger_item(row: ApplicationRecord) -> dict:
     )
 
 
+def _opportunity_ledger_item(session: Session, row: OpportunityRecord) -> dict:
+    links = []
+    if row.job_id:
+        links.append(_link("job_scrape", row.job_id, "originates_from"))
+    if row.resume_id:
+        links.append(_link("resume_document", row.resume_id, "selected_resume"))
+    if row.ats_report_id:
+        links.append(_link("ats_report", row.ats_report_id, "evaluated_with"))
+    if row.cover_letter_id:
+        links.append(_link("cover_letter", row.cover_letter_id, "prepared_with"))
+    if row.application_id:
+        links.append(_link("tracker_event", row.application_id, "tracked_as"))
+    transitions = [
+        serialize_opportunity_transition(item)
+        for item in list_opportunity_transitions(session, row.id or 0)
+    ]
+    latest = transitions[-1] if transitions else None
+    return _ledger_item(
+        id=f"opportunity:{row.id}",
+        subject_type="opportunity",
+        subject_id=row.id or 0,
+        title=row.role,
+        summary=row.company,
+        timestamp=row.last_transition_at,
+        status=row.current_state,
+        links=links,
+        metadata={
+            "job_id": row.job_id,
+            "resume_id": row.resume_id,
+            "resume_locale": row.resume_locale,
+            "ats_report_id": row.ats_report_id,
+            "cover_letter_id": row.cover_letter_id,
+            "application_id": row.application_id,
+            "source_url": row.source_url,
+            "transition_count": len(transitions),
+            "last_action": latest["action"] if latest else None,
+        },
+    )
+
+
 def _llm_run_items(
     ats_rows: list[AtsReportRecord],
     cover_rows: list[CoverLetterRecord],
@@ -226,6 +269,9 @@ def _build_history_ledger(session: Session) -> list[dict]:
     tracker_rows = session.exec(
         select(ApplicationRecord).order_by(ApplicationRecord.updated_at.desc())
     ).all()
+    opportunities = session.exec(
+        select(OpportunityRecord).order_by(OpportunityRecord.last_transition_at.desc())
+    ).all()
 
     items = [
         *[_job_ledger_item(row) for row in jobs],
@@ -233,6 +279,7 @@ def _build_history_ledger(session: Session) -> list[dict]:
         *[_cover_letter_ledger_item(row) for row in cover_letters],
         *[_resume_revision_ledger_item(row) for row in revisions],
         *[_tracker_ledger_item(row) for row in tracker_rows],
+        *[_opportunity_ledger_item(session, row) for row in opportunities],
         *_llm_run_items(ats_reports, cover_letters),
     ]
     return sorted(items, key=lambda item: item["timestamp"], reverse=True)
