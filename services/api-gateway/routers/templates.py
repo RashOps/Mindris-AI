@@ -1,23 +1,28 @@
 """Resume template catalogue routes."""
 
-from copy import deepcopy
 import json
+from copy import deepcopy
 from io import BytesIO
-from typing import Annotated
-from typing import Any
+from typing import Annotated, Any
 from zipfile import BadZipFile, ZipFile
 
-from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
 from database.records import CommunityTemplateRecord
 from database.session import Session, get_session
+from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
 from pydantic import ValidationError
-from schemas import CommunityTemplateConfig, CommunityTemplateManifest, TemplateCatalogItem
+from schemas import (
+    CommunityTemplateConfig,
+    CommunityTemplateManifest,
+    TemplateCatalogItem,
+)
 from sqlalchemy import select
 from utils.logger import get_logger
 
 router = APIRouter(prefix="/api/v1/templates", tags=["templates"])
 logger = get_logger(__name__, service_name="api-gateway")
 SUPPORTED_TEMPLATE_ENGINE_VERSION = "1"
+MAX_TEMPLATE_STYLESHEET_BYTES = 8000
+TEMPLATE_IMPORT_FILE = File(...)
 SessionDep = Annotated[Session, Depends(get_session)]
 
 
@@ -151,8 +156,6 @@ def _is_valid_png(preview_bytes: bytes) -> bool:
 
     offset = 8
     seen_ihdr = False
-    seen_iend = False
-
     while offset + 8 <= len(preview_bytes):
         length = int.from_bytes(preview_bytes[offset : offset + 4], "big")
         chunk_type = preview_bytes[offset + 4 : offset + 8]
@@ -167,7 +170,6 @@ def _is_valid_png(preview_bytes: bytes) -> bool:
             if length != 13:
                 return False
         if chunk_type == b"IEND":
-            seen_iend = True
             return seen_ihdr and crc_end == len(preview_bytes)
 
         offset = crc_end
@@ -175,14 +177,28 @@ def _is_valid_png(preview_bytes: bytes) -> bool:
     return False
 
 
+def _validate_archive_names(archive: ZipFile) -> None:
+    for name in archive.namelist():
+        normalized = name.replace("\\", "/")
+        if normalized.startswith("/") or ".." in normalized.split("/"):
+            raise HTTPException(
+                status_code=422,
+                detail="Template package contains unsafe archive entries.",
+            )
+
+
 def inspect_template_package(package_bytes: bytes) -> dict[str, Any]:
     """Validate a V1 portable community template package."""
     try:
         archive = ZipFile(BytesIO(package_bytes))
     except BadZipFile as exc:
-        raise HTTPException(status_code=422, detail="Invalid template package archive.") from exc
+        raise HTTPException(
+            status_code=422,
+            detail="Invalid template package archive.",
+        ) from exc
 
     with archive:
+        _validate_archive_names(archive)
         try:
             manifest = CommunityTemplateManifest.model_validate(
                 _read_package_json(archive, "manifest.json")
@@ -196,12 +212,17 @@ def inspect_template_package(package_bytes: bytes) -> dict[str, Any]:
                 detail=f"Invalid template package metadata: {exc}",
             ) from exc
         try:
-            archive.read("styles.css")
+            stylesheet = archive.read("styles.css")
         except KeyError as exc:
             raise HTTPException(
                 status_code=422,
                 detail="Template package is missing required file: styles.css",
             ) from exc
+        if len(stylesheet) > MAX_TEMPLATE_STYLESHEET_BYTES:
+            raise HTTPException(
+                status_code=422,
+                detail="Template package styles.css exceeds the allowed size.",
+            )
         preview_path = "preview.png"
         try:
             preview_bytes = archive.read(preview_path)
@@ -252,7 +273,11 @@ def _serialize_installed_template(record: CommunityTemplateRecord) -> dict[str, 
         status="community",
         category=record.category,
         accent=record.accent or (base.accent if base else "#2563eb"),
-        layout=record.layout if record.layout in {"single", "two-column"} else "two-column",
+        layout=(
+            record.layout
+            if record.layout in {"single", "two-column"}
+            else "two-column"
+        ),
         base_template_id=record.base_template_id,
         author=record.author,
         preset_settings=template_config.get("preset_settings", {}),
@@ -568,7 +593,7 @@ def get_template_preview(template_id: str, session: SessionDep) -> Response:
 @router.post("/import")
 async def import_template_package_route(
     session: SessionDep,
-    file: UploadFile = File(...),
+    file: UploadFile = TEMPLATE_IMPORT_FILE,
 ) -> dict[str, Any]:
     """Import a portable community template package."""
     package_bytes = await file.read()
