@@ -134,8 +134,8 @@
 - [x] **Markdown workspace plus riche :** Export DOCX et finitions du convertisseur.
 
 ## 🔵 Phase 21 : UI System Consolidation
-- [ ] **Guide produit dedie :** Page interne complete sur Mindris, ses workflows et ses frontieres runtime.
-- [ ] **Normalisation UI & dark mode :** Tokens partages, survols lisibles, surfaces coherentes et theme unifie.
-- [ ] **Historique gouverne :** Purge globale avec confirmation destructive et contrat backend transactionnel.
-- [ ] **Job Tracker compact :** Densite plus SaaS et details secondaires en disclosure.
-- [ ] **CV Builder stabilise :** Barre d'outils refondue et alignement robuste en shell etendu.
+- [x] **Guide produit dedie :** Page interne complete sur Mindris, ses workflows et ses frontieres runtime.
+- [x] **Normalisation UI & dark mode :** Tokens partages, survols lisibles, surfaces coherentes et theme unifie.
+- [x] **Historique gouverne :** Purge globale avec confirmation destructive et contrat backend transactionnel.
+- [x] **Job Tracker compact :** Densite plus SaaS et details secondaires en disclosure.
+- [x] **CV Builder stabilise :** Barre d'outils refondue et alignement robuste en shell etendu.
