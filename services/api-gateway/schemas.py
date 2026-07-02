@@ -904,6 +904,24 @@ class OpportunityTransitionItem(BaseModel):
     created_at: str
 
 
+class OpportunityIntegrityIssueItem(BaseModel):
+    """One degraded workflow integrity issue detected by the backend."""
+
+    code: str
+    severity: str = "warning"
+    artifact: str
+    message: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class OpportunityIntegrityItem(BaseModel):
+    """Backend-owned integrity summary for one opportunity workflow."""
+
+    status: str = "healthy"
+    issues: list[OpportunityIntegrityIssueItem] = Field(default_factory=list)
+    repair_actions: list[str] = Field(default_factory=list)
+
+
 class OpportunityItem(BaseModel):
     """Serialized opportunity workflow aggregate."""
 
@@ -926,6 +944,9 @@ class OpportunityItem(BaseModel):
     transitions: list[OpportunityTransitionItem] = Field(default_factory=list)
     linked_artifacts: dict[str, Any] = Field(default_factory=dict)
     next_actions: list[str] = Field(default_factory=list)
+    integrity: OpportunityIntegrityItem = Field(
+        default_factory=OpportunityIntegrityItem
+    )
 
 
 class OpportunityCreateRequest(BaseModel):
@@ -981,6 +1002,12 @@ class OpportunityTrackerLinkRequest(BaseModel):
         if self.application_id is None and not self.create:
             raise ValueError("Provide application_id or set create=true.")
         return self
+
+
+class OpportunityRepairRequest(BaseModel):
+    """Execute one bounded backend-owned repair action on an opportunity."""
+
+    action: str = Field(min_length=1)
 
 
 class ApplicationCreateRequest(BaseModel):
