@@ -4,6 +4,7 @@ import {
   APP_NAV_ITEMS,
   APP_SIDEBAR_SECTIONS,
   nextDesktopSidebarCompactState,
+  SIDEBAR_WIDTH_COMPACT,
   resolveDesktopSidebarLayout,
   SIDEBAR_WIDTH_EXPANDED,
 } from "./layout";
@@ -37,9 +38,9 @@ describe("app shell sidebar layout", () => {
     const compact = resolveDesktopSidebarLayout(true);
 
     expect(expanded.reserveWidth).toBe(SIDEBAR_WIDTH_EXPANDED);
-    expect(compact.reserveWidth).toBe(SIDEBAR_WIDTH_EXPANDED);
+    expect(compact.reserveWidth).toBe(SIDEBAR_WIDTH_COMPACT);
     expect(expanded.asideWidth).toBe(SIDEBAR_WIDTH_EXPANDED);
-    expect(compact.asideWidth).toBe(SIDEBAR_WIDTH_EXPANDED);
+    expect(compact.asideWidth).toBe(SIDEBAR_WIDTH_COMPACT);
   });
 
   test("keeps auto-collapse behavior independent from layout reserve width", () => {

@@ -143,15 +143,17 @@ export const APP_SIDEBAR_SECTIONS: AppSidebarSectionDefinition[] = [
 ] as const;
 
 export const SIDEBAR_WIDTH_EXPANDED = 236;
+export const SIDEBAR_WIDTH_COMPACT = 72;
 
 export function resolveDesktopSidebarLayout(compact: boolean): {
   asideWidth: number;
   reserveWidth: number;
   compact: boolean;
 } {
+  const asideWidth = compact ? SIDEBAR_WIDTH_COMPACT : SIDEBAR_WIDTH_EXPANDED;
   return {
-    asideWidth: SIDEBAR_WIDTH_EXPANDED,
-    reserveWidth: SIDEBAR_WIDTH_EXPANDED,
+    asideWidth,
+    reserveWidth: asideWidth,
     compact,
   };
 }
