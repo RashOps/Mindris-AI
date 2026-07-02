@@ -99,9 +99,9 @@
 - [x] **Contribution flow & marketplace bootstrap :** Preparer le circuit auteur -> publication -> installation Mindris avec validation et moderation minimales.
 
 ## 🔵 Phase 14 : Security & Secret Boundary Hardening
-- [ ] **BYOK securise via UI :** Saisie backend-owned, secrets masques, write-only, redaction logs.
-- [ ] **Audit des frontieres de confiance :** Uploads, templates, exports, auth locale, hygiene CI/release.
-- [ ] **Hygiène repo & contribution :** Purge des fichiers morts, repurposing utile, `AGENTS.md`.
+- [x] **BYOK securise via UI :** Saisie backend-owned, secrets masques, write-only, redaction logs.
+- [x] **Audit des frontieres de confiance :** Uploads, templates, exports, auth locale, hygiene CI/release.
+- [x] **Hygiène repo & contribution :** Purge des fichiers morts, repurposing utile, `AGENTS.md`.
 
 ## 🔵 Phase 15 : Configuration & Local Runtime Control
 - [ ] **Section Configuration AppShell :** Providers, modeles, toggles runtime et etat applicatif.
