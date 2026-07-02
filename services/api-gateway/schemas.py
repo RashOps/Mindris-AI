@@ -728,6 +728,13 @@ class CVDocumentRequest(BaseModel):
     source: str = "json"
 
 
+class MarkdownDocumentRequest(BaseModel):
+    """Backend-owned request for Markdown workspace exports."""
+
+    markdown: str = ""
+    title: str = "Document"
+
+
 class ResumeCreateRequest(BaseModel):
     """Create a resume in the backend library."""
 

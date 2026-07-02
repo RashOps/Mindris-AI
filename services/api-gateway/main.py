@@ -19,6 +19,7 @@ from routers import (
     drafts,
     history,
     llm,
+    markdown,
     optimize,
     resumes,
     system,
@@ -146,6 +147,7 @@ app.include_router(company.router, dependencies=[Depends(verify_api_key)])
 app.include_router(resumes.router, dependencies=[Depends(verify_api_key)])
 app.include_router(drafts.router, dependencies=[Depends(verify_api_key)])
 app.include_router(templates.router, dependencies=[Depends(verify_api_key)])
+app.include_router(markdown.router, dependencies=[Depends(verify_api_key)])
 
 
 if __name__ == "__main__":
