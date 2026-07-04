@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { eventSourceUrl } from "@/lib/api";
+import { connectApiEventStream } from "@/lib/api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -33,7 +33,6 @@ export function GhostMode({ jobId, onDone, onError, onJobResult, onCompanyResult
   const [events, setEvents] = useState<GhostEvent[]>([]);
   const [status, setStatus] = useState<"idle" | "running" | "done" | "error">("idle");
   const bottomRef = useRef<HTMLDivElement>(null);
-  const esRef = useRef<EventSource | null>(null);
 
   // ── Stable refs for callbacks (never trigger the effect) ──────────────────
   const onDoneRef = useRef(onDone);
@@ -52,19 +51,15 @@ export function GhostMode({ jobId, onDone, onError, onJobResult, onCompanyResult
   useEffect(() => {
     if (!jobId) return;
 
-    const previousEventSource = esRef.current;
-    const es = new EventSource(eventSourceUrl(`/api/v1/optimize/stream?job_id=${jobId}`));
-    esRef.current = es;
+    const controller = new AbortController();
     queueMicrotask(() => {
       setEvents([]);
       setStatus("running");
-      previousEventSource?.close();
-      esRef.current = es;
     });
 
-    const handleEvent = (evt: MessageEvent, eventType: string) => {
+    const handleEvent = (eventType: string, rawData: string) => {
       try {
-        const data = JSON.parse(evt.data) as GhostPayload;
+        const data = JSON.parse(rawData) as GhostPayload;
         if (eventType === "ping") return;
 
         const entry: GhostEvent = {
@@ -90,12 +85,12 @@ export function GhostMode({ jobId, onDone, onError, onJobResult, onCompanyResult
         }
         if (eventType === "done") {
           setStatus("done");
-          es.close();
+          controller.abort();
           onDoneRef.current?.();
         }
         if (eventType === "error") {
           setStatus("error");
-          es.close();
+          controller.abort();
           onErrorRef.current?.();
         }
       } catch {
@@ -103,28 +98,29 @@ export function GhostMode({ jobId, onDone, onError, onJobResult, onCompanyResult
       }
     };
 
-    const eventTypes = ["pipeline_start", "node_start", "node_done", "done", "error", "ping", "job_result", "company_result"];
-    eventTypes.forEach((type) => {
-      es.addEventListener(type, (evt) => handleEvent(evt as MessageEvent, type));
-    });
-
-    es.onerror = () => {
-      setStatus("error");
-      setEvents((prev) => [
-        ...prev,
-        {
-          id: `err-${Date.now()}`,
-          event: "error",
-          icon: "❌",
-          message: "Lost connection to the pipeline.",
-          ts: Date.now(),
+    void connectApiEventStream(
+      `/api/v1/optimize/stream?job_id=${encodeURIComponent(jobId)}`,
+      {
+        onEvent: handleEvent,
+        onError: () => {
+          setStatus("error");
+          setEvents((prev) => [
+            ...prev,
+            {
+              id: `err-${Date.now()}`,
+              event: "error",
+              icon: "❌",
+              message: "Lost connection to the pipeline.",
+              ts: Date.now(),
+            },
+          ]);
+          onErrorRef.current?.();
         },
-      ]);
-      es.close();
-      onErrorRef.current?.();
-    };
+      },
+      controller.signal,
+    );
 
-    return () => es.close();
+    return () => controller.abort();
   }, [jobId]); // ← ONLY jobId — callbacks via ref, never trigger re-connection
 
 
