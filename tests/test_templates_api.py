@@ -5,6 +5,7 @@ from io import BytesIO
 from zipfile import ZIP_DEFLATED, ZipFile
 
 import pytest
+from conftest import auth_headers, client
 from database.session import SessionLocal, init_db
 from fastapi import HTTPException
 from routers.templates import (
@@ -173,6 +174,17 @@ def test_template_package_inspection_rejects_oversized_stylesheet() -> None:
     assert "styles.css" in str(exc_info.value.detail).lower()
 
 
+def test_template_package_inspection_rejects_unsafe_stylesheet_constructs() -> None:
+    with pytest.raises(HTTPException) as exc_info:
+        inspect_template_package(
+            _template_package_bytes(
+                stylesheet="@import url('https://evil.test/malware.css');"
+            )
+        )
+    assert exc_info.value.status_code == 422
+    assert "styles.css" in str(exc_info.value.detail).lower()
+
+
 def _session():
     init_db()
     return SessionLocal()
@@ -187,6 +199,24 @@ def test_template_package_import_persists_installed_template() -> None:
 
         items = list_templates(session)["items"]
         assert any(item["id"] == "mindris/community-open-source" for item in items)
+
+
+def test_template_package_import_route_rejects_invalid_content_type() -> None:
+    api = client()
+    response = api.post(
+        "/api/v1/templates/import",
+        headers=auth_headers(),
+        files={
+            "file": (
+                "community-template.mindris-template",
+                BytesIO(_template_package_bytes()),
+                "text/plain",
+            )
+        },
+    )
+
+    assert response.status_code == 422
+    assert "content type" in str(response.json()["message"]).lower()
 
 
 def test_template_package_export_round_trip_preserves_manifest() -> None:

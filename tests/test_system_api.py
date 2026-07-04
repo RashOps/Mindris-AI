@@ -168,3 +168,29 @@ def test_system_diagnostics_returns_aggregated_runtime_state(
     assert payload["item"]["renderer"]["checks"]["pdf"]["ok"] is True
     assert payload["item"]["ollama"]["model_count"] == 2
     assert payload["item"]["ollama"]["items"][0]["id"] == "llama3.2"
+
+
+def test_public_system_status_sets_request_id_and_security_headers() -> None:
+    api = client()
+    response = api.get("/api/v1/system/status")
+
+    assert response.status_code == 200
+    assert response.headers["x-request-id"]
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert response.headers["referrer-policy"] == "no-referrer"
+    assert response.headers["x-frame-options"] == "DENY"
+
+
+def test_unhandled_errors_do_not_leak_internal_details(monkeypatch) -> None:
+    async def boom() -> dict:
+        raise RuntimeError("sensitive stack detail")
+
+    monkeypatch.setattr("routers.system.readiness_checks", boom)
+    api = client()
+    response = api.get("/api/v1/system/status")
+
+    assert response.status_code == 500
+    payload = response.json()
+    assert payload["status"] == "error"
+    assert payload["message"] == "Internal server error"
+    assert "sensitive stack detail" not in json.dumps(payload)
