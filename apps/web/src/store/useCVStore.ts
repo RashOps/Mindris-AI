@@ -525,7 +525,6 @@ interface BackendSystemConfiguration {
   };
 }
 
-const APP_SETTINGS_STORAGE_KEY = 'mindris:app-settings:v1';
 
 const DEFAULT_APP_SETTINGS: AppSettings = {
   optimize_llm:     { provider: 'groq',   model_name: 'llama-3.3-70b-versatile' },
@@ -586,27 +585,6 @@ function normalizePdfIngestionMode(
   return value === 'auto' || value === 'llama_parse' || value === 'local_text'
     ? value
     : fallback;
-}
-
-function loadStoredAppSettings(): AppSettings {
-  if (typeof window === 'undefined' || !window.localStorage) {
-    return DEFAULT_APP_SETTINGS;
-  }
-  try {
-    const raw = window.localStorage.getItem(APP_SETTINGS_STORAGE_KEY);
-    return raw ? normalizeAppSettings(JSON.parse(raw)) : DEFAULT_APP_SETTINGS;
-  } catch {
-    return DEFAULT_APP_SETTINGS;
-  }
-}
-
-function persistAppSettings(value: AppSettings): void {
-  if (typeof window === 'undefined' || !window.localStorage) return;
-  try {
-    window.localStorage.setItem(APP_SETTINGS_STORAGE_KEY, JSON.stringify(value));
-  } catch {
-    // Ignore storage failures; backend remains the source of truth for product data.
-  }
 }
 
 export interface CVData {
@@ -1449,10 +1427,9 @@ export const useCVStore = create<CVStore>()((set, get) => ({
     }),
 
   // ── App Settings (multi-LLM per task) ────────────────────────────────────────
-  appSettings: loadStoredAppSettings(),
+  appSettings: DEFAULT_APP_SETTINGS,
   setAppSettings: (s) => set((state) => {
     const next = normalizeAppSettings({ ...state.appSettings, ...s });
-    persistAppSettings(next);
     return { appSettings: next };
   }),
   hydrateAppSettings: async () => {
@@ -1461,10 +1438,9 @@ export const useCVStore = create<CVStore>()((set, get) => ({
         "/api/v1/system/configuration",
       );
       const next = systemConfigurationToAppSettings(data.item);
-      persistAppSettings(next);
       set({ appSettings: next });
     } catch {
-      // Keep local cache/defaults when backend configuration is temporarily unavailable.
+      // Keep in-memory defaults when backend configuration is temporarily unavailable.
     }
   },
 
