@@ -69,6 +69,9 @@ Logs :
 Les modules Python utilisent aussi des fichiers separes par service pour eviter le melange des traces.
 Le dossier canonique pour les logs locaux est `.logs/`.
 
+Chaque reponse API expose aussi un header `X-Request-Id`.
+En cas d'erreur backend, utilise cet identifiant pour recouper le terminal, `.logs/api-gateway.log` et les appels navigateur.
+
 Ports personnalisables :
 
 ```bash
@@ -126,6 +129,26 @@ Il :
 - publie les logs `.logs` en artefact.
 
 ## Notes
+
+## Sauvegarde locale rapide
+
+Sauvegarder l'etat local utile :
+
+```bash
+mkdir -p /tmp/mindris-backup
+cp -R storage /tmp/mindris-backup/storage
+cp -R .logs /tmp/mindris-backup/logs
+```
+
+Restaurer :
+
+```bash
+rm -rf storage .logs
+cp -R /tmp/mindris-backup/storage ./storage
+cp -R /tmp/mindris-backup/logs ./.logs
+```
+
+Si seuls les logs t'interessent, ne restaure pas `storage/`.
 
 Les scripts ne lisent pas le contenu de `.env` dans la sortie terminal et ne doivent pas afficher de secrets.
 Le dossier `logs/` est considere comme legacy local; les nouveaux flux utilisent `.logs/`.

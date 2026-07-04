@@ -145,3 +145,9 @@
 - [x] **Integrite des liens metier :** Detecter, prevenir et reparer les references orphelines ou incoherentes.
 - [x] **Reprise et reprise sur erreur :** Exposer des etats clairs, retries bornes et recovery paths pour les workflows incomplets.
 - [x] **QA de continuite produit :** Renforcer les tests API/E2E sur les parcours relies et les cas de donnees degradees.
+
+## 🔵 Phase 23 : Security & Operational Hardening
+- [x] **Durcissement des entrees et du rendu :** Valider et sanitiser uploads, templates, CSS, markdown/html et URLs non fiables.
+- [x] **Durcissement runtime et API :** Renforcer config env, timeouts, retries, CORS/headers et erreurs normalisees.
+- [x] **Durcissement secrets et etat local :** Revalider BYOK, frontieres de persistence client et redaction des logs.
+- [x] **Resilience operationnelle :** Structurer logs, verifier health/readiness, documenter backup/restore et etendre les tests critiques.

@@ -79,6 +79,8 @@ docs/local-development.md
 Les logs locaux sont ecrits dans `.logs/`.
 Le renderer produit des lignes JSON structurees dans `.logs/renderer.log`.
 Les services Python ecrivent des fichiers dedies comme `.logs/api-gateway.log`, `.logs/intelligence.log` et `.logs/scraper.log`.
+Les reponses API incluent `X-Request-Id`, `X-Content-Type-Options`, `X-Frame-Options` et `Referrer-Policy`.
+En debug d'une erreur 500, conserve le `X-Request-Id` et cherche-le dans `.logs/api-gateway.log`.
 
 ### API Gateway FastAPI
 

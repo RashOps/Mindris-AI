@@ -96,6 +96,10 @@ docker compose logs -f renderer
 docker compose logs -f web
 ```
 
+En plus des flux `docker compose logs`, les services ecrivent dans les volumes locaux.
+Pour les services Python et Bun, la reference locale reste `.logs/` hors conteneur.
+Les erreurs API normalisees exposent un `X-Request-Id` pour recouper les traces.
+
 ## Arrêt
 
 ```bash
@@ -115,6 +119,24 @@ rm -rf storage logs
 ```
 
 Cette commande supprime les CV, drafts, rapports et fichiers locaux.
+
+## Backup / restore
+
+Sauvegarder avant reset ou migration locale :
+
+```bash
+mkdir -p /tmp/mindris-docker-backup
+cp -R storage /tmp/mindris-docker-backup/storage
+cp -R .logs /tmp/mindris-docker-backup/logs
+```
+
+Restaurer :
+
+```bash
+rm -rf storage .logs
+cp -R /tmp/mindris-docker-backup/storage ./storage
+cp -R /tmp/mindris-docker-backup/logs ./.logs
+```
 
 ## Vérifications hors Docker
 
