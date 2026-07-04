@@ -1,4 +1,4 @@
-import { apiHeaders, apiUrl, authenticatedApiUrl, jsonHeaders } from "@/lib/api";
+import { apiHeaders, apiUrl, jsonHeaders } from "@/lib/api";
 
 export type ResumeTemplateManifest = {
   id: string;
@@ -76,6 +76,14 @@ export async function exportResumeTemplatePackage(templateId: string): Promise<B
   return response.blob();
 }
 
+export async function fetchResumeTemplatePreviewBlob(templateId: string): Promise<Blob> {
+  const response = await fetch(apiUrl(`/api/v1/templates/${templateId}/preview`), {
+    headers: apiHeaders(),
+  });
+  if (!response.ok) throw new Error("Template preview failed");
+  return response.blob();
+}
+
 export function resumeTemplatePreviewUrl(templateId: string): string {
-  return authenticatedApiUrl(`/api/v1/templates/${templateId}/preview`);
+  return apiUrl(`/api/v1/templates/${templateId}/preview`);
 }

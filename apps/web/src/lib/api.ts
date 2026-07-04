@@ -26,14 +26,69 @@ export function jsonHeaders(): HeadersInit {
   return { "Content-Type": "application/json", ...apiHeaders() };
 }
 
-export function eventSourceUrl(path: string): string {
-  const url = new URL(apiUrl(path));
-  url.searchParams.set("api_key", API_KEY);
-  return url.toString();
+type StreamHandlers = {
+  onEvent: (event: string, data: string) => void;
+  onError?: (error: Error) => void;
+};
+
+function dispatchEventBlock(block: string, handlers: StreamHandlers): void {
+  const lines = block.split(/\r?\n/);
+  let eventName = "message";
+  const dataLines: string[] = [];
+
+  for (const line of lines) {
+    if (!line || line.startsWith(":")) continue;
+    if (line.startsWith("event:")) {
+      eventName = line.slice("event:".length).trim() || "message";
+      continue;
+    }
+    if (line.startsWith("data:")) {
+      dataLines.push(line.slice("data:".length).trimStart());
+    }
+  }
+
+  if (dataLines.length > 0) {
+    handlers.onEvent(eventName, dataLines.join("\n"));
+  }
 }
 
-export function authenticatedApiUrl(path: string): string {
-  const url = new URL(apiUrl(path));
-  url.searchParams.set("api_key", API_KEY);
-  return url.toString();
+export async function connectApiEventStream(
+  path: string,
+  handlers: StreamHandlers,
+  signal: AbortSignal,
+): Promise<void> {
+  try {
+    const response = await fetch(apiUrl(path), {
+      headers: apiHeaders(),
+      signal,
+      cache: "no-store",
+    });
+    if (!response.ok || !response.body) {
+      throw new Error(`Event stream failed (${response.status})`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const blocks = buffer.split(/\r?\n\r?\n/);
+      buffer = blocks.pop() ?? "";
+      for (const block of blocks) {
+        if (block.trim()) dispatchEventBlock(block, handlers);
+      }
+    }
+
+    if (buffer.trim()) {
+      dispatchEventBlock(buffer, handlers);
+    }
+  } catch (error) {
+    if (signal.aborted) return;
+    handlers.onError?.(
+      error instanceof Error ? error : new Error("Event stream failed"),
+    );
+  }
 }
