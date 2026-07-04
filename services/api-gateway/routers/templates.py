@@ -14,6 +14,7 @@ from schemas import (
     CommunityTemplateConfig,
     CommunityTemplateManifest,
     TemplateCatalogItem,
+    _contains_unsafe_css_fragment,
 )
 from sqlalchemy import select
 from utils.logger import get_logger
@@ -222,6 +223,17 @@ def inspect_template_package(package_bytes: bytes) -> dict[str, Any]:
             raise HTTPException(
                 status_code=422,
                 detail="Template package styles.css exceeds the allowed size.",
+            )
+        blocked_stylesheet_fragment = _contains_unsafe_css_fragment(
+            stylesheet.decode("utf-8", errors="ignore")
+        )
+        if blocked_stylesheet_fragment:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "Template package styles.css contains blocked construct: "
+                    f"{blocked_stylesheet_fragment}"
+                ),
             )
         preview_path = "preview.png"
         try:
@@ -596,6 +608,11 @@ async def import_template_package_route(
     file: UploadFile = TEMPLATE_IMPORT_FILE,
 ) -> dict[str, Any]:
     """Import a portable community template package."""
+    if file.content_type not in {"application/zip", "application/octet-stream"}:
+        raise HTTPException(
+            status_code=422,
+            detail="Template package file has an unsupported content type.",
+        )
     package_bytes = await file.read()
     if not package_bytes:
         raise HTTPException(status_code=422, detail="Template package file is empty.")

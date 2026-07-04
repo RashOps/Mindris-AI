@@ -408,6 +408,7 @@ def _contains_unsafe_css_fragment(value: str) -> str | None:
         "@import",
         "javascript:",
         "expression(",
+        "url(",
     )
     for fragment in blocked_fragments:
         if fragment in lowered:

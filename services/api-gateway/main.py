@@ -3,6 +3,7 @@
 import asyncio
 from contextlib import asynccontextmanager
 from time import perf_counter
+from uuid import uuid4
 
 from auth import verify_api_key
 from database.session import init_db
@@ -30,6 +31,26 @@ from routers import (
 from utils.logger import get_logger
 
 logger = get_logger(__name__, service_name="api-gateway")
+
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+}
+
+
+def _request_id(request: Request) -> str:
+    candidate = request.headers.get("x-request-id", "").strip()
+    if candidate:
+        return candidate[:128]
+    return uuid4().hex
+
+
+def _apply_response_hardening(response: JSONResponse, request_id: str) -> JSONResponse:
+    response.headers["X-Request-Id"] = request_id
+    for header, value in SECURITY_HEADERS.items():
+        response.headers[header] = value
+    return response
 
 
 @asynccontextmanager
@@ -78,6 +99,8 @@ app.add_middleware(
 async def record_runtime_metrics(request: Request, call_next):
     """Track lightweight per-request metrics for runtime inspection."""
     started_at = perf_counter()
+    request_id = _request_id(request)
+    request.state.request_id = request_id
     response = await call_next(request)
     duration_ms = (perf_counter() - started_at) * 1000
     monitor.record_request(
@@ -86,20 +109,28 @@ async def record_runtime_metrics(request: Request, call_next):
         status=response.status_code,
         duration_ms=duration_ms,
     )
+    response.headers["X-Request-Id"] = request_id
+    for header, value in SECURITY_HEADERS.items():
+        response.headers[header] = value
     return response
 
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Return normalized JSON errors for unexpected failures."""
-    logger.exception("Unhandled API error on %s", request.url.path)
-    return JSONResponse(
+    request_id = getattr(request.state, "request_id", _request_id(request))
+    logger.exception("Unhandled API error on %s [request_id=%s]", request.url.path, request_id)
+    return _apply_response_hardening(
+        JSONResponse(
         status_code=500,
         content={
             "status": "error",
             "message": "Internal server error",
-            "detail": str(exc),
+            "detail": "internal_server_error",
+            "request_id": request_id,
         },
+    ),
+        request_id,
     )
 
 
@@ -107,15 +138,20 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     """Return normalized JSON for expected HTTP errors."""
     detail = exc.detail if isinstance(exc.detail, str) else "Request failed."
-    return JSONResponse(
+    request_id = getattr(request.state, "request_id", _request_id(request))
+    return _apply_response_hardening(
+        JSONResponse(
         status_code=exc.status_code,
         content={
             "status": "error",
             "message": detail,
             "detail": exc.detail,
             "path": request.url.path,
+            "request_id": request_id,
         },
         headers=exc.headers,
+    ),
+        request_id,
     )
 
 
@@ -125,14 +161,19 @@ async def validation_exception_handler(
     exc: RequestValidationError,
 ) -> JSONResponse:
     """Return normalized JSON for validation errors."""
-    return JSONResponse(
+    request_id = getattr(request.state, "request_id", _request_id(request))
+    return _apply_response_hardening(
+        JSONResponse(
         status_code=422,
         content={
             "status": "error",
             "message": "Validation failed.",
             "detail": jsonable_encoder(exc.errors()),
             "path": request.url.path,
+            "request_id": request_id,
         },
+    ),
+        request_id,
     )
 
 
