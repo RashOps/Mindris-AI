@@ -1,6 +1,4 @@
 "use client";
-
-import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -27,6 +25,7 @@ import {
 } from "@/store/useCVStore";
 import { apiHeaders, apiUrl, jsonHeaders } from "@/lib/api";
 import {
+  fetchResumeTemplatePreviewBlob,
   exportResumeTemplatePackage,
   fetchResumeTemplates,
   importResumeTemplatePackage,
@@ -205,6 +204,7 @@ export default function DashboardPage() {
   const [status, setStatus] = useState<string | null>(null);
   const [isImportingPdf, setIsImportingPdf] = useState(false);
   const [templates, setTemplates] = useState<ResumeTemplate[]>(FALLBACK_TEMPLATES);
+  const [templatePreviewUrls, setTemplatePreviewUrls] = useState<Record<string, string>>({});
   const [revisions, setRevisions] = useState<ResumeRevision[]>([]);
   const [revisionsLoading, setRevisionsLoading] = useState(false);
   const [compareResult, setCompareResult] = useState<ResumeRevisionCompare | null>(null);
@@ -261,6 +261,45 @@ export default function DashboardPage() {
       cancelled = true;
     };
   }, [showStatus]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const createdUrls: string[] = [];
+
+    void (async () => {
+      const entries = await Promise.all(
+        templates
+          .filter((template) => template.previewAvailable)
+          .map(async (template) => {
+            try {
+              const blob = await fetchResumeTemplatePreviewBlob(template.id);
+              const url = URL.createObjectURL(blob);
+              createdUrls.push(url);
+              return [template.id, url] as const;
+            } catch {
+              return [template.id, resumeTemplatePreviewUrl(template.id)] as const;
+            }
+          }),
+      );
+
+      if (cancelled) {
+        createdUrls.forEach((url) => URL.revokeObjectURL(url));
+        return;
+      }
+
+      setTemplatePreviewUrls((current) => {
+        Object.values(current)
+          .filter((url) => url.startsWith("blob:"))
+          .forEach((url) => URL.revokeObjectURL(url));
+        return Object.fromEntries(entries);
+      });
+    })();
+
+    return () => {
+      cancelled = true;
+      createdUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [templates]);
 
   useEffect(() => {
     const loadRevisions = async () => {
@@ -430,14 +469,12 @@ export default function DashboardPage() {
   };
 
   const renderTemplatePreview = (template: ResumeTemplate) => {
-    if (template.previewAvailable) {
+    const previewUrl = templatePreviewUrls[template.id];
+    if (template.previewAvailable && previewUrl) {
       return (
-        <Image
-          src={resumeTemplatePreviewUrl(template.id)}
+        <img
+          src={previewUrl}
           alt={`${template.name} preview`}
-          width={480}
-          height={192}
-          unoptimized
           className="h-full w-full rounded-md object-cover"
         />
       );

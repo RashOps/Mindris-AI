@@ -11,7 +11,7 @@ import { normalizeAtsReport, type AtsReport, type KeywordStatus } from '@/store/
 import { CVUploadZone } from '@/components/CVUploadZone';
 import { LLMSelector } from '@/components/LLMSelector';
 import Link from 'next/link';
-import { apiUrl, eventSourceUrl, jsonHeaders } from '@/lib/api';
+import { apiUrl, connectApiEventStream, jsonHeaders } from '@/lib/api';
 import { deleteDraft, loadDraft, saveDraft } from '@/lib/drafts';
 
 
@@ -466,57 +466,61 @@ export default function AtsScorePage() {
       const { job_id } = await startRes.json();
       jobIdRef.current = job_id;
 
-      // 2. Listen to SSE stream
-      const sse = new EventSource(eventSourceUrl(`/api/v1/stream/${job_id}`));
+      // 2. Listen to the backend stream without leaking auth in the URL
+      const controller = new AbortController();
+      void connectApiEventStream(
+        `/api/v1/stream/${encodeURIComponent(job_id)}`,
+        {
+          onEvent: async (eventName, rawData) => {
+            try {
+              const data = JSON.parse(rawData);
+              if (
+                eventName === 'pipeline_start' ||
+                eventName === 'node_start' ||
+                eventName === 'node_done'
+              ) {
+                if (data.message) setSseMessages(prev => [...prev, data.message]);
+                return;
+              }
+              if (eventName === 'error') {
+                setError(data.message ?? 'Pipeline error');
+                setIsAnalyzing(false);
+                controller.abort();
+                return;
+              }
+              if (eventName !== 'job_result') return;
 
-      sse.addEventListener('progress', (e) => {
-        try {
-          const data = JSON.parse(e.data);
-          if (data.message) setSseMessages(prev => [...prev, data.message]);
-        } catch { /* ignore */ }
-      });
+              const insights = data;
+              setSseMessages(prev => [...prev, `✓ Job analyzed: ${insights.job_title}`]);
 
-      sse.addEventListener('job_result', async (e) => {
-        try {
-          const insights = JSON.parse(e.data);
-          setSseMessages(prev => [...prev, `✓ Job analyzed: ${insights.job_title}`]);
-
-          // 3. Request detailed ATS score
-          const scoreRes = await fetch(apiUrl("/api/v1/cv/score"), {
-            method: 'POST',
-            headers: jsonHeaders(),
-            body: JSON.stringify({
-              cv_data:      cvData,
-              job_insights: insights,
-              provider:     appSettings.ats_llm.provider,
-              model_name:   appSettings.ats_llm.model_name,
-              ats_mode:     atsMode,
-            }),
-          });
-          if (scoreRes.ok) {
-            const atsData = await scoreRes.json();
-            const newReport = normalizeAtsReport(atsData.ats_report ?? atsData);
-            setReport(newReport);
-            await saveDraft("ats-report", { report: newReport });
-          }
-        } catch { /* ignore */ }
-        sse.close();
-        setIsAnalyzing(false);
-      });
-
-      sse.addEventListener('error_event', (e) => {
-        try {
-          const data = JSON.parse(e.data);
-          setError(data.message ?? 'Pipeline error');
-        } catch { /* ignore */ }
-        sse.close();
-        setIsAnalyzing(false);
-      });
-
-      sse.onerror = () => {
-        sse.close();
-        setIsAnalyzing(false);
-      };
+              const scoreRes = await fetch(apiUrl("/api/v1/cv/score"), {
+                method: 'POST',
+                headers: jsonHeaders(),
+                body: JSON.stringify({
+                  cv_data:      cvData,
+                  job_insights: insights,
+                  provider:     appSettings.ats_llm.provider,
+                  model_name:   appSettings.ats_llm.model_name,
+                  ats_mode:     atsMode,
+                }),
+              });
+              if (scoreRes.ok) {
+                const atsData = await scoreRes.json();
+                const newReport = normalizeAtsReport(atsData.ats_report ?? atsData);
+                setReport(newReport);
+                await saveDraft("ats-report", { report: newReport });
+              }
+            } catch { /* ignore */ }
+            controller.abort();
+            setIsAnalyzing(false);
+          },
+          onError: () => {
+            controller.abort();
+            setIsAnalyzing(false);
+          },
+        },
+        controller.signal,
+      );
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Unknown error');
       setIsAnalyzing(false);
