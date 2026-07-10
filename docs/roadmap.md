@@ -153,9 +153,9 @@
 - [x] **Resilience operationnelle :** Structurer logs, verifier health/readiness, documenter backup/restore et etendre les tests critiques.
 
 ## 🔵 Phase 24 : Theme System Completion & UI Contract Normalization
-- [ ] **Theme contract canonique :** Finaliser le bootstrap dark/light, les tokens semantiques et les regles de persistance.
-- [ ] **Surfaces unifiees :** Normaliser CV Builder, ATS, Tracker, History, Workflow et Runtime Gate sur des etats de surface partages.
-- [ ] **Regression theme/UI :** Ajouter des tests cibles pour le switch de theme, les hover states et la lisibilite.
+- [x] **Theme contract canonique :** Finaliser le bootstrap dark/light, les tokens semantiques et les regles de persistance.
+- [x] **Surfaces unifiees :** Normaliser CV Builder, ATS, Tracker, History, Workflow et Runtime Gate sur des etats de surface partages.
+- [x] **Regression theme/UI :** Ajouter des tests cibles pour le switch de theme, les hover states et la lisibilite.
 
 ## 🔵 Phase 25 : Frontend Surface Decomposition & IA Settings Refactor
 - [ ] **Decomposition des gros modules front :** Redecouper les surfaces les plus fragiles du web app pour reduire la derive UI.
