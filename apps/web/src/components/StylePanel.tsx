@@ -13,6 +13,10 @@ import {
 } from "@/lib/customization-catalogue";
 
 const DEFAULT_FONT = "Inter";
+const PANEL_INPUT_CLASS = "app-input h-9 px-2 text-sm";
+const PANEL_TEXTAREA_CLASS = "app-textarea min-h-48 w-full px-3 py-2 font-mono text-xs";
+const PANEL_TOGGLE_CLASS = "flex items-center justify-between rounded-lg border border-input bg-background px-3 py-2";
+const PANEL_MUTED_CARD_CLASS = "rounded-lg border border-border bg-muted/40 p-3";
 
 const SECTION_LABELS: Record<string, string> = {
   profile: "Profil",
@@ -41,8 +45,8 @@ function Slider({
   return (
     <div className="space-y-1.5">
       <div className="flex justify-between items-center">
-        <label className="text-xs font-medium text-slate-600">{label}</label>
-        <span className="text-xs font-semibold tabular-nums text-slate-900" style={{ fontFamily: 'var(--font-mono)' }}>{value}{unit}</span>
+        <label className="text-xs font-medium text-muted-foreground">{label}</label>
+        <span className="text-xs font-semibold tabular-nums text-foreground" style={{ fontFamily: 'var(--font-mono)' }}>{value}{unit}</span>
       </div>
       <input
         type="range" min={min} max={max} step={step} value={value}
@@ -50,7 +54,7 @@ function Slider({
         className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
         style={{ accentColor: "var(--panel-accent, #8b5cf6)" }}
       />
-      <div className="flex justify-between text-[10px] text-slate-500">
+      <div className="flex justify-between text-[10px] text-muted-foreground">
         <span>{min}{unit}</span><span>{max}{unit}</span>
       </div>
     </div>
@@ -304,27 +308,27 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
 
       <aside
         style={{ boxShadow: "-8px 0 32px rgba(15,23,42,0.18)" }}
-        className={`fixed top-0 right-0 z-50 flex h-full w-[24rem] flex-col border-l border-slate-200 bg-white transition-transform duration-300 ease-in-out dark:border-slate-800 dark:bg-slate-950 ${
+        className={`fixed top-0 right-0 z-50 flex h-full w-[24rem] flex-col border-l border-border bg-card transition-transform duration-300 ease-in-out ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
         aria-label="Style panel"
       >
-        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-5 py-3.5 dark:border-slate-800">
+        <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-3.5">
           <div className="min-w-0">
-            <h2 className="truncate text-sm font-semibold text-slate-950 dark:text-slate-100">Design Studio</h2>
-            <p className="text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400">
+            <h2 className="truncate text-sm font-semibold text-foreground">Design Studio</h2>
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
               Backend catalogue driven
             </p>
           </div>
           <button
             onClick={onClose}
-            className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-sm text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-slate-100"
+            className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
           >
             ✕
           </button>
         </div>
 
-        <div className="flex shrink-0 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex shrink-0 border-b border-border">
           {TABS.map((t) => (
             <button
               key={t.key}
@@ -332,7 +336,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
               className={`flex flex-1 cursor-pointer flex-col items-center gap-0.5 border-b-2 py-2.5 text-[11px] font-semibold transition-colors ${
                 tab === t.key
                   ? "border-violet-600 bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300"
-                  : "border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-slate-100"
+                  : "border-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               }`}
             >
               {t.icon && <span className="text-sm leading-none">{t.icon}</span>}
@@ -363,7 +367,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                           : { border: "1px solid #cbd5e1", background: "#fff" }
                       }
                     >
-                      <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                      <span className="text-sm font-semibold text-foreground">
                         {template.label}
                       </span>
                       <span className="text-[10px] text-slate-500 dark:text-slate-400">
@@ -388,7 +392,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                       },
                     })
                   }
-                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                  className={PANEL_INPUT_CLASS + " w-full"}
                 >
                   {options.palettePresets.map((preset) => (
                     <option key={preset} value={preset}>
@@ -413,12 +417,12 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                             },
                           })
                         }
-                        className="h-9 w-full cursor-pointer rounded-md border border-slate-300 bg-white"
+                        className="h-9 w-full cursor-pointer rounded-md border border-input bg-background"
                       />
                     </label>
                   ))}
                 </div>
-                <label className="mt-3 flex items-center justify-between rounded-lg border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900">
+                <label className={PANEL_TOGGLE_CLASS + " mt-3"}>
                   <span className="text-xs font-medium text-slate-700 dark:text-slate-200">Monochrome</span>
                   <input
                     type="checkbox"
@@ -437,7 +441,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
 
               <section>
                 <SectionLabel>Template notes</SectionLabel>
-                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+                <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
                   The backend keeps template compatibility and enforcement. This panel only
                   sends API state.
                 </div>
@@ -458,7 +462,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                         },
                       })
                     }
-                    className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                    className={PANEL_INPUT_CLASS}
                   >
                     {options.localeLanguages.map((language) => (
                       <option key={language} value={language}>
@@ -478,7 +482,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                         },
                       })
                     }
-                    className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                    className={PANEL_INPUT_CLASS}
                   >
                     {options.localeDirections.map((direction) => (
                       <option key={direction} value={direction}>
@@ -507,7 +511,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                         },
                       })
                     }
-                    className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                    className={PANEL_INPUT_CLASS + " w-full"}
                   >
                     {options.fonts.map((font) => (
                       <option key={font} value={font}>
@@ -525,7 +529,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                         },
                       })
                     }
-                    className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                    className={PANEL_INPUT_CLASS + " w-full"}
                   >
                     {options.headingFonts.map((font) => (
                       <option key={font} value={font}>
@@ -587,7 +591,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                         },
                       })
                     }
-                    className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                    className={PANEL_INPUT_CLASS}
                   >
                     {options.weights.map((weight) => (
                       <option key={weight} value={weight}>
@@ -595,7 +599,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                       </option>
                     ))}
                   </select>
-                  <label className="flex items-center justify-between rounded-lg border border-slate-300 bg-white px-3 py-2">
+                  <label className={PANEL_TOGGLE_CLASS}>
                     <span className="text-xs font-medium text-slate-700">
                       Uppercase titles
                     </span>
@@ -623,7 +627,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                         },
                       })
                     }
-                    className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                    className={PANEL_INPUT_CLASS}
                   >
                     {options.lineHeights.map((lineHeight) => (
                       <option key={lineHeight} value={lineHeight}>
@@ -643,7 +647,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                         },
                       })
                     }
-                    className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                    className={PANEL_INPUT_CLASS}
                   >
                     {options.dateStyles.map((style) => (
                       <option key={style} value={style}>
@@ -663,7 +667,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                         },
                       })
                     }
-                    className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                    className={PANEL_INPUT_CLASS}
                   >
                     {options.bulletStyles.map((style) => (
                       <option key={style} value={style}>
@@ -691,7 +695,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                         },
                       })
                     }
-                    className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                    className={PANEL_INPUT_CLASS}
                   >
                     {options.pageFormats.map((format) => (
                       <option key={format} value={format}>
@@ -709,7 +713,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                         },
                       })
                     }
-                    className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                    className={PANEL_INPUT_CLASS}
                   >
                     {options.pageBreakModes.map((mode) => (
                       <option key={mode} value={mode}>
@@ -717,7 +721,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                       </option>
                     ))}
                   </select>
-                  <label className="flex items-center justify-between rounded-lg border border-slate-300 bg-white px-3 py-2">
+                  <label className={PANEL_TOGGLE_CLASS}>
                     <div>
                       <span className="block text-xs font-medium text-slate-700">
                         1 page challenge
@@ -806,7 +810,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                         },
                       })
                     }
-                    className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                    className={PANEL_INPUT_CLASS}
                   >
                     {options.columns.map((value) => (
                       <option key={value} value={value}>
@@ -824,7 +828,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                         },
                       })
                     }
-                    className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                    className={PANEL_INPUT_CLASS}
                   >
                     {options.sidebarPositions.map((position) => (
                       <option key={position} value={position}>
@@ -844,7 +848,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                         },
                       })
                     }
-                    className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                    className={PANEL_INPUT_CLASS}
                   >
                     {options.densities.map((density) => (
                       <option key={density} value={density}>
@@ -886,7 +890,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                         },
                       })
                     }
-                    className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                    className={PANEL_INPUT_CLASS}
                   >
                     {options.headerAlignments.map((alignment) => (
                       <option key={alignment} value={alignment}>
@@ -894,7 +898,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                       </option>
                     ))}
                   </select>
-                  <label className="flex items-center justify-between rounded-lg border border-slate-300 bg-white px-3 py-2">
+                  <label className={PANEL_TOGGLE_CLASS}>
                     <span className="text-xs font-medium text-slate-700">Photo enabled</span>
                     <input
                       type="checkbox"
@@ -925,7 +929,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                         },
                       })
                     }
-                    className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                    className={PANEL_INPUT_CLASS}
                   >
                     {options.photoShapes.map((shape) => (
                       <option key={shape} value={shape}>
@@ -944,10 +948,10 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                 <SectionLabel>Section model</SectionLabel>
                 <div className="space-y-3">
                   {settings.sections?.map((section, index) => (
-                    <div key={section.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    <div key={section.id} className={PANEL_MUTED_CARD_CLASS}>
                       <div className="mb-2 flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold text-slate-900">
+                          <p className="text-sm font-semibold text-foreground">
                             {section.label}
                           </p>
                           <p className="text-[10px] uppercase tracking-wider text-slate-500">
@@ -959,7 +963,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                             onClick={() => moveSection(index, -1)}
                             disabled={index === 0}
                             aria-label={`Move section ${section.type} up`}
-                            className="rounded border border-slate-300 bg-white px-2 py-1 text-[10px] text-slate-600 disabled:opacity-40"
+                            className="rounded border border-input bg-background px-2 py-1 text-[10px] text-muted-foreground disabled:opacity-40"
                           >
                             Up
                           </button>
@@ -967,7 +971,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                             onClick={() => moveSection(index, 1)}
                             disabled={index === (settings.sections?.length ?? 0) - 1}
                             aria-label={`Move section ${section.type} down`}
-                            className="rounded border border-slate-300 bg-white px-2 py-1 text-[10px] text-slate-600 disabled:opacity-40"
+                            className="rounded border border-input bg-background px-2 py-1 text-[10px] text-muted-foreground disabled:opacity-40"
                           >
                             Down
                           </button>
@@ -978,10 +982,10 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                           value={section.label}
                           onChange={(e) => updateSection(index, { label: e.target.value })}
                           aria-label={`Section label ${section.type}`}
-                          className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                          className={PANEL_INPUT_CLASS}
                         />
                         <div className="grid grid-cols-2 gap-2">
-                          <label className="flex items-center justify-between rounded-lg border border-slate-300 bg-white px-3 py-2">
+                          <label className={PANEL_TOGGLE_CLASS}>
                             <span className="text-xs font-medium text-slate-700">Visible</span>
                             <input
                               type="checkbox"
@@ -998,7 +1002,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                               })
                             }
                             aria-label={`Section placement ${section.type}`}
-                            className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                            className={PANEL_INPUT_CLASS}
                           >
                             {sectionPlacements.map((placement) => (
                               <option key={placement} value={placement}>
@@ -1018,7 +1022,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                               })
                             }
                             aria-label={`Section display mode ${section.type}`}
-                            className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                            className={PANEL_INPUT_CLASS}
                           >
                             {sectionModes.map((mode) => (
                               <option key={mode} value={mode}>
@@ -1036,7 +1040,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                               })
                             }
                             aria-label={`Section detail level ${section.type}`}
-                            className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                            className={PANEL_INPUT_CLASS}
                           >
                             {sectionDetails.map((level) => (
                               <option key={level} value={level}>
@@ -1046,7 +1050,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                           </select>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
-                          <label className="flex items-center justify-between rounded-lg border border-slate-300 bg-white px-3 py-2">
+                          <label className={PANEL_TOGGLE_CLASS}>
                             <span className="text-xs font-medium text-slate-700">Dates</span>
                             <input
                               type="checkbox"
@@ -1055,7 +1059,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                               aria-label={`Toggle dates ${section.type}`}
                             />
                           </label>
-                          <label className="flex items-center justify-between rounded-lg border border-slate-300 bg-white px-3 py-2">
+                          <label className={PANEL_TOGGLE_CLASS}>
                             <span className="text-xs font-medium text-slate-700">Locations</span>
                             <input
                               type="checkbox"
@@ -1080,7 +1084,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
               <section>
                 <SectionLabel>Advanced CSS</SectionLabel>
                 <div className="grid gap-2">
-                  <label className="flex items-center justify-between rounded-lg border border-slate-300 bg-white px-3 py-2">
+                  <label className={PANEL_TOGGLE_CLASS}>
                     <div>
                       <span className="block text-xs font-medium text-slate-700">
                         Enable expert CSS
@@ -1118,7 +1122,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                         },
                       })
                     }
-                    className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                    className={PANEL_INPUT_CLASS}
                   >
                     {catalogue.advancedCss.modes.map((mode) => (
                       <option key={mode} value={mode}>
@@ -1139,7 +1143,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                     aria-label="Advanced CSS editor"
                     maxLength={catalogue.advancedCss.maxLength}
                     spellCheck={false}
-                    className="min-h-48 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-xs text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                    className={PANEL_TEXTAREA_CLASS}
                     placeholder=":host { --primary-color: #0f172a; }"
                   />
                   <div className="flex items-center justify-between text-[11px] text-slate-500">
@@ -1172,7 +1176,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
                           },
                         })
                       }
-                      className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-left font-mono text-[11px] text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+                      className="rounded-lg border border-input bg-background px-3 py-2 text-left font-mono text-[11px] text-foreground shadow-sm transition-colors hover:bg-accent"
                     >
                       {example}
                     </button>
@@ -1202,7 +1206,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
         <div className="shrink-0 border-t border-slate-200 px-5 py-3">
           <button
             onClick={() => setGlobalSettings({ ...resetSettings, template_id: "modern" })}
-            className="w-full cursor-pointer rounded-lg border border-slate-300 bg-white py-2 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+            className="w-full cursor-pointer rounded-lg border border-input bg-background py-2 text-xs font-medium text-foreground shadow-sm transition-colors hover:bg-accent"
           >
             Reset to backend defaults
           </button>
