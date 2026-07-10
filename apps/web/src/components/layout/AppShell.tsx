@@ -34,12 +34,12 @@ function isActive(pathname: string, href: string): boolean {
 function Brand({ collapsed = false }: { collapsed?: boolean }) {
   return (
     <Link href="/" className="flex items-center gap-3 no-underline" title="Back to home">
-      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-950 text-sm font-black text-white dark:bg-slate-100 dark:text-slate-950">
+      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-sm font-black text-primary-foreground">
         M
       </div>
       <div className={cn("min-w-0", collapsed && "hidden")}>
-        <p className="truncate text-sm font-semibold text-slate-950 dark:text-slate-100">Mindris AI</p>
-        <p className="truncate text-xs text-slate-500 dark:text-slate-400">Open resume studio</p>
+        <p className="truncate text-sm font-semibold text-foreground">Mindris AI</p>
+        <p className="truncate text-xs text-muted-foreground">Open resume studio</p>
       </div>
     </Link>
   );
@@ -68,8 +68,8 @@ function NavLinks({
               "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium no-underline transition-colors",
               collapsed && "justify-center px-2",
               active
-                ? "bg-slate-950 text-white dark:bg-slate-100 dark:text-slate-950"
-                : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-slate-100",
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
             )}
             title={collapsed ? item.label : undefined}
           >
@@ -94,7 +94,7 @@ function SidebarUtilities({ collapsed = false }: { collapsed?: boolean }) {
             <Button
               variant="ghost"
               className={cn(
-                "w-full rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-slate-100",
+                "w-full rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
                 collapsed ? "justify-center px-2" : "justify-start gap-3",
               )}
               title={collapsed ? configuration.label : undefined}
@@ -109,18 +109,18 @@ function SidebarUtilities({ collapsed = false }: { collapsed?: boolean }) {
       {localServices && (
         <div
           className={cn(
-            "overflow-hidden rounded-lg border border-slate-200 bg-slate-50 transition-all duration-200 dark:border-slate-800 dark:bg-slate-900/60",
+            "overflow-hidden rounded-lg border border-border bg-muted/40 transition-all duration-200",
             collapsed ? "max-h-0 border-transparent p-0 opacity-0" : "max-h-40 p-3 opacity-100",
           )}
         >
-          <div className="mb-2 flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-200">
+          <div className="mb-2 flex items-center gap-2 text-xs font-medium text-foreground">
             <localServices.icon size={14} />
             {localServices.label}
           </div>
-          <p className="mb-2 text-xs leading-5 text-slate-500 dark:text-slate-400">{localServices.description}</p>
-          <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">API : 8000</p>
-          <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">Renderer : 4000</p>
-          <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">Web : 3000</p>
+          <p className="mb-2 text-xs leading-5 text-muted-foreground">{localServices.description}</p>
+          <p className="text-xs leading-5 text-muted-foreground">API : 8000</p>
+          <p className="text-xs leading-5 text-muted-foreground">Renderer : 4000</p>
+          <p className="text-xs leading-5 text-muted-foreground">Web : 3000</p>
         </div>
       )}
 
@@ -147,9 +147,9 @@ export function AppShell({
 
   return (
     <RuntimeGate>
-      <div className="min-h-screen bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-slate-100">
+      <div className="min-h-screen bg-background text-foreground">
         <aside
-          className="fixed inset-y-0 left-0 z-40 hidden border-r border-slate-200 bg-white px-3 py-5 transition-[width] duration-200 lg:block dark:border-slate-800 dark:bg-slate-950"
+          className="fixed inset-y-0 left-0 z-40 hidden border-r border-border bg-card px-3 py-5 transition-[width] duration-200 lg:block"
           style={{ width: desktopSidebar.asideWidth }}
           onMouseEnter={() =>
             setDesktopCollapsed((value) =>
@@ -193,7 +193,7 @@ export function AppShell({
 
         {mobileOpen && (
           <div className="fixed inset-0 z-50 bg-slate-950/30 lg:hidden">
-            <div className="h-full w-72 border-r border-slate-200 bg-white p-4 shadow-xl dark:border-slate-800 dark:bg-slate-950">
+            <div className="h-full w-72 border-r border-border bg-card p-4 shadow-xl">
               <div className="mb-8 flex items-center justify-between">
                 <Brand />
                 <Button
@@ -217,7 +217,7 @@ export function AppShell({
           className="transition-[padding] duration-200 lg:pl-[var(--app-sidebar-width)]"
           style={{ "--app-sidebar-width": `${desktopSidebar.reserveWidth}px` } as CSSProperties}
         >
-          <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
+          <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
             <div className="flex min-h-16 items-center justify-between gap-4 px-4 lg:px-6">
               <div className="flex min-w-0 items-center gap-3">
                 <Button
@@ -231,12 +231,12 @@ export function AppShell({
                 </Button>
                 <div className="min-w-0">
                   {title && (
-                    <h1 className="truncate text-lg font-semibold tracking-tight text-slate-950 dark:text-slate-100">
+                    <h1 className="truncate text-lg font-semibold tracking-tight text-foreground">
                       {title}
                     </h1>
                   )}
                   {description && (
-                    <p className="truncate text-sm text-slate-500 dark:text-slate-400">{description}</p>
+                    <p className="truncate text-sm text-muted-foreground">{description}</p>
                   )}
                 </div>
               </div>
