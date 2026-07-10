@@ -533,7 +533,7 @@ export default function AtsScorePage() {
   const missingHigh  = report?.keyword_analysis.filter(k => !k.found && k.severity === 'high').length ?? 0;
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-slate-100">
+    <div className="min-h-[calc(100vh-4rem)] bg-background text-foreground">
 
       {/* Hero section */}
       <div className="px-6">
@@ -573,37 +573,37 @@ export default function AtsScorePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
             {/* Score gauge */}
-            <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-border bg-card p-6 shadow-sm">
               <ScoreGauge score={report.score} />
               <div className="flex gap-6 text-center">
                 <div>
                   <p className="text-xl font-black" style={{ color: '#10b981', fontFamily: 'var(--font-space)' }}>{foundCount}</p>
-                  <p className="text-[10px] uppercase tracking-wider mt-0.5" style={{ color: '#475569' }}>Found</p>
+                  <p className="mt-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">Found</p>
                 </div>
                 <div>
                   <p className="text-xl font-black" style={{ color: '#ef4444', fontFamily: 'var(--font-space)' }}>{missingHigh}</p>
-                  <p className="text-[10px] uppercase tracking-wider mt-0.5" style={{ color: '#475569' }}>Critical</p>
+                  <p className="mt-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">Critical</p>
                 </div>
                 <div>
                   <p className="text-xl font-black" style={{ color: '#94a3b8', fontFamily: 'var(--font-space)' }}>{totalCount}</p>
-                  <p className="text-[10px] uppercase tracking-wider mt-0.5" style={{ color: '#475569' }}>Total</p>
+                  <p className="mt-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">Total</p>
                 </div>
               </div>
             </div>
 
             {/* Summary + Bar chart */}
-            <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:col-span-2">
+            <div className="space-y-4 rounded-lg border border-border bg-card p-6 shadow-sm md:col-span-2">
               <div>
                 <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Executive Summary</p>
-                  <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Executive Summary</p>
+                  <span className="rounded-full bg-muted px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                     {report.mode} mode
                   </span>
                 </div>
-                <p className="text-sm leading-relaxed text-slate-700">{report.summary}</p>
+                <p className="text-sm leading-relaxed text-foreground">{report.summary}</p>
               </div>
               <div>
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">Keyword Breakdown</p>
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Keyword Breakdown</p>
                 <KeywordBarChart keywords={report.keyword_analysis} />
               </div>
             </div>
