@@ -130,7 +130,21 @@ Reinstall dependencies cleanly while keeping lockfiles:
 ./scripts/reset_local_deps.sh
 ```
 
+Run repository-owned validation wrappers:
+
+```bash
+./scripts/check_all.sh
+```
+
+Full local validation with the stack already running:
+
+```bash
+RUN_LOCAL_SMOKE=1 RUN_BROWSER_E2E=1 ./scripts/check_all.sh
+```
+
 Detailed guide: [`docs/local-development.md`](docs/local-development.md).
+
+Agent runtime and sandbox guide: [`docs/agent-runtime.md`](docs/agent-runtime.md).
 
 ### Environment
 

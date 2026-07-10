@@ -8,6 +8,8 @@ Ce workflow lance les trois services locaux sans Docker :
 - Renderer Bun/Elysia : `http://localhost:4000`
 - Frontend Next.js : `http://localhost:3000`
 
+Pour la configuration de sandbox, les permissions persistantes recommandees et les niveaux d'autonomie d'un agent de code, voir aussi [`docs/agent-runtime.md`](./agent-runtime.md).
+
 ## Prerequis
 
 - `uv`
@@ -85,6 +87,40 @@ Dans un autre terminal, une fois les services lances :
 ```bash
 ./scripts/smoke_local.sh
 ```
+
+## Validation repo-first
+
+Pour les checks qui ne dependent pas d'une stack locale deja demarree :
+
+```bash
+./scripts/check_all.sh
+```
+
+`check_all.sh` regroupe par defaut :
+
+- `./scripts/lint_all.sh`
+- `./scripts/test_all.sh`
+
+Options :
+
+```bash
+RUN_LOCAL_SMOKE=1 ./scripts/check_all.sh
+RUN_LOCAL_SMOKE=1 RUN_BROWSER_E2E=1 ./scripts/check_all.sh
+```
+
+`lint_all.sh` couvre :
+
+- Ruff sur la surface Python stable du runtime local ;
+- lint et typecheck du frontend ;
+- typecheck et build du renderer.
+
+`test_all.sh` couvre :
+
+- un set cible de tests backend Python ;
+- les tests frontend ;
+- les tests renderer.
+
+Le smoke local et l'E2E navigateur restent opt-in et ne s'executent via `check_all.sh` que si tu actives explicitement les variables d'environnement.
 
 ## E2E navigateur MVP1
 

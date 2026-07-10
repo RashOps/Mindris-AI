@@ -21,14 +21,23 @@ See [AGENTS.md](AGENTS.md) for the contributor operating rules used in this repo
 
 ## Local validation
 
-Backend:
+Validation repo-first :
+
+```bash
+./scripts/lint_all.sh
+./scripts/test_all.sh
+```
+
+Checks manuels equivalents ou complementaires :
+
+Backend :
 
 ```bash
 uv run pytest
 uv run ruff check .
 ```
 
-Frontend:
+Frontend :
 
 ```bash
 cd apps/web
@@ -36,12 +45,20 @@ bun run lint
 bun run typecheck
 ```
 
-Renderer:
+Renderer :
 
 ```bash
 cd services/renderer
 bun run typecheck
 bun run build
+```
+
+Checks dependants de la stack locale :
+
+```bash
+./scripts/dev_local.sh
+./scripts/smoke_local.sh
+./scripts/e2e_browser.sh
 ```
 
 ## Brand and trademark note

@@ -151,3 +151,23 @@
 - [x] **Durcissement runtime et API :** Renforcer config env, timeouts, retries, CORS/headers et erreurs normalisees.
 - [x] **Durcissement secrets et etat local :** Revalider BYOK, frontieres de persistence client et redaction des logs.
 - [x] **Resilience operationnelle :** Structurer logs, verifier health/readiness, documenter backup/restore et etendre les tests critiques.
+
+## 🔵 Phase 24 : Theme System Completion & UI Contract Normalization
+- [ ] **Theme contract canonique :** Finaliser le bootstrap dark/light, les tokens semantiques et les regles de persistance.
+- [ ] **Surfaces unifiees :** Normaliser CV Builder, ATS, Tracker, History, Workflow et Runtime Gate sur des etats de surface partages.
+- [ ] **Regression theme/UI :** Ajouter des tests cibles pour le switch de theme, les hover states et la lisibilite.
+
+## 🔵 Phase 25 : Frontend Surface Decomposition & IA Settings Refactor
+- [ ] **Decomposition des gros modules front :** Redecouper les surfaces les plus fragiles du web app pour reduire la derive UI.
+- [ ] **Configuration clarifiee :** Separer configuration operateur, secrets/providers et diagnostics runtime.
+- [ ] **CV Builder simplifie :** Reorganiser header et zones d'action sans casser les contrats backend.
+
+## 🔵 Phase 26 : Online Boundary & API Trust Contract
+- [ ] **Transport client assaini :** Retirer les hypotheses de cle publique cote front pour preparer un futur mode online plus propre.
+- [ ] **Entrees API durcies :** Supprimer les alias de credentials en query string et resserrer le contrat auth/erreur.
+- [ ] **Frontiere local vs online explicite :** Documenter et tester une separation nette entre ergonomie locale et posture future hebergee.
+
+## 🔵 Phase 27 : Product Coherence, QA & Content Governance
+- [ ] **Regression finale produit :** Revalider les parcours critiques apres les runs de consolidation.
+- [ ] **Guide/copy/branding alignes :** Harmoniser le contenu in-app et repo avec le comportement reel de Mindris.
+- [ ] **Derniere passe de coherence UI :** Corriger les derniers ilots visuels restants apres normalisation et decomposition.
