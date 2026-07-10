@@ -250,6 +250,44 @@
   box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
 }
 
+@layer components {
+  .app-page {
+    @apply bg-background text-foreground;
+  }
+
+  .app-surface {
+    @apply rounded-2xl border border-border bg-card text-card-foreground shadow-sm;
+  }
+
+  .app-surface-muted {
+    @apply rounded-xl border border-border bg-muted/40 text-muted-foreground;
+  }
+
+  .app-header-surface {
+    @apply border-b border-border bg-card shadow-sm;
+  }
+
+  .app-input {
+    @apply rounded-lg border border-input bg-background text-foreground shadow-sm outline-none placeholder:text-muted-foreground focus:border-ring focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20;
+  }
+
+  .app-select {
+    @apply rounded-lg border border-input bg-background text-foreground shadow-sm outline-none focus:border-ring;
+  }
+
+  .app-textarea {
+    @apply rounded-lg border border-input bg-background text-foreground shadow-sm outline-none placeholder:text-muted-foreground focus:border-ring;
+  }
+
+  .app-toolbar-button {
+    @apply rounded-lg border border-border bg-card text-muted-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground;
+  }
+
+  .app-toolbar-button-active {
+    @apply rounded-lg border border-primary/20 bg-primary/10 text-primary shadow-sm transition-colors hover:bg-primary/15;
+  }
+}
+
 
 /* ─── Landing Page: Only what Tailwind can't do ────────────────
    All layout, color, spacing are handled via Tailwind utilities

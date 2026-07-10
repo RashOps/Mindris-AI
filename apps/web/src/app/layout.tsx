@@ -35,6 +35,19 @@ export const metadata: Metadata = {
   },
 };
 
+const THEME_BOOTSTRAP_SCRIPT = `
+(() => {
+  const storageKey = "mindris-theme";
+  const saved = window.localStorage.getItem(storageKey);
+  const theme = saved === "light" || saved === "dark"
+    ? saved
+    : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  document.documentElement.classList.toggle("dark", theme === "dark");
+  document.documentElement.dataset.theme = theme;
+  document.documentElement.style.colorScheme = theme;
+})();
+`;
+
 // ── Root Layout ───────────────────────────────────────────────────────────────
 export default function RootLayout({
   children,
@@ -45,8 +58,14 @@ export default function RootLayout({
     <html
       lang="en"
       className="h-full antialiased"
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col"><ThemeProvider>{children}</ThemeProvider></body>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} />
+      </head>
+      <body className="flex min-h-full flex-col">
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }
