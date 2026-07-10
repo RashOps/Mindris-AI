@@ -42,6 +42,12 @@ type HeaderMenuAction = {
   onSelect: () => void;
 };
 
+const TOOLBAR_BUTTON_CLASS =
+  "app-toolbar-button inline-flex h-9 cursor-pointer items-center gap-1 px-2.5 text-xs font-medium";
+const TOOLBAR_BUTTON_ACTIVE_CLASS =
+  "app-toolbar-button-active inline-flex h-9 cursor-pointer items-center gap-1 px-2.5 text-xs font-medium";
+const BUILDER_INPUT_CLASS = "app-input h-9 px-2 text-xs";
+
 const RESUME_EXPORTS: Record<
   ResumeExportFormat,
   { endpoint: string; extension: string; label: string }
@@ -103,7 +109,7 @@ function HeaderActionMenu({
         onClick={onToggle}
         aria-expanded={isOpen}
         aria-haspopup="menu"
-        className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+        className="app-toolbar-button inline-flex h-9 cursor-pointer items-center gap-2 px-3 text-xs font-medium"
       >
         {icon}
         <span>{label}</span>
@@ -114,7 +120,7 @@ function HeaderActionMenu({
         <div
           role="menu"
           aria-label={`${label} menu`}
-          className="absolute right-0 top-11 z-40 min-w-56 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl"
+          className="absolute right-0 top-11 z-40 min-w-56 overflow-hidden rounded-xl border border-border bg-card p-1.5 shadow-xl"
         >
           {actions.map((action) => (
             <button
@@ -126,10 +132,10 @@ function HeaderActionMenu({
                 onClose();
                 action.onSelect();
               }}
-              className="flex w-full cursor-pointer items-start justify-between gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex w-full cursor-pointer items-start justify-between gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <span className="text-sm font-medium text-slate-800">{action.label}</span>
-              <span className="text-[11px] text-slate-500">{action.hint}</span>
+              <span className="text-sm font-medium text-foreground">{action.label}</span>
+              <span className="text-[11px] text-muted-foreground">{action.hint}</span>
             </button>
           ))}
         </div>
@@ -488,7 +494,7 @@ export default function AppPage() {
   ];
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      <main className="flex h-[calc(100vh-4rem)] w-full flex-col overflow-hidden bg-slate-50 text-slate-950">
+      <main className="app-page flex h-[calc(100vh-4rem)] w-full flex-col overflow-hidden">
 
         {/* Toast */}
         {toast && (
@@ -498,10 +504,10 @@ export default function AppPage() {
         )}
 
         {/* ── Header ─────────────────────────────────────────────────────────── */}
-        <header className="z-30 flex shrink-0 flex-col gap-3 border-b border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <header className="app-header-surface z-30 flex shrink-0 flex-col gap-3 px-4 py-3">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="shrink-0">
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 CV Builder
               </p>
             </div>
@@ -510,7 +516,7 @@ export default function AppPage() {
               <select
                 value={activeResumeId}
                 onChange={(e) => setActiveResume(e.target.value)}
-                className="h-9 min-w-40 max-w-56 cursor-pointer rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-800 shadow-sm outline-none focus:border-slate-500"
+                className={`${BUILDER_INPUT_CLASS} min-w-40 max-w-56 cursor-pointer`}
                 title="Active resume"
               >
                 {resumes.map((resume) => (
@@ -523,7 +529,7 @@ export default function AppPage() {
                 value={activeResume?.name ?? ""}
                 onChange={(e) => renameResume(activeResumeId, e.target.value)}
                 placeholder="Resume name"
-                className="h-9 w-40 rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-slate-500"
+                className={`${BUILDER_INPUT_CLASS} w-40`}
                 title="Rename active resume"
               />
               <button
@@ -534,7 +540,7 @@ export default function AppPage() {
                       showToast(errorMessage(err, "Create failed"), 6000);
                     });
                 }}
-                className="h-9 cursor-pointer rounded-lg border border-slate-300 bg-white px-3 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+                className="app-toolbar-button h-9 cursor-pointer px-3 text-xs font-medium"
                 title="Create blank CV"
               >
                 New
@@ -547,7 +553,7 @@ export default function AppPage() {
                       showToast(errorMessage(err, "Duplicate failed"), 6000);
                     });
                 }}
-                className="h-9 cursor-pointer rounded-lg border border-slate-300 bg-white px-3 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+                className="app-toolbar-button h-9 cursor-pointer px-3 text-xs font-medium"
                 title="Duplicate active CV"
               >
                 Duplicate
@@ -566,7 +572,7 @@ export default function AppPage() {
               >
                 Delete
               </button>
-              <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-1 py-1">
+              <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/40 px-1 py-1">
                 {availableLocales.map((locale) => (
                   <button
                     key={locale}
@@ -582,7 +588,7 @@ export default function AppPage() {
                     className="inline-flex h-7 min-w-10 cursor-pointer items-center justify-center rounded-md px-2 text-[11px] font-semibold transition-colors"
                     style={locale === activeLocale
                       ? { background: "#0f172a", color: "#fff" }
-                      : { background: "#fff", color: "#475569" }}
+                      : { background: "var(--card)", color: "var(--muted-foreground)" }}
                     title={`Switch to ${locale.toUpperCase()}`}
                     data-testid={`locale-switch-${locale}`}
                   >
@@ -594,7 +600,7 @@ export default function AppPage() {
                     <select
                       value={localeToCreate}
                       onChange={(e) => setLocaleToCreate(e.target.value as typeof localeToCreate)}
-                      className="h-7 cursor-pointer rounded-md border border-slate-200 bg-white px-2 text-[11px] font-medium text-slate-700 outline-none"
+                      className="h-7 cursor-pointer rounded-md border border-input bg-background px-2 text-[11px] font-medium text-foreground outline-none"
                       title="Select a new locale variant"
                       data-testid="locale-create-select"
                     >
@@ -617,7 +623,7 @@ export default function AppPage() {
                           showToast(errorMessage(err, "Locale creation failed"), 6000);
                         });
                       }}
-                      className="inline-flex h-7 cursor-pointer items-center justify-center rounded-md border border-slate-200 bg-white px-2 text-[11px] font-semibold text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="inline-flex h-7 cursor-pointer items-center justify-center rounded-md border border-input bg-background px-2 text-[11px] font-semibold text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
                       title="Create a locale variant from the active locale"
                       data-testid="locale-create-button"
                     >
@@ -677,7 +683,7 @@ export default function AppPage() {
                 onChange={(e) => setJobUrl(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleOptimize()}
                 placeholder="Paste job offer URL…"
-                className="h-9 border-slate-300 bg-white text-sm text-slate-800 shadow-sm placeholder:text-slate-400 focus-visible:border-slate-500"
+                className="app-input h-9 text-sm"
               />
               <Button
                 onClick={handleOptimize}
@@ -716,20 +722,20 @@ export default function AppPage() {
 
               <button
                 onClick={() => setShowGhost((v) => !v)}
-                className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border px-2.5 text-xs font-medium transition-colors"
+                className={showGhost ? TOOLBAR_BUTTON_ACTIVE_CLASS : TOOLBAR_BUTTON_CLASS}
                 style={showGhost
                   ? { borderColor: "#c7d2fe", background: "#eef2ff", color: "#4338ca" }
-                  : { borderColor: "#e2e8f0", background: "#fff", color: "#475569" }}
+                  : undefined}
               >
                 Ghost
               </button>
 
               <button
                 onClick={() => setShowInsights((v) => !v)}
-                className="relative inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border px-2.5 text-xs font-medium transition-colors"
+                className={showInsights ? `relative ${TOOLBAR_BUTTON_ACTIVE_CLASS}` : `relative ${TOOLBAR_BUTTON_CLASS}`}
                 style={showInsights
                   ? { borderColor: "#fde68a", background: "#fffbeb", color: "#92400e" }
-                  : { borderColor: "#e2e8f0", background: "#fff", color: "#475569" }}
+                  : undefined}
               >
                 Insights
                 {jobInsights && (
@@ -739,17 +745,17 @@ export default function AppPage() {
 
               <button
                 onClick={() => setShowCoverLetter(true)}
-                className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+                className={TOOLBAR_BUTTON_CLASS}
               >
                 Cover Letter
               </button>
 
               <button
                 onClick={() => setShowStyle((v) => !v)}
-                className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg border px-2.5 text-xs font-medium transition-colors"
+                className={showStyle ? TOOLBAR_BUTTON_ACTIVE_CLASS : TOOLBAR_BUTTON_CLASS}
                 style={showStyle
                   ? { borderColor: "#ddd6fe", background: "#f5f3ff", color: "#6d28d9" }
-                  : { borderColor: "#e2e8f0", background: "#fff", color: "#475569" }}
+                  : undefined}
               >
                 Style
               </button>
@@ -758,13 +764,12 @@ export default function AppPage() {
         </header>
 
         {/* ── Body ───────────────────────────────────────────────────────────── */}
-        <div className="flex flex-1 overflow-hidden bg-slate-100">
+        <div className="flex flex-1 overflow-hidden bg-muted/40">
 
           {/* Editor */}
-          <div className={`h-full border-r flex flex-col overflow-hidden transition-all duration-300 ${showGhost ? "w-[30%]" : "w-[45%]"}`}
-            style={{ background: '#fff', borderColor: '#e2e8f0' }}>
-            <div className="shrink-0 border-b border-slate-200 bg-white px-4 py-2">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">Structure Editor</p>
+          <div className={`flex h-full flex-col overflow-hidden border-r border-border bg-card transition-all duration-300 ${showGhost ? "w-[30%]" : "w-[45%]"}`}>
+            <div className="shrink-0 border-b border-border bg-card px-4 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Structure Editor</p>
             </div>
             <div className="flex-1 overflow-hidden px-3 py-3">
               <Editor />
@@ -773,9 +778,9 @@ export default function AppPage() {
 
           {/* Ghost Mode */}
           {showGhost && (
-            <div className="flex h-full w-[35%] flex-col overflow-hidden border-r border-slate-200 bg-white">
-              <div className="shrink-0 border-b border-slate-200 bg-white px-4 py-2">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">Ghost Mode</p>
+            <div className="flex h-full w-[35%] flex-col overflow-hidden border-r border-border bg-card">
+              <div className="shrink-0 border-b border-border bg-card px-4 py-2">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Ghost Mode</p>
               </div>
               <div className="flex-1 overflow-hidden p-3">
                 <GhostMode
@@ -790,9 +795,9 @@ export default function AppPage() {
           )}
 
           {/* Preview */}
-          <div className="flex h-full flex-1 flex-col overflow-hidden bg-slate-50">
-            <div className="shrink-0 border-b border-slate-200 bg-white px-4 py-2">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">Live Preview</p>
+          <div className="flex h-full flex-1 flex-col overflow-hidden bg-muted/20">
+            <div className="shrink-0 border-b border-border bg-card px-4 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Live Preview</p>
             </div>
             <div className="flex-1 p-4 overflow-hidden">
               <LivePreview />

@@ -148,23 +148,23 @@ export default function HistoryPage() {
   }, [load]);
 
   return (
-    <main className="min-h-[calc(100vh-4rem)] bg-slate-50 text-slate-950">
+    <main className="min-h-[calc(100vh-4rem)] bg-background text-foreground">
       <div className="mx-auto max-w-[1500px] px-4 py-4 lg:px-6">
-        <header className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+        <header className="rounded-2xl border border-border bg-card px-5 py-4 shadow-sm">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-1">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
                 Audit
               </p>
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950 text-white">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                   <History size={18} />
                 </div>
                 <div>
                   <h1 className="text-2xl font-semibold tracking-tight">
                     Unified Activity History
                   </h1>
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-muted-foreground">
                     Chronological ledger of jobs, ATS reports, cover letters,
                     revisions, tracker items, and model-backed runs.
                   </p>
@@ -181,7 +181,7 @@ export default function HistoryPage() {
               >
                 {clearing ? "Clearing..." : "Clear history"}
               </button>
-              <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+              <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
                 <Filter size={14} />
                 <span>Filter</span>
               </div>
@@ -194,7 +194,7 @@ export default function HistoryPage() {
                     className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
                       subjectType === option.id
                         ? "border-slate-900 bg-slate-900 text-white"
-                        : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
+                        : "border-border bg-card text-muted-foreground hover:border-border hover:bg-accent hover:text-accent-foreground"
                     }`}
                   >
                     {option.label}
@@ -218,30 +218,30 @@ export default function HistoryPage() {
         )}
 
         <div className="mt-4 grid gap-4 xl:grid-cols-[1.15fr,0.85fr]">
-          <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-200 px-4 py-3">
-              <p className="text-sm font-semibold text-slate-900">
+          <section className="rounded-2xl border border-border bg-card shadow-sm">
+            <div className="border-b border-border px-4 py-3">
+              <p className="text-sm font-semibold text-foreground">
                 Recent activity
               </p>
             </div>
             {loading ? (
-              <div className="flex items-center gap-2 px-4 py-6 text-sm text-slate-500">
+              <div className="flex items-center gap-2 px-4 py-6 text-sm text-muted-foreground">
                 <Loader2 size={16} className="animate-spin" />
                 Loading activity ledger…
               </div>
             ) : items.length === 0 ? (
-              <div className="px-4 py-6 text-sm text-slate-500">
+              <div className="px-4 py-6 text-sm text-muted-foreground">
                 No activity available for this filter.
               </div>
             ) : (
-              <div className="divide-y divide-slate-100">
+              <div className="divide-y divide-border">
                 {items.map((item) => (
                   <button
                     key={item.id}
                     type="button"
                     onClick={() => setSelectedId(item.id)}
-                    className={`flex w-full flex-col gap-2 px-4 py-4 text-left transition-colors hover:bg-slate-50 ${
-                      selectedItem?.id === item.id ? "bg-slate-50" : "bg-white"
+                    className={`flex w-full flex-col gap-2 px-4 py-4 text-left transition-colors hover:bg-accent ${
+                      selectedItem?.id === item.id ? "bg-accent" : "bg-card"
                     }`}
                   >
                     <div className="flex flex-wrap items-center gap-2">

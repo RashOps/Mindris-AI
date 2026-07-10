@@ -263,19 +263,19 @@ export default function TrackerPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#f7f8fb] text-slate-950">
+    <main className="min-h-screen bg-background text-foreground">
       <div className="mx-auto flex min-h-screen max-w-[1600px] flex-col px-4 py-4 lg:px-6">
-        <header className="mb-4 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+        <header className="mb-4 rounded-2xl border border-border bg-card px-5 py-4 shadow-sm">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
             <div className="space-y-1">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500">Applications</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Applications</p>
               <div className="flex items-center gap-2">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950 text-white">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                   <Briefcase size={18} />
                 </div>
                 <div>
                   <h1 className="text-2xl font-semibold tracking-tight">Job Tracker</h1>
-                  <p className="text-sm text-slate-500">Backend-owned pipeline for applications, interviews, and offers.</p>
+                  <p className="text-sm text-muted-foreground">Backend-owned pipeline for applications, interviews, and offers.</p>
                 </div>
               </div>
             </div>
@@ -289,10 +289,10 @@ export default function TrackerPage() {
               ].map((metric) => {
                 const Icon = metric.icon;
                 return (
-                  <div key={metric.label} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                  <div key={metric.label} className="rounded-xl border border-border bg-muted/40 px-3 py-3">
                     <div className="mb-2 flex items-center justify-between">
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{metric.label}</p>
-                      <Icon size={14} className="text-slate-400" />
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{metric.label}</p>
+                      <Icon size={14} className="text-muted-foreground" />
                     </div>
                     <p className="text-2xl font-semibold">{metric.value}</p>
                   </div>
@@ -308,21 +308,21 @@ export default function TrackerPage() {
                 onChange={(e) => setDraft({ ...draft, company: e.target.value })}
                 placeholder="Company"
                 data-testid="tracker-company-input"
-                className="h-10 border-slate-300 bg-white text-slate-800 shadow-sm placeholder:text-slate-400 focus-visible:border-slate-500"
+                className="app-input h-10"
               />
               <Input
                 value={draft.role}
                 onChange={(e) => setDraft({ ...draft, role: e.target.value })}
                 placeholder="Role"
                 data-testid="tracker-role-input"
-                className="h-10 border-slate-300 bg-white text-slate-800 shadow-sm placeholder:text-slate-400 focus-visible:border-slate-500"
+                className="app-input h-10"
               />
               <Input
                 value={draft.url}
                 onChange={(e) => setDraft({ ...draft, url: e.target.value })}
                 placeholder="Job URL"
                 data-testid="tracker-url-input"
-                className="h-10 border-slate-300 bg-white text-slate-800 shadow-sm placeholder:text-slate-400 focus-visible:border-slate-500"
+                className="app-input h-10"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -330,7 +330,7 @@ export default function TrackerPage() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search applications"
-                className="h-10 min-w-[260px] border-slate-300 bg-white text-slate-800 shadow-sm placeholder:text-slate-400 focus-visible:border-slate-500"
+                className="app-input h-10 min-w-[260px]"
               />
               <Button
                 onClick={create}
@@ -353,7 +353,7 @@ export default function TrackerPage() {
         )}
 
         {loading ? (
-          <div className="rounded-lg border border-slate-200 bg-white px-4 py-8 text-sm text-slate-500 shadow-sm">
+          <div className="rounded-lg border border-border bg-card px-4 py-8 text-sm text-muted-foreground shadow-sm">
             Loading tracker...
           </div>
         ) : (
@@ -364,9 +364,9 @@ export default function TrackerPage() {
               return (
                 <section
                   key={status.id}
-                  className="flex min-h-[72vh] flex-col rounded-lg border border-slate-200 bg-white shadow-sm"
+                  className="flex min-h-[72vh] flex-col rounded-lg border border-border bg-card shadow-sm"
                 >
-                  <div className="border-b border-slate-200 px-4 py-4">
+                  <div className="border-b border-border px-4 py-4">
                     <div className="mb-2 flex items-center justify-between">
                       <h2 className="text-sm font-semibold">{status.label}</h2>
                       <span
@@ -376,12 +376,12 @@ export default function TrackerPage() {
                         {itemsForStatus.length}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-500">{status.hint}</p>
+                    <p className="text-xs text-muted-foreground">{status.hint}</p>
                   </div>
 
                   <div className="flex-1 space-y-3 p-3">
                     {itemsForStatus.length === 0 ? (
-                      <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-slate-200 px-4 py-10 text-center text-xs text-slate-400">
+                      <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border px-4 py-10 text-center text-xs text-muted-foreground">
                         No applications in this stage.
                       </div>
                     ) : (
@@ -396,11 +396,11 @@ export default function TrackerPage() {
                             : null,
                         });
                         return (
-                          <article key={item.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                          <article key={item.id} className="rounded-lg border border-border bg-muted/40 p-3">
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
                                 <p className="truncate text-sm font-semibold">{item.role}</p>
-                                <p className="truncate text-xs text-slate-500">{item.company}</p>
+                                <p className="truncate text-xs text-muted-foreground">{item.company}</p>
                               </div>
                               <span
                                 className="rounded-full border px-2 py-0.5 text-[10px] font-medium capitalize"
@@ -418,7 +418,7 @@ export default function TrackerPage() {
                               {summaryBadges.map((badge) => (
                                 <span
                                   key={badge}
-                                  className="inline-flex rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-medium text-slate-600"
+                                  className="inline-flex rounded-full border border-border bg-card px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
                                 >
                                   {badge}
                                 </span>
