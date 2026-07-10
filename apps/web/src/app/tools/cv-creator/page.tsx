@@ -6,15 +6,11 @@ import { GhostMode } from "@/components/GhostMode";
 import { StylePanel } from "@/components/StylePanel";
 import { JobInsightsPanel } from "@/components/JobInsightsPanel";
 import { CoverLetterModal } from "@/components/CoverLetterModal";
-import { LLMSelector } from "@/components/LLMSelector";
-import { PdfIngestionModeSelect } from "@/components/PdfIngestionModeSelect";
 import { useCVStore } from "@/store/useCVStore";
 import { cvDataFromImport, resumeNameFromImport, type CompanyInsight, type JobInsights } from "@/store/useCVStore";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useEffect, useState, useRef, useCallback, type ReactNode } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { apiUrl, rendererUrl, apiHeaders, jsonHeaders } from "@/lib/api";
-import { ChevronDown, Download, Upload } from "lucide-react";
+import { Download, Upload } from "lucide-react";
 import {
   DndContext,
   type DragEndEvent,
@@ -22,6 +18,8 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
+import { CvBuilderHeader } from "./components/CvBuilderHeader";
+import type { HeaderMenuAction } from "./components/HeaderActionMenu";
 
 type DragPayload =
   | { kind: "skill"; skill: string }
@@ -35,18 +33,6 @@ type JobResultPayload = Partial<JobInsights> & {
 
 type ResumeExportFormat = "json" | "markdown" | "html" | "docx" | "latex" | "typst";
 type HeaderMenuId = "upload" | "download";
-type HeaderMenuAction = {
-  label: string;
-  hint: string;
-  disabled?: boolean;
-  onSelect: () => void;
-};
-
-const TOOLBAR_BUTTON_CLASS =
-  "app-toolbar-button inline-flex h-9 cursor-pointer items-center gap-1 px-2.5 text-xs font-medium";
-const TOOLBAR_BUTTON_ACTIVE_CLASS =
-  "app-toolbar-button-active inline-flex h-9 cursor-pointer items-center gap-1 px-2.5 text-xs font-medium";
-const BUILDER_INPUT_CLASS = "app-input h-9 px-2 text-xs";
 
 const RESUME_EXPORTS: Record<
   ResumeExportFormat,
@@ -86,66 +72,6 @@ function triggerBlobDownload(blob: Blob, filename: string): void {
     URL.revokeObjectURL(url);
   }, 1000);
 }
-
-function HeaderActionMenu({
-  label,
-  icon,
-  isOpen,
-  onToggle,
-  onClose,
-  actions,
-}: {
-  label: string;
-  icon: ReactNode;
-  isOpen: boolean;
-  onToggle: () => void;
-  onClose: () => void;
-  actions: HeaderMenuAction[];
-}) {
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={isOpen}
-        aria-haspopup="menu"
-        className="app-toolbar-button inline-flex h-9 cursor-pointer items-center gap-2 px-3 text-xs font-medium"
-      >
-        {icon}
-        <span>{label}</span>
-        <ChevronDown className={`h-4 w-4 text-slate-500 transition-transform ${isOpen ? "rotate-180" : ""}`} />
-      </button>
-
-      {isOpen ? (
-        <div
-          role="menu"
-          aria-label={`${label} menu`}
-          className="absolute right-0 top-11 z-40 min-w-56 overflow-hidden rounded-xl border border-border bg-card p-1.5 shadow-xl"
-        >
-          {actions.map((action) => (
-            <button
-              key={action.label}
-              type="button"
-              role="menuitem"
-              disabled={action.disabled}
-              onClick={() => {
-                onClose();
-                action.onSelect();
-              }}
-              className="flex w-full cursor-pointer items-start justify-between gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <span className="text-sm font-medium text-foreground">{action.label}</span>
-              <span className="text-[11px] text-muted-foreground">{action.hint}</span>
-            </button>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-
-
 
 export default function AppPage() {
   const {
@@ -503,265 +429,100 @@ export default function AppPage() {
           </div>
         )}
 
-        {/* ── Header ─────────────────────────────────────────────────────────── */}
-        <header className="app-header-surface z-30 flex shrink-0 flex-col gap-3 px-4 py-3">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="shrink-0">
-              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                CV Builder
-              </p>
-            </div>
+        <input type="file" accept=".pdf" className="hidden" ref={pdfInputRef} onChange={handlePdfUpload} />
+        <input type="file" accept=".json" className="hidden" ref={jsonInputRef} onChange={handleJsonUpload} />
 
-            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-              <select
-                value={activeResumeId}
-                onChange={(e) => setActiveResume(e.target.value)}
-                className={`${BUILDER_INPUT_CLASS} min-w-40 max-w-56 cursor-pointer`}
-                title="Active resume"
-              >
-                {resumes.map((resume) => (
-                  <option key={resume.id} value={resume.id}>
-                    {resume.name}
-                  </option>
-                ))}
-              </select>
-              <input
-                value={activeResume?.name ?? ""}
-                onChange={(e) => renameResume(activeResumeId, e.target.value)}
-                placeholder="Resume name"
-                className={`${BUILDER_INPUT_CLASS} w-40`}
-                title="Rename active resume"
-              />
-              <button
-                onClick={() => {
-                  void createResume("Untitled CV")
-                    .then(() => showToast("New blank CV created"))
-                    .catch((err: unknown) => {
-                      showToast(errorMessage(err, "Create failed"), 6000);
-                    });
-                }}
-                className="app-toolbar-button h-9 cursor-pointer px-3 text-xs font-medium"
-                title="Create blank CV"
-              >
-                New
-              </button>
-              <button
-                onClick={() => {
-                  void duplicateResume()
-                    .then(() => showToast("CV duplicated"))
-                    .catch((err: unknown) => {
-                      showToast(errorMessage(err, "Duplicate failed"), 6000);
-                    });
-                }}
-                className="app-toolbar-button h-9 cursor-pointer px-3 text-xs font-medium"
-                title="Duplicate active CV"
-              >
-                Duplicate
-              </button>
-              <button
-                onClick={() => {
-                  void deleteResume(activeResumeId)
-                    .then(() => showToast(resumes.length > 1 ? "CV deleted" : "Keep at least one CV"))
-                    .catch((err: unknown) => {
-                      showToast(errorMessage(err, "Delete failed"), 6000);
-                    });
-                }}
-                disabled={resumes.length <= 1}
-                className="h-9 cursor-pointer rounded-lg border border-red-100 bg-red-50 px-3 text-xs font-medium text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-40"
-                title="Delete active CV"
-              >
-                Delete
-              </button>
-              <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/40 px-1 py-1">
-                {availableLocales.map((locale) => (
-                  <button
-                    key={locale}
-                    type="button"
-                    onClick={() => {
-                      if (locale === activeLocale) return;
-                      void activateResumeLocale(locale).then(() => {
-                        showToast(`${locale.toUpperCase()} variant active`);
-                      }).catch((err: unknown) => {
-                        showToast(errorMessage(err, "Locale switch failed"), 6000);
-                      });
-                    }}
-                    className="inline-flex h-7 min-w-10 cursor-pointer items-center justify-center rounded-md px-2 text-[11px] font-semibold transition-colors"
-                    style={locale === activeLocale
-                      ? { background: "#0f172a", color: "#fff" }
-                      : { background: "var(--card)", color: "var(--muted-foreground)" }}
-                    title={`Switch to ${locale.toUpperCase()}`}
-                    data-testid={`locale-switch-${locale}`}
-                  >
-                    {locale.toUpperCase()}
-                  </button>
-                ))}
-                {inactiveLocales.length > 0 ? (
-                  <>
-                    <select
-                      value={localeToCreate}
-                      onChange={(e) => setLocaleToCreate(e.target.value as typeof localeToCreate)}
-                      className="h-7 cursor-pointer rounded-md border border-input bg-background px-2 text-[11px] font-medium text-foreground outline-none"
-                      title="Select a new locale variant"
-                      data-testid="locale-create-select"
-                    >
-                      <option value="">Add locale</option>
-                      {inactiveLocales.map((locale) => (
-                        <option key={locale} value={locale}>
-                          {locale.toUpperCase()}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      disabled={!localeToCreate}
-                      onClick={() => {
-                        if (!localeToCreate) return;
-                        void createResumeLocale(localeToCreate, activeLocale).then(() => {
-                          showToast(`${localeToCreate.toUpperCase()} variant created`);
-                          setLocaleToCreate("");
-                        }).catch((err: unknown) => {
-                          showToast(errorMessage(err, "Locale creation failed"), 6000);
-                        });
-                      }}
-                      className="inline-flex h-7 cursor-pointer items-center justify-center rounded-md border border-input bg-background px-2 text-[11px] font-semibold text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
-                      title="Create a locale variant from the active locale"
-                      data-testid="locale-create-button"
-                    >
-                      Add
-                    </button>
-                  </>
-                ) : null}
-                {availableLocales.length > 1 && activeLocale !== activeResume?.multilingual.defaultLocale ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void deleteResumeLocale(activeLocale).then(() => {
-                        showToast(`${activeLocale.toUpperCase()} variant deleted`);
-                      }).catch((err: unknown) => {
-                        showToast(errorMessage(err, "Locale delete failed"), 6000);
-                      });
-                    }}
-                    className="inline-flex h-7 cursor-pointer items-center justify-center rounded-md border border-red-200 bg-red-50 px-2 text-[11px] font-semibold text-red-700 transition-colors hover:bg-red-100"
-                    title={`Delete ${activeLocale.toUpperCase()} variant`}
-                  >
-                    Remove
-                  </button>
-                ) : null}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <PdfIngestionModeSelect label="PDF parse" />
-              <LLMSelector taskKey="optimize_llm" label="Optimize" />
-              <button
-                onClick={() => {
-                  if (resumeSaveStatus === "error") {
-                    void retryResumeSave().catch((err: unknown) => {
-                      showToast(errorMessage(err, "Save retry failed"), 6000);
-                    });
-                  }
-                }}
-                className="h-9 rounded-lg border px-3 text-xs font-medium"
-                style={{
-                  borderColor: resumeSaveStatus === "error" ? "#fecaca" : "#e2e8f0",
-                  background: "#fff",
-                  color: saveStatusColor,
-                  cursor: resumeSaveStatus === "error" ? "pointer" : "default",
-                }}
-                title={resumeSaveError ?? "Backend save status"}
-              >
-                {saveStatusText}
-              </button>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Job URL */}
-            <div className="flex min-w-[280px] flex-1 items-center gap-2">
-              <Input
-                value={jobUrl}
-                onChange={(e) => setJobUrl(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleOptimize()}
-                placeholder="Paste job offer URL…"
-                className="app-input h-9 text-sm"
-              />
-              <Button
-                onClick={handleOptimize}
-                disabled={isOptimizing || !jobUrl.trim()}
-                className="h-9 shrink-0 cursor-pointer bg-slate-950 px-4 text-sm text-white hover:bg-slate-800"
-              >
-                {isOptimizing
-                  ? <span className="flex items-center gap-2"><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Running…</span>
-                  : "Optimize"
-                }
-              </Button>
-            </div>
-
-            {/* Action buttons */}
-            <div ref={headerMenuRef} className="flex flex-wrap items-center gap-1.5">
-              <input type="file" accept=".pdf" className="hidden" ref={pdfInputRef} onChange={handlePdfUpload} />
-              <input type="file" accept=".json" className="hidden" ref={jsonInputRef} onChange={handleJsonUpload} />
-
-              <HeaderActionMenu
-                label="Upload CV"
-                icon={isUploading ? <span className="h-3.5 w-3.5 rounded-full border border-sky-500 border-t-transparent animate-spin" /> : <Upload className="h-4 w-4 text-slate-600" />}
-                isOpen={activeHeaderMenu === "upload"}
-                onToggle={() => setActiveHeaderMenu((current) => current === "upload" ? null : "upload")}
-                onClose={() => setActiveHeaderMenu(null)}
-                actions={uploadActions}
-              />
-
-              <HeaderActionMenu
-                label="Download CV"
-                icon={<Download className="h-4 w-4 text-slate-600" />}
-                isOpen={activeHeaderMenu === "download"}
-                onToggle={() => setActiveHeaderMenu((current) => current === "download" ? null : "download")}
-                onClose={() => setActiveHeaderMenu(null)}
-                actions={downloadActions}
-              />
-
-              <button
-                onClick={() => setShowGhost((v) => !v)}
-                className={showGhost ? TOOLBAR_BUTTON_ACTIVE_CLASS : TOOLBAR_BUTTON_CLASS}
-                style={showGhost
-                  ? { borderColor: "#c7d2fe", background: "#eef2ff", color: "#4338ca" }
-                  : undefined}
-              >
-                Ghost
-              </button>
-
-              <button
-                onClick={() => setShowInsights((v) => !v)}
-                className={showInsights ? `relative ${TOOLBAR_BUTTON_ACTIVE_CLASS}` : `relative ${TOOLBAR_BUTTON_CLASS}`}
-                style={showInsights
-                  ? { borderColor: "#fde68a", background: "#fffbeb", color: "#92400e" }
-                  : undefined}
-              >
-                Insights
-                {jobInsights && (
-                  <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-green-500" />
-                )}
-              </button>
-
-              <button
-                onClick={() => setShowCoverLetter(true)}
-                className={TOOLBAR_BUTTON_CLASS}
-              >
-                Cover Letter
-              </button>
-
-              <button
-                onClick={() => setShowStyle((v) => !v)}
-                className={showStyle ? TOOLBAR_BUTTON_ACTIVE_CLASS : TOOLBAR_BUTTON_CLASS}
-                style={showStyle
-                  ? { borderColor: "#ddd6fe", background: "#f5f3ff", color: "#6d28d9" }
-                  : undefined}
-              >
-                Style
-              </button>
-            </div>
-          </div>
-        </header>
+        <CvBuilderHeader
+          activeResumeId={activeResumeId}
+          resumes={resumes.map((resume) => ({ id: resume.id, name: resume.name }))}
+          activeResumeName={activeResume?.name ?? ""}
+          activeLocale={activeLocale}
+          availableLocales={availableLocales}
+          inactiveLocales={[...inactiveLocales]}
+          localeToCreate={localeToCreate}
+          canDeleteLocale={Boolean(availableLocales.length > 1 && activeLocale !== activeResume?.multilingual.defaultLocale)}
+          isUploading={isUploading}
+          isOptimizing={isOptimizing}
+          showGhost={showGhost}
+          showInsights={showInsights}
+          showStyle={showStyle}
+          jobUrl={jobUrl}
+          resumeSaveStatus={resumeSaveStatus}
+          saveStatusText={saveStatusText}
+          saveStatusColor={saveStatusColor}
+          resumeSaveError={resumeSaveError}
+          activeHeaderMenu={activeHeaderMenu}
+          headerMenuRef={headerMenuRef}
+          uploadActions={uploadActions}
+          downloadActions={downloadActions}
+          uploadIcon={isUploading ? <span className="h-3.5 w-3.5 rounded-full border border-sky-500 border-t-transparent animate-spin" /> : <Upload className="h-4 w-4 text-slate-600" />}
+          downloadIcon={<Download className="h-4 w-4 text-slate-600" />}
+          insightsBadge={Boolean(jobInsights)}
+          onSelectResume={setActiveResume}
+          onRenameResume={(name) => renameResume(activeResumeId, name)}
+          onCreateResume={() => {
+            void createResume("Untitled CV")
+              .then(() => showToast("New blank CV created"))
+              .catch((err: unknown) => {
+                showToast(errorMessage(err, "Create failed"), 6000);
+              });
+          }}
+          onDuplicateResume={() => {
+            void duplicateResume()
+              .then(() => showToast("CV duplicated"))
+              .catch((err: unknown) => {
+                showToast(errorMessage(err, "Duplicate failed"), 6000);
+              });
+          }}
+          onDeleteResume={() => {
+            void deleteResume(activeResumeId)
+              .then(() => showToast(resumes.length > 1 ? "CV deleted" : "Keep at least one CV"))
+              .catch((err: unknown) => {
+                showToast(errorMessage(err, "Delete failed"), 6000);
+              });
+          }}
+          onActivateLocale={(locale) => {
+            if (locale === activeLocale) return;
+            void activateResumeLocale(locale).then(() => {
+              showToast(`${locale.toUpperCase()} variant active`);
+            }).catch((err: unknown) => {
+              showToast(errorMessage(err, "Locale switch failed"), 6000);
+            });
+          }}
+          onSetLocaleToCreate={setLocaleToCreate}
+          onCreateLocale={() => {
+            if (!localeToCreate) return;
+            void createResumeLocale(localeToCreate, activeLocale).then(() => {
+              showToast(`${localeToCreate.toUpperCase()} variant created`);
+              setLocaleToCreate("");
+            }).catch((err: unknown) => {
+              showToast(errorMessage(err, "Locale creation failed"), 6000);
+            });
+          }}
+          onDeleteLocale={() => {
+            void deleteResumeLocale(activeLocale).then(() => {
+              showToast(`${activeLocale.toUpperCase()} variant deleted`);
+            }).catch((err: unknown) => {
+              showToast(errorMessage(err, "Locale delete failed"), 6000);
+            });
+          }}
+          onRetrySave={() => {
+            if (resumeSaveStatus === "error") {
+              void retryResumeSave().catch((err: unknown) => {
+                showToast(errorMessage(err, "Save retry failed"), 6000);
+              });
+            }
+          }}
+          onChangeJobUrl={setJobUrl}
+          onOptimize={handleOptimize}
+          onToggleUploadMenu={() => setActiveHeaderMenu((current) => current === "upload" ? null : "upload")}
+          onToggleDownloadMenu={() => setActiveHeaderMenu((current) => current === "download" ? null : "download")}
+          onCloseHeaderMenu={() => setActiveHeaderMenu(null)}
+          onToggleGhost={() => setShowGhost((v) => !v)}
+          onToggleInsights={() => setShowInsights((v) => !v)}
+          onOpenCoverLetter={() => setShowCoverLetter(true)}
+          onToggleStyle={() => setShowStyle((v) => !v)}
+        />
 
         {/* ── Body ───────────────────────────────────────────────────────────── */}
         <div className="flex flex-1 overflow-hidden bg-muted/40">
