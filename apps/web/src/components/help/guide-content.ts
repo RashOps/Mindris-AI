@@ -22,7 +22,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     icon: BookOpen,
     items: [
       "Mindris is a local-first resume workflow studio: scrape a role, analyze fit, adapt the CV, generate supporting artifacts, and track the application.",
-      "The frontend is an operating surface only. Durable state, destructive actions, providers, and secrets stay behind backend APIs.",
+      "The frontend is an operating surface only. Durable state, destructive actions, provider orchestration, and secrets stay behind backend APIs.",
     ],
   },
   {
@@ -53,7 +53,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     title: "4. Operate the runtime",
     icon: Settings2,
     items: [
-      "Use Configuration to set providers, default models, local services, PDF ingestion mode, and secret presence.",
+      "Use Configuration to set task defaults, ingestion/runtime behavior, diagnostics, and write-only secret slots.",
       "Use History for auditability across scrapes, ATS reports, cover letters, workflow transitions, revisions, and tracker activity.",
     ],
   },
@@ -62,6 +62,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     icon: ShieldCheck,
     items: [
       "Browser code must not become a service layer. It calls APIs, renders state, and stores only short-lived UI preferences such as theme.",
+      "Local browser access is allowed through the loopback runtime boundary. External callers and operator scripts use X-API-Key.",
       "Secrets, durable resume state, destructive cleanup, and provider orchestration remain backend-owned.",
     ],
   },
