@@ -26,6 +26,14 @@ Le shell fournit :
 - navigation mobile ;
 - rappel des ports locaux.
 
+Le shell et le guide produit doivent decrire le runtime reel :
+
+- local-first ;
+- frontend client-only ;
+- etat et secrets backend-owned ;
+- acces navigateur local via loopback ;
+- appels externes via `X-API-Key`.
+
 ## Primitives
 
 Primitives ajoutees :
