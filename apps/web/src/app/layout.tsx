@@ -8,17 +8,17 @@ const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://mindris.ai";
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
   title: {
-    default: "Mindris AI — Precision Scraping. Agentic Rewriting. Pixel-Perfect Career.",
+    default: "Mindris AI — Local-first resume workflow studio",
     template: "%s | Mindris AI",
   },
   description:
-    "Mindris AI automates the bridge between job requirements and your professional profile. Upload your CV, paste a job URL, and let AI agents tailor every bullet point for maximum ATS compatibility.",
+    "Mindris AI is a local-first resume workflow studio. Scrape a role, adapt your CV through backend-owned APIs, generate supporting artifacts, and track each application.",
   keywords: ["AI CV builder", "resume optimizer", "ATS", "LangGraph", "RAG", "job scraper", "cover letter AI"],
   authors: [{ name: "Rayhan" }],
   openGraph: {
-    title: "Mindris AI — Autonomous Career Engine",
+    title: "Mindris AI — Local-first resume workflow studio",
     description:
-      "Scrape job offers. Match your profile via RAG. Generate pixel-perfect, ATS-proof CVs automatically.",
+      "Scrape job offers, adapt your CV through backend-owned workflows, generate supporting artifacts, and track the application end to end.",
     type: "website",
     locale: "en_US",
     url: BASE_URL,
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Mindris AI",
-    description: "Your autonomous career architect powered by LangGraph & CrewAI.",
+    description: "Local-first resume workflow studio with backend-owned CV, ATS, and application flows.",
   },
   robots: {
     index: true,
