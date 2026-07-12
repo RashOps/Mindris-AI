@@ -210,6 +210,8 @@ Detailed guide: [`docs/self-hosting.md`](docs/self-hosting.md).
 
 Mindris source code is released under the [MIT License](LICENSE).
 
+Mindris currently ships as a local-first workspace. The browser remains a client only, product state stays backend-owned, and local browser access relies on the loopback runtime boundary. External callers, scripts, and operator tooling still authenticate with `X-API-Key`.
+
 The `Mindris` name, `Mindris AI` name, logos, wordmarks, and brand identity are not licensed under MIT. You may fork, modify, and use the code, including for commercial purposes under MIT, but you may not use the Mindris branding in a way that suggests official status, endorsement, or affiliation without permission.
 
 Public forks, derivative hosted services, and commercial distributions should rebrand unless they have explicit written approval to use the official Mindris identity.
