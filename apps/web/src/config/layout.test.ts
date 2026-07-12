@@ -15,6 +15,7 @@ describe("app shell sidebar layout", () => {
 
     expect(guide?.href).toBe("/tools/guide");
     expect(guide?.label).toBe("Guide");
+    expect(guide?.description).toContain("workflow");
   });
 
   test("places configuration above local services", () => {
