@@ -41,11 +41,12 @@ Le MVP1 est testable localement avec l'API FastAPI, le renderer Bun/Elysia et le
 
 ### 2.3 Baked public env pour Next.js
 
-**Decision :** Passer `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_RENDERER_URL` et `NEXT_PUBLIC_API_KEY` comme build args et variables runtime du container web.
+**Decision :** Passer uniquement `NEXT_PUBLIC_API_URL` et `NEXT_PUBLIC_RENDERER_URL` comme build args et variables runtime du container web.
 
 **Justification :**
 - Next.js incorpore les variables `NEXT_PUBLIC_*` au build.
 - En self-hosting local, ces URLs doivent rester en `localhost` parce que le navigateur s'execute sur la machine hote.
+- La frontière d'authentification reste backend-owned: le navigateur local repose sur le loopback, pas sur une clé publique embarquée.
 
 ### 2.4 Proteger le build context
 
