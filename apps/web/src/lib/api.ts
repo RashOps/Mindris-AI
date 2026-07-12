@@ -1,8 +1,8 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const RENDERER_BASE = process.env.NEXT_PUBLIC_RENDERER_URL ?? "http://localhost:4000";
-const API_KEY = process.env.NEXT_PUBLIC_API_KEY ?? "dev-mindris-api-key";
 
 export const RENDERER_BASE_URL = RENDERER_BASE;
+export const BROWSER_API_AUTH_MODE = "local-browser-or-header";
 
 function joinUrl(base: string, path: string): string {
   const normalizedBase = base.replace(/\/$/, "");
@@ -19,7 +19,7 @@ export function rendererUrl(path: string): string {
 }
 
 export function apiHeaders(): HeadersInit {
-  return { "X-API-Key": API_KEY };
+  return {};
 }
 
 export function jsonHeaders(): HeadersInit {
