@@ -5,7 +5,7 @@ import Link from "next/link";
 import { LoaderCircle, RefreshCw, Server } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { apiUrl, rendererUrl } from "@/lib/api";
+import { BROWSER_API_AUTH_MODE, apiUrl, rendererUrl } from "@/lib/api";
 import {
   buildRuntimeSummary,
   normalizeReadinessPayload,
@@ -176,7 +176,9 @@ export function RuntimeGate({ children }: { children: ReactNode }) {
         </div>
 
         <div className="mt-6 rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-          The frontend remains a client only. It waits for API-backed readiness before exposing the workspace.
+          The frontend remains a client only. Runtime access follows the{" "}
+          <span className="font-medium text-foreground">{BROWSER_API_AUTH_MODE}</span>{" "}
+          contract and waits for API-backed readiness before exposing the workspace.
         </div>
       </div>
     </div>
