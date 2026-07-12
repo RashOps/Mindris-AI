@@ -24,7 +24,7 @@ export function SectionPanel({
   className?: string;
 }) {
   return (
-    <section className={cn("rounded-lg border border-slate-200 bg-white shadow-sm", className)}>
+    <section className={cn("app-surface", className)}>
       {children}
     </section>
   );
@@ -60,14 +60,14 @@ export function MetricTile({
   children?: ReactNode;
 }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+    <div className="app-surface-muted px-3 py-3">
       <div className="mb-2 flex items-center justify-between">
-        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {label}
         </p>
         {children}
       </div>
-      <p className="text-2xl font-semibold text-slate-950">{value}</p>
+      <p className="text-2xl font-semibold text-foreground">{value}</p>
     </div>
   );
 }
