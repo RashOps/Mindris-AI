@@ -43,13 +43,11 @@ services:
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
         NEXT_PUBLIC_RENDERER_URL: ${NEXT_PUBLIC_RENDERER_URL:-http://localhost:4000}
-        NEXT_PUBLIC_API_KEY: ${NEXT_PUBLIC_API_KEY:-${API_KEY:-dev-mindris-api-key}}
     ports:
       - "3000:3000"
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
       NEXT_PUBLIC_RENDERER_URL: ${NEXT_PUBLIC_RENDERER_URL:-http://localhost:4000}
-      NEXT_PUBLIC_API_KEY: ${NEXT_PUBLIC_API_KEY:-${API_KEY:-dev-mindris-api-key}}
     depends_on:
       api-gateway:
         condition: service_healthy

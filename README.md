@@ -194,6 +194,8 @@ API       http://localhost:8000
 Renderer  http://localhost:4000
 ```
 
+Browser access stays local-first: the web client talks to the API from loopback `localhost`, while operator scripts and external callers still use `X-API-Key`.
+
 Smoke check:
 
 ```bash
@@ -280,7 +282,7 @@ All settings are centralised in `packages/utils/config.py` and read from `.env`:
 
 | Variable | Default | Description |
 |---|---|---|
-| `API_KEY` | `dev-mindris-api-key` | Shared local API key for protected routes |
+| `API_KEY` | `dev-mindris-api-key` | Local operator API key for CLI, tests, and non-browser callers |
 | `RENDERER_URL` | `http://localhost:4000` | Renderer service URL |
 | `MAX_PDF_UPLOAD_BYTES` | `10485760` | Maximum accepted PDF upload size |
 | `OLLAMA_API_BASE` | `http://127.0.0.1:11434` | Ollama server URL |
