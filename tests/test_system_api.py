@@ -20,10 +20,18 @@ def _isolate_runtime_storage(monkeypatch, tmp_path: Path) -> None:
 
 
 def test_system_configuration_requires_api_key() -> None:
-    api = client()
+    api = client(client_host="198.51.100.25", base_url="http://mindris.example")
     response = api.get("/api/v1/system/configuration")
     assert response.status_code == 401
     assert response.json()["status"] == "error"
+
+
+def test_system_configuration_accepts_local_loopback_without_browser_key() -> None:
+    api = client()
+    response = api.get("/api/v1/system/configuration")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "success"
 
 
 def test_system_configuration_returns_masked_backend_owned_settings(
@@ -104,18 +112,19 @@ def test_runtime_api_key_slot_overrides_default_auth(
 ) -> None:
     _isolate_runtime_storage(monkeypatch, tmp_path)
 
-    api = client()
-    rotate = api.put(
+    local_api = client()
+    rotate = local_api.put(
         "/api/v1/system/secrets/api_key",
         headers=auth_headers(),
         json={"value": "rotated-api-key"},
     )
     assert rotate.status_code == 200
 
-    old_key_response = api.get("/api/v1/llm/catalogue", headers=auth_headers())
+    remote_api = client(client_host="198.51.100.25", base_url="http://mindris.example")
+    old_key_response = remote_api.get("/api/v1/llm/catalogue", headers=auth_headers())
     assert old_key_response.status_code == 401
 
-    new_key_response = api.get(
+    new_key_response = remote_api.get(
         "/api/v1/llm/catalogue",
         headers={"X-API-Key": "rotated-api-key"},
     )
@@ -123,7 +132,7 @@ def test_runtime_api_key_slot_overrides_default_auth(
 
 
 def test_system_diagnostics_requires_api_key() -> None:
-    api = client()
+    api = client(client_host="198.51.100.25", base_url="http://mindris.example")
     response = api.get("/api/v1/system/diagnostics")
     assert response.status_code == 401
     assert response.json()["status"] == "error"

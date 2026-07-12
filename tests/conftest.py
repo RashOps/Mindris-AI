@@ -21,14 +21,27 @@ from utils.config import settings  # noqa: E402
 class ApiClient:
     """Minimal sync wrapper around httpx ASGI transport for backend tests."""
 
+    def __init__(
+        self,
+        *,
+        client_host: str = "127.0.0.1",
+        base_url: str = "http://testserver",
+    ) -> None:
+        self._client_host = client_host
+        self._base_url = base_url
+
     def request(self, method: str, path: str, **kwargs: Any) -> Response:
         """Send a request to the in-process ASGI application."""
 
         async def _run() -> Response:
-            transport = ASGITransport(app=app, raise_app_exceptions=False)
+            transport = ASGITransport(
+                app=app,
+                raise_app_exceptions=False,
+                client=(self._client_host, 1234),
+            )
             async with AsyncClient(
                 transport=transport,
-                base_url="http://testserver",
+                base_url=self._base_url,
             ) as client:
                 return await client.request(method, path, **kwargs)
 
@@ -60,7 +73,11 @@ def auth_headers() -> dict[str, str]:
     return {"X-API-Key": settings.api_key.get_secret_value()}
 
 
-def client() -> ApiClient:
+def client(
+    *,
+    client_host: str = "127.0.0.1",
+    base_url: str = "http://testserver",
+) -> ApiClient:
     """Return a lightweight ASGI client for the FastAPI app."""
     init_db()
-    return ApiClient()
+    return ApiClient(client_host=client_host, base_url=base_url)
