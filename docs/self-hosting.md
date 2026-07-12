@@ -36,7 +36,6 @@ API_KEY="dev-mindris-api-key"
 RENDERER_URL="http://localhost:4000"
 NEXT_PUBLIC_API_URL="http://localhost:8000"
 NEXT_PUBLIC_RENDERER_URL="http://localhost:4000"
-NEXT_PUBLIC_API_KEY="dev-mindris-api-key"
 STORAGE_DIR="./storage"
 LOGS_DIR="./logs"
 CHROMA_DB_DIR="./storage/vectordb"
@@ -51,7 +50,7 @@ LOGS_DIR=/app/logs
 CHROMA_DB_DIR=/app/storage/vectordb
 ```
 
-Les variables `NEXT_PUBLIC_*` restent en `localhost` parce qu'elles sont utilisées par le navigateur de l'utilisateur, pas par le réseau interne Docker.
+Les variables `NEXT_PUBLIC_*` restent en `localhost` parce qu'elles sont utilisées par le navigateur de l'utilisateur, pas par le réseau interne Docker. Le navigateur local n'embarque plus de clé publique: l'accès web repose sur la frontière loopback locale, tandis que les scripts et appels externes utilisent `X-API-Key`.
 
 Ne pas mettre de vraies clés API dans `.env.example`.
 

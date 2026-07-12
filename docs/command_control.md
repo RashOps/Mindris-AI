@@ -348,7 +348,6 @@ API_KEY="dev-mindris-api-key"
 RENDERER_URL="http://localhost:4000"
 NEXT_PUBLIC_API_URL="http://localhost:8000"
 NEXT_PUBLIC_RENDERER_URL="http://localhost:4000"
-NEXT_PUBLIC_API_KEY="dev-mindris-api-key"
 OLLAMA_API_BASE="http://127.0.0.1:11434"
 OLLAMA_NUM_CTX="32768"
 SCRAPER_HEADLESS=true

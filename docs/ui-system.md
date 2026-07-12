@@ -66,6 +66,17 @@ Les surfaces et champs frequents doivent preferer :
 
 Ces classes definissent le contrat minimum entre light/dark mode, lisibilite, focus et hover.
 
+## Configuration
+
+La surface `Configuration` doit rester backend-owned et etre organisee par intentions distinctes :
+
+- `Task model defaults` pour les modeles/task routing
+- `Ingestion and local runtime` pour les toggles runtime non sensibles
+- `Runtime diagnostics` pour l'etat local et les chemins d'operation
+- `Secret slots` pour les cles write-only
+
+Les secrets, diagnostics et defaults ne doivent plus etre presentes comme un seul bloc uniforme.
+
 ## Verification
 
 Avant de declarer un changement UI termine :
