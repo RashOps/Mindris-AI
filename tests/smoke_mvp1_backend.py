@@ -7,10 +7,10 @@ SQLite migrations, template catalogue, resume persistence, and workspace drafts.
 from __future__ import annotations
 
 import asyncio
+import json
 import sys
 from io import BytesIO
 from pathlib import Path
-import json
 from zipfile import ZipFile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,16 +27,19 @@ from exporters import (  # noqa: E402
     resume_to_typst,
 )
 from persistence import (  # noqa: E402
-    create_resume_locale_variant,
     create_resume,
+    create_resume_locale_variant,
     localized_resume_record,
     serialize_draft,
     update_resume,
     upsert_workspace_draft,
 )
 from routers.system import readiness_checks  # noqa: E402
-from routers.templates import list_templates  # noqa: E402
-from routers.templates import export_installed_template_package, import_template_package  # noqa: E402
+from routers.templates import (  # noqa: E402
+    export_installed_template_package,
+    import_template_package,
+    list_templates,  # noqa: E402
+)
 
 VALID_PREVIEW_PNG = (
     b"\x89PNG\r\n\x1a\n"
@@ -231,7 +234,10 @@ def main() -> None:
         )
         if "# Phase 5 EN" not in localized_markdown:
             raise SystemExit("Localized Markdown export smoke check failed.")
-        template_import = import_template_package(session, _community_template_package())
+        template_import = import_template_package(
+            session,
+            _community_template_package(),
+        )
         if template_import["item"]["id"] != "mindris/smoke-template":
             raise SystemExit("Community template import smoke check failed.")
         template_export = export_installed_template_package(

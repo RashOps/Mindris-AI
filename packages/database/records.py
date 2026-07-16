@@ -192,7 +192,10 @@ class OpportunityRecord(Base):
     source_url: Mapped[str | None] = mapped_column(Text, default=None)
     company: Mapped[str]
     role: Mapped[str]
-    current_state: Mapped[str] = mapped_column(default="opportunity_created", index=True)
+    current_state: Mapped[str] = mapped_column(
+        default="opportunity_created",
+        index=True,
+    )
     resume_id: Mapped[int | None] = mapped_column(
         ForeignKey("resumerecord.id"), default=None
     )

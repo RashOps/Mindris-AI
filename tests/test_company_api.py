@@ -1,7 +1,8 @@
 """Company intelligence API tests."""
 
-from conftest import auth_headers, client
 from uuid import uuid4
+
+from conftest import auth_headers, client
 
 
 def test_company_analyze_reuses_cached_identity(monkeypatch) -> None:
@@ -36,7 +37,11 @@ def test_company_analyze_reuses_cached_identity(monkeypatch) -> None:
             "risk_flags": [],
             "evidence": {},
             "provenance": {},
-            "cache": {"strategy": "deterministic", "provider": "local", "freshness": "runtime"},
+            "cache": {
+                "strategy": "deterministic",
+                "provider": "local",
+                "freshness": "runtime",
+            },
             "unavailable_reason": None,
         }
 
@@ -72,7 +77,9 @@ def test_company_analyze_reuses_cached_identity(monkeypatch) -> None:
     assert second.json()["insight"]["canonical_domain"] == f"mindris-{slug}.com"
 
 
-def test_company_analyze_can_bypass_deterministic_cache_for_explicit_summary(monkeypatch) -> None:
+def test_company_analyze_can_bypass_deterministic_cache_for_explicit_summary(
+    monkeypatch,
+) -> None:
     calls = {"count": 0}
     slug = uuid4().hex[:8]
     company_name = f"Mindris Summary {slug}"
@@ -104,7 +111,11 @@ def test_company_analyze_can_bypass_deterministic_cache_for_explicit_summary(mon
             "evidence": {},
             "provenance": {},
             "cache": {
-                "strategy": "deterministic+llm" if kwargs.get("enable_llm_summary") else "deterministic",
+                "strategy": (
+                    "deterministic+llm"
+                    if kwargs.get("enable_llm_summary")
+                    else "deterministic"
+                ),
                 "provider": "local",
                 "freshness": "runtime",
             },

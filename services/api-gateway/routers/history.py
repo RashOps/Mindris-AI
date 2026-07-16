@@ -1,7 +1,7 @@
 """History routes."""
 
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Any
 
 from database.records import (
     ApplicationRecord,
@@ -287,7 +287,7 @@ def _build_history_ledger(session: Session) -> list[dict]:
     return sorted(items, key=lambda item: item["timestamp"], reverse=True)
 
 
-def _purge_records(session: Session, model) -> int:
+def _purge_records(session: Session, model: type[Any]) -> int:
     rows = session.exec(select(model)).all()
     for row in rows:
         session.delete(row)

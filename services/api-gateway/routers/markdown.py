@@ -1,9 +1,8 @@
 """Markdown workspace routes."""
 
-from fastapi import APIRouter, Depends, Response
-
 from auth import verify_api_key
 from exporters import markdown_to_docx, safe_export_filename
+from fastapi import APIRouter, Depends, Response
 from schemas import MarkdownDocumentRequest
 
 router = APIRouter(prefix="/api/v1/markdown", tags=["markdown"])

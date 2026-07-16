@@ -71,7 +71,10 @@ async def analyze_company_route(
         enable_llm_summary=request.enable_llm_summary,
     )
     logger.info("Company insight generated for %s", name)
-    record = cached or CompanyInsightRecord(company_name=name.lower(), cache_key=cache_key)
+    record = cached or CompanyInsightRecord(
+        company_name=name.lower(),
+        cache_key=cache_key,
+    )
     record.company_name = name.lower()
     record.cache_key = cache_key
     record.insight_json = dump_json(insight)

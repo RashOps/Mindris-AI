@@ -27,7 +27,9 @@ def test_opportunity_tables_exist_after_migration() -> None:
         }
         opportunity_columns = {
             row[1]
-            for row in session.execute(text("PRAGMA table_info(opportunityrecord)")).all()
+            for row in session.execute(
+                text("PRAGMA table_info(opportunityrecord)")
+            ).all()
         }
         transition_columns = {
             row[1]
