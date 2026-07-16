@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useCVStore } from "@/store/useCVStore";
 import type { LLMProvider } from "@/store/useCVStore";
+import { ToolbarSelect } from "@/components/ToolbarSelect";
 import { useRouter } from "next/navigation";
 import { apiUrl, jsonHeaders } from "@/lib/api";
 import { saveDraft } from "@/lib/drafts";
@@ -112,11 +113,6 @@ export function CoverLetterModal({ open, onClose }: CoverLetterModalProps) {
     border: '1px solid rgba(255,255,255,0.1)',
     color: '#e2e8f0',
   };
-  const selectStyle = {
-    ...inputStyle,
-    appearance: 'none' as const,
-  };
-
   return (
     <>
       {/* Backdrop */}
@@ -219,26 +215,21 @@ export function CoverLetterModal({ open, onClose }: CoverLetterModalProps) {
                 Modèle IA
               </label>
               <div className="flex gap-2">
-                <select
+                <ToolbarSelect
                   value={provider}
-                  onChange={(e) => handleProviderChange(e.target.value as LLMProvider)}
-                  className="flex-1 h-9 text-sm rounded-lg px-3 focus:outline-none"
-                  style={selectStyle}
-                >
-                  {PROVIDERS.map((p) => (
-                    <option key={p.id} value={p.id} style={{ background: '#0a0f1a' }}>{p.label}</option>
-                  ))}
-                </select>
-                <select
+                  ariaLabel="Cover letter provider"
+                  options={PROVIDERS.map((p) => ({ value: p.id, label: p.label }))}
+                  onChange={(value) => handleProviderChange(value as LLMProvider)}
+                  triggerClassName="flex-1 h-9 text-sm rounded-lg px-3 focus:outline-none border border-white/10 bg-white/5 text-slate-200"
+                />
+                <ToolbarSelect
                   value={modelName}
-                  onChange={(e) => setModelName(e.target.value)}
-                  className="flex-1 h-9 text-sm rounded-lg px-3 focus:outline-none"
-                  style={selectStyle}
-                >
-                  {(MODELS[provider] ?? []).map((m) => (
-                    <option key={m.id} value={m.id} style={{ background: '#0a0f1a' }}>{m.label}</option>
-                  ))}
-                </select>
+                  ariaLabel="Cover letter model"
+                  options={(MODELS[provider] ?? []).map((m) => ({ value: m.id, label: m.label }))}
+                  onChange={setModelName}
+                  triggerClassName="flex-1 h-9 text-sm rounded-lg px-3 focus:outline-none border border-white/10 bg-white/5 text-slate-200"
+                  menuClassName="min-w-64"
+                />
               </div>
               <p className="text-[10px] mt-1" style={{ color: '#334155' }}>
                 Groq Llama 3.3 70B recommandé — rapide et gratuit. Gemini Flash si quota disponible.

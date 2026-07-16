@@ -4,6 +4,7 @@ import type { ReactNode, RefObject } from "react";
 
 import { LLMSelector } from "@/components/LLMSelector";
 import { PdfIngestionModeSelect } from "@/components/PdfIngestionModeSelect";
+import { ToolbarSelect } from "@/components/ToolbarSelect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -116,15 +117,17 @@ export function CvBuilderHeader(props: {
         </div>
 
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-          <select
+          <ToolbarSelect
             value={activeResumeId}
-            onChange={(e) => onSelectResume(e.target.value)}
-            className={`${BUILDER_INPUT_CLASS} min-w-40 max-w-56 cursor-pointer`}
-          >
-            {resumes.map((resume) => (
-              <option key={resume.id} value={resume.id}>{resume.name}</option>
-            ))}
-          </select>
+            ariaLabel="Select resume"
+            options={resumes.map((resume) => ({
+              value: resume.id,
+              label: resume.name,
+            }))}
+            onChange={onSelectResume}
+            triggerClassName={`${BUILDER_INPUT_CLASS} min-w-40 max-w-56`}
+            menuClassName="min-w-56"
+          />
           <input
             value={activeResumeName}
             onChange={(e) => onRenameResume(e.target.value)}
@@ -134,58 +137,11 @@ export function CvBuilderHeader(props: {
           <button onClick={onCreateResume} className="app-toolbar-button h-9 cursor-pointer px-3 text-xs font-medium">New</button>
           <button onClick={onDuplicateResume} className="app-toolbar-button h-9 cursor-pointer px-3 text-xs font-medium">Duplicate</button>
           <button onClick={onDeleteResume} className="h-9 cursor-pointer rounded-lg border border-red-100 bg-red-50 px-3 text-xs font-medium text-red-700 hover:bg-red-100">Delete</button>
-          <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/40 px-1 py-1">
-            {availableLocales.map((locale) => (
-              <button
-                key={locale}
-                type="button"
-                onClick={() => onActivateLocale(locale)}
-                className={`inline-flex h-7 min-w-10 cursor-pointer items-center justify-center rounded-md px-2 text-[11px] font-semibold transition-colors ${
-                  locale === activeLocale
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-card text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {locale.toUpperCase()}
-              </button>
-            ))}
-            {inactiveLocales.length > 0 ? (
-              <>
-                <select
-                  value={localeToCreate}
-                  onChange={(e) => onSetLocaleToCreate(e.target.value as LocaleOption)}
-                  className="h-7 cursor-pointer rounded-md border border-input bg-background px-2 text-[11px] font-medium text-foreground outline-none"
-                >
-                  <option value="">Add locale</option>
-                  {inactiveLocales.map((locale) => (
-                    <option key={locale} value={locale}>{locale.toUpperCase()}</option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  disabled={!localeToCreate}
-                  onClick={onCreateLocale}
-                  className="inline-flex h-7 cursor-pointer items-center justify-center rounded-md border border-input bg-background px-2 text-[11px] font-semibold text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Add
-                </button>
-              </>
-            ) : null}
-            {canDeleteLocale ? (
-              <button
-                type="button"
-                onClick={onDeleteLocale}
-                className="inline-flex h-7 cursor-pointer items-center justify-center rounded-md border border-red-200 bg-red-50 px-2 text-[11px] font-semibold text-red-700 transition-colors hover:bg-red-100"
-              >
-                Remove
-              </button>
-            ) : null}
-          </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <PdfIngestionModeSelect label="PDF parse" />
-          <LLMSelector taskKey="optimize_llm" label="Optimize" />
+          <PdfIngestionModeSelect label="PDF parse" variant="toolbar" />
+          <LLMSelector taskKey="optimize_llm" label="Optimize" variant="toolbar" />
           <button
             onClick={onRetrySave}
             className="app-toolbar-button h-9 px-3 text-xs font-medium"
@@ -202,6 +158,55 @@ export function CvBuilderHeader(props: {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border bg-muted/40 px-1 py-1">
+          {availableLocales.map((locale) => (
+            <button
+              key={locale}
+              type="button"
+              onClick={() => onActivateLocale(locale)}
+              className={`inline-flex h-7 min-w-10 cursor-pointer items-center justify-center rounded-md px-2 text-[11px] font-semibold transition-colors ${
+                locale === activeLocale
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {locale.toUpperCase()}
+            </button>
+          ))}
+          {inactiveLocales.length > 0 ? (
+            <>
+              <ToolbarSelect
+                value={localeToCreate}
+                placeholder="Add locale"
+                ariaLabel="Add locale"
+                options={inactiveLocales.map((locale) => ({
+                  value: locale,
+                  label: locale.toUpperCase(),
+                }))}
+                onChange={(value) => onSetLocaleToCreate(value as LocaleOption)}
+                triggerClassName="app-select h-7 min-w-24 px-2 text-[11px] font-medium"
+                menuClassName="min-w-28"
+              />
+              <button
+                type="button"
+                disabled={!localeToCreate}
+                onClick={onCreateLocale}
+                className="inline-flex h-7 cursor-pointer items-center justify-center rounded-md border border-input bg-background px-2 text-[11px] font-semibold text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Add
+              </button>
+            </>
+          ) : null}
+          {canDeleteLocale ? (
+            <button
+              type="button"
+              onClick={onDeleteLocale}
+              className="inline-flex h-7 cursor-pointer items-center justify-center rounded-md border border-red-200 bg-red-50 px-2 text-[11px] font-semibold text-red-700 transition-colors hover:bg-red-100"
+            >
+              Remove
+            </button>
+          ) : null}
+        </div>
         <div className="flex min-w-[280px] flex-1 items-center gap-2">
           <Input
             value={jobUrl}

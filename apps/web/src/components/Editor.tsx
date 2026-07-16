@@ -6,6 +6,7 @@ import type { Social } from "@/store/useCVStore";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ToolbarSelect } from "@/components/ToolbarSelect";
 
 import {
   DndContext,
@@ -523,13 +524,14 @@ function LanguagesSection() {
         {cvData.languages.map((lang) => (
           <div key={lang.id} className="flex items-center gap-2">
             <Input value={lang.language} onChange={(e) => updateLanguage(lang.id, { language: e.target.value })} placeholder="Langue" className={`text-sm ${FIELD_INPUT_CLASS}`} />
-            <select
+            <ToolbarSelect
               value={lang.level}
-              onChange={(e) => updateLanguage(lang.id, { level: e.target.value })}
-              className={`h-9 flex-shrink-0 px-2 text-sm ${SELECT_CLASS}`}
-            >
-              {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
-            </select>
+              ariaLabel={`${lang.language || "Language"} level`}
+              options={LEVELS.map((level) => ({ value: level, label: level }))}
+              onChange={(level) => updateLanguage(lang.id, { level })}
+              triggerClassName={`h-9 flex-shrink-0 px-2 text-sm ${SELECT_CLASS}`}
+              menuClassName="min-w-52"
+            />
             <RemoveBtn onClick={() => removeLanguage(lang.id)} />
           </div>
         ))}
@@ -592,20 +594,22 @@ function ProfileSection() {
           <Label className="mb-1 block text-xs text-slate-600">Réseaux sociaux</Label>
           {p.socials.map((s, i) => (
             <div key={i} className="flex items-center gap-2">
-              <select
+              <ToolbarSelect
                 value={s.type}
-                onChange={(e) => {
+                ariaLabel={`Social type ${i + 1}`}
+                options={[
+                  { value: "linkedin", label: "LinkedIn" },
+                  { value: "github", label: "GitHub" },
+                  { value: "website", label: "Portfolio" },
+                  { value: "other", label: "Autre" },
+                ]}
+                onChange={(value) => {
                   const updated = [...p.socials];
-                  updated[i] = { ...s, type: e.target.value as Social["type"] };
+                  updated[i] = { ...s, type: value as Social["type"] };
                   setProfile({ socials: updated });
                 }}
-                className={`h-8 w-28 flex-shrink-0 px-2 text-xs ${SELECT_CLASS}`}
-              >
-                <option value="linkedin">LinkedIn</option>
-                <option value="github">GitHub</option>
-                <option value="website">Portfolio</option>
-                <option value="other">Autre</option>
-              </select>
+                triggerClassName={`h-8 w-28 flex-shrink-0 px-2 text-xs ${SELECT_CLASS}`}
+              />
               <Input
                 value={s.url}
                 onChange={(e) => {

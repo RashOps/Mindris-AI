@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { ToolbarSelect } from "@/components/ToolbarSelect";
 import { useCVStore } from "@/store/useCVStore";
 import type { GlobalSettings } from "@/store/useCVStore";
 import {
@@ -369,26 +370,22 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
 
               <section>
                 <SectionLabel>Palette</SectionLabel>
-                  <select
+                  <ToolbarSelect
                   value={colorSettings.palette_preset ?? "tech"}
-                  onChange={(e) =>
+                  ariaLabel="Palette preset"
+                  options={options.palettePresets.map((preset) => ({ value: preset, label: preset }))}
+                  onChange={(value) =>
                     update({
                       colors: {
                         ...colorSettings,
-                        palette_preset: e.target.value as NonNullable<
+                        palette_preset: value as NonNullable<
                           GlobalSettings["colors"]
                         >["palette_preset"],
                       },
                     })
                   }
-                  className={PANEL_INPUT_CLASS + " w-full"}
-                >
-                  {options.palettePresets.map((preset) => (
-                    <option key={preset} value={preset}>
-                      {preset}
-                    </option>
-                  ))}
-                </select>
+                  triggerClassName={PANEL_INPUT_CLASS + " w-full"}
+                />
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   {options.editableColors.map((token) => (
                     <label key={token} className="space-y-1">
@@ -439,46 +436,44 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
               <section>
                 <SectionLabel>Locale</SectionLabel>
                 <div className="grid gap-2">
-                  <select
+                  <ToolbarSelect
                     value={localeSettings.label_language ?? "fr"}
-                    onChange={(e) =>
+                    ariaLabel="Locale label language"
+                    options={options.localeLanguages.map((language) => ({
+                      value: language,
+                      label: language.toUpperCase(),
+                    }))}
+                    onChange={(value) =>
                       update({
                         locale: {
                           ...localeSettings,
-                          label_language: e.target.value as NonNullable<
+                          label_language: value as NonNullable<
                             GlobalSettings["locale"]
                           >["label_language"],
                         },
                       })
                     }
-                    className={PANEL_INPUT_CLASS}
-                  >
-                    {options.localeLanguages.map((language) => (
-                      <option key={language} value={language}>
-                        {language.toUpperCase()}
-                      </option>
-                    ))}
-                  </select>
-                  <select
+                    triggerClassName={PANEL_INPUT_CLASS}
+                  />
+                  <ToolbarSelect
                     value={localeSettings.text_direction ?? "ltr"}
-                    onChange={(e) =>
+                    ariaLabel="Locale text direction"
+                    options={options.localeDirections.map((direction) => ({
+                      value: direction,
+                      label: direction.toUpperCase(),
+                    }))}
+                    onChange={(value) =>
                       update({
                         locale: {
                           ...localeSettings,
-                          text_direction: e.target.value as NonNullable<
+                          text_direction: value as NonNullable<
                             GlobalSettings["locale"]
                           >["text_direction"],
                         },
                       })
                     }
-                    className={PANEL_INPUT_CLASS}
-                  >
-                    {options.localeDirections.map((direction) => (
-                      <option key={direction} value={direction}>
-                        {direction.toUpperCase()}
-                      </option>
-                    ))}
-                  </select>
+                    triggerClassName={PANEL_INPUT_CLASS}
+                  />
                 </div>
               </section>
             </>
@@ -489,43 +484,37 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
               <section>
                 <SectionLabel>Fonts</SectionLabel>
                 <div className="space-y-3">
-                  <select
+                  <ToolbarSelect
                     value={typographySettings.body_font ?? DEFAULT_FONT}
-                    onChange={(e) =>
+                    ariaLabel="Body font"
+                    options={options.fonts.map((font) => ({ value: font, label: font }))}
+                    onChange={(value) =>
                       update({
-                        font_family: e.target.value,
+                        font_family: value,
                         typography: {
                           ...typographySettings,
-                          body_font: e.target.value,
+                          body_font: value,
                         },
                       })
                     }
-                    className={PANEL_INPUT_CLASS + " w-full"}
-                  >
-                    {options.fonts.map((font) => (
-                      <option key={font} value={font}>
-                        {font}
-                      </option>
-                    ))}
-                  </select>
-                  <select
+                    triggerClassName={PANEL_INPUT_CLASS + " w-full"}
+                    menuClassName="min-w-64"
+                  />
+                  <ToolbarSelect
                     value={typographySettings.heading_font ?? DEFAULT_FONT}
-                    onChange={(e) =>
+                    ariaLabel="Heading font"
+                    options={options.headingFonts.map((font) => ({ value: font, label: font }))}
+                    onChange={(value) =>
                       update({
                         typography: {
                           ...typographySettings,
-                          heading_font: e.target.value,
+                          heading_font: value,
                         },
                       })
                     }
-                    className={PANEL_INPUT_CLASS + " w-full"}
-                  >
-                    {options.headingFonts.map((font) => (
-                      <option key={font} value={font}>
-                        {font}
-                      </option>
-                    ))}
-                  </select>
+                    triggerClassName={PANEL_INPUT_CLASS + " w-full"}
+                    menuClassName="min-w-64"
+                  />
                 </div>
               </section>
 
@@ -568,26 +557,22 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
               <section>
                 <SectionLabel>Behavior</SectionLabel>
                 <div className="grid gap-2">
-                  <select
+                  <ToolbarSelect
                     value={typographySettings.weight ?? "regular"}
-                    onChange={(e) =>
+                    ariaLabel="Typography weight"
+                    options={options.weights.map((weight) => ({ value: weight, label: weight }))}
+                    onChange={(value) =>
                       update({
                         typography: {
                           ...typographySettings,
-                          weight: e.target.value as NonNullable<
+                          weight: value as NonNullable<
                             GlobalSettings["typography"]
                           >["weight"],
                         },
                       })
                     }
-                    className={PANEL_INPUT_CLASS}
-                  >
-                    {options.weights.map((weight) => (
-                      <option key={weight} value={weight}>
-                        {weight}
-                      </option>
-                    ))}
-                  </select>
+                    triggerClassName={PANEL_INPUT_CLASS}
+                  />
                   <label className={PANEL_TOGGLE_CLASS}>
                     <span className="text-xs font-medium text-foreground">
                       Uppercase titles
@@ -605,65 +590,56 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                       }
                     />
                   </label>
-                  <select
+                  <ToolbarSelect
                     value={typographySettings.line_height ?? settings.line_height ?? "1.5"}
-                    onChange={(e) =>
+                    ariaLabel="Line height"
+                    options={options.lineHeights.map((lineHeight) => ({
+                      value: lineHeight,
+                      label: lineHeight,
+                    }))}
+                    onChange={(value) =>
                       update({
-                        line_height: e.target.value,
+                        line_height: value,
                         typography: {
                           ...typographySettings,
-                          line_height: e.target.value,
+                          line_height: value,
                         },
                       })
                     }
-                    className={PANEL_INPUT_CLASS}
-                  >
-                    {options.lineHeights.map((lineHeight) => (
-                      <option key={lineHeight} value={lineHeight}>
-                        {lineHeight}
-                      </option>
-                    ))}
-                  </select>
-                  <select
+                    triggerClassName={PANEL_INPUT_CLASS}
+                  />
+                  <ToolbarSelect
                     value={typographySettings.date_style ?? "normal"}
-                    onChange={(e) =>
+                    ariaLabel="Date style"
+                    options={options.dateStyles.map((style) => ({ value: style, label: style }))}
+                    onChange={(value) =>
                       update({
                         typography: {
                           ...typographySettings,
-                          date_style: e.target.value as NonNullable<
+                          date_style: value as NonNullable<
                             GlobalSettings["typography"]
                           >["date_style"],
                         },
                       })
                     }
-                    className={PANEL_INPUT_CLASS}
-                  >
-                    {options.dateStyles.map((style) => (
-                      <option key={style} value={style}>
-                        {style}
-                      </option>
-                    ))}
-                  </select>
-                  <select
+                    triggerClassName={PANEL_INPUT_CLASS}
+                  />
+                  <ToolbarSelect
                     value={typographySettings.bullet_style ?? "bullets"}
-                    onChange={(e) =>
+                    ariaLabel="Bullet style"
+                    options={options.bulletStyles.map((style) => ({ value: style, label: style }))}
+                    onChange={(value) =>
                       update({
                         typography: {
                           ...typographySettings,
-                          bullet_style: e.target.value as NonNullable<
+                          bullet_style: value as NonNullable<
                             GlobalSettings["typography"]
                           >["bullet_style"],
                         },
                       })
                     }
-                    className={PANEL_INPUT_CLASS}
-                  >
-                    {options.bulletStyles.map((style) => (
-                      <option key={style} value={style}>
-                        {style}
-                      </option>
-                    ))}
-                  </select>
+                    triggerClassName={PANEL_INPUT_CLASS}
+                  />
                 </div>
               </section>
             </>
@@ -674,42 +650,34 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
               <section>
                 <SectionLabel>Page</SectionLabel>
                 <div className="grid gap-2">
-                  <select
+                  <ToolbarSelect
                     value={pageSettings.format ?? "A4"}
-                    onChange={(e) =>
+                    ariaLabel="Page format"
+                    options={options.pageFormats.map((format) => ({ value: format, label: format }))}
+                    onChange={(value) =>
                       update({
                         page: {
                           ...pageSettings,
-                          format: e.target.value as "A4" | "Letter",
+                          format: value as "A4" | "Letter",
                         },
                       })
                     }
-                    className={PANEL_INPUT_CLASS}
-                  >
-                    {options.pageFormats.map((format) => (
-                      <option key={format} value={format}>
-                        {format}
-                      </option>
-                    ))}
-                  </select>
-                  <select
+                    triggerClassName={PANEL_INPUT_CLASS}
+                  />
+                  <ToolbarSelect
                     value={pageSettings.page_break_mode ?? "auto"}
-                    onChange={(e) =>
+                    ariaLabel="Page break mode"
+                    options={options.pageBreakModes.map((mode) => ({ value: mode, label: mode }))}
+                    onChange={(value) =>
                       update({
                         page: {
                           ...pageSettings,
-                          page_break_mode: e.target.value as "auto" | "manual",
+                          page_break_mode: value as "auto" | "manual",
                         },
                       })
                     }
-                    className={PANEL_INPUT_CLASS}
-                  >
-                    {options.pageBreakModes.map((mode) => (
-                      <option key={mode} value={mode}>
-                        {mode}
-                      </option>
-                    ))}
-                  </select>
+                    triggerClassName={PANEL_INPUT_CLASS}
+                  />
                   <label className={PANEL_TOGGLE_CLASS}>
                     <div>
                       <span className="block text-xs font-medium text-foreground">
@@ -789,62 +757,56 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
               <section>
                 <SectionLabel>Columns</SectionLabel>
                 <div className="grid gap-2">
-                  <select
-                    value={layoutSettings.columns ?? 2}
-                    onChange={(e) =>
+                  <ToolbarSelect
+                    value={String(layoutSettings.columns ?? 2)}
+                    ariaLabel="Layout columns"
+                    options={options.columns.map((value) => ({
+                      value: String(value),
+                      label: `${value} column${value > 1 ? "s" : ""}`,
+                    }))}
+                    onChange={(value) =>
                       update({
                         layout: {
                           ...layoutSettings,
-                          columns: Number(e.target.value) as 1 | 2,
+                          columns: Number(value) as 1 | 2,
                         },
                       })
                     }
-                    className={PANEL_INPUT_CLASS}
-                  >
-                    {options.columns.map((value) => (
-                      <option key={value} value={value}>
-                        {value} column{value > 1 ? "s" : ""}
-                      </option>
-                    ))}
-                  </select>
-                  <select
+                    triggerClassName={PANEL_INPUT_CLASS}
+                  />
+                  <ToolbarSelect
                     value={layoutSettings.sidebar_position ?? "right"}
-                    onChange={(e) =>
+                    ariaLabel="Sidebar position"
+                    options={options.sidebarPositions.map((position) => ({
+                      value: position,
+                      label: position,
+                    }))}
+                    onChange={(value) =>
                       update({
                         layout: {
                           ...layoutSettings,
-                          sidebar_position: e.target.value as "none" | "left" | "right",
+                          sidebar_position: value as "none" | "left" | "right",
                         },
                       })
                     }
-                    className={PANEL_INPUT_CLASS}
-                  >
-                    {options.sidebarPositions.map((position) => (
-                      <option key={position} value={position}>
-                        {position}
-                      </option>
-                    ))}
-                  </select>
-                  <select
+                    triggerClassName={PANEL_INPUT_CLASS}
+                  />
+                  <ToolbarSelect
                     value={layoutSettings.density ?? "normal"}
-                    onChange={(e) =>
+                    ariaLabel="Layout density"
+                    options={options.densities.map((density) => ({ value: density, label: density }))}
+                    onChange={(value) =>
                       update({
                         layout: {
                           ...layoutSettings,
-                          density: e.target.value as NonNullable<
+                          density: value as NonNullable<
                             GlobalSettings["layout"]
                           >["density"],
                         },
                       })
                     }
-                    className={PANEL_INPUT_CLASS}
-                  >
-                    {options.densities.map((density) => (
-                      <option key={density} value={density}>
-                        {density}
-                      </option>
-                    ))}
-                  </select>
+                    triggerClassName={PANEL_INPUT_CLASS}
+                  />
                   <Slider
                     label="Sidebar width"
                     min={options.sidebarWidthRange.min}
@@ -867,26 +829,25 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
               <section>
                 <SectionLabel>Header & Photo</SectionLabel>
                 <div className="grid gap-2">
-                  <select
+                  <ToolbarSelect
                     value={layoutSettings.header_alignment ?? "left"}
-                    onChange={(e) =>
+                    ariaLabel="Header alignment"
+                    options={options.headerAlignments.map((alignment) => ({
+                      value: alignment,
+                      label: alignment,
+                    }))}
+                    onChange={(value) =>
                       update({
                         layout: {
                           ...layoutSettings,
-                          header_alignment: e.target.value as NonNullable<
+                          header_alignment: value as NonNullable<
                             GlobalSettings["layout"]
                           >["header_alignment"],
                         },
                       })
                     }
-                    className={PANEL_INPUT_CLASS}
-                  >
-                    {options.headerAlignments.map((alignment) => (
-                      <option key={alignment} value={alignment}>
-                        {alignment}
-                      </option>
-                    ))}
-                  </select>
+                    triggerClassName={PANEL_INPUT_CLASS}
+                  />
                   <label className={PANEL_TOGGLE_CLASS}>
                     <span className="text-xs font-medium text-foreground">Photo enabled</span>
                     <input
@@ -905,27 +866,23 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                       }
                     />
                   </label>
-                  <select
+                  <ToolbarSelect
                     value={layoutSettings.photo?.shape ?? "round"}
-                    onChange={(e) =>
+                    ariaLabel="Photo shape"
+                    options={options.photoShapes.map((shape) => ({ value: shape, label: shape }))}
+                    onChange={(value) =>
                       update({
                         layout: {
                           ...layoutSettings,
                           photo: {
                             ...layoutSettings.photo,
-                            shape: e.target.value as "round" | "square",
+                            shape: value as "round" | "square",
                           },
                         },
                       })
                     }
-                    className={PANEL_INPUT_CLASS}
-                  >
-                    {options.photoShapes.map((shape) => (
-                      <option key={shape} value={shape}>
-                        {shape}
-                      </option>
-                    ))}
-                  </select>
+                    triggerClassName={PANEL_INPUT_CLASS}
+                  />
                 </div>
               </section>
             </>
@@ -983,60 +940,48 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                               aria-label={`Toggle section ${section.type}`}
                             />
                           </label>
-                          <select
+                          <ToolbarSelect
                             value={section.placement ?? "main"}
-                            onChange={(e) =>
+                            ariaLabel={`Section placement ${section.type}`}
+                            options={sectionPlacements.map((placement) => ({
+                              value: placement,
+                              label: placement,
+                            }))}
+                            onChange={(value) =>
                               updateSection(index, {
-                                placement: e.target.value as "main" | "sidebar",
+                                placement: value as "main" | "sidebar",
                               })
                             }
-                            aria-label={`Section placement ${section.type}`}
-                            className={PANEL_INPUT_CLASS}
-                          >
-                            {sectionPlacements.map((placement) => (
-                              <option key={placement} value={placement}>
-                                {placement}
-                              </option>
-                            ))}
-                          </select>
+                            triggerClassName={PANEL_INPUT_CLASS}
+                          />
                         </div>
                         <div className="grid grid-cols-2 gap-2">
-                          <select
+                          <ToolbarSelect
                             value={section.display_mode ?? "list"}
-                            onChange={(e) =>
+                            ariaLabel={`Section display mode ${section.type}`}
+                            options={sectionModes.map((mode) => ({ value: mode, label: mode }))}
+                            onChange={(value) =>
                               updateSection(index, {
-                                display_mode: e.target.value as NonNullable<
+                                display_mode: value as NonNullable<
                                   GlobalSettings["sections"]
                                 >[number]["display_mode"],
                               })
                             }
-                            aria-label={`Section display mode ${section.type}`}
-                            className={PANEL_INPUT_CLASS}
-                          >
-                            {sectionModes.map((mode) => (
-                              <option key={mode} value={mode}>
-                                {mode}
-                              </option>
-                            ))}
-                          </select>
-                          <select
+                            triggerClassName={PANEL_INPUT_CLASS}
+                          />
+                          <ToolbarSelect
                             value={section.detail_level ?? "normal"}
-                            onChange={(e) =>
+                            ariaLabel={`Section detail level ${section.type}`}
+                            options={sectionDetails.map((level) => ({ value: level, label: level }))}
+                            onChange={(value) =>
                               updateSection(index, {
-                                detail_level: e.target.value as NonNullable<
+                                detail_level: value as NonNullable<
                                   GlobalSettings["sections"]
                                 >[number]["detail_level"],
                               })
                             }
-                            aria-label={`Section detail level ${section.type}`}
-                            className={PANEL_INPUT_CLASS}
-                          >
-                            {sectionDetails.map((level) => (
-                              <option key={level} value={level}>
-                                {level}
-                              </option>
-                            ))}
-                          </select>
+                            triggerClassName={PANEL_INPUT_CLASS}
+                          />
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                           <label className={PANEL_TOGGLE_CLASS}>
@@ -1100,25 +1045,21 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                       }
                     />
                   </label>
-                  <select
+                  <ToolbarSelect
                     value={advancedCssSettings.mode ?? "off"}
-                    onChange={(e) =>
+                    ariaLabel="Advanced CSS mode"
+                    options={catalogue.advancedCss.modes.map((mode) => ({ value: mode, label: mode }))}
+                    onChange={(value) =>
                       update({
                         advanced_css: {
                           ...advancedCssSettings,
-                          enabled: e.target.value !== "off",
-                          mode: e.target.value as "off" | "tokens" | "css_patch",
+                          enabled: value !== "off",
+                          mode: value as "off" | "tokens" | "css_patch",
                         },
                       })
                     }
-                    className={PANEL_INPUT_CLASS}
-                  >
-                    {catalogue.advancedCss.modes.map((mode) => (
-                      <option key={mode} value={mode}>
-                        {mode}
-                      </option>
-                    ))}
-                  </select>
+                    triggerClassName={PANEL_INPUT_CLASS}
+                  />
                   <textarea
                     value={advancedCssSettings.css_text ?? ""}
                     onChange={(e) =>

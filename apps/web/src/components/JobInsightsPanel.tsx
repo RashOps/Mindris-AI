@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { useCVStore } from "@/store/useCVStore";
 import type { LLMProvider } from "@/store/useCVStore";
+import { ToolbarSelect } from "@/components/ToolbarSelect";
 import { AtsScoreWidget } from "@/components/ats/AtsScoreWidget";
 import { apiUrl, jsonHeaders } from "@/lib/api";
 import { saveDraft } from "@/lib/drafts";
@@ -257,24 +258,25 @@ export function JobInsightsPanel({ open, onClose, variant = "drawer" }: JobInsig
               </div>
               {/* LLM selector for patch */}
               <div className="flex gap-1.5 mt-2">
-                <select
+                <ToolbarSelect
                   value={provider}
-                  onChange={(e) => {
-                    const nextProvider = e.target.value as LLMProvider;
+                  ariaLabel="Patch provider"
+                  options={PROVIDERS.map((p) => ({ value: p.id, label: p.label }))}
+                  onChange={(value) => {
+                    const nextProvider = value as LLMProvider;
                     setProvider(nextProvider);
                     setModelName(MODELS[nextProvider]?.[0]?.id ?? modelName);
                   }}
-                  className="flex-1 rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 focus:outline-none"
-                >
-                  {PROVIDERS.map(p => <option key={p.id} value={p.id} style={{ background: '#0a0f1a' }}>{p.label}</option>)}
-                </select>
-                <select
+                  triggerClassName="flex-1 rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 focus:outline-none"
+                />
+                <ToolbarSelect
                   value={modelName}
-                  onChange={(e) => setModelName(e.target.value)}
-                  className="flex-1 rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 focus:outline-none"
-                >
-                  {(MODELS[provider] ?? []).map(m => <option key={m.id} value={m.id} style={{ background: '#0a0f1a' }}>{m.label}</option>)}
-                </select>
+                  ariaLabel="Patch model"
+                  options={(MODELS[provider] ?? []).map((m) => ({ value: m.id, label: m.label }))}
+                  onChange={setModelName}
+                  triggerClassName="flex-1 rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 focus:outline-none"
+                  menuClassName="min-w-56"
+                />
               </div>
 
               <button

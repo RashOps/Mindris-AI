@@ -13,6 +13,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ToolbarSelect } from "@/components/ToolbarSelect";
 import { apiUrl, jsonHeaders } from "@/lib/api";
 import { WorkflowHeader } from "./components/WorkflowHeader";
 
@@ -365,18 +366,21 @@ export default function WorkflowPage() {
 
               <div className="space-y-3">
                 {createMode === "job" ? (
-                  <select
+                  <ToolbarSelect
                     value={selectedJobId}
-                    onChange={(event) => setSelectedJobId(event.target.value)}
-                    className="app-select h-10 w-full px-3 text-sm"
-                  >
-                    <option value="">Select scraped job</option>
-                    {jobs.map((job) => (
-                      <option key={job.id} value={job.id}>
-                        {job.company} - {job.title}
-                      </option>
-                    ))}
-                  </select>
+                    ariaLabel="Select scraped job"
+                    placeholder="Select scraped job"
+                    options={[
+                      { value: "", label: "Select scraped job" },
+                      ...jobs.map((job) => ({
+                        value: String(job.id),
+                        label: `${job.company} - ${job.title}`,
+                      })),
+                    ]}
+                    onChange={setSelectedJobId}
+                    triggerClassName="app-select h-10 w-full px-3 text-sm"
+                    menuClassName="min-w-full"
+                  />
                 ) : (
                   <>
                     <Input
@@ -669,29 +673,31 @@ export default function WorkflowPage() {
                       <div className="rounded-xl border border-border bg-muted/40 p-3">
                         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Resume</p>
                         <div className="flex flex-col gap-2 xl:flex-row">
-                          <select
+                          <ToolbarSelect
                             value={resumeId}
-                            onChange={(event) => setResumeId(event.target.value)}
-                            className="app-select h-10 w-full px-3 text-sm"
-                          >
-                            <option value="">Select resume</option>
-                            {resumes.map((resume) => (
-                              <option key={resume.id} value={resume.id}>
-                                {resume.name}
-                              </option>
-                            ))}
-                          </select>
-                          <select
+                            ariaLabel="Select resume"
+                            placeholder="Select resume"
+                            options={[
+                              { value: "", label: "Select resume" },
+                              ...resumes.map((resume) => ({
+                                value: String(resume.id),
+                                label: resume.name,
+                              })),
+                            ]}
+                            onChange={setResumeId}
+                            triggerClassName="app-select h-10 w-full px-3 text-sm"
+                          />
+                          <ToolbarSelect
                             value={resumeLocale}
-                            onChange={(event) => setResumeLocale(event.target.value)}
-                            className="app-select h-10 min-w-[120px] px-3 text-sm"
-                          >
-                            {localeOptions.map((locale) => (
-                              <option key={locale} value={locale}>
-                                {locale.toUpperCase()}
-                              </option>
-                            ))}
-                          </select>
+                            ariaLabel="Select resume locale"
+                            options={localeOptions.map((locale) => ({
+                              value: locale,
+                              label: locale.toUpperCase(),
+                            }))}
+                            onChange={setResumeLocale}
+                            triggerClassName="app-select h-10 min-w-[120px] px-3 text-sm"
+                            menuClassName="min-w-32"
+                          />
                         </div>
                         <Button
                           className="mt-2 h-9 w-full"
@@ -715,18 +721,20 @@ export default function WorkflowPage() {
 
                       <div className="rounded-xl border border-border bg-muted/40 p-3">
                         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">ATS report</p>
-                        <select
+                        <ToolbarSelect
                           value={atsReportId}
-                          onChange={(event) => setAtsReportId(event.target.value)}
-                          className="app-select h-10 w-full px-3 text-sm"
-                        >
-                          <option value="">Select ATS report</option>
-                          {filteredAtsReports.map((report) => (
-                            <option key={report.id} value={report.id}>
-                              #{report.id} - {report.mode} - {report.score}
-                            </option>
-                          ))}
-                        </select>
+                          ariaLabel="Select ATS report"
+                          placeholder="Select ATS report"
+                          options={[
+                            { value: "", label: "Select ATS report" },
+                            ...filteredAtsReports.map((report) => ({
+                              value: String(report.id),
+                              label: `#${report.id} - ${report.mode} - ${report.score}`,
+                            })),
+                          ]}
+                          onChange={setAtsReportId}
+                          triggerClassName="app-select h-10 w-full px-3 text-sm"
+                        />
                         <Button
                           className="mt-2 h-9 w-full"
                           disabled={!atsReportId || busyAction === "ats"}
@@ -746,18 +754,20 @@ export default function WorkflowPage() {
 
                       <div className="rounded-xl border border-border bg-muted/40 p-3">
                         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cover letter</p>
-                        <select
+                        <ToolbarSelect
                           value={coverLetterId}
-                          onChange={(event) => setCoverLetterId(event.target.value)}
-                          className="app-select h-10 w-full px-3 text-sm"
-                        >
-                          <option value="">Select cover letter</option>
-                          {filteredCoverLetters.map((letter) => (
-                            <option key={letter.id} value={letter.id}>
-                              #{letter.id} - {formatTimestamp(letter.generated_at)}
-                            </option>
-                          ))}
-                        </select>
+                          ariaLabel="Select cover letter"
+                          placeholder="Select cover letter"
+                          options={[
+                            { value: "", label: "Select cover letter" },
+                            ...filteredCoverLetters.map((letter) => ({
+                              value: String(letter.id),
+                              label: `#${letter.id} - ${formatTimestamp(letter.generated_at)}`,
+                            })),
+                          ]}
+                          onChange={setCoverLetterId}
+                          triggerClassName="app-select h-10 w-full px-3 text-sm"
+                        />
                         <Button
                           className="mt-2 h-9 w-full"
                           disabled={!coverLetterId || busyAction === "letter"}
@@ -777,18 +787,20 @@ export default function WorkflowPage() {
 
                       <div className="rounded-xl border border-border bg-muted/40 p-3">
                         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tracker</p>
-                        <select
+                        <ToolbarSelect
                           value={applicationId}
-                          onChange={(event) => setApplicationId(event.target.value)}
-                          className="app-select h-10 w-full px-3 text-sm"
-                        >
-                          <option value="">Create new tracker entry</option>
-                          {applications.map((application) => (
-                            <option key={application.id} value={application.id}>
-                              #{application.id} - {application.company} - {application.role}
-                            </option>
-                          ))}
-                        </select>
+                          ariaLabel="Select tracker entry"
+                          placeholder="Create new tracker entry"
+                          options={[
+                            { value: "", label: "Create new tracker entry" },
+                            ...applications.map((application) => ({
+                              value: String(application.id),
+                              label: `#${application.id} - ${application.company} - ${application.role}`,
+                            })),
+                          ]}
+                          onChange={setApplicationId}
+                          triggerClassName="app-select h-10 w-full px-3 text-sm"
+                        />
                         <div className="mt-2 grid gap-2 xl:grid-cols-2">
                           <Button
                             className="h-9 w-full"

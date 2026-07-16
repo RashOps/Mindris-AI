@@ -3,6 +3,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import { HardDrive } from "lucide-react";
 
+import { ToolbarSelect } from "@/components/ToolbarSelect";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import type { AppSettings } from "@/store/useCVStore";
@@ -29,22 +30,23 @@ export function RuntimeConfigurationSection({
     <SettingsSection title="Ingestion and local runtime" icon={<HardDrive size={16} />}>
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="pdf-ingestion-mode">PDF ingestion mode</Label>
-          <select
-            id="pdf-ingestion-mode"
+          <Label>PDF ingestion mode</Label>
+          <ToolbarSelect
             value={draftSettings.pdf_ingestion_mode}
-            onChange={(event) =>
+            ariaLabel="PDF ingestion mode"
+            options={[
+              { value: "auto", label: "Auto" },
+              { value: "llama_parse", label: "LlamaParse" },
+              { value: "local_text", label: "Full local text" },
+            ]}
+            onChange={(value) =>
               setDraftSettings((current) => ({
                 ...current,
-                pdf_ingestion_mode: event.target.value as AppSettings["pdf_ingestion_mode"],
+                pdf_ingestion_mode: value as AppSettings["pdf_ingestion_mode"],
               }))
             }
-            className="app-select h-10 w-full px-3 text-sm"
-          >
-            <option value="auto">Auto</option>
-            <option value="llama_parse">LlamaParse</option>
-            <option value="local_text">Full local text</option>
-          </select>
+            triggerClassName="app-select h-10 w-full px-3 text-sm"
+          />
         </div>
         <div className="rounded-lg border border-border bg-card p-3">
           <p className="text-sm font-medium text-foreground">Provider status</p>

@@ -2,6 +2,7 @@
 
 import { Cloud } from "lucide-react";
 
+import { ToolbarSelect } from "@/components/ToolbarSelect";
 import type { AppSettings, LLMProvider } from "@/store/useCVStore";
 
 import { SettingsSection } from "./SettingsSection";
@@ -44,36 +45,29 @@ export function TaskModelDefaultsSection({
                 <p className="text-sm font-medium text-foreground">{task.label}</p>
                 <p className="text-xs text-muted-foreground">{taskLabel(task.backendKey)}</p>
               </div>
-              <select
+              <ToolbarSelect
                 value={current.provider}
-                onChange={(event) => {
-                  const provider = event.target.value as LLMProvider;
+                ariaLabel={`${task.label} provider`}
+                options={providerList.map((provider) => ({
+                  value: provider,
+                  label: provider,
+                  disabled: !providerConfigured(providerStatus, provider),
+                }))}
+                onChange={(value) => {
+                  const provider = value as LLMProvider;
                   const firstModel = catalogue[provider]?.[0]?.id ?? current.model_name;
                   updateTask(task.key, { provider, model_name: firstModel });
                 }}
-                className="app-select h-10 px-3 text-sm"
-              >
-                {providerList.map((provider) => (
-                  <option
-                    key={provider}
-                    value={provider}
-                    disabled={!providerConfigured(providerStatus, provider)}
-                  >
-                    {provider}
-                  </option>
-                ))}
-              </select>
-              <select
+                triggerClassName="app-select h-10 px-3 text-sm"
+              />
+              <ToolbarSelect
                 value={current.model_name}
-                onChange={(event) => updateTask(task.key, { model_name: event.target.value })}
-                className="app-select h-10 px-3 text-sm"
-              >
-                {models.map((model) => (
-                  <option key={model.id} value={model.id}>
-                    {model.label}
-                  </option>
-                ))}
-              </select>
+                ariaLabel={`${task.label} model`}
+                options={models.map((model) => ({ value: model.id, label: model.label }))}
+                onChange={(value) => updateTask(task.key, { model_name: value })}
+                triggerClassName="app-select h-10 px-3 text-sm"
+                menuClassName="min-w-64"
+              />
               <div className="text-xs text-muted-foreground">
                 {meta?.configured ? meta.mode : "setup required"}
               </div>

@@ -1,10 +1,12 @@
 "use client";
 
+import { ToolbarSelect } from "@/components/ToolbarSelect";
 import { useCVStore, type AppSettings, type PdfIngestionMode } from "@/store/useCVStore";
 
 interface PdfIngestionModeSelectProps {
   label?: string;
   compact?: boolean;
+  variant?: "default" | "toolbar";
 }
 
 const OPTIONS: Array<{ value: PdfIngestionMode; label: string }> = [
@@ -16,31 +18,31 @@ const OPTIONS: Array<{ value: PdfIngestionMode; label: string }> = [
 export function PdfIngestionModeSelect({
   label = "PDF parse",
   compact = false,
+  variant = "default",
 }: PdfIngestionModeSelectProps) {
   const { appSettings, setAppSettings } = useCVStore();
+  const isToolbar = variant === "toolbar";
 
   return (
-    <div className={`flex items-center ${compact ? "gap-2" : "gap-1.5"}`}>
-      <span className={`${compact ? "text-xs" : "text-[10px] uppercase"} tracking-wider text-muted-foreground`}>
+    <div className={`flex items-center ${isToolbar ? "gap-2" : compact ? "gap-2" : "gap-1.5"}`}>
+      <span className={`${isToolbar || compact ? "text-xs" : "text-[10px] uppercase"} tracking-wider text-muted-foreground`}>
         {label}
       </span>
-      <select
+      <ToolbarSelect
         value={appSettings.pdf_ingestion_mode}
-        onChange={(event) =>
+        ariaLabel={label}
+        options={OPTIONS}
+        onChange={(value) =>
           setAppSettings({
-            pdf_ingestion_mode: event.target.value as AppSettings["pdf_ingestion_mode"],
+            pdf_ingestion_mode: value as AppSettings["pdf_ingestion_mode"],
           })
         }
-        className={`app-select cursor-pointer ${
-          compact ? "h-9 px-2 text-xs" : "h-9 px-2 text-xs"
-        }`}
-      >
-        {OPTIONS.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+        triggerClassName={
+          isToolbar
+            ? "app-select h-9 min-w-28 px-2 text-xs"
+            : `app-select ${compact ? "h-9 px-2 text-xs" : "h-9 px-2 text-xs"}`
+        }
+      />
     </div>
   );
 }
