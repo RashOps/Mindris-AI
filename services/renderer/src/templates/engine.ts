@@ -381,6 +381,7 @@ type SectionConfig = {
     visible?: boolean;
     placement?: "main" | "sidebar";
     display_mode?: string;
+    detail_level?: string;
     show_dates?: boolean;
     show_locations?: boolean;
 };
@@ -408,6 +409,71 @@ function configuredSections(cvData: any): SectionConfig[] {
         ? configured
         : DEFAULT_SECTIONS;
 }
+
+const dynamicSectionCss = `
+.main-grid {
+    display: grid;
+    grid-template-columns: var(--grid-template-columns, var(--col-left-width, 65%) 1fr);
+    gap: var(--section-gap, 28px);
+    align-items: start;
+}
+
+.section-placement-main {
+    grid-column: var(--main-column, 1);
+}
+
+.section-placement-sidebar {
+    grid-column: var(--sidebar-column, 2);
+}
+
+.section-display-compact .item,
+.section-display-compact .skill-group,
+.section-display-compact .lang-item {
+    margin-bottom: calc(var(--entry-spacing, 16px) * 0.65);
+    padding-bottom: calc(var(--entry-spacing, 16px) * 0.65);
+}
+
+.section-display-cards .item,
+.section-display-cards .skill-group {
+    border: 1px solid var(--separator-color, #e2e8f0);
+    border-radius: 10px;
+    background: #ffffff;
+    padding: 10px;
+}
+
+.section-display-timeline .item {
+    position: relative;
+    border-left: 2px solid var(--separator-color, #e2e8f0);
+    padding-left: 14px;
+}
+
+.section-display-timeline .item::before {
+    content: "";
+    position: absolute;
+    top: 0.45em;
+    left: -5px;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--primary-color, #2563eb);
+}
+
+.section-detail-short .description,
+.section-detail-short .keyword-tags {
+    display: none;
+}
+
+.section-detail-detailed .description {
+    white-space: pre-line;
+}
+
+@media print {
+    .main-grid {
+        display: grid;
+        grid-template-columns: var(--grid-template-columns, var(--col-left-width, 65%) 1fr);
+    }
+}
+`;
 
 function renderContact(profile: any): string {
     const contacts = [
@@ -444,7 +510,9 @@ function renderHeader(cvData: any): string {
 function sectionShell(section: SectionConfig, content: string): string {
     if (!content) return "";
     const placement = section.placement || "main";
-    return `<section class="section section-placement-${placement}" data-section-type="${html(section.type)}" data-section-placement="${html(placement)}">
+    const displayMode = section.display_mode || "list";
+    const detailLevel = section.detail_level || "normal";
+    return `<section class="section section-placement-${placement} section-display-${html(displayMode)} section-detail-${html(detailLevel)}" data-section-type="${html(section.type)}" data-section-placement="${html(placement)}" data-section-display-mode="${html(displayMode)}" data-section-detail-level="${html(detailLevel)}">
       <h2 class="section-title">${html(section.label)}</h2>
       ${content}
     </section>`;
@@ -940,6 +1008,7 @@ export function generateHtml(cvData: any, templateId: string = "modern"): string
 
     // Append user token overrides — these win the cascade inside Shadow DOM
     const tokenOverrides = buildTokenOverrides(cvData?.global_settings);
+    css += `\n\n/* ── Dynamic Section Layout Contract ── */\n${dynamicSectionCss}`;
     if (tokenOverrides) css += `\n\n/* ── User Design Tokens ── */\n${tokenOverrides}`;
     if (advancedCss.css) {
         css += `\n\n/* ── Advanced CSS Patch ── */\n${advancedCss.css}`;

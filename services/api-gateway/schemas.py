@@ -729,6 +729,13 @@ class CVDocumentRequest(BaseModel):
     source: str = "json"
 
 
+class TemplateRenderPayloadRequest(BaseModel):
+    """Request body for resolving backend-owned template defaults before rendering."""
+
+    cv_data: CVDataModel
+    template_id: str | None = None
+
+
 class MarkdownDocumentRequest(BaseModel):
     """Backend-owned request for Markdown workspace exports."""
 

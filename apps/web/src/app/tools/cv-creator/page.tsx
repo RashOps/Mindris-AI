@@ -10,6 +10,7 @@ import { useCVStore } from "@/store/useCVStore";
 import { cvDataFromImport, resumeNameFromImport, type CompanyInsight, type JobInsights } from "@/store/useCVStore";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { apiUrl, rendererUrl, apiHeaders, jsonHeaders } from "@/lib/api";
+import { resolveTemplateRenderPayload } from "@/lib/templates";
 import { Download, Upload } from "lucide-react";
 import {
   DndContext,
@@ -33,6 +34,7 @@ type JobResultPayload = Partial<JobInsights> & {
 
 type ResumeExportFormat = "json" | "markdown" | "html" | "docx" | "latex" | "typst";
 type HeaderMenuId = "upload" | "download";
+type EditorTab = "structure" | "style";
 
 const RESUME_EXPORTS: Record<
   ResumeExportFormat,
@@ -92,7 +94,7 @@ export default function AppPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [jobId, setJobId]         = useState<string | null>(null);
   const [showGhost, setShowGhost] = useState(false);
-  const [showStyle, setShowStyle] = useState(false);
+  const [editorTab, setEditorTab] = useState<EditorTab>("structure");
   const [showInsights, setShowInsights] = useState(false);
   const [showCoverLetter, setShowCoverLetter] = useState(false);
   const [activeHeaderMenu, setActiveHeaderMenu] = useState<HeaderMenuId | null>(null);
@@ -291,12 +293,16 @@ export default function AppPage() {
     showToast("Generating PDF...", 30000);
     try {
       await flushResumeSave();
+      const resolved = await resolveTemplateRenderPayload(
+        cvData,
+        cvData.global_settings.template_id || "modern",
+      );
       const res = await fetch(rendererUrl("/render/pdf"), {
         method: "POST",
         headers: jsonHeaders(),
         body: JSON.stringify({
-          cv_data: cvData,
-          template_id: cvData.global_settings.template_id || "modern",
+          cv_data: resolved.cv_data,
+          template_id: resolved.template_id,
           return_buffer: true,
         }),
       });
@@ -445,7 +451,7 @@ export default function AppPage() {
           isOptimizing={isOptimizing}
           showGhost={showGhost}
           showInsights={showInsights}
-          showStyle={showStyle}
+          showStyle={editorTab === "style"}
           jobUrl={jobUrl}
           resumeSaveStatus={resumeSaveStatus}
           saveStatusText={saveStatusText}
@@ -521,7 +527,9 @@ export default function AppPage() {
           onToggleGhost={() => setShowGhost((v) => !v)}
           onToggleInsights={() => setShowInsights((v) => !v)}
           onOpenCoverLetter={() => setShowCoverLetter(true)}
-          onToggleStyle={() => setShowStyle((v) => !v)}
+          onToggleStyle={() =>
+            setEditorTab((current) => current === "style" ? "structure" : "style")
+          }
         />
 
         {/* ── Body ───────────────────────────────────────────────────────────── */}
@@ -530,10 +538,33 @@ export default function AppPage() {
           {/* Editor */}
           <div className={`flex h-full flex-col overflow-hidden border-r border-border bg-card transition-all duration-300 ${showGhost ? "w-[30%]" : "w-[45%]"}`}>
             <div className="shrink-0 border-b border-border bg-card px-4 py-2">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Structure Editor</p>
+              <div className="flex rounded-lg border border-border bg-muted/40 p-1">
+                <button
+                  type="button"
+                  onClick={() => setEditorTab("structure")}
+                  className={`flex-1 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    editorTab === "structure"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Structure
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditorTab("style")}
+                  className={`flex-1 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    editorTab === "style"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Style
+                </button>
+              </div>
             </div>
             <div className="flex-1 overflow-hidden px-3 py-3">
-              <Editor />
+              {editorTab === "structure" ? <Editor /> : <StylePanel variant="embedded" />}
             </div>
           </div>
 
@@ -567,7 +598,6 @@ export default function AppPage() {
         </div>
 
         {/* Drawers (outside main flow) */}
-        <StylePanel      open={showStyle}       onClose={() => setShowStyle(false)} />
         <JobInsightsPanel open={showInsights}   onClose={() => setShowInsights(false)} />
         <CoverLetterModal open={showCoverLetter} onClose={() => setShowCoverLetter(false)} />
 

@@ -18,8 +18,10 @@ from routers.templates import (
     list_customization_catalogue,
     list_templates,
     resolve_template_defaults,
+    resolve_template_render_payload_route,
     router,
 )
+from schemas import TemplateRenderPayloadRequest
 
 VALID_PREVIEW_PNG = (
     b"\x89PNG\r\n\x1a\n"
@@ -30,6 +32,32 @@ VALID_PREVIEW_PNG = (
     b"\xef\x9c'\xa9"
     b"\x00\x00\x00\x00IEND\xaeB`\x82"
 )
+
+
+def _cv_payload(template_id: str = "modern") -> dict:
+    return {
+        "global_settings": {"template_id": template_id},
+        "profile": {
+            "full_name": "Ada Lovelace",
+            "title": "AI Engineer",
+            "phone": "",
+            "email": "ada@example.com",
+            "location": {"city": "Paris", "country": "France"},
+            "socials": [],
+            "text_markdown": "",
+        },
+        "experience": [],
+        "education": [],
+        "skills": [],
+        "projects": [],
+        "languages": [],
+        "hobbies": [],
+        "certifications": [],
+        "volunteering": [],
+        "publications": [],
+        "references": [],
+        "custom_sections": [],
+    }
 
 
 def test_template_catalog_lists_ready_templates() -> None:
@@ -75,6 +103,23 @@ def test_customization_catalogue_exposes_backend_owned_options() -> None:
     assert options["locale"]["languages"] == ["fr", "en", "de", "es"]
     assert options["locale"]["directions"] == ["ltr", "rtl"]
     assert options["templates"]["ats"]["enforced"]["layout"]["columns"] == 1
+
+
+def test_resolve_render_payload_applies_backend_template_defaults() -> None:
+    with _session() as session:
+        response = resolve_template_render_payload_route(
+            TemplateRenderPayloadRequest(
+                template_id="opensource",
+                cv_data=_cv_payload("opensource"),
+            ),
+            session,
+        )
+
+    item = response["item"]
+    assert item["template_id"] == "modern"
+    assert item["cv_data"]["global_settings"]["template_id"] == "modern"
+    assert item["cv_data"]["global_settings"]["colors"]["palette_preset"] == "tech"
+    assert item["cv_data"]["global_settings"]["locale"]["label_language"] == "en"
 
 
 def _template_package_bytes(

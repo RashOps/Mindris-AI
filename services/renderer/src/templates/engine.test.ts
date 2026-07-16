@@ -12,6 +12,7 @@ const baseCv = {
         visible: true,
         placement: "sidebar",
         display_mode: "compact",
+        detail_level: "normal",
       },
       {
         id: "experience",
@@ -19,7 +20,8 @@ const baseCv = {
         label: "Selected Experience",
         visible: true,
         placement: "main",
-        display_mode: "list",
+        display_mode: "timeline",
+        detail_level: "short",
       },
       {
         id: "projects",
@@ -81,6 +83,34 @@ describe("generateHtml semantic sections", () => {
     );
     expect(html).toContain('data-section-placement="sidebar"');
     expect(html).toContain('data-section-placement="main"');
+    expect(html).toContain('data-section-display-mode="timeline"');
+    expect(html).toContain('data-section-detail-level="short"');
+  });
+
+  test("keeps every built-in template aligned with dynamic section placement", () => {
+    for (const templateId of ["modern", "compact", "ats", "student", "creative"]) {
+      const html = generateHtml(
+        {
+          ...baseCv,
+          global_settings: {
+            ...baseCv.global_settings,
+            template_id: templateId,
+          },
+        },
+        templateId,
+      );
+
+      expect(html).toContain(".section-placement-sidebar");
+      expect(html).toContain(".section-placement-main");
+      expect(html).toContain(".section-display-compact");
+      expect(html).toContain(".section-display-timeline");
+      expect(html).toContain(".section-detail-short");
+      expect(html).toContain('data-section-placement="sidebar"');
+      expect(html).toContain('data-section-placement="main"');
+      expect(html).toContain('data-section-display-mode="compact"');
+      expect(html).toContain('data-section-display-mode="timeline"');
+      expect(html).toContain('data-section-detail-level="short"');
+    }
   });
 
   test("applies nested customization tokens for page, layout, typography, and colors", () => {

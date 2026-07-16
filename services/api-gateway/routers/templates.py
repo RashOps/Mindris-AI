@@ -14,6 +14,7 @@ from schemas import (
     CommunityTemplateConfig,
     CommunityTemplateManifest,
     TemplateCatalogItem,
+    TemplateRenderPayloadRequest,
     _contains_unsafe_css_fragment,
 )
 from sqlalchemy import select
@@ -125,6 +126,13 @@ COMMUNITY_TEMPLATES = [
 ]
 
 TEMPLATE_CATALOG = [*READY_TEMPLATES, *COMMUNITY_TEMPLATES]
+
+
+def _catalog_template_item(template_id: str) -> TemplateCatalogItem | None:
+    for template in TEMPLATE_CATALOG:
+        if template.id == template_id:
+            return template
+    return None
 
 
 def _read_package_json(archive: ZipFile, path: str) -> dict[str, Any]:
@@ -397,9 +405,9 @@ def resolve_template_defaults(
     template_id: str, session: Session | None = None
 ) -> dict[str, Any]:
     """Return the preset settings associated with a template."""
-    for template in TEMPLATE_CATALOG:
-        if template.id == template_id:
-            return template.preset_settings
+    template = _catalog_template_item(template_id)
+    if template is not None:
+        return template.preset_settings
     if session is not None:
         record = session.exec(
             select(CommunityTemplateRecord).where(
@@ -432,6 +440,10 @@ def apply_template_defaults(
     if not defaults:
         return cv_data
     merged = _deep_merge(defaults, cv_data)
+    template = _catalog_template_item(template_id)
+    if template is not None and template.base_template_id:
+        global_settings = merged.setdefault("global_settings", {})
+        global_settings["template_id"] = template.base_template_id
     if session is not None:
         record = session.exec(
             select(CommunityTemplateRecord).where(
@@ -591,6 +603,36 @@ def list_community_templates() -> dict:
 def list_customization_catalogue() -> dict:
     """Return backend-owned resume customization options."""
     return {"status": "success", "item": CUSTOMIZATION_CATALOGUE}
+
+
+@router.post("/resolve-render-payload")
+def resolve_template_render_payload_route(
+    request: TemplateRenderPayloadRequest, session: SessionDep
+) -> dict[str, Any]:
+    """Resolve backend-owned template defaults before renderer preview/export."""
+    cv_data = request.cv_data.model_dump(mode="json")
+    settings = cv_data.get("global_settings", {})
+    requested_template_id = request.template_id
+    if requested_template_id is None and isinstance(settings, dict):
+        settings_template_id = settings.get("template_id")
+        if isinstance(settings_template_id, str):
+            requested_template_id = settings_template_id
+    requested_template_id = requested_template_id or "modern"
+    resolved_cv_data = apply_template_defaults(
+        cv_data, requested_template_id, session=session
+    )
+    resolved_settings = resolved_cv_data.setdefault("global_settings", {})
+    resolved_template_id = resolved_settings.get("template_id")
+    if not isinstance(resolved_template_id, str) or not resolved_template_id:
+        resolved_template_id = requested_template_id
+        resolved_settings["template_id"] = resolved_template_id
+    return {
+        "status": "success",
+        "item": {
+            "cv_data": resolved_cv_data,
+            "template_id": resolved_template_id,
+        },
+    }
 
 
 @router.get("/{template_id:path}/preview")

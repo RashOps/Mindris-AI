@@ -205,11 +205,12 @@ function resolveSettings(
 type Tab = "design" | "typography" | "layout" | "sections" | "advanced";
 
 interface StylePanelProps {
-  open: boolean;
-  onClose: () => void;
+  open?: boolean;
+  onClose?: () => void;
+  variant?: "drawer" | "embedded";
 }
 
-export function StylePanel({ open, onClose }: StylePanelProps) {
+export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePanelProps) {
   const { cvData, setGlobalSettings } = useCVStore();
   const [tab, setTab] = useState<Tab>("design");
   const [catalogue, setCatalogue] = useState<CustomizationCatalogue>(
@@ -252,21 +253,7 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
     setGlobalSettings({ ...settings, ...patch });
 
   const updateTemplate = (templateId: string) => {
-    const template = catalogue.templates[templateId];
-    const next: GlobalSettings = { ...settings, template_id: templateId };
-    if (template?.enforced?.layout) {
-      next.layout = { ...next.layout, ...template.enforced.layout };
-    }
-    if (template?.enforced?.photo) {
-      next.layout = { ...next.layout, photo: { ...next.layout?.photo, ...template.enforced.photo } };
-    }
-    if (template?.enforced?.colors) {
-      next.colors = { ...next.colors, ...template.enforced.colors };
-    }
-    if (template?.enforced?.typography) {
-      next.typography = { ...next.typography, ...template.enforced.typography };
-    }
-    setGlobalSettings(next);
+    setGlobalSettings({ ...settings, template_id: templateId });
   };
 
   const updateSection = (index: number, patch: Partial<NonNullable<GlobalSettings["sections"]>[number]>) => {
@@ -296,10 +283,11 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
   const sectionPlacements = options.sectionPlacements;
   const sectionModes = options.displayModes;
   const sectionDetails = options.detailLevels;
+  const isEmbedded = variant === "embedded";
 
   return (
     <>
-      {open && (
+      {!isEmbedded && open && (
         <div
           className="fixed inset-0 z-40 bg-black/50 backdrop-blur-[3px]"
           onClick={onClose}
@@ -307,10 +295,14 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
       )}
 
       <aside
-        style={{ boxShadow: "-8px 0 32px rgba(15,23,42,0.18)" }}
-        className={`fixed top-0 right-0 z-50 flex h-full w-[24rem] flex-col border-l border-border bg-card transition-transform duration-300 ease-in-out ${
-          open ? "translate-x-0" : "translate-x-full"
-        }`}
+        style={isEmbedded ? undefined : { boxShadow: "-8px 0 32px rgba(15,23,42,0.18)" }}
+        className={
+          isEmbedded
+            ? "flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-border bg-card"
+            : `fixed top-0 right-0 z-50 flex h-full w-[24rem] flex-col border-l border-border bg-card transition-transform duration-300 ease-in-out ${
+                open ? "translate-x-0" : "translate-x-full"
+              }`
+        }
         aria-label="Style panel"
       >
         <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-3.5">
@@ -320,12 +312,14 @@ export function StylePanel({ open, onClose }: StylePanelProps) {
               Backend catalogue driven
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-          >
-            ✕
-          </button>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            >
+              ✕
+            </button>
+          )}
         </div>
 
         <div className="flex shrink-0 border-b border-border">
