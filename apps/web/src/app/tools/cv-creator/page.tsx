@@ -451,7 +451,6 @@ export default function AppPage() {
           isOptimizing={isOptimizing}
           showGhost={showGhost}
           showInsights={showInsights}
-          showStyle={editorTab === "style"}
           jobUrl={jobUrl}
           resumeSaveStatus={resumeSaveStatus}
           saveStatusText={saveStatusText}
@@ -527,16 +526,13 @@ export default function AppPage() {
           onToggleGhost={() => setShowGhost((v) => !v)}
           onToggleInsights={() => setShowInsights((v) => !v)}
           onOpenCoverLetter={() => setShowCoverLetter(true)}
-          onToggleStyle={() =>
-            setEditorTab((current) => current === "style" ? "structure" : "style")
-          }
         />
 
         {/* ── Body ───────────────────────────────────────────────────────────── */}
         <div className="flex flex-1 overflow-hidden bg-muted/40">
 
           {/* Editor */}
-          <div className={`flex h-full flex-col overflow-hidden border-r border-border bg-card transition-all duration-300 ${showGhost ? "w-[30%]" : "w-[45%]"}`}>
+          <div className={`flex h-full flex-col overflow-hidden border-r border-border bg-card transition-all duration-300 ${showGhost || showInsights ? "w-[32%]" : "w-[45%]"}`}>
             <div className="shrink-0 border-b border-border bg-card px-4 py-2">
               <div className="flex rounded-lg border border-border bg-muted/40 p-1">
                 <button
@@ -570,7 +566,7 @@ export default function AppPage() {
 
           {/* Ghost Mode */}
           {showGhost && (
-            <div className="flex h-full w-[35%] flex-col overflow-hidden border-r border-border bg-card">
+            <div className="flex h-full w-[34%] flex-col overflow-hidden border-r border-border bg-card">
               <div className="shrink-0 border-b border-border bg-card px-4 py-2">
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Ghost Mode</p>
               </div>
@@ -586,6 +582,17 @@ export default function AppPage() {
             </div>
           )}
 
+          {/* Job insights */}
+          {showInsights && (
+            <div className="flex h-full w-80 shrink-0 flex-col overflow-hidden border-r border-border bg-card">
+              <JobInsightsPanel
+                open={showInsights}
+                onClose={() => setShowInsights(false)}
+                variant="embedded"
+              />
+            </div>
+          )}
+
           {/* Preview */}
           <div className="flex h-full flex-1 flex-col overflow-hidden bg-muted/20">
             <div className="shrink-0 border-b border-border bg-card px-4 py-2">
@@ -598,7 +605,6 @@ export default function AppPage() {
         </div>
 
         {/* Drawers (outside main flow) */}
-        <JobInsightsPanel open={showInsights}   onClose={() => setShowInsights(false)} />
         <CoverLetterModal open={showCoverLetter} onClose={() => setShowCoverLetter(false)} />
 
       </main>

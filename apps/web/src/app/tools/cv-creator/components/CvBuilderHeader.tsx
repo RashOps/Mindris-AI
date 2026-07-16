@@ -33,7 +33,6 @@ export function CvBuilderHeader(props: {
   isOptimizing: boolean;
   showGhost: boolean;
   showInsights: boolean;
-  showStyle: boolean;
   jobUrl: string;
   resumeSaveStatus: "idle" | "dirty" | "saving" | "saved" | "error";
   saveStatusText: string;
@@ -64,7 +63,6 @@ export function CvBuilderHeader(props: {
   onToggleGhost: () => void;
   onToggleInsights: () => void;
   onOpenCoverLetter: () => void;
-  onToggleStyle: () => void;
 }) {
   const {
     activeResumeId,
@@ -78,7 +76,6 @@ export function CvBuilderHeader(props: {
     isOptimizing,
     showGhost,
     showInsights,
-    showStyle,
     jobUrl,
     resumeSaveStatus,
     saveStatusText,
@@ -109,7 +106,6 @@ export function CvBuilderHeader(props: {
     onToggleGhost,
     onToggleInsights,
     onOpenCoverLetter,
-    onToggleStyle,
   } = props;
 
   return (
@@ -144,8 +140,11 @@ export function CvBuilderHeader(props: {
                 key={locale}
                 type="button"
                 onClick={() => onActivateLocale(locale)}
-                className="inline-flex h-7 min-w-10 cursor-pointer items-center justify-center rounded-md px-2 text-[11px] font-semibold transition-colors"
-                style={locale === activeLocale ? { background: "#0f172a", color: "#fff" } : { background: "var(--card)", color: "var(--muted-foreground)" }}
+                className={`inline-flex h-7 min-w-10 cursor-pointer items-center justify-center rounded-md px-2 text-[11px] font-semibold transition-colors ${
+                  locale === activeLocale
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-card text-muted-foreground hover:text-foreground"
+                }`}
               >
                 {locale.toUpperCase()}
               </button>
@@ -189,10 +188,9 @@ export function CvBuilderHeader(props: {
           <LLMSelector taskKey="optimize_llm" label="Optimize" />
           <button
             onClick={onRetrySave}
-            className="h-9 rounded-lg border px-3 text-xs font-medium"
+            className="app-toolbar-button h-9 px-3 text-xs font-medium"
             style={{
-              borderColor: resumeSaveStatus === "error" ? "#fecaca" : "#e2e8f0",
-              background: "#fff",
+              borderColor: resumeSaveStatus === "error" ? "#fecaca" : undefined,
               color: saveStatusColor,
               cursor: resumeSaveStatus === "error" ? "pointer" : "default",
             }}
@@ -243,13 +241,12 @@ export function CvBuilderHeader(props: {
             onClose={onCloseHeaderMenu}
             actions={downloadActions}
           />
-          <button onClick={onToggleGhost} className={showGhost ? TOOLBAR_BUTTON_ACTIVE_CLASS : TOOLBAR_BUTTON_CLASS} style={showGhost ? { borderColor: "#c7d2fe", background: "#eef2ff", color: "#4338ca" } : undefined}>Ghost</button>
-          <button onClick={onToggleInsights} className={showInsights ? `relative ${TOOLBAR_BUTTON_ACTIVE_CLASS}` : `relative ${TOOLBAR_BUTTON_CLASS}`} style={showInsights ? { borderColor: "#fde68a", background: "#fffbeb", color: "#92400e" } : undefined}>
+          <button onClick={onToggleGhost} className={showGhost ? TOOLBAR_BUTTON_ACTIVE_CLASS : TOOLBAR_BUTTON_CLASS}>Ghost</button>
+          <button onClick={onToggleInsights} className={showInsights ? `relative ${TOOLBAR_BUTTON_ACTIVE_CLASS}` : `relative ${TOOLBAR_BUTTON_CLASS}`}>
             Insights
             {insightsBadge ? <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-green-500" /> : null}
           </button>
           <button onClick={onOpenCoverLetter} className={TOOLBAR_BUTTON_CLASS}>Cover Letter</button>
-          <button onClick={onToggleStyle} className={showStyle ? TOOLBAR_BUTTON_ACTIVE_CLASS : TOOLBAR_BUTTON_CLASS} style={showStyle ? { borderColor: "#ddd6fe", background: "#f5f3ff", color: "#6d28d9" } : undefined}>Style</button>
         </div>
       </div>
     </header>

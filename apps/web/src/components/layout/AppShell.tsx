@@ -84,7 +84,6 @@ function NavLinks({
 
 function SidebarUtilities({ collapsed = false }: { collapsed?: boolean }) {
   const configuration = APP_SIDEBAR_SECTIONS.find((section) => section.id === "configuration");
-  const localServices = APP_SIDEBAR_SECTIONS.find((section) => section.id === "local-services");
 
   return (
     <div className="space-y-3">
@@ -106,25 +105,6 @@ function SidebarUtilities({ collapsed = false }: { collapsed?: boolean }) {
         />
       )}
 
-      {localServices && (
-        <div
-          className={cn(
-            "overflow-hidden rounded-lg border border-border bg-muted/40 transition-all duration-200",
-            collapsed ? "max-h-0 border-transparent p-0 opacity-0" : "max-h-40 p-3 opacity-100",
-          )}
-        >
-          <div className="mb-2 flex items-center gap-2 text-xs font-medium text-foreground">
-            <localServices.icon size={14} />
-            {localServices.label}
-          </div>
-          <p className="mb-2 text-xs leading-5 text-muted-foreground">{localServices.description}</p>
-          <p className="text-xs leading-5 text-muted-foreground">API : 8000</p>
-          <p className="text-xs leading-5 text-muted-foreground">Renderer : 4000</p>
-          <p className="text-xs leading-5 text-muted-foreground">Web : 3000</p>
-        </div>
-      )}
-
-      {!collapsed && <ThemeToggle />}
     </div>
   );
 }

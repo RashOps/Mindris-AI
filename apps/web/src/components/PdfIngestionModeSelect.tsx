@@ -21,7 +21,7 @@ export function PdfIngestionModeSelect({
 
   return (
     <div className={`flex items-center ${compact ? "gap-2" : "gap-1.5"}`}>
-      <span className={`${compact ? "text-xs" : "text-[10px] uppercase"} tracking-wider text-slate-500`}>
+      <span className={`${compact ? "text-xs" : "text-[10px] uppercase"} tracking-wider text-muted-foreground`}>
         {label}
       </span>
       <select
@@ -31,7 +31,7 @@ export function PdfIngestionModeSelect({
             pdf_ingestion_mode: event.target.value as AppSettings["pdf_ingestion_mode"],
           })
         }
-        className={`cursor-pointer rounded-lg border border-slate-300 bg-white text-slate-700 shadow-sm outline-none focus:border-slate-500 ${
+        className={`app-select cursor-pointer ${
           compact ? "h-9 px-2 text-xs" : "h-9 px-2 text-xs"
         }`}
       >

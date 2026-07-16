@@ -96,9 +96,10 @@ function provenanceTone(value?: string): string {
 interface JobInsightsPanelProps {
   open: boolean;
   onClose: () => void;
+  variant?: "drawer" | "embedded";
 }
 
-export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
+export function JobInsightsPanel({ open, onClose, variant = "drawer" }: JobInsightsPanelProps) {
   const {
     jobInsights, clearJobInsights,
     autoInjectMode, setAutoInjectMode,
@@ -163,16 +164,20 @@ export function JobInsightsPanel({ open, onClose }: JobInsightsPanelProps) {
     window.open("/tools/markdown", "_blank");
   };
 
+  if (!open) return null;
+
+  const isEmbedded = variant === "embedded";
+
   return (
     <>
-      {open && (
-        <div className="fixed inset-0 z-40 pointer-events-none" />
-      )}
-
+      {!isEmbedded && <div className="fixed inset-0 z-40 pointer-events-none" />}
       <aside
-        className={`theme-dark-tool fixed top-0 right-0 z-50 flex h-full w-80 flex-col border-l border-white/10 bg-slate-950 transition-transform duration-300 ease-in-out
-          ${open ? "translate-x-0" : "translate-x-full"}`}
-        style={{ boxShadow: "-8px 0 40px rgba(0,0,0,0.6)" }}
+        className={`theme-dark-tool flex h-full w-full flex-col bg-slate-950 ${
+          isEmbedded
+            ? "border-0"
+            : "fixed top-0 right-0 z-50 w-80 border-l border-white/10 shadow-2xl transition-transform duration-300 ease-in-out"
+        }`}
+        style={isEmbedded ? undefined : { boxShadow: "-8px 0 40px rgba(0,0,0,0.6)" }}
       >
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between border-b border-white/10 bg-slate-900/90 px-4 py-3">

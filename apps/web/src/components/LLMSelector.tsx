@@ -47,7 +47,7 @@ export function LLMSelector({ taskKey, label = "Model" }: LLMSelectorProps) {
 
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-[10px] uppercase tracking-wider text-slate-500">{label}</span>
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</span>
       <select
         value={current.provider}
         onChange={(event) => {
@@ -55,7 +55,7 @@ export function LLMSelector({ taskKey, label = "Model" }: LLMSelectorProps) {
           const first = catalogue[provider]?.[0]?.id ?? current.model_name;
           update({ provider, model_name: first });
         }}
-        className="h-9 cursor-pointer rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-700 shadow-sm outline-none focus:border-slate-500"
+        className="app-select h-9 cursor-pointer px-2 text-xs"
       >
         {providers.map((provider) => (
           <option
@@ -70,7 +70,7 @@ export function LLMSelector({ taskKey, label = "Model" }: LLMSelectorProps) {
       <select
         value={current.model_name}
         onChange={(event) => update({ model_name: event.target.value })}
-        className="h-9 max-w-44 cursor-pointer rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-700 shadow-sm outline-none focus:border-slate-500"
+        className="app-select h-9 max-w-44 cursor-pointer px-2 text-xs"
       >
         {models.map((model) => (
           <option key={model.id} value={model.id}>{model.label}</option>
@@ -79,7 +79,7 @@ export function LLMSelector({ taskKey, label = "Model" }: LLMSelectorProps) {
       {providerMeta && (
         <span
           className={`text-[10px] ${
-            providerMeta.configured ? "text-slate-500" : "text-amber-700"
+            providerMeta.configured ? "text-muted-foreground" : "text-amber-700 dark:text-amber-300"
           }`}
           title={providerMeta.reason || undefined}
         >
