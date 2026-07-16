@@ -169,7 +169,7 @@ export function ResumeCard({
   showStatus,
 }: ResumeCardProps) {
   return (
-    <article className="flex min-h-52 flex-col rounded-lg border border-border bg-card p-4 shadow-sm">
+    <article className="flex min-h-52 w-full min-w-0 flex-col rounded-lg border border-border bg-card p-4 shadow-sm">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <input

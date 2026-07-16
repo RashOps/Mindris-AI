@@ -365,10 +365,10 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                 <button
                   onClick={() => void createFromTemplate("modern", "Untitled")}
-                  className="flex min-h-52 flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card p-5 text-center transition-colors hover:bg-accent"
+                  className="flex min-h-52 w-full min-w-0 flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card p-5 text-center transition-colors hover:bg-accent"
                 >
                   <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                     <Plus size={20} />

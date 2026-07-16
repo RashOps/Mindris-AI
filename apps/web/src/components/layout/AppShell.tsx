@@ -241,7 +241,7 @@ export function AppShell({
           }
         >
           <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
-            <div className="flex min-h-16 items-center justify-between gap-4 px-4 lg:px-6">
+            <div className="flex min-h-16 flex-col items-stretch justify-between gap-3 px-4 py-3 sm:flex-row sm:items-center lg:px-6">
               <div className="flex min-w-0 items-center gap-3">
                 <Button
                   aria-label="Open navigation"
@@ -265,7 +265,7 @@ export function AppShell({
                   )}
                 </div>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <ThemeToggle />
                 {actions}
               </div>
