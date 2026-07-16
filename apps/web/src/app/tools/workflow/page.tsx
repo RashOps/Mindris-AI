@@ -1,5 +1,4 @@
 "use client";
-
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
@@ -10,7 +9,6 @@ import {
   Loader2,
   Sparkles,
 } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ToolbarSelect } from "@/components/ToolbarSelect";
@@ -30,7 +28,6 @@ import {
   type OpportunityItem,
   type ResumeItem,
 } from "./workflow-model";
-
 export default function WorkflowPage() {
   const [opportunities, setOpportunities] = useState<OpportunityItem[]>([]);
   const [jobs, setJobs] = useState<JobItem[]>([]);
@@ -42,20 +39,17 @@ export default function WorkflowPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
-
   const [createMode, setCreateMode] = useState<"job" | "manual">("job");
   const [selectedJobId, setSelectedJobId] = useState<string>("");
   const [manualCompany, setManualCompany] = useState("");
   const [manualRole, setManualRole] = useState("");
   const [manualUrl, setManualUrl] = useState("");
   const [notes, setNotes] = useState("");
-
   const [resumeId, setResumeId] = useState<string>("");
   const [resumeLocale, setResumeLocale] = useState("fr");
   const [atsReportId, setAtsReportId] = useState<string>("");
   const [coverLetterId, setCoverLetterId] = useState<string>("");
   const [applicationId, setApplicationId] = useState<string>("");
-
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -69,14 +63,12 @@ export default function WorkflowPage() {
           requestJson<{ items: CoverLetterItem[] }>("/api/v1/history/cover-letters"),
           requestJson<{ items: ApplicationItem[] }>("/api/v1/tracker/applications"),
         ]);
-
       setOpportunities(Array.isArray(workflowData.items) ? workflowData.items : []);
       setJobs(Array.isArray(jobsData.items) ? jobsData.items : []);
       setResumes(Array.isArray(resumesData.items) ? resumesData.items : []);
       setAtsReports(Array.isArray(atsData.items) ? atsData.items : []);
       setCoverLetters(Array.isArray(lettersData.items) ? lettersData.items : []);
       setApplications(Array.isArray(trackerData.items) ? trackerData.items : []);
-
       setSelectedId((current) => {
         if (current && workflowData.items.some((item) => item.id === current)) return current;
         return workflowData.items[0]?.id ?? null;
@@ -87,19 +79,16 @@ export default function WorkflowPage() {
       setLoading(false);
     }
   }, []);
-
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       void load();
     }, 0);
     return () => window.clearTimeout(timeoutId);
   }, [load]);
-
   const selected = useMemo(
     () => opportunities.find((item) => item.id === selectedId) ?? opportunities[0] ?? null,
     [opportunities, selectedId],
   );
-
   useEffect(() => {
     if (!selected) return;
     const timeoutId = window.setTimeout(() => {
@@ -111,20 +100,16 @@ export default function WorkflowPage() {
     }, 0);
     return () => window.clearTimeout(timeoutId);
   }, [selected]);
-
   const filteredAtsReports = selected?.job_id
     ? atsReports.filter((item) => item.job_id === selected.job_id)
     : atsReports;
-
   const filteredCoverLetters = selected?.job_id
     ? coverLetters.filter((item) => item.job_id === selected.job_id)
     : coverLetters;
-
   const canCreate =
     createMode === "job"
       ? Boolean(selectedJobId)
       : Boolean(manualCompany.trim() && manualRole.trim());
-
   async function runAction(
     action: string,
     callback: () => Promise<void>,
@@ -140,7 +125,6 @@ export default function WorkflowPage() {
       setBusyAction(null);
     }
   }
-
   const selectedResume = resumes.find((item) => item.id === Number(resumeId));
   const localeOptions = selectedResume?.multilingual?.availableLocales?.length
     ? selectedResume.multilingual.availableLocales
@@ -150,7 +134,6 @@ export default function WorkflowPage() {
     issues: [],
     repair_actions: [],
   };
-
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-background text-foreground">
       <div className="mx-auto max-w-[1600px] px-4 py-4 lg:px-6">
@@ -159,13 +142,11 @@ export default function WorkflowPage() {
           jobs={jobs.length}
           resumes={resumes.length}
         />
-
         {error && (
           <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
             {error}
           </div>
         )}
-
         <div className="mt-4 grid gap-4 2xl:grid-cols-[360px,minmax(0,1fr)]">
           <aside className="space-y-4">
             <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
@@ -192,7 +173,6 @@ export default function WorkflowPage() {
                   </button>
                 </div>
               </div>
-
               <div className="space-y-3">
                 {createMode === "job" ? (
                   <ToolbarSelect
@@ -269,7 +249,6 @@ export default function WorkflowPage() {
                 </Button>
               </div>
             </section>
-
             <section className="rounded-2xl border border-border bg-card shadow-sm">
               <div className="border-b border-border px-4 py-3">
                 <p className="text-sm font-semibold text-foreground">Active opportunities</p>
@@ -323,7 +302,6 @@ export default function WorkflowPage() {
               )}
             </section>
           </aside>
-
           <section className="space-y-4">
             {!selected ? (
               <div className="rounded-2xl border border-border bg-card px-5 py-8 text-sm text-muted-foreground shadow-sm">
@@ -371,7 +349,6 @@ export default function WorkflowPage() {
                         </a>
                       )}
                     </div>
-
                     <div className="grid gap-2 sm:grid-cols-2 xl:w-[360px]">
                       {[
                         { label: "Resume", value: selected.resume_id ? `#${selected.resume_id}` : "Missing", icon: FileText },
@@ -395,7 +372,6 @@ export default function WorkflowPage() {
                     </div>
                   </div>
                 </section>
-
                 <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
                   <p className="mb-3 text-sm font-semibold text-foreground">Workflow state</p>
                   <div className="grid gap-2 xl:grid-cols-7">

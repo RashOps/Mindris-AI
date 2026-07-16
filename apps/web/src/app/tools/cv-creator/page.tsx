@@ -1,5 +1,4 @@
 "use client";
-
 import { Editor } from "@/components/Editor";
 import { LivePreview } from "@/components/LivePreview";
 import { GhostMode } from "@/components/GhostMode";
@@ -10,7 +9,6 @@ import { useCVStore } from "@/store/useCVStore";
 import {
   cvDataFromImport,
   resumeNameFromImport,
-  type CompanyInsight,
   type JobInsights,
 } from "@/store/useCVStore";
 import { useEffect, useState, useRef, useCallback } from "react";
@@ -31,63 +29,19 @@ import {
 } from "@dnd-kit/core";
 import { CvBuilderHeader } from "./components/CvBuilderHeader";
 import type { HeaderMenuAction } from "./components/HeaderActionMenu";
-
-type DragPayload =
-  | { kind: "skill"; skill: string }
-  | { kind: "skillGroup"; groupId: string }
-  | { kind: "bullet"; bullet: string }
-  | { kind: "experience"; expId: string };
-
-type JobResultPayload = Partial<JobInsights> & {
-  company_insight?: CompanyInsight;
-};
-
-type ResumeExportFormat =
-  "json" | "markdown" | "html" | "docx" | "latex" | "typst";
-type HeaderMenuId = "upload" | "download";
-type EditorTab = "structure" | "style";
-
-const RESUME_EXPORTS: Record<
-  ResumeExportFormat,
-  { endpoint: string; extension: string; label: string }
-> = {
-  json: { endpoint: "export-json", extension: "json", label: "JSON" },
-  markdown: { endpoint: "export-markdown", extension: "md", label: "Markdown" },
-  html: { endpoint: "export-html", extension: "html", label: "HTML" },
-  docx: { endpoint: "export-docx", extension: "docx", label: "DOCX" },
-  latex: { endpoint: "export-latex", extension: "tex", label: "LaTeX" },
-  typst: { endpoint: "export-typst", extension: "typ", label: "Typst" },
-};
-
-function asDragPayload(value: unknown): DragPayload | null {
-  if (!value || typeof value !== "object" || !("kind" in value)) return null;
-  return value as DragPayload;
-}
-
-function stringArray(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.filter((item): item is string => typeof item === "string")
-    : [];
-}
-
-function errorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message : fallback;
-}
-
-function triggerBlobDownload(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.style.display = "none";
-  document.body.appendChild(anchor);
-  anchor.click();
-  window.setTimeout(() => {
-    document.body.removeChild(anchor);
-    URL.revokeObjectURL(url);
-  }, 1000);
-}
-
+import {
+  RESUME_EXPORTS,
+  asDragPayload,
+  errorMessage,
+  resumeSaveStatusColor,
+  resumeSaveStatusText,
+  stringArray,
+  triggerBlobDownload,
+  type EditorTab,
+  type HeaderMenuId,
+  type JobResultPayload,
+  type ResumeExportFormat,
+} from "./cv-builder-model";
 export default function AppPage() {
   const {
     setIsOptimizing,
@@ -115,7 +69,6 @@ export default function AppPage() {
     resumeSaveError,
     lastResumeSavedAt,
   } = useCVStore();
-
   const [jobUrl, setJobUrl] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
@@ -137,22 +90,18 @@ export default function AppPage() {
     return isCvBuilderUiMode(storedMode) ? storedMode : "normal";
   });
   const [toast, setToast] = useState<string | null>(null);
-
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const jsonInputRef = useRef<HTMLInputElement>(null);
   const headerMenuRef = useRef<HTMLDivElement>(null);
-
   const showToast = (msg: string, ms = 4000) => {
     setToast(msg);
     setTimeout(() => setToast(null), ms);
   };
-
   useEffect(() => {
     void loadResumes().catch((err: unknown) => {
       showToast(errorMessage(err, "Failed to load resumes"), 6000);
     });
   }, [loadResumes]);
-
   const handleChangeUiMode = (mode: CvBuilderUiMode) => {
     setUiMode(mode);
     window.localStorage.setItem(CV_BUILDER_UI_MODE_STORAGE_KEY, mode);
@@ -161,7 +110,6 @@ export default function AppPage() {
       setShowInsights(false);
     }
   };
-
   useEffect(() => {
     if (!activeHeaderMenu) return;
 
@@ -192,29 +140,16 @@ export default function AppPage() {
   const inactiveLocales = (["fr", "en", "de", "es"] as const).filter(
     (locale) => !availableLocales.includes(locale),
   );
-  const saveStatusText =
-    resumeSaveStatus === "dirty"
-      ? "Unsaved changes"
-      : resumeSaveStatus === "saving"
-        ? "Saving..."
-        : resumeSaveStatus === "error"
-          ? "Save failed"
-          : lastResumeSavedAt
-            ? "Saved"
-            : "Loaded";
-  const saveStatusColor =
-    resumeSaveStatus === "error"
-      ? "#b91c1c"
-      : resumeSaveStatus === "dirty" || resumeSaveStatus === "saving"
-        ? "#92400e"
-        : "#047857";
+  const saveStatusText = resumeSaveStatusText(
+    resumeSaveStatus,
+    lastResumeSavedAt,
+  );
+  const saveStatusColor = resumeSaveStatusColor(resumeSaveStatus);
 
-  // ── dnd-kit sensors ────────────────────────────────────────────────────────
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
   );
 
-  // ── Global drag end handler ────────────────────────────────────────────────
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event;
@@ -250,7 +185,6 @@ export default function AppPage() {
     [cvData, updateSkillGroup, updateExperience],
   );
 
-  // ── Job Result callback (from GhostMode SSE) ──────────────────────────────
 
   const handleCompanyResult = useCallback(
     (data: JobResultPayload) => {
@@ -297,7 +231,6 @@ export default function AppPage() {
     [setJobInsights],
   );
 
-  // ── PDF Upload ─────────────────────────────────────────────────────────────
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -329,7 +262,6 @@ export default function AppPage() {
     }
   };
 
-  // ── JSON Upload ────────────────────────────────────────────────────────────
   const handleJsonUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -382,7 +314,6 @@ export default function AppPage() {
     showToast(`Resume ${exportConfig.label} exported`);
   };
 
-  // ── Export PDF ─────────────────────────────────────────────────────────────
   const handleExportPDF = async () => {
     showToast("Generating PDF...", 30000);
     try {
@@ -412,7 +343,6 @@ export default function AppPage() {
     }
   };
 
-  // ── Optimize ───────────────────────────────────────────────────────────────
   const handleOptimize = async () => {
     if (!jobUrl.trim()) return;
     setIsOptimizing(true);
