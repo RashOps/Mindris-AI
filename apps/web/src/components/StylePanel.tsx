@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ToolbarSelect } from "@/components/ToolbarSelect";
+import type { CvBuilderUiMode } from "@/app/tools/cv-creator/components/CvBuilderModeToggle";
 import { useCVStore } from "@/store/useCVStore";
 import type { GlobalSettings } from "@/store/useCVStore";
 import {
@@ -15,9 +16,12 @@ import {
 
 const DEFAULT_FONT = "Inter";
 const PANEL_INPUT_CLASS = "app-input h-9 px-2 text-sm";
-const PANEL_TEXTAREA_CLASS = "app-textarea min-h-48 w-full px-3 py-2 font-mono text-xs";
-const PANEL_TOGGLE_CLASS = "flex items-center justify-between rounded-lg border border-input bg-background px-3 py-2";
-const PANEL_MUTED_CARD_CLASS = "rounded-lg border border-border bg-muted/40 p-3";
+const PANEL_TEXTAREA_CLASS =
+  "app-textarea min-h-48 w-full px-3 py-2 font-mono text-xs";
+const PANEL_TOGGLE_CLASS =
+  "flex items-center justify-between rounded-lg border border-input bg-background px-3 py-2";
+const PANEL_MUTED_CARD_CLASS =
+  "rounded-lg border border-border bg-muted/40 p-3";
 
 const SECTION_LABELS: Record<string, string> = {
   profile: "Profil",
@@ -38,25 +42,55 @@ const SECTION_LABELS: Record<string, string> = {
 // ── Reusable components ───────────────────────────────────────────────────────
 
 function Slider({
-  label, min, max, step = 1, value, unit, onChange,
+  label,
+  min,
+  max,
+  step = 1,
+  value,
+  unit,
+  onChange,
 }: {
-  label: string; min: number; max: number; step?: number;
-  value: number; unit: string; onChange: (v: number) => void;
+  label: string;
+  min: number;
+  max: number;
+  step?: number;
+  value: number;
+  unit: string;
+  onChange: (v: number) => void;
 }) {
   return (
     <div className="space-y-1.5">
       <div className="flex justify-between items-center">
-        <label className="text-xs font-medium text-muted-foreground">{label}</label>
-        <span className="text-xs font-semibold tabular-nums text-foreground" style={{ fontFamily: 'var(--font-mono)' }}>{value}{unit}</span>
+        <label className="text-xs font-medium text-muted-foreground">
+          {label}
+        </label>
+        <span
+          className="text-xs font-semibold tabular-nums text-foreground"
+          style={{ fontFamily: "var(--font-mono)" }}
+        >
+          {value}
+          {unit}
+        </span>
       </div>
       <input
-        type="range" min={min} max={max} step={step} value={value}
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
         style={{ accentColor: "var(--panel-accent, #8b5cf6)" }}
       />
       <div className="flex justify-between text-[10px] text-muted-foreground">
-        <span>{min}{unit}</span><span>{max}{unit}</span>
+        <span>
+          {min}
+          {unit}
+        </span>
+        <span>
+          {max}
+          {unit}
+        </span>
       </div>
     </div>
   );
@@ -80,13 +114,17 @@ function titleCase(value: string): string {
 
 type SectionDraft = NonNullable<GlobalSettings["sections"]>[number];
 
-function defaultSections(types: string[], placements: string[]): SectionDraft[] {
+function defaultSections(
+  types: string[],
+  placements: string[],
+): SectionDraft[] {
   return types.map((type, index) => ({
     id: type,
     type,
     label: SECTION_LABELS[type] ?? titleCase(type),
     visible: true,
-    placement: (placements[index] === "sidebar" ? "sidebar" : "main") as "main" | "sidebar",
+    placement: (placements[index] === "sidebar" ? "sidebar" : "main") as
+      "main" | "sidebar",
     display_mode: "list",
     show_dates: true,
     show_locations: true,
@@ -99,9 +137,14 @@ export function mergeSections(
   current: Partial<GlobalSettings> | undefined,
   catalogue: CustomizationCatalogue,
 ): SectionDraft[] {
-  const defaults = defaultSections(catalogue.sections.types, catalogue.sections.placements);
+  const defaults = defaultSections(
+    catalogue.sections.types,
+    catalogue.sections.placements,
+  );
   const existing = current?.sections ?? [];
-  const defaultsByType = new Map(defaults.map((section) => [section.type, section]));
+  const defaultsByType = new Map(
+    defaults.map((section) => [section.type, section]),
+  );
   const merged: SectionDraft[] = [];
   const seenTypes = new Set<string>();
 
@@ -125,26 +168,32 @@ function resolveSettings(
   catalogue: CustomizationCatalogue,
 ): GlobalSettings {
   const pageFormat = current?.page?.format ?? "A4";
-  const bodyFont = current?.typography?.body_font ?? current?.font_family ?? DEFAULT_FONT;
+  const bodyFont =
+    current?.typography?.body_font ?? current?.font_family ?? DEFAULT_FONT;
   const headingFont = current?.typography?.heading_font ?? bodyFont;
-  const primaryColor = current?.colors?.primary ?? current?.primary_color ?? "#2563eb";
+  const primaryColor =
+    current?.colors?.primary ?? current?.primary_color ?? "#2563eb";
   const resolved: GlobalSettings = {
     schema_version: current?.schema_version ?? catalogue.schemaVersion,
     page: {
       format: pageFormat,
       margins: {
-        horizontal: current?.page?.margins?.horizontal ?? current?.margin_h ?? "64px",
-        vertical: current?.page?.margins?.vertical ?? current?.margin_v ?? "48px",
+        horizontal:
+          current?.page?.margins?.horizontal ?? current?.margin_h ?? "64px",
+        vertical:
+          current?.page?.margins?.vertical ?? current?.margin_v ?? "48px",
       },
       page_break_mode: current?.page?.page_break_mode ?? "auto",
       one_page_challenge: current?.page?.one_page_challenge ?? false,
     },
     layout: {
-      columns: current?.layout?.columns ?? (current?.col_swap === "true" ? 2 : 2),
+      columns:
+        current?.layout?.columns ?? (current?.col_swap === "true" ? 2 : 2),
       sidebar_position:
         current?.layout?.sidebar_position ??
         (current?.col_swap === "true" ? "left" : "right"),
-      sidebar_width: current?.layout?.sidebar_width ?? `${current?.col_left_width ?? "35"}%`,
+      sidebar_width:
+        current?.layout?.sidebar_width ?? `${current?.col_left_width ?? "35"}%`,
       density: current?.layout?.density ?? "normal",
       header_alignment: current?.layout?.header_alignment ?? "left",
       photo: {
@@ -160,7 +209,8 @@ function resolveSettings(
       heading_scale: current?.typography?.heading_scale ?? "1.0",
       weight: current?.typography?.weight ?? "regular",
       titles_uppercase: current?.typography?.titles_uppercase ?? true,
-      line_height: current?.typography?.line_height ?? current?.line_height ?? "1.5",
+      line_height:
+        current?.typography?.line_height ?? current?.line_height ?? "1.5",
       date_style: current?.typography?.date_style ?? "normal",
       bullet_style: current?.typography?.bullet_style ?? "bullets",
     },
@@ -209,9 +259,15 @@ interface StylePanelProps {
   open?: boolean;
   onClose?: () => void;
   variant?: "drawer" | "embedded";
+  uiMode?: CvBuilderUiMode;
 }
 
-export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePanelProps) {
+export function StylePanel({
+  open = true,
+  onClose,
+  variant = "drawer",
+  uiMode = "advanced",
+}: StylePanelProps) {
   const { cvData, setGlobalSettings } = useCVStore();
   const [tab, setTab] = useState<Tab>("design");
   const [catalogue, setCatalogue] = useState<CustomizationCatalogue>(
@@ -228,7 +284,10 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
     () => resolveCustomizationOptionLists(catalogue),
     [catalogue],
   );
-  const templateCards = useMemo(() => buildTemplateCards(catalogue), [catalogue]);
+  const templateCards = useMemo(
+    () => buildTemplateCards(catalogue),
+    [catalogue],
+  );
   const settings = useMemo(
     () => resolveSettings(cvData.global_settings, catalogue),
     [cvData.global_settings, catalogue],
@@ -257,10 +316,14 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
     setGlobalSettings({ ...settings, template_id: templateId });
   };
 
-  const updateSection = (index: number, patch: Partial<NonNullable<GlobalSettings["sections"]>[number]>) => {
-    const nextSections = settings.sections?.map((section, currentIndex) =>
-      currentIndex === index ? { ...section, ...patch } : section,
-    ) ?? [];
+  const updateSection = (
+    index: number,
+    patch: Partial<NonNullable<GlobalSettings["sections"]>[number]>,
+  ) => {
+    const nextSections =
+      settings.sections?.map((section, currentIndex) =>
+        currentIndex === index ? { ...section, ...patch } : section,
+      ) ?? [];
     update({ sections: nextSections });
   };
 
@@ -275,16 +338,32 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
 
   const TABS: { key: Tab; label: string; icon: string }[] = [
     { key: "design", label: "Design", icon: "" },
-    { key: "typography", label: "Typography", icon: "Aa" },
-    { key: "layout", label: "Layout", icon: "◫" },
+    { key: "typography", label: "Texte", icon: "Aa" },
+    { key: "layout", label: "Page", icon: "◫" },
     { key: "sections", label: "Sections", icon: "≡" },
-    { key: "advanced", label: "Advanced", icon: "{}" },
+    { key: "advanced", label: "Avancé", icon: "{}" },
   ];
+  const visibleTabs = TABS.filter((item) => {
+    if (uiMode === "simple") return item.key === "design";
+    if (uiMode === "normal") {
+      return (
+        item.key === "design" ||
+        item.key === "typography" ||
+        item.key === "layout"
+      );
+    }
+    return true;
+  });
+  const isSimpleMode = uiMode === "simple";
+  const isAdvancedMode = uiMode === "advanced";
 
   const sectionPlacements = options.sectionPlacements;
   const sectionModes = options.displayModes;
   const sectionDetails = options.detailLevels;
   const isEmbedded = variant === "embedded";
+  const activeTab = visibleTabs.some((item) => item.key === tab)
+    ? tab
+    : (visibleTabs[0]?.key ?? "design");
 
   return (
     <>
@@ -296,7 +375,11 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
       )}
 
       <aside
-        style={isEmbedded ? undefined : { boxShadow: "-8px 0 32px rgba(15,23,42,0.18)" }}
+        style={
+          isEmbedded
+            ? undefined
+            : { boxShadow: "-8px 0 32px rgba(15,23,42,0.18)" }
+        }
         className={
           isEmbedded
             ? "flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-border bg-card"
@@ -308,7 +391,9 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
       >
         <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-3.5">
           <div className="min-w-0">
-            <h2 className="truncate text-sm font-semibold text-foreground">Design Studio</h2>
+            <h2 className="truncate text-sm font-semibold text-foreground">
+              Design Studio
+            </h2>
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
               Backend catalogue driven
             </p>
@@ -323,25 +408,29 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
           )}
         </div>
 
-        <div className="flex shrink-0 border-b border-border">
-          {TABS.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`flex flex-1 cursor-pointer flex-col items-center gap-0.5 border-b-2 py-2.5 text-[11px] font-semibold transition-colors ${
-                tab === t.key
-                  ? "border-violet-600 bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300"
-                  : "border-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-              }`}
-            >
-              {t.icon && <span className="text-sm leading-none">{t.icon}</span>}
-              {t.label}
-            </button>
-          ))}
-        </div>
+        {visibleTabs.length > 1 ? (
+          <div className="flex shrink-0 border-b border-border">
+            {visibleTabs.map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={`flex flex-1 cursor-pointer flex-col items-center gap-0.5 border-b-2 py-2.5 text-[11px] font-semibold transition-colors ${
+                  activeTab === t.key
+                    ? "border-violet-600 bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300"
+                    : "border-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                }`}
+              >
+                {t.icon && (
+                  <span className="text-sm leading-none">{t.icon}</span>
+                )}
+                {t.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
 
         <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
-          {tab === "design" && (
+          {activeTab === "design" && (
             <>
               <section>
                 <SectionLabel>Template</SectionLabel>
@@ -369,117 +458,141 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
               </section>
 
               <section>
-                <SectionLabel>Palette</SectionLabel>
+                <SectionLabel>
+                  {isSimpleMode ? "Couleur principale" : "Palette"}
+                </SectionLabel>
+                {!isSimpleMode ? (
                   <ToolbarSelect
-                  value={colorSettings.palette_preset ?? "tech"}
-                  ariaLabel="Palette preset"
-                  options={options.palettePresets.map((preset) => ({ value: preset, label: preset }))}
-                  onChange={(value) =>
-                    update({
-                      colors: {
-                        ...colorSettings,
-                        palette_preset: value as NonNullable<
-                          GlobalSettings["colors"]
-                        >["palette_preset"],
-                      },
-                    })
-                  }
-                  triggerClassName={PANEL_INPUT_CLASS + " w-full"}
-                />
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  {options.editableColors.map((token) => (
-                    <label key={token} className="space-y-1">
-                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                        {token.replace("_", " ")}
-                      </span>
-                      <input
-                        type="color"
-                        value={(colorSettings as Record<string, string | undefined>)?.[token] ?? "#2563eb"}
-                        onChange={(e) =>
-                          update({
-                            colors: {
-                              ...colorSettings,
-                              [token]: e.target.value,
-                            },
-                          })
-                        }
-                        className="h-9 w-full cursor-pointer rounded-md border border-input bg-background"
-                      />
-                    </label>
-                  ))}
-                </div>
-                <label className={PANEL_TOGGLE_CLASS + " mt-3"}>
-                    <span className="text-xs font-medium text-foreground">Monochrome</span>
-                  <input
-                    type="checkbox"
-                    checked={colorSettings.monochrome ?? false}
-                    onChange={(e) =>
+                    value={colorSettings.palette_preset ?? "tech"}
+                    ariaLabel="Palette preset"
+                    options={options.palettePresets.map((preset) => ({
+                      value: preset,
+                      label: preset,
+                    }))}
+                    onChange={(value) =>
                       update({
                         colors: {
                           ...colorSettings,
-                          monochrome: e.target.checked,
+                          palette_preset: value as NonNullable<
+                            GlobalSettings["colors"]
+                          >["palette_preset"],
                         },
                       })
                     }
+                    triggerClassName={PANEL_INPUT_CLASS + " w-full"}
                   />
-                </label>
+                ) : null}
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  {options.editableColors
+                    .filter((token) => !isSimpleMode || token === "primary")
+                    .map((token) => (
+                      <label key={token} className="space-y-1">
+                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                          {token.replace("_", " ")}
+                        </span>
+                        <input
+                          type="color"
+                          value={
+                            (
+                              colorSettings as Record<
+                                string,
+                                string | undefined
+                              >
+                            )?.[token] ?? "#2563eb"
+                          }
+                          onChange={(e) =>
+                            update({
+                              colors: {
+                                ...colorSettings,
+                                [token]: e.target.value,
+                              },
+                            })
+                          }
+                          className="h-9 w-full cursor-pointer rounded-md border border-input bg-background"
+                        />
+                      </label>
+                    ))}
+                </div>
+                {!isSimpleMode ? (
+                  <label className={PANEL_TOGGLE_CLASS + " mt-3"}>
+                    <span className="text-xs font-medium text-foreground">
+                      Monochrome
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={colorSettings.monochrome ?? false}
+                      onChange={(e) =>
+                        update({
+                          colors: {
+                            ...colorSettings,
+                            monochrome: e.target.checked,
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                ) : null}
               </section>
 
-              <section>
-                <SectionLabel>Template notes</SectionLabel>
-                <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
-                  The backend keeps template compatibility and enforcement. This panel only
-                  sends API state.
-                </div>
-              </section>
+              {!isSimpleMode ? (
+                <section>
+                  <SectionLabel>Template notes</SectionLabel>
+                  <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+                    The backend keeps template compatibility and enforcement.
+                    This panel only sends API state.
+                  </div>
+                </section>
+              ) : null}
 
-              <section>
-                <SectionLabel>Locale</SectionLabel>
-                <div className="grid gap-2">
-                  <ToolbarSelect
-                    value={localeSettings.label_language ?? "fr"}
-                    ariaLabel="Locale label language"
-                    options={options.localeLanguages.map((language) => ({
-                      value: language,
-                      label: language.toUpperCase(),
-                    }))}
-                    onChange={(value) =>
-                      update({
-                        locale: {
-                          ...localeSettings,
-                          label_language: value as NonNullable<
-                            GlobalSettings["locale"]
-                          >["label_language"],
-                        },
-                      })
-                    }
-                    triggerClassName={PANEL_INPUT_CLASS}
-                  />
-                  <ToolbarSelect
-                    value={localeSettings.text_direction ?? "ltr"}
-                    ariaLabel="Locale text direction"
-                    options={options.localeDirections.map((direction) => ({
-                      value: direction,
-                      label: direction.toUpperCase(),
-                    }))}
-                    onChange={(value) =>
-                      update({
-                        locale: {
-                          ...localeSettings,
-                          text_direction: value as NonNullable<
-                            GlobalSettings["locale"]
-                          >["text_direction"],
-                        },
-                      })
-                    }
-                    triggerClassName={PANEL_INPUT_CLASS}
-                  />
-                </div>
-              </section>
+              {isAdvancedMode ? (
+                <section>
+                  <SectionLabel>Locale</SectionLabel>
+                  <div className="grid gap-2">
+                    <ToolbarSelect
+                      value={localeSettings.label_language ?? "fr"}
+                      ariaLabel="Locale label language"
+                      options={options.localeLanguages.map((language) => ({
+                        value: language,
+                        label: language.toUpperCase(),
+                      }))}
+                      onChange={(value) =>
+                        update({
+                          locale: {
+                            ...localeSettings,
+                            label_language: value as NonNullable<
+                              GlobalSettings["locale"]
+                            >["label_language"],
+                          },
+                        })
+                      }
+                      triggerClassName={PANEL_INPUT_CLASS}
+                    />
+                    <ToolbarSelect
+                      value={localeSettings.text_direction ?? "ltr"}
+                      ariaLabel="Locale text direction"
+                      options={options.localeDirections.map((direction) => ({
+                        value: direction,
+                        label: direction.toUpperCase(),
+                      }))}
+                      onChange={(value) =>
+                        update({
+                          locale: {
+                            ...localeSettings,
+                            text_direction: value as NonNullable<
+                              GlobalSettings["locale"]
+                            >["text_direction"],
+                          },
+                        })
+                      }
+                      triggerClassName={PANEL_INPUT_CLASS}
+                    />
+                  </div>
+                </section>
+              ) : null}
             </>
           )}
 
-          {tab === "typography" && (
+          {activeTab === "typography" && (
             <>
               <section>
                 <SectionLabel>Fonts</SectionLabel>
@@ -487,7 +600,10 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                   <ToolbarSelect
                     value={typographySettings.body_font ?? DEFAULT_FONT}
                     ariaLabel="Body font"
-                    options={options.fonts.map((font) => ({ value: font, label: font }))}
+                    options={options.fonts.map((font) => ({
+                      value: font,
+                      label: font,
+                    }))}
                     onChange={(value) =>
                       update({
                         font_family: value,
@@ -503,7 +619,10 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                   <ToolbarSelect
                     value={typographySettings.heading_font ?? DEFAULT_FONT}
                     ariaLabel="Heading font"
-                    options={options.headingFonts.map((font) => ({ value: font, label: font }))}
+                    options={options.headingFonts.map((font) => ({
+                      value: font,
+                      label: font,
+                    }))}
                     onChange={(value) =>
                       update({
                         typography: {
@@ -524,7 +643,10 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                   label="Base size"
                   min={options.baseSize.min}
                   max={options.baseSize.max}
-                  value={parseInt(typographySettings.base_size ?? settings.font_size ?? "13", 10)}
+                  value={parseInt(
+                    typographySettings.base_size ?? settings.font_size ?? "13",
+                    10,
+                  )}
                   unit="pt"
                   onChange={(v) =>
                     update({
@@ -560,7 +682,10 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                   <ToolbarSelect
                     value={typographySettings.weight ?? "regular"}
                     ariaLabel="Typography weight"
-                    options={options.weights.map((weight) => ({ value: weight, label: weight }))}
+                    options={options.weights.map((weight) => ({
+                      value: weight,
+                      label: weight,
+                    }))}
                     onChange={(value) =>
                       update({
                         typography: {
@@ -591,7 +716,11 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                     />
                   </label>
                   <ToolbarSelect
-                    value={typographySettings.line_height ?? settings.line_height ?? "1.5"}
+                    value={
+                      typographySettings.line_height ??
+                      settings.line_height ??
+                      "1.5"
+                    }
                     ariaLabel="Line height"
                     options={options.lineHeights.map((lineHeight) => ({
                       value: lineHeight,
@@ -611,7 +740,10 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                   <ToolbarSelect
                     value={typographySettings.date_style ?? "normal"}
                     ariaLabel="Date style"
-                    options={options.dateStyles.map((style) => ({ value: style, label: style }))}
+                    options={options.dateStyles.map((style) => ({
+                      value: style,
+                      label: style,
+                    }))}
                     onChange={(value) =>
                       update({
                         typography: {
@@ -627,7 +759,10 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                   <ToolbarSelect
                     value={typographySettings.bullet_style ?? "bullets"}
                     ariaLabel="Bullet style"
-                    options={options.bulletStyles.map((style) => ({ value: style, label: style }))}
+                    options={options.bulletStyles.map((style) => ({
+                      value: style,
+                      label: style,
+                    }))}
                     onChange={(value) =>
                       update({
                         typography: {
@@ -645,7 +780,7 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
             </>
           )}
 
-          {tab === "layout" && (
+          {activeTab === "layout" && (
             <>
               <section>
                 <SectionLabel>Page</SectionLabel>
@@ -653,7 +788,10 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                   <ToolbarSelect
                     value={pageSettings.format ?? "A4"}
                     ariaLabel="Page format"
-                    options={options.pageFormats.map((format) => ({ value: format, label: format }))}
+                    options={options.pageFormats.map((format) => ({
+                      value: format,
+                      label: format,
+                    }))}
                     onChange={(value) =>
                       update({
                         page: {
@@ -667,7 +805,10 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                   <ToolbarSelect
                     value={pageSettings.page_break_mode ?? "auto"}
                     ariaLabel="Page break mode"
-                    options={options.pageBreakModes.map((mode) => ({ value: mode, label: mode }))}
+                    options={options.pageBreakModes.map((mode) => ({
+                      value: mode,
+                      label: mode,
+                    }))}
                     onChange={(value) =>
                       update({
                         page: {
@@ -710,18 +851,23 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                   label="Horizontal"
                   min={options.margins.range.min}
                   max={options.margins.range.max}
-                  value={parseInt(pageSettings.margins?.horizontal ?? settings.margin_h ?? "64", 10)}
+                  value={parseInt(
+                    pageSettings.margins?.horizontal ??
+                      settings.margin_h ??
+                      "64",
+                    10,
+                  )}
                   unit={options.margins.range.unit}
                   onChange={(v) =>
-                      update({
-                        margin_h: `${v}px`,
-                        page: {
-                          ...pageSettings,
-                          margins: {
+                    update({
+                      margin_h: `${v}px`,
+                      page: {
+                        ...pageSettings,
+                        margins: {
                           ...pageSettings.margins,
-                            horizontal: `${v}px`,
-                          },
+                          horizontal: `${v}px`,
                         },
+                      },
                     })
                   }
                 />
@@ -729,18 +875,21 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                   label="Vertical"
                   min={options.margins.range.min}
                   max={options.margins.range.max}
-                  value={parseInt(pageSettings.margins?.vertical ?? settings.margin_v ?? "48", 10)}
+                  value={parseInt(
+                    pageSettings.margins?.vertical ?? settings.margin_v ?? "48",
+                    10,
+                  )}
                   unit={options.margins.range.unit}
                   onChange={(v) =>
-                      update({
-                        margin_v: `${v}px`,
-                        page: {
+                    update({
+                      margin_v: `${v}px`,
+                      page: {
                         ...pageSettings,
-                          margins: {
+                        margins: {
                           ...pageSettings.margins,
-                            vertical: `${v}px`,
-                          },
+                          vertical: `${v}px`,
                         },
+                      },
                     })
                   }
                 />
@@ -794,7 +943,10 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                   <ToolbarSelect
                     value={layoutSettings.density ?? "normal"}
                     ariaLabel="Layout density"
-                    options={options.densities.map((density) => ({ value: density, label: density }))}
+                    options={options.densities.map((density) => ({
+                      value: density,
+                      label: density,
+                    }))}
                     onChange={(value) =>
                       update({
                         layout: {
@@ -811,7 +963,12 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                     label="Sidebar width"
                     min={options.sidebarWidthRange.min}
                     max={options.sidebarWidthRange.max}
-                    value={parseInt(layoutSettings.sidebar_width ?? settings.col_left_width ?? "35", 10)}
+                    value={parseInt(
+                      layoutSettings.sidebar_width ??
+                        settings.col_left_width ??
+                        "35",
+                      10,
+                    )}
                     unit="%"
                     onChange={(v) =>
                       update({
@@ -849,7 +1006,9 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                     triggerClassName={PANEL_INPUT_CLASS}
                   />
                   <label className={PANEL_TOGGLE_CLASS}>
-                    <span className="text-xs font-medium text-foreground">Photo enabled</span>
+                    <span className="text-xs font-medium text-foreground">
+                      Photo enabled
+                    </span>
                     <input
                       type="checkbox"
                       checked={layoutSettings.photo?.enabled ?? false}
@@ -869,7 +1028,10 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                   <ToolbarSelect
                     value={layoutSettings.photo?.shape ?? "round"}
                     ariaLabel="Photo shape"
-                    options={options.photoShapes.map((shape) => ({ value: shape, label: shape }))}
+                    options={options.photoShapes.map((shape) => ({
+                      value: shape,
+                      label: shape,
+                    }))}
                     onChange={(value) =>
                       update({
                         layout: {
@@ -888,7 +1050,7 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
             </>
           )}
 
-          {tab === "sections" && (
+          {activeTab === "sections" && (
             <>
               <section>
                 <SectionLabel>Section model</SectionLabel>
@@ -915,7 +1077,9 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                           </button>
                           <button
                             onClick={() => moveSection(index, 1)}
-                            disabled={index === (settings.sections?.length ?? 0) - 1}
+                            disabled={
+                              index === (settings.sections?.length ?? 0) - 1
+                            }
                             aria-label={`Move section ${section.type} down`}
                             className="rounded border border-input bg-background px-2 py-1 text-[10px] text-muted-foreground disabled:opacity-40"
                           >
@@ -926,17 +1090,25 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                       <div className="grid gap-2">
                         <input
                           value={section.label}
-                          onChange={(e) => updateSection(index, { label: e.target.value })}
+                          onChange={(e) =>
+                            updateSection(index, { label: e.target.value })
+                          }
                           aria-label={`Section label ${section.type}`}
                           className={PANEL_INPUT_CLASS}
                         />
                         <div className="grid grid-cols-2 gap-2">
                           <label className={PANEL_TOGGLE_CLASS}>
-                            <span className="text-xs font-medium text-foreground">Visible</span>
+                            <span className="text-xs font-medium text-foreground">
+                              Visible
+                            </span>
                             <input
                               type="checkbox"
                               checked={section.visible ?? true}
-                              onChange={(e) => updateSection(index, { visible: e.target.checked })}
+                              onChange={(e) =>
+                                updateSection(index, {
+                                  visible: e.target.checked,
+                                })
+                              }
                               aria-label={`Toggle section ${section.type}`}
                             />
                           </label>
@@ -959,7 +1131,10 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                           <ToolbarSelect
                             value={section.display_mode ?? "list"}
                             ariaLabel={`Section display mode ${section.type}`}
-                            options={sectionModes.map((mode) => ({ value: mode, label: mode }))}
+                            options={sectionModes.map((mode) => ({
+                              value: mode,
+                              label: mode,
+                            }))}
                             onChange={(value) =>
                               updateSection(index, {
                                 display_mode: value as NonNullable<
@@ -972,7 +1147,10 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                           <ToolbarSelect
                             value={section.detail_level ?? "normal"}
                             ariaLabel={`Section detail level ${section.type}`}
-                            options={sectionDetails.map((level) => ({ value: level, label: level }))}
+                            options={sectionDetails.map((level) => ({
+                              value: level,
+                              label: level,
+                            }))}
                             onChange={(value) =>
                               updateSection(index, {
                                 detail_level: value as NonNullable<
@@ -985,21 +1163,31 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                           <label className={PANEL_TOGGLE_CLASS}>
-                            <span className="text-xs font-medium text-foreground">Dates</span>
+                            <span className="text-xs font-medium text-foreground">
+                              Dates
+                            </span>
                             <input
                               type="checkbox"
                               checked={section.show_dates ?? true}
-                              onChange={(e) => updateSection(index, { show_dates: e.target.checked })}
+                              onChange={(e) =>
+                                updateSection(index, {
+                                  show_dates: e.target.checked,
+                                })
+                              }
                               aria-label={`Toggle dates ${section.type}`}
                             />
                           </label>
                           <label className={PANEL_TOGGLE_CLASS}>
-                            <span className="text-xs font-medium text-foreground">Locations</span>
+                            <span className="text-xs font-medium text-foreground">
+                              Locations
+                            </span>
                             <input
                               type="checkbox"
                               checked={section.show_locations ?? true}
                               onChange={(e) =>
-                                updateSection(index, { show_locations: e.target.checked })
+                                updateSection(index, {
+                                  show_locations: e.target.checked,
+                                })
                               }
                               aria-label={`Toggle locations ${section.type}`}
                             />
@@ -1013,7 +1201,7 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
             </>
           )}
 
-          {tab === "advanced" && (
+          {activeTab === "advanced" && (
             <>
               <section>
                 <SectionLabel>Advanced CSS</SectionLabel>
@@ -1048,7 +1236,10 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                   <ToolbarSelect
                     value={advancedCssSettings.mode ?? "off"}
                     ariaLabel="Advanced CSS mode"
-                    options={catalogue.advancedCss.modes.map((mode) => ({ value: mode, label: mode }))}
+                    options={catalogue.advancedCss.modes.map((mode) => ({
+                      value: mode,
+                      label: mode,
+                    }))}
                     onChange={(value) =>
                       update({
                         advanced_css: {
@@ -1081,7 +1272,9 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                       {advancedCssSettings.css_text?.length ?? 0}/
                       {catalogue.advancedCss.maxLength}
                     </span>
-                    <span>{catalogue.advancedCss.allowedScopes.join(" · ")}</span>
+                    <span>
+                      {catalogue.advancedCss.allowedScopes.join(" · ")}
+                    </span>
                   </div>
                 </div>
               </section>
@@ -1117,8 +1310,13 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
               <section>
                 <SectionLabel>Guardrails</SectionLabel>
                 <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
-                  <p>Blocked: {catalogue.advancedCss.blockedAtRules.join(", ")}</p>
-                  <p>Filtered: {catalogue.advancedCss.blockedFunctions.join(", ")}</p>
+                  <p>
+                    Blocked: {catalogue.advancedCss.blockedAtRules.join(", ")}
+                  </p>
+                  <p>
+                    Filtered:{" "}
+                    {catalogue.advancedCss.blockedFunctions.join(", ")}
+                  </p>
                 </div>
                 {advancedCssSettings.warnings &&
                   advancedCssSettings.warnings.length > 0 && (
@@ -1135,7 +1333,9 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
 
         <div className="shrink-0 border-t border-border px-5 py-3">
           <button
-            onClick={() => setGlobalSettings({ ...resetSettings, template_id: "modern" })}
+            onClick={() =>
+              setGlobalSettings({ ...resetSettings, template_id: "modern" })
+            }
             className="w-full cursor-pointer rounded-lg border border-input bg-background py-2 text-xs font-medium text-foreground shadow-sm transition-colors hover:bg-accent"
           >
             Reset to backend defaults

@@ -10,6 +10,10 @@ import { Input } from "@/components/ui/input";
 
 import type { HeaderMenuAction } from "./HeaderActionMenu";
 import { HeaderActionMenu } from "./HeaderActionMenu";
+import {
+  CvBuilderModeToggle,
+  type CvBuilderUiMode,
+} from "./CvBuilderModeToggle";
 
 const TOOLBAR_BUTTON_CLASS =
   "app-toolbar-button inline-flex h-9 cursor-pointer items-center gap-1 px-2.5 text-xs font-medium";
@@ -46,6 +50,7 @@ export function CvBuilderHeader(props: {
   uploadIcon: ReactNode;
   downloadIcon: ReactNode;
   insightsBadge: boolean;
+  uiMode: CvBuilderUiMode;
   onSelectResume: (id: string) => void;
   onRenameResume: (name: string) => void;
   onCreateResume: () => void;
@@ -64,6 +69,7 @@ export function CvBuilderHeader(props: {
   onToggleGhost: () => void;
   onToggleInsights: () => void;
   onOpenCoverLetter: () => void;
+  onChangeUiMode: (mode: CvBuilderUiMode) => void;
 }) {
   const {
     activeResumeId,
@@ -89,6 +95,7 @@ export function CvBuilderHeader(props: {
     uploadIcon,
     downloadIcon,
     insightsBadge,
+    uiMode,
     onSelectResume,
     onRenameResume,
     onCreateResume,
@@ -107,41 +114,146 @@ export function CvBuilderHeader(props: {
     onToggleGhost,
     onToggleInsights,
     onOpenCoverLetter,
+    onChangeUiMode,
   } = props;
+
+  const isSimple = uiMode === "simple";
+  const isNormal = uiMode === "normal";
+  const isAdvanced = uiMode === "advanced";
+
+  const resumeSelector = (
+    <ToolbarSelect
+      value={activeResumeId}
+      ariaLabel="Choisir le CV"
+      options={resumes.map((resume) => ({
+        value: resume.id,
+        label: resume.name,
+      }))}
+      onChange={onSelectResume}
+      triggerClassName={`${BUILDER_INPUT_CLASS} min-w-40 max-w-56`}
+      menuClassName="min-w-56"
+    />
+  );
+
+  const resumeNameInput = (
+    <input
+      value={activeResumeName}
+      onChange={(e) => onRenameResume(e.target.value)}
+      placeholder="Nom du CV"
+      className={`${BUILDER_INPUT_CLASS} w-40`}
+    />
+  );
+
+  const localeControls = (
+    <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border bg-muted/40 px-1 py-1">
+      {availableLocales.map((locale) => (
+        <button
+          key={locale}
+          type="button"
+          onClick={() => onActivateLocale(locale)}
+          className={`inline-flex h-7 min-w-10 cursor-pointer items-center justify-center rounded-md px-2 text-[11px] font-semibold transition-colors ${
+            locale === activeLocale
+              ? "bg-primary text-primary-foreground"
+              : "bg-card text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          {locale.toUpperCase()}
+        </button>
+      ))}
+      {inactiveLocales.length > 0 ? (
+        <>
+          <ToolbarSelect
+            value={localeToCreate}
+            placeholder="Ajouter"
+            ariaLabel="Ajouter une langue"
+            options={inactiveLocales.map((locale) => ({
+              value: locale,
+              label: locale.toUpperCase(),
+            }))}
+            onChange={(value) => onSetLocaleToCreate(value as LocaleOption)}
+            triggerClassName="app-select h-7 min-w-24 px-2 text-[11px] font-medium"
+            menuClassName="min-w-28"
+          />
+          <button
+            type="button"
+            disabled={!localeToCreate}
+            onClick={onCreateLocale}
+            className="inline-flex h-7 cursor-pointer items-center justify-center rounded-md border border-input bg-background px-2 text-[11px] font-semibold text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Ajouter
+          </button>
+        </>
+      ) : null}
+      {canDeleteLocale ? (
+        <button
+          type="button"
+          onClick={onDeleteLocale}
+          className="inline-flex h-7 cursor-pointer items-center justify-center rounded-md border border-red-200 bg-red-50 px-2 text-[11px] font-semibold text-red-700 transition-colors hover:bg-red-100"
+        >
+          Retirer
+        </button>
+      ) : null}
+    </div>
+  );
+
+  const importExportControls = (
+    <>
+      <HeaderActionMenu
+        label="Importer"
+        icon={uploadIcon}
+        isOpen={activeHeaderMenu === "upload"}
+        onToggle={onToggleUploadMenu}
+        onClose={onCloseHeaderMenu}
+        actions={uploadActions}
+      />
+      <HeaderActionMenu
+        label="Exporter"
+        icon={downloadIcon}
+        isOpen={activeHeaderMenu === "download"}
+        onToggle={onToggleDownloadMenu}
+        onClose={onCloseHeaderMenu}
+        actions={downloadActions}
+      />
+    </>
+  );
+
+  const optimizeControl = (
+    <div className="flex min-w-[260px] flex-1 items-center gap-2">
+      <Input
+        value={jobUrl}
+        onChange={(e) => onChangeJobUrl(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && onOptimize()}
+        placeholder="Coller l'URL de l'offre…"
+        className="app-input h-9 text-sm"
+      />
+      <Button
+        onClick={onOptimize}
+        disabled={isOptimizing || !jobUrl.trim()}
+        className="h-9 shrink-0 cursor-pointer bg-slate-950 px-4 text-sm text-white hover:bg-slate-800 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90"
+      >
+        {isOptimizing ? (
+          <span className="flex items-center gap-2">
+            <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            Analyse…
+          </span>
+        ) : (
+          "Adapter mon CV"
+        )}
+      </Button>
+    </div>
+  );
 
   return (
     <header className="app-header-surface z-30 flex shrink-0 flex-col gap-3 px-4 py-3">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="shrink-0">
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">CV Builder</p>
-        </div>
-
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-          <ToolbarSelect
-            value={activeResumeId}
-            ariaLabel="Select resume"
-            options={resumes.map((resume) => ({
-              value: resume.id,
-              label: resume.name,
-            }))}
-            onChange={onSelectResume}
-            triggerClassName={`${BUILDER_INPUT_CLASS} min-w-40 max-w-56`}
-            menuClassName="min-w-56"
-          />
-          <input
-            value={activeResumeName}
-            onChange={(e) => onRenameResume(e.target.value)}
-            placeholder="Resume name"
-            className={`${BUILDER_INPUT_CLASS} w-40`}
-          />
-          <button onClick={onCreateResume} className="app-toolbar-button h-9 cursor-pointer px-3 text-xs font-medium">New</button>
-          <button onClick={onDuplicateResume} className="app-toolbar-button h-9 cursor-pointer px-3 text-xs font-medium">Duplicate</button>
-          <button onClick={onDeleteResume} className="h-9 cursor-pointer rounded-lg border border-red-100 bg-red-50 px-3 text-xs font-medium text-red-700 hover:bg-red-100">Delete</button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex shrink-0 items-center gap-3">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            CV Builder
+          </p>
+          <CvBuilderModeToggle value={uiMode} onChange={onChangeUiMode} />
         </div>
 
         <div className="flex items-center gap-2">
-          <PdfIngestionModeSelect label="PDF parse" variant="toolbar" />
-          <LLMSelector taskKey="optimize_llm" label="Optimize" variant="toolbar" />
           <button
             onClick={onRetrySave}
             className="app-toolbar-button h-9 px-3 text-xs font-medium"
@@ -158,101 +270,107 @@ export function CvBuilderHeader(props: {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border bg-muted/40 px-1 py-1">
-          {availableLocales.map((locale) => (
-            <button
-              key={locale}
-              type="button"
-              onClick={() => onActivateLocale(locale)}
-              className={`inline-flex h-7 min-w-10 cursor-pointer items-center justify-center rounded-md px-2 text-[11px] font-semibold transition-colors ${
-                locale === activeLocale
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-card text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {locale.toUpperCase()}
-            </button>
-          ))}
-          {inactiveLocales.length > 0 ? (
+        <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/25 p-2">
+          {isAdvanced ? (
+            <span className="px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              CV
+            </span>
+          ) : null}
+          {resumeSelector}
+          {resumeNameInput}
+          {!isSimple ? (
             <>
-              <ToolbarSelect
-                value={localeToCreate}
-                placeholder="Add locale"
-                ariaLabel="Add locale"
-                options={inactiveLocales.map((locale) => ({
-                  value: locale,
-                  label: locale.toUpperCase(),
-                }))}
-                onChange={(value) => onSetLocaleToCreate(value as LocaleOption)}
-                triggerClassName="app-select h-7 min-w-24 px-2 text-[11px] font-medium"
-                menuClassName="min-w-28"
-              />
               <button
-                type="button"
-                disabled={!localeToCreate}
-                onClick={onCreateLocale}
-                className="inline-flex h-7 cursor-pointer items-center justify-center rounded-md border border-input bg-background px-2 text-[11px] font-semibold text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={onCreateResume}
+                className="app-toolbar-button h-9 cursor-pointer px-3 text-xs font-medium"
               >
-                Add
+                Nouveau
+              </button>
+              <button
+                onClick={onDuplicateResume}
+                className="app-toolbar-button h-9 cursor-pointer px-3 text-xs font-medium"
+              >
+                Dupliquer
               </button>
             </>
           ) : null}
-          {canDeleteLocale ? (
+          {isAdvanced ? (
             <button
-              type="button"
-              onClick={onDeleteLocale}
-              className="inline-flex h-7 cursor-pointer items-center justify-center rounded-md border border-red-200 bg-red-50 px-2 text-[11px] font-semibold text-red-700 transition-colors hover:bg-red-100"
+              onClick={onDeleteResume}
+              className="h-9 cursor-pointer rounded-lg border border-red-100 bg-red-50 px-3 text-xs font-medium text-red-700 hover:bg-red-100"
             >
-              Remove
+              Supprimer
+            </button>
+          ) : null}
+          {isAdvanced ? localeControls : null}
+        </div>
+
+        {optimizeControl}
+
+        <div
+          ref={headerMenuRef}
+          className="flex flex-wrap items-center gap-1.5 rounded-xl border border-border bg-muted/25 p-2"
+        >
+          {isAdvanced ? (
+            <span className="px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Actions
+            </span>
+          ) : null}
+          {importExportControls}
+          {!isSimple ? (
+            <>
+              <button
+                onClick={onToggleInsights}
+                className={
+                  showInsights
+                    ? `relative ${TOOLBAR_BUTTON_ACTIVE_CLASS}`
+                    : `relative ${TOOLBAR_BUTTON_CLASS}`
+                }
+              >
+                Conseils
+                {insightsBadge ? (
+                  <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-green-500" />
+                ) : null}
+              </button>
+              <button
+                onClick={onOpenCoverLetter}
+                className={TOOLBAR_BUTTON_CLASS}
+              >
+                Lettre
+              </button>
+            </>
+          ) : null}
+          {isAdvanced ? (
+            <button
+              onClick={onToggleGhost}
+              className={
+                showGhost ? TOOLBAR_BUTTON_ACTIVE_CLASS : TOOLBAR_BUTTON_CLASS
+              }
+            >
+              Journal
             </button>
           ) : null}
         </div>
-        <div className="flex min-w-[280px] flex-1 items-center gap-2">
-          <Input
-            value={jobUrl}
-            onChange={(e) => onChangeJobUrl(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && onOptimize()}
-            placeholder="Paste job offer URL…"
-            className="app-input h-9 text-sm"
-          />
-          <Button
-            onClick={onOptimize}
-            disabled={isOptimizing || !jobUrl.trim()}
-            className="h-9 shrink-0 cursor-pointer bg-slate-950 px-4 text-sm text-white hover:bg-slate-800"
-          >
-            {isOptimizing ? (
-              <span className="flex items-center gap-2">
-                <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                Running…
-              </span>
-            ) : "Optimize"}
-          </Button>
-        </div>
 
-        <div ref={headerMenuRef} className="flex flex-wrap items-center gap-1.5">
-          <HeaderActionMenu
-            label="Upload CV"
-            icon={uploadIcon}
-            isOpen={activeHeaderMenu === "upload"}
-            onToggle={onToggleUploadMenu}
-            onClose={onCloseHeaderMenu}
-            actions={uploadActions}
-          />
-          <HeaderActionMenu
-            label="Download CV"
-            icon={downloadIcon}
-            isOpen={activeHeaderMenu === "download"}
-            onToggle={onToggleDownloadMenu}
-            onClose={onCloseHeaderMenu}
-            actions={downloadActions}
-          />
-          <button onClick={onToggleGhost} className={showGhost ? TOOLBAR_BUTTON_ACTIVE_CLASS : TOOLBAR_BUTTON_CLASS}>Ghost</button>
-          <button onClick={onToggleInsights} className={showInsights ? `relative ${TOOLBAR_BUTTON_ACTIVE_CLASS}` : `relative ${TOOLBAR_BUTTON_CLASS}`}>
-            Insights
-            {insightsBadge ? <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-green-500" /> : null}
-          </button>
-          <button onClick={onOpenCoverLetter} className={TOOLBAR_BUTTON_CLASS}>Cover Letter</button>
-        </div>
+        {isAdvanced ? (
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/25 p-2">
+            <span className="px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              IA
+            </span>
+            <PdfIngestionModeSelect label="Lecture PDF" variant="toolbar" />
+            <LLMSelector
+              taskKey="optimize_llm"
+              label="Moteur IA"
+              variant="toolbar"
+            />
+          </div>
+        ) : null}
+
+        {isNormal ? (
+          <div className="flex flex-wrap items-center gap-2">
+            {localeControls}
+          </div>
+        ) : null}
       </div>
     </header>
   );
