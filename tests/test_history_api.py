@@ -1,5 +1,6 @@
 """Unified history API tests."""
 
+import json
 from uuid import uuid4
 
 from conftest import auth_headers, client
@@ -18,7 +19,7 @@ from sqlalchemy import select
 
 
 def test_history_ledger_requires_api_key() -> None:
-    api = client()
+    api = client(client_host="198.51.100.25", base_url="http://mindris.example")
     response = api.get("/api/v1/history/ledger")
     assert response.status_code == 401
     assert response.json()["status"] == "error"
@@ -254,7 +255,20 @@ def test_history_ledger_can_be_cleared_without_deleting_resume_library() -> None
 
         resume = ResumeRecord(
             name="Source Resume",
-            data_json='{"multilingual":{"default_locale":"fr","active_locale":"fr","variants":{"fr":{"profile":{"full_name":"Ada Lovelace"},"global_settings":{"template_id":"modern"}}}}}',
+            data_json=json.dumps(
+                {
+                    "multilingual": {
+                        "default_locale": "fr",
+                        "active_locale": "fr",
+                        "variants": {
+                            "fr": {
+                                "profile": {"full_name": "Ada Lovelace"},
+                                "global_settings": {"template_id": "modern"},
+                            }
+                        },
+                    }
+                }
+            ),
             template_id="modern",
             locale="fr",
             source="manual",

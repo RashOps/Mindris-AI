@@ -117,7 +117,7 @@ async def run_intelligence_pipeline(
                         job_offer.company,
                         provider,
                         model_name,
-                        source_url=str(request.job_url),
+                        source_url=job_url,
                         evidence_text=job_offer.description_markdown,
                     ),
                     timeout=settings.service_timeout_seconds,

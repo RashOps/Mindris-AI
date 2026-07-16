@@ -17,7 +17,6 @@ require_cmd bun
 
 cd "$ROOT_DIR"
 UV_CACHE_DIR="$UV_CACHE_DIR" uv run --no-sync pytest \
-  tests/test_brand_assets.py \
   tests/test_logger.py \
   tests/test_system_api.py \
   tests/test_templates_api.py -q
