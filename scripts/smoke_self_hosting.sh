@@ -8,7 +8,7 @@ WEB_URL="${WEB_URL:-http://localhost:3000}"
 check() {
   name="$1"
   url="$2"
-  if ! curl -fsS "$url" >/dev/null; then
+  if ! curl --max-time 8 -fsS "$url" >/dev/null; then
     echo "FAIL $name $url" >&2
     exit 1
   fi

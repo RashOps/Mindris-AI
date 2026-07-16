@@ -74,6 +74,7 @@ Verifications effectuees :
 
 | Verification | Resultat |
 | :--- | :--- |
+| `./scripts/docker_local.sh doctor` | OK |
 | `docker compose config --quiet` | OK |
 | `sh -n scripts/smoke_self_hosting.sh` | OK |
 | Backend smoke MVP1 | OK |

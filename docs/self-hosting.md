@@ -59,6 +59,10 @@ Ne pas mettre de vraies clés API dans `.env.example`.
 Depuis la racine :
 
 ```bash
+./scripts/docker_local.sh doctor
+```
+
+```bash
 docker compose up --build
 ```
 
@@ -67,6 +71,11 @@ Ou avec le script dédié :
 ```bash
 ./scripts/docker_local.sh up
 ```
+
+Ne partage pas la sortie de `docker compose config` si ton `.env` contient de
+vraies clés API : Compose y développe les valeurs en clair. Pour une validation
+sans fuite de secrets, utilise `./scripts/docker_local.sh doctor`, qui lance
+`docker compose config --quiet`.
 
 URLs :
 
@@ -111,6 +120,12 @@ Ou :
 
 ```bash
 ./scripts/docker_local.sh logs
+```
+
+Statut des conteneurs :
+
+```bash
+./scripts/docker_local.sh status
 ```
 
 En plus des flux `docker compose logs`, les services ecrivent dans les volumes locaux.
