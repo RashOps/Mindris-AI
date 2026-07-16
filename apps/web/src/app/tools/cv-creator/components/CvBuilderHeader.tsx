@@ -269,78 +269,75 @@ export function CvBuilderHeader(props: {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/25 p-2">
-          {isAdvanced ? (
+      {isAdvanced ? (
+        <div className="flex w-full flex-wrap items-start gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/25 p-2 max-sm:w-full">
             <span className="px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               CV
             </span>
-          ) : null}
-          {resumeSelector}
-          {resumeNameInput}
-          {!isSimple ? (
-            <>
-              <button
-                onClick={onCreateResume}
-                className="app-toolbar-button h-9 cursor-pointer px-3 text-xs font-medium"
-              >
-                Nouveau
-              </button>
-              <button
-                onClick={onDuplicateResume}
-                className="app-toolbar-button h-9 cursor-pointer px-3 text-xs font-medium"
-              >
-                Dupliquer
-              </button>
-            </>
-          ) : null}
-          {isAdvanced ? (
+            {resumeSelector}
+            {resumeNameInput}
+            <button
+              onClick={onCreateResume}
+              className="app-toolbar-button h-9 cursor-pointer px-3 text-xs font-medium"
+            >
+              Nouveau
+            </button>
+            <button
+              onClick={onDuplicateResume}
+              className="app-toolbar-button h-9 cursor-pointer px-3 text-xs font-medium"
+            >
+              Dupliquer
+            </button>
             <button
               onClick={onDeleteResume}
               className="h-9 cursor-pointer rounded-lg border border-red-100 bg-red-50 px-3 text-xs font-medium text-red-700 hover:bg-red-100"
             >
               Supprimer
             </button>
-          ) : null}
-          {isAdvanced ? localeControls : null}
-        </div>
+          </div>
 
-        {optimizeControl}
+          <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/25 p-2 max-sm:w-full">
+            <span className="px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Langues
+            </span>
+            {localeControls}
+          </div>
 
-        <div
-          ref={headerMenuRef}
-          className="flex flex-wrap items-center gap-1.5 rounded-xl border border-border bg-muted/25 p-2"
-        >
-          {isAdvanced ? (
+          <div className="flex w-full min-w-0 items-center gap-2 rounded-xl border border-border bg-muted/25 p-2 max-sm:flex-wrap sm:min-w-[360px] sm:flex-1">
+            <span className="px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Offre
+            </span>
+            {optimizeControl}
+          </div>
+
+          <div
+            ref={headerMenuRef}
+            className="flex min-w-0 flex-wrap items-center gap-1.5 rounded-xl border border-border bg-muted/25 p-2 max-sm:w-full"
+          >
             <span className="px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               Actions
             </span>
-          ) : null}
-          {importExportControls}
-          {!isSimple ? (
-            <>
-              <button
-                onClick={onToggleInsights}
-                className={
-                  showInsights
-                    ? `relative ${TOOLBAR_BUTTON_ACTIVE_CLASS}`
-                    : `relative ${TOOLBAR_BUTTON_CLASS}`
-                }
-              >
-                Conseils
-                {insightsBadge ? (
-                  <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-green-500" />
-                ) : null}
-              </button>
-              <button
-                onClick={onOpenCoverLetter}
-                className={TOOLBAR_BUTTON_CLASS}
-              >
-                Lettre
-              </button>
-            </>
-          ) : null}
-          {isAdvanced ? (
+            {importExportControls}
+            <button
+              onClick={onToggleInsights}
+              className={
+                showInsights
+                  ? `relative ${TOOLBAR_BUTTON_ACTIVE_CLASS}`
+                  : `relative ${TOOLBAR_BUTTON_CLASS}`
+              }
+            >
+              Conseils
+              {insightsBadge ? (
+                <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-green-500" />
+              ) : null}
+            </button>
+            <button
+              onClick={onOpenCoverLetter}
+              className={TOOLBAR_BUTTON_CLASS}
+            >
+              Lettre
+            </button>
             <button
               onClick={onToggleGhost}
               className={
@@ -349,11 +346,9 @@ export function CvBuilderHeader(props: {
             >
               Journal
             </button>
-          ) : null}
-        </div>
+          </div>
 
-        {isAdvanced ? (
-          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/25 p-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/25 p-2 max-sm:w-full">
             <span className="px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               IA
             </span>
@@ -364,14 +359,69 @@ export function CvBuilderHeader(props: {
               variant="toolbar"
             />
           </div>
-        ) : null}
-
-        {isNormal ? (
-          <div className="flex flex-wrap items-center gap-2">
-            {localeControls}
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/25 p-2">
+            {resumeSelector}
+            {resumeNameInput}
+            {!isSimple ? (
+              <>
+                <button
+                  onClick={onCreateResume}
+                  className="app-toolbar-button h-9 cursor-pointer px-3 text-xs font-medium"
+                >
+                  Nouveau
+                </button>
+                <button
+                  onClick={onDuplicateResume}
+                  className="app-toolbar-button h-9 cursor-pointer px-3 text-xs font-medium"
+                >
+                  Dupliquer
+                </button>
+              </>
+            ) : null}
           </div>
-        ) : null}
-      </div>
+
+          {optimizeControl}
+
+          <div
+            ref={headerMenuRef}
+            className="flex flex-wrap items-center gap-1.5 rounded-xl border border-border bg-muted/25 p-2"
+          >
+            {importExportControls}
+            {!isSimple ? (
+              <>
+                <button
+                  onClick={onToggleInsights}
+                  className={
+                    showInsights
+                      ? `relative ${TOOLBAR_BUTTON_ACTIVE_CLASS}`
+                      : `relative ${TOOLBAR_BUTTON_CLASS}`
+                  }
+                >
+                  Conseils
+                  {insightsBadge ? (
+                    <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-green-500" />
+                  ) : null}
+                </button>
+                <button
+                  onClick={onOpenCoverLetter}
+                  className={TOOLBAR_BUTTON_CLASS}
+                >
+                  Lettre
+                </button>
+              </>
+            ) : null}
+          </div>
+
+          {isNormal ? (
+            <div className="flex flex-wrap items-center gap-2">
+              {localeControls}
+            </div>
+          ) : null}
+        </div>
+      )}
     </header>
   );
 }
