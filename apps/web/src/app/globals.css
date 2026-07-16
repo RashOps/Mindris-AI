@@ -359,29 +359,3 @@
   0%, 100% { opacity: 1; transform: scale(1); }
   50%       { opacity: 0.4; transform: scale(1.5); }
 }
-
-/* Terminal line staggered fade-in */
-.land-tline {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.6rem;
-  opacity: 0;
-  animation: landFadeLine 0.35s ease forwards var(--delay, 0s);
-}
-@keyframes landFadeLine {
-  from { opacity: 0; transform: translateX(-6px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-
-/* Blinking cursor */
-.land-cursor {
-  color: #818cf8;
-  opacity: 0;
-  margin-top: 0.25rem;
-  animation: landBlink 1s step-end infinite 3s forwards;
-  animation-fill-mode: forwards;
-}
-@keyframes landBlink {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0; }
-}

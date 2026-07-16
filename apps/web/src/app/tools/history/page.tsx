@@ -217,11 +217,11 @@ export default function HistoryPage() {
           </div>
         )}
 
-        <div className="mt-4 grid gap-4 xl:grid-cols-[1.15fr,0.85fr]">
-          <section className="rounded-2xl border border-border bg-card shadow-sm">
+        <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.8fr)]">
+          <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
             <div className="border-b border-border px-4 py-3">
               <p className="text-sm font-semibold text-foreground">
-                Recent activity
+                Recent activity · {items.length}
               </p>
             </div>
             {loading ? (
@@ -234,7 +234,7 @@ export default function HistoryPage() {
                 No activity available for this filter.
               </div>
             ) : (
-              <div className="divide-y divide-border">
+              <div className="max-h-[calc(100vh-18rem)] divide-y divide-border overflow-y-auto">
                 {items.map((item) => (
                   <button
                     key={item.id}
@@ -251,20 +251,20 @@ export default function HistoryPage() {
                         {item.subject_type.replace("_", " ")}
                       </span>
                       {item.status && (
-                        <span className="text-[11px] font-medium text-slate-500">
+                        <span className="text-[11px] font-medium text-muted-foreground">
                           {item.status}
                         </span>
                       )}
-                      <span className="ml-auto text-xs text-slate-400">
+                      <span className="ml-auto text-xs text-muted-foreground">
                         {formatTimestamp(item.timestamp)}
                       </span>
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">
+                      <p className="text-sm font-semibold text-foreground">
                         {item.title}
                       </p>
                       {item.summary && (
-                        <p className="mt-1 text-sm text-slate-600">
+                        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
                           {item.summary}
                         </p>
                       )}
@@ -275,52 +275,52 @@ export default function HistoryPage() {
             )}
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-200 px-4 py-3">
-              <p className="text-sm font-semibold text-slate-900">
+          <section className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+            <div className="border-b border-border px-4 py-3">
+              <p className="text-sm font-semibold text-foreground">
                 Lineage details
               </p>
             </div>
             {!selectedItem ? (
-              <div className="px-4 py-6 text-sm text-slate-500">
+              <div className="px-4 py-6 text-sm text-muted-foreground">
                 Select a ledger item to inspect its linked artifacts.
               </div>
             ) : (
-              <div className="space-y-4 px-4 py-4">
+              <div className="max-h-[calc(100vh-10rem)] space-y-4 overflow-y-auto px-4 py-4">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Selected item
                   </p>
-                  <p className="mt-2 text-lg font-semibold text-slate-900">
+                  <p className="mt-2 text-lg font-semibold text-foreground">
                     {selectedItem.title}
                   </p>
                   {selectedItem.summary && (
-                    <p className="mt-1 text-sm text-slate-600">
+                    <p className="mt-1 text-sm text-muted-foreground">
                       {selectedItem.summary}
                     </p>
                   )}
                 </div>
 
                 <div className="grid gap-3 md:grid-cols-2">
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  <div className="rounded-xl border border-border bg-muted/40 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       Runtime
                     </p>
-                    <p className="mt-2 text-sm text-slate-700">
+                    <p className="mt-2 text-sm text-foreground">
                       Provider: {selectedItem.provider || "n/a"}
                     </p>
-                    <p className="mt-1 text-sm text-slate-700">
+                    <p className="mt-1 text-sm text-foreground">
                       Model: {selectedItem.model_name || "n/a"}
                     </p>
                   </div>
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  <div className="rounded-xl border border-border bg-muted/40 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       Metadata
                     </p>
-                    <div className="mt-2 space-y-1 text-sm text-slate-700">
+                    <div className="mt-2 space-y-1 text-sm text-muted-foreground">
                       {Object.entries(selectedItem.metadata).slice(0, 5).map(([key, value]) => (
                         <p key={key}>
-                          <span className="font-medium text-slate-900">{key}</span>{" "}
+                          <span className="font-medium text-foreground">{key}</span>{" "}
                           {String(value)}
                         </p>
                       ))}
@@ -329,11 +329,11 @@ export default function HistoryPage() {
                 </div>
 
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Linked artifacts
                   </p>
                   {selectedItem.links.length === 0 ? (
-                    <p className="mt-2 text-sm text-slate-500">
+                    <p className="mt-2 text-sm text-muted-foreground">
                       No linked artifacts recorded for this item.
                     </p>
                   ) : (
@@ -341,18 +341,18 @@ export default function HistoryPage() {
                       {selectedItem.links.map((link, index) => (
                         <div
                           key={`${link.subject_type}-${link.subject_id}-${index}`}
-                          className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3"
+                          className="flex items-center gap-3 rounded-xl border border-border bg-background px-3 py-3"
                         >
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                             <Link2 size={14} />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-slate-900">
+                            <p className="text-sm font-medium text-foreground">
                               {link.subject_type.replace("_", " ")} #{link.subject_id}
                             </p>
-                            <p className="text-xs text-slate-500">{link.relation}</p>
+                            <p className="text-xs text-muted-foreground">{link.relation}</p>
                           </div>
-                          <ArrowRight size={14} className="text-slate-400" />
+                          <ArrowRight size={14} className="text-muted-foreground" />
                         </div>
                       ))}
                     </div>

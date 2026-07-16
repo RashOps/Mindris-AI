@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -472,10 +473,12 @@ export default function DashboardPage() {
     const previewUrl = templatePreviewUrls[template.id];
     if (template.previewAvailable && previewUrl) {
       return (
-        <img
+        <Image
           src={previewUrl}
           alt={`${template.name} preview`}
-          className="h-full w-full rounded-md object-cover"
+          fill
+          unoptimized
+          className="rounded-md object-cover"
         />
       );
     }
@@ -714,7 +717,7 @@ export default function DashboardPage() {
                           className="rounded-lg border border-slate-200 bg-white p-4 text-left shadow-sm transition-colors enabled:hover:border-slate-300"
                         >
                           <div
-                            className="mb-3 h-24 rounded-md border border-slate-200"
+                            className="relative mb-3 h-24 overflow-hidden rounded-md border border-slate-200"
                             style={{
                               background: `linear-gradient(135deg, ${template.accent}18, white 55%)`,
                             }}
@@ -743,7 +746,7 @@ export default function DashboardPage() {
                           className="rounded-lg border border-slate-200 bg-white p-4 text-left shadow-sm"
                         >
                           <div
-                            className="mb-3 h-24 rounded-md border border-slate-200"
+                            className="relative mb-3 h-24 overflow-hidden rounded-md border border-slate-200"
                             style={{
                               background: `linear-gradient(135deg, ${template.accent}18, white 55%)`,
                             }}

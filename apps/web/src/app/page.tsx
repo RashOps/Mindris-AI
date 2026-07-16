@@ -1,9 +1,4 @@
 import Link from "next/link";
-import type { CSSProperties } from "react";
-
-type DelayStyle = CSSProperties & { "--delay": string };
-
-const delayStyle = (delay: string): DelayStyle => ({ "--delay": delay });
 
 const FEATURES = [
   {
@@ -79,11 +74,6 @@ const STEPS = [
       </svg>
     ),
   },
-];
-
-const STACK = [
-  "LangGraph", "CrewAI", "LlamaCloud", "Playwright",
-  "ChromaDB", "Bun", "Puppeteer", "FastAPI", "Next.js", "dnd-kit",
 ];
 
 export default function LandingPage() {
@@ -194,65 +184,28 @@ export default function LandingPage() {
             </Link>
           </div>
 
-          {/* Terminal mockup */}
-          <div
-            className="max-w-2xl mx-auto rounded-2xl overflow-hidden text-left"
-            style={{
-              backgroundColor: "rgba(15,23,42,0.85)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              backdropFilter: "blur(12px)",
-              boxShadow: "0 25px 80px rgba(0,0,0,0.6), 0 0 60px rgba(129,140,248,0.15)",
-            }}
-          >
-            {/* Title bar */}
-            <div
-              className="flex items-center gap-2 px-5 py-3 border-b"
-              style={{ backgroundColor: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.08)" }}
-            >
-              <span className="w-3 h-3 rounded-full bg-[#ff5f57]" />
-              <span className="w-3 h-3 rounded-full bg-[#febc2e]" />
-              <span className="w-3 h-3 rounded-full bg-[#28c840]" />
-              <span className="ml-2 text-xs" style={{ color: "#475569", fontFamily: "monospace" }}>
-                Mindris Intelligence — Live Feed
-              </span>
-            </div>
-            {/* Lines */}
-            <div className="p-6" style={{ fontFamily: "monospace", fontSize: "0.875rem" }}>
-              <div className="land-tline" style={delayStyle("0.2s")}>
-                <span style={{ color: "#4ade80" }}>✅</span>
-                <span style={{ color: "#475569" }}>[Retrieval]</span>
-                <span style={{ color: "#f1f5f9" }}> Found </span>
-                <span style={{ color: "#818cf8" }}>4</span>
-                <span style={{ color: "#f1f5f9" }}> relevant CV chunks.</span>
+          <div className="mx-auto grid max-w-3xl grid-cols-1 gap-3 text-left sm:grid-cols-3">
+            {[
+              ["1", "Upload CV", "Parse your existing resume."],
+              ["2", "Paste job URL", "Extract the role requirements."],
+              ["3", "Export PDF", "Review, style, and download."],
+            ].map(([step, title, copy]) => (
+              <div
+                key={step}
+                className="rounded-2xl p-4"
+                style={{
+                  backgroundColor: "rgba(255,255,255,0.035)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  backdropFilter: "blur(8px)",
+                }}
+              >
+                <span className="text-xs font-bold tracking-widest" style={{ color: "#818cf8" }}>
+                  {step}
+                </span>
+                <p className="mt-2 text-sm font-semibold" style={{ color: "#f1f5f9" }}>{title}</p>
+                <p className="mt-1 text-xs leading-5" style={{ color: "#94a3b8" }}>{copy}</p>
               </div>
-              <div className="land-tline" style={delayStyle("0.7s")}>
-                <span style={{ color: "#facc15" }}>✍️</span>
-                <span style={{ color: "#475569" }}>[Draft]</span>
-                <span style={{ color: "#f1f5f9" }}> Tailoring CV — </span>
-                <span style={{ color: "#a78bfa" }}>Iteration 1</span>
-                <span style={{ color: "#f1f5f9" }}>...</span>
-              </div>
-              <div className="land-tline" style={delayStyle("1.3s")}>
-                <span style={{ color: "#fb923c" }}>⚖️</span>
-                <span style={{ color: "#475569" }}>[Score]</span>
-                <span style={{ color: "#fb923c" }}> 72/100</span>
-                <span style={{ color: "#f1f5f9" }}> — Revising...</span>
-              </div>
-              <div className="land-tline" style={delayStyle("2.0s")}>
-                <span style={{ color: "#facc15" }}>✍️</span>
-                <span style={{ color: "#475569" }}>[Draft]</span>
-                <span style={{ color: "#f1f5f9" }}> Tailoring CV — </span>
-                <span style={{ color: "#a78bfa" }}>Iteration 2</span>
-                <span style={{ color: "#f1f5f9" }}>...</span>
-              </div>
-              <div className="land-tline" style={delayStyle("2.8s")}>
-                <span style={{ color: "#4ade80" }}>✅</span>
-                <span style={{ color: "#475569" }}>[Score]</span>
-                <span style={{ color: "#4ade80" }}> 88/100</span>
-                <span style={{ color: "#f1f5f9" }}> — Done!</span>
-              </div>
-              <div className="land-cursor">█</div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
@@ -339,28 +292,6 @@ export default function LandingPage() {
                 <h3 className="font-bold text-base" style={{ color: "#f1f5f9" }}>{step.title}</h3>
                 <p className="text-sm leading-relaxed" style={{ color: "#94a3b8" }}>{step.description}</p>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Stack ─────────────────────────────────────────────────────── */}
-      <section className="relative z-10 py-16 text-center" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-        <div className="max-w-6xl mx-auto px-8">
-          <p className="text-xs font-semibold tracking-widest uppercase mb-6" style={{ color: "#475569" }}>Built with</p>
-          <div className="flex flex-wrap gap-3 justify-center">
-            {STACK.map((tech) => (
-              <span
-                key={tech}
-                className="px-4 py-1.5 rounded-full text-sm font-medium transition-colors"
-                style={{
-                  backgroundColor: "rgba(255,255,255,0.03)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  color: "#94a3b8",
-                }}
-              >
-                {tech}
-              </span>
             ))}
           </div>
         </div>
