@@ -48,7 +48,7 @@ function ScoreGauge({ score }: { score: number }) {
   return (
     <div className="relative flex items-center justify-center" style={{ width: 160, height: 160 }}>
       <svg width="160" height="160" viewBox="0 0 140 140" style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx="70" cy="70" r={r} fill="none" stroke="#e2e8f0" strokeWidth="10" />
+        <circle cx="70" cy="70" r={r} fill="none" className="stroke-muted" strokeWidth="10" />
         <circle
           cx="70" cy="70" r={r} fill="none"
           stroke={color} strokeWidth="10" strokeLinecap="round"
@@ -60,7 +60,7 @@ function ScoreGauge({ score }: { score: number }) {
         <span className="text-4xl font-black tabular-nums" style={{ color, fontFamily: 'var(--font-space)' }}>
           {score}
         </span>
-        <span className="text-xs mt-0.5" style={{ color: '#475569' }}>/ 100</span>
+        <span className="mt-0.5 text-xs text-muted-foreground">/ 100</span>
         <span className="text-[11px] font-semibold mt-1" style={{ color }}>{scoreLabel(score)}</span>
       </div>
     </div>
@@ -164,12 +164,12 @@ function KeywordTable({ keywords }: { keywords: KeywordStatus[] }) {
             className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
               filter === f.id
                 ? 'border-violet-300 bg-violet-50 text-violet-700'
-                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'
+                : 'border-border bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground'
             }`}
           >
             {f.label}
             <span
-              className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600"
+              className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
             >
               {f.count}
             </span>
@@ -178,12 +178,12 @@ function KeywordTable({ keywords }: { keywords: KeywordStatus[] }) {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-lg border border-slate-200">
+      <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50">
+            <tr className="border-b border-border bg-muted/40">
               {['Keyword / Skill', 'Status', 'Density', 'Impact if Missing'].map(h => (
-                <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                   {h}
                 </th>
               ))}
@@ -195,9 +195,9 @@ function KeywordTable({ keywords }: { keywords: KeywordStatus[] }) {
               return (
                 <tr
                   key={i}
-                  className="border-b border-slate-100 transition-colors hover:bg-slate-50"
+                  className="border-b border-border transition-colors hover:bg-muted/40"
                 >
-                  <td className="px-4 py-3 font-medium text-slate-900">{kw.keyword}</td>
+                  <td className="px-4 py-3 font-medium text-foreground">{kw.keyword}</td>
                   <td className="px-4 py-3">
                     {kw.found ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
@@ -211,7 +211,7 @@ function KeywordTable({ keywords }: { keywords: KeywordStatus[] }) {
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-xs" style={{ color: kw.found ? '#64748b' : '#475569', fontStyle: kw.found ? 'normal' : 'italic' }}>
+                  <td className={`px-4 py-3 text-xs text-muted-foreground ${kw.found ? '' : 'italic'}`}>
                     {kw.density}
                   </td>
                   <td className="px-4 py-3">
@@ -225,7 +225,7 @@ function KeywordTable({ keywords }: { keywords: KeywordStatus[] }) {
             })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-sm" style={{ color: '#475569' }}>
+                <td colSpan={4} className="px-4 py-8 text-center text-sm text-muted-foreground">
                   No keywords match this filter.
                 </td>
               </tr>
@@ -245,7 +245,7 @@ function Recommendations({ recs }: { recs: string[] }) {
       {recs.map((rec, i) => (
         <div
           key={i}
-          className="flex gap-4 rounded-lg border border-violet-100 bg-violet-50 p-4"
+          className="flex gap-4 rounded-lg border border-violet-200 bg-violet-50 p-4 dark:border-violet-900/60 dark:bg-violet-950/30"
         >
           <div
             className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-xs font-black text-violet-700"
@@ -253,7 +253,7 @@ function Recommendations({ recs }: { recs: string[] }) {
           >
             {i + 1}
           </div>
-          <p className="text-sm leading-relaxed text-slate-700">{rec}</p>
+          <p className="text-sm leading-relaxed text-foreground">{rec}</p>
         </div>
       ))}
     </div>
@@ -279,24 +279,24 @@ function AtsHero({ jobUrl, setJobUrl, atsMode, setAtsMode, onAnalyze, isAnalyzin
       {/* Title */}
       <div>
         <div
-          className="mb-4 inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700"
+          className="mb-4 inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 dark:border-violet-900/60 dark:bg-violet-950/40 dark:text-violet-300"
         >
           Enterprise-Grade ATS Analysis
         </div>
         <h1
-          className="mb-3 text-4xl font-black tracking-tight text-slate-950"
+          className="mb-3 text-4xl font-black tracking-tight text-foreground"
           style={{ fontFamily: 'var(--font-space)' }}
         >
           ATS Score Analyzer
         </h1>
-        <p className="text-base text-slate-600">
+        <p className="text-base text-muted-foreground">
           Deep keyword density analysis · Skill gap detection · Actionable recommendations
         </p>
       </div>
 
       {/* Input card */}
       <div
-        className="space-y-5 rounded-lg border border-slate-200 bg-white p-6 text-left shadow-sm"
+        className="space-y-5 rounded-lg border border-border bg-card p-6 text-left shadow-sm"
       >
         {/* Step 1 — CV */}
         <div>
@@ -309,7 +309,7 @@ function AtsHero({ jobUrl, setJobUrl, atsMode, setAtsMode, onAnalyze, isAnalyzin
         </div>
 
         {/* Divider */}
-        <div className="h-px bg-slate-200" />
+        <div className="h-px bg-border" />
 
         {/* Step 2 — Job URL */}
         <div>
@@ -325,7 +325,7 @@ function AtsHero({ jobUrl, setJobUrl, atsMode, setAtsMode, onAnalyze, isAnalyzin
               onChange={e => setJobUrl(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !isAnalyzing && cvLoaded && onAnalyze()}
               placeholder="https://company.com/jobs/position"
-              className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+              className="app-input flex-1 px-4 py-2.5 text-sm"
             />
           </div>
         </div>
@@ -345,8 +345,8 @@ function AtsHero({ jobUrl, setJobUrl, atsMode, setAtsMode, onAnalyze, isAnalyzin
                 onClick={() => setAtsMode(mode)}
                 className={`rounded-lg border px-4 py-2.5 text-left text-sm transition-all ${
                   atsMode === mode
-                    ? 'border-violet-300 bg-violet-50 text-violet-800'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'
+                    ? 'border-violet-300 bg-violet-50 text-violet-800 dark:border-violet-900/60 dark:bg-violet-950/40 dark:text-violet-200'
+                    : 'border-border bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                 }`}
               >
                 <p className="font-semibold capitalize">{mode}</p>
@@ -365,13 +365,7 @@ function AtsHero({ jobUrl, setJobUrl, atsMode, setAtsMode, onAnalyze, isAnalyzin
           id="ats-analyze-btn"
           onClick={onAnalyze}
           disabled={isAnalyzing || !cvLoaded || !jobUrl.trim()}
-          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-40"
-          style={{
-            background: isAnalyzing || !cvLoaded || !jobUrl.trim()
-              ? '#ede9fe'
-              : '#0f172a',
-            color: isAnalyzing || !cvLoaded || !jobUrl.trim() ? '#6d28d9' : '#fff',
-          }}
+          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary py-3 text-sm font-semibold text-primary-foreground transition-all disabled:cursor-not-allowed disabled:opacity-40"
         >
           {isAnalyzing ? (
             <>
@@ -395,9 +389,9 @@ interface SSEProgressProps {
 function SSEProgress({ messages }: SSEProgressProps) {
   if (!messages.length) return null;
   return (
-    <div className="mx-auto max-w-2xl space-y-1 rounded-lg border border-slate-200 bg-white p-4 font-mono text-xs shadow-sm">
+    <div className="mx-auto max-w-2xl space-y-1 rounded-lg border border-border bg-card p-4 font-mono text-xs shadow-sm">
       {messages.slice(-8).map((m, i) => (
-        <div key={i} className="text-slate-600">
+        <div key={i} className="text-muted-foreground">
           <span style={{ color: '#8b5cf6' }}>›</span> {m}
         </div>
       ))}
@@ -613,21 +607,21 @@ export default function AtsScorePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
             {/* Radar */}
-            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+            <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+              <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                 Skill Coverage Radar
               </p>
               <SkillsRadar keywords={report.keyword_analysis} />
             </div>
 
             {/* Recommendations */}
-            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+            <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+              <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                 Actionable Recommendations
               </p>
               {report.recommendations.length > 0
                 ? <Recommendations recs={report.recommendations} />
-                : <p className="text-sm italic text-slate-500">No critical improvements needed.</p>
+                : <p className="text-sm italic text-muted-foreground">No critical improvements needed.</p>
               }
             </div>
           </div>
@@ -635,19 +629,19 @@ export default function AtsScorePage() {
 
           {/* ── Scoring breakdown ── */}
           {report.scoring_breakdown?.length > 0 && (
-            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+            <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+              <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                 Scoring Method
               </p>
               <div className="grid gap-3 md:grid-cols-5">
                 {report.scoring_breakdown.map((criterion) => (
-                  <div key={criterion.criterion} className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950">
-                    <p className="text-xs font-semibold text-slate-900">{criterion.criterion}</p>
+                  <div key={criterion.criterion} className="rounded-lg border border-border bg-muted/40 p-3">
+                    <p className="text-xs font-semibold text-foreground">{criterion.criterion}</p>
                     <p className="mt-2 text-xl font-black" style={{ color: scoreColor(Math.round((criterion.score / criterion.max_score) * 100)), fontFamily: 'var(--font-space)' }}>
                       {criterion.score}/{criterion.max_score}
                     </p>
-                    <p className="mt-1 text-[10px] text-slate-500">Weight {criterion.weight}%</p>
-                    <p className="mt-2 text-[11px] leading-relaxed text-slate-600">{criterion.explanation}</p>
+                    <p className="mt-1 text-[10px] text-muted-foreground">Weight {criterion.weight}%</p>
+                    <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">{criterion.explanation}</p>
                   </div>
                 ))}
               </div>
@@ -655,23 +649,23 @@ export default function AtsScorePage() {
           )}
 
           {report.rubric?.dimensions?.length > 0 && (
-            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
               <div className="mb-4 flex items-center justify-between gap-3">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                   Published Rubric
                 </p>
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                   {report.rubric.version}
                 </span>
               </div>
               <div className="grid gap-3 md:grid-cols-2">
                 {report.rubric.dimensions.map((dimension) => (
-                  <div key={dimension.key} className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950">
+                  <div key={dimension.key} className="rounded-lg border border-border bg-muted/40 p-3">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-semibold text-slate-900">{dimension.label}</p>
-                      <span className="text-xs font-semibold text-slate-500">{dimension.weight}%</span>
+                      <p className="text-sm font-semibold text-foreground">{dimension.label}</p>
+                      <span className="text-xs font-semibold text-muted-foreground">{dimension.weight}%</span>
                     </div>
-                    <p className="mt-2 text-xs leading-relaxed text-slate-600">{dimension.description}</p>
+                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{dimension.description}</p>
                   </div>
                 ))}
               </div>
@@ -679,24 +673,24 @@ export default function AtsScorePage() {
           )}
 
           {report.deductions?.length > 0 && (
-            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+            <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+              <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                 Score Deductions
               </p>
               <div className="space-y-3">
                 {report.deductions.map((deduction) => {
                   const sev = severityColor(deduction.severity);
                   return (
-                    <div key={`${deduction.code}-${deduction.title}`} className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
+                    <div key={`${deduction.code}-${deduction.title}`} className="rounded-lg border border-border bg-muted/40 p-4">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-semibold text-slate-900">{deduction.title}</p>
+                        <p className="text-sm font-semibold text-foreground">{deduction.title}</p>
                         <span className="rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wider" style={{ background: sev.bg, color: sev.text, border: `1px solid ${sev.border}` }}>
                           {deduction.severity}
                         </span>
                         <span className="text-xs font-semibold text-rose-600">-{deduction.points_lost} pts</span>
                       </div>
-                      <p className="mt-2 text-sm text-slate-700">{deduction.evidence}</p>
-                      <p className="mt-2 text-xs text-slate-500">{deduction.recommendation}</p>
+                      <p className="mt-2 text-sm text-foreground">{deduction.evidence}</p>
+                      <p className="mt-2 text-xs text-muted-foreground">{deduction.recommendation}</p>
                     </div>
                   );
                 })}
@@ -705,30 +699,30 @@ export default function AtsScorePage() {
           )}
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+            <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+              <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                 Evaluation Context
               </p>
-              <div className="space-y-2 text-sm text-slate-700">
-                <p><span className="font-semibold text-slate-900">Job</span> {report.context.job_title || 'Unknown'}{report.context.job_company ? ` · ${report.context.job_company}` : ''}</p>
-                <p><span className="font-semibold text-slate-900">Resume</span> {report.context.resume_id ? `#${report.context.resume_id}` : 'Current workspace CV'}</p>
-                <p><span className="font-semibold text-slate-900">Locale</span> {report.context.resume_locale || 'default'}</p>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p><span className="font-semibold text-foreground">Job</span> {report.context.job_title || 'Unknown'}{report.context.job_company ? ` · ${report.context.job_company}` : ''}</p>
+                <p><span className="font-semibold text-foreground">Resume</span> {report.context.resume_id ? `#${report.context.resume_id}` : 'Current workspace CV'}</p>
+                <p><span className="font-semibold text-foreground">Locale</span> {report.context.resume_locale || 'default'}</p>
               </div>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+            <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+              <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                 Runtime
               </p>
-              <div className="space-y-2 text-sm text-slate-700">
-                <p><span className="font-semibold text-slate-900">Provider</span> {report.context.provider || appSettings.ats_llm.provider}</p>
-                <p><span className="font-semibold text-slate-900">Model</span> {report.context.model_name || appSettings.ats_llm.model_name}</p>
-                <p><span className="font-semibold text-slate-900">Mode</span> {report.mode}</p>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p><span className="font-semibold text-foreground">Provider</span> {report.context.provider || appSettings.ats_llm.provider}</p>
+                <p><span className="font-semibold text-foreground">Model</span> {report.context.model_name || appSettings.ats_llm.model_name}</p>
+                <p><span className="font-semibold text-foreground">Mode</span> {report.mode}</p>
               </div>
             </div>
           </div>
           {/* ── Row 3: Full keyword table ── */}
-          <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+          <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+            <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               Keyword Density & Semantic Analysis
             </p>
             <KeywordTable keywords={report.keyword_analysis} />

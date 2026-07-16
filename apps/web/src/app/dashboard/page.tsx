@@ -485,8 +485,8 @@ export default function DashboardPage() {
     return (
       <div className="h-full p-3">
         <div className="mb-2 h-3 w-24 rounded-full" style={{ background: template.accent }} />
-        <div className="mb-1 h-2 w-32 rounded-full bg-slate-200" />
-        <div className="h-2 w-20 rounded-full bg-slate-200" />
+        <div className="mb-1 h-2 w-32 rounded-full bg-muted" />
+        <div className="h-2 w-20 rounded-full bg-muted" />
       </div>
     );
   };
@@ -505,7 +505,7 @@ export default function DashboardPage() {
                     });
                   }
                 }}
-                className="hidden h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 shadow-sm sm:inline-flex sm:items-center"
+                className="hidden h-9 rounded-md border border-border bg-card px-3 text-xs font-medium text-muted-foreground shadow-sm sm:inline-flex sm:items-center"
                 title={resumeSaveError ?? "Backend save status"}
               >
                 {saveStatusText}
@@ -588,9 +588,9 @@ export default function DashboardPage() {
               <div className="mb-4 flex items-end justify-between gap-4">
                 <div>
                   <h2 className="text-base font-semibold">Your resumes</h2>
-                  <p className="text-sm text-slate-500">Drafts persisted by the backend API.</p>
+                  <p className="text-sm text-muted-foreground">Drafts persisted by the backend API.</p>
                 </div>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-muted-foreground">
                   {isResumeLibraryLoading ? "Loading..." : `${resumes.length} saved`}
                 </p>
               </div>
@@ -598,13 +598,13 @@ export default function DashboardPage() {
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 <button
                   onClick={() => void createFromTemplate("modern", "Untitled")}
-                  className="flex min-h-52 flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white p-5 text-center transition-colors hover:border-slate-400"
+                  className="flex min-h-52 flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card p-5 text-center transition-colors hover:bg-accent"
                 >
-                  <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
+                  <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                     <Plus size={20} />
                   </div>
                   <p className="text-sm font-semibold">Create blank CV</p>
-                  <p className="mt-1 max-w-48 text-xs leading-5 text-slate-500">
+                  <p className="mt-1 max-w-48 text-xs leading-5 text-muted-foreground">
                     Start from a clean structured resume and customize it section by section.
                   </p>
                 </button>
@@ -612,7 +612,7 @@ export default function DashboardPage() {
                 {resumes.map((resume) => (
                   <article
                     key={resume.id}
-                    className="flex min-h-52 flex-col rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+                    className="flex min-h-52 flex-col rounded-lg border border-border bg-card p-4 shadow-sm"
                   >
                     <div className="mb-4 flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -621,7 +621,7 @@ export default function DashboardPage() {
                           onChange={(e) => renameResume(resume.id, e.target.value)}
                           className="w-full rounded border-none bg-transparent p-0 text-sm font-semibold outline-none"
                         />
-                        <p className="mt-1 truncate text-xs text-slate-500">
+                        <p className="mt-1 truncate text-xs text-muted-foreground">
                           {resume.cvData.profile.title || "No target title yet"}
                         </p>
                       </div>
@@ -632,13 +632,13 @@ export default function DashboardPage() {
                       )}
                     </div>
 
-                    <div className="mb-4 grid grid-cols-2 gap-2 text-xs text-slate-500">
-                      <div className="rounded-md bg-slate-50 p-2">
-                        <p className="font-medium text-slate-700">Template</p>
+                    <div className="mb-4 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                      <div className="rounded-md bg-muted/40 p-2">
+                        <p className="font-medium text-foreground">Template</p>
                         <p className="mt-1 capitalize">{resume.templateId}</p>
                       </div>
-                      <div className="rounded-md bg-slate-50 p-2">
-                        <p className="font-medium text-slate-700">Updated</p>
+                      <div className="rounded-md bg-muted/40 p-2">
+                        <p className="font-medium text-foreground">Updated</p>
                         <p className="mt-1">{formatDate(resume.updatedAt)}</p>
                       </div>
                     </div>
@@ -646,7 +646,7 @@ export default function DashboardPage() {
                     <div className="mt-auto flex flex-wrap gap-2">
                       <button
                         onClick={() => openResume(resume.id)}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-md bg-slate-950 px-2.5 text-xs font-semibold text-white"
+                        className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-2.5 text-xs font-semibold text-primary-foreground"
                       >
                         Open <ArrowRight size={13} />
                       </button>
@@ -656,7 +656,7 @@ export default function DashboardPage() {
                             showStatus(err instanceof Error ? err.message : "Duplicate failed");
                           });
                         }}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 px-2.5 text-xs font-medium text-slate-700"
+                        className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-2.5 text-xs font-medium text-foreground hover:bg-accent"
                       >
                         <Copy size={13} /> Duplicate
                       </button>
@@ -675,7 +675,7 @@ export default function DashboardPage() {
                                 );
                               });
                           }}
-                          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 px-2.5 text-xs font-medium text-slate-700"
+                          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-2.5 text-xs font-medium text-foreground hover:bg-accent"
                         >
                           <Download size={13} /> {RESUME_EXPORTS[format].label}
                         </button>
@@ -702,53 +702,53 @@ export default function DashboardPage() {
                 <div className="mb-4 flex items-center justify-between">
                   <div>
                     <h2 className="text-base font-semibold">Start from a template</h2>
-                    <p className="text-sm text-slate-500">Backend-owned templates plus community presets.</p>
+                    <p className="text-sm text-muted-foreground">Backend-owned templates plus community presets.</p>
                   </div>
-                  <LayoutTemplate className="text-slate-400" size={20} />
+                  <LayoutTemplate className="text-muted-foreground" size={20} />
                 </div>
                 <div className="space-y-5">
                   <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-500">Ready</p>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Ready</p>
                     <div className="grid gap-3 md:grid-cols-2">
                       {templates.filter((template) => template.status === "ready").map((template) => (
                         <button
                           key={template.id}
                           onClick={() => void createFromTemplate(template.id, template.name)}
-                          className="rounded-lg border border-slate-200 bg-white p-4 text-left shadow-sm transition-colors enabled:hover:border-slate-300"
+                          className="rounded-lg border border-border bg-card p-4 text-left shadow-sm transition-colors enabled:hover:bg-accent"
                         >
                           <div
-                            className="relative mb-3 h-24 overflow-hidden rounded-md border border-slate-200"
+                            className="relative mb-3 h-24 overflow-hidden rounded-md border border-border"
                             style={{
-                              background: `linear-gradient(135deg, ${template.accent}18, white 55%)`,
+                              background: `linear-gradient(135deg, ${template.accent}18, var(--card) 55%)`,
                             }}
                           >
                             {renderTemplatePreview(template)}
                           </div>
                           <div className="flex items-center justify-between gap-2">
                             <p className="text-sm font-semibold">{template.name}</p>
-                            <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium capitalize text-slate-600">
+                            <span className="rounded-full bg-muted px-2 py-1 text-[11px] font-medium capitalize text-muted-foreground">
                               {template.status}
                             </span>
                           </div>
-                          <p className="mt-2 text-xs leading-5 text-slate-500">{template.description}</p>
+                          <p className="mt-2 text-xs leading-5 text-muted-foreground">{template.description}</p>
                         </button>
                       ))}
                     </div>
                   </div>
 
                   <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-500">Community</p>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Community</p>
                     <div className="grid gap-3 md:grid-cols-2">
                       {templates.filter((template) => template.status === "community").map((template) => (
                         <div
                           key={template.id}
                           data-testid={`template-card-${templateHandle(template.id)}`}
-                          className="rounded-lg border border-slate-200 bg-white p-4 text-left shadow-sm"
+                          className="rounded-lg border border-border bg-card p-4 text-left shadow-sm"
                         >
                           <div
-                            className="relative mb-3 h-24 overflow-hidden rounded-md border border-slate-200"
+                            className="relative mb-3 h-24 overflow-hidden rounded-md border border-border"
                             style={{
-                              background: `linear-gradient(135deg, ${template.accent}18, white 55%)`,
+                              background: `linear-gradient(135deg, ${template.accent}18, var(--card) 55%)`,
                             }}
                           >
                             {renderTemplatePreview(template)}
@@ -759,12 +759,12 @@ export default function DashboardPage() {
                               community
                             </span>
                           </div>
-                          <p className="mt-2 text-xs leading-5 text-slate-500">{template.description}</p>
+                          <p className="mt-2 text-xs leading-5 text-muted-foreground">{template.description}</p>
                           <div className="mt-3 flex flex-wrap gap-2">
                             <button
                               onClick={() => void createFromTemplate(template.id, template.name)}
                               data-testid={`template-use-${templateHandle(template.id)}`}
-                              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-slate-950 px-2.5 text-xs font-semibold text-white"
+                              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-2.5 text-xs font-semibold text-primary-foreground"
                             >
                               <Plus size={13} />
                               Use template
@@ -779,13 +779,13 @@ export default function DashboardPage() {
                                   });
                                 }}
                                 data-testid={`template-export-${templateHandle(template.id)}`}
-                                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 px-2.5 text-xs font-medium text-slate-700"
+                                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-2.5 text-xs font-medium text-foreground hover:bg-accent"
                               >
                                 <Download size={13} />
                                 Export package
                               </button>
                             )}
-                            <span className="inline-flex h-8 items-center rounded-md bg-slate-100 px-2.5 text-[11px] font-medium text-slate-600">
+                            <span className="inline-flex h-8 items-center rounded-md bg-muted px-2.5 text-[11px] font-medium text-muted-foreground">
                               {template.author ?? "Community"}
                             </span>
                           </div>
@@ -796,9 +796,9 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <aside className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+              <aside className="rounded-lg border border-border bg-card p-4 shadow-sm">
                 <div className="mb-4 flex items-center gap-2">
-                  <FolderOpen size={18} className="text-slate-500" />
+                  <FolderOpen size={18} className="text-muted-foreground" />
                   <h2 className="text-base font-semibold">MVP1 status</h2>
                 </div>
                 <div className="space-y-3 text-sm">
@@ -806,29 +806,29 @@ export default function DashboardPage() {
                     <FileJson size={16} className="mt-0.5 text-emerald-600" />
                     <div>
                       <p className="font-medium">API-backed resume library</p>
-                      <p className="text-xs leading-5 text-slate-500">Create, duplicate, import, export, and keep multiple CV drafts via backend endpoints.</p>
+                      <p className="text-xs leading-5 text-muted-foreground">Create, duplicate, import, export, and keep multiple CV drafts via backend endpoints.</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
                     <LayoutTemplate size={16} className="mt-0.5 text-indigo-600" />
                     <div>
                       <p className="font-medium">Template gallery</p>
-                      <p className="text-xs leading-5 text-slate-500">Five ready templates are exposed by the backend and reused by the renderer.</p>
+                      <p className="text-xs leading-5 text-muted-foreground">Five ready templates are exposed by the backend and reused by the renderer.</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <FileText size={16} className="mt-0.5 text-slate-600" />
+                    <FileText size={16} className="mt-0.5 text-muted-foreground" />
                     <div>
                       <p className="font-medium">Builder remains focused</p>
-                      <p className="text-xs leading-5 text-slate-500">Open any resume to edit structure, style, live preview, and export PDF.</p>
+                      <p className="text-xs leading-5 text-muted-foreground">Open any resume to edit structure, style, live preview, and export PDF.</p>
                     </div>
                   </div>
                 </div>
-                <div className="my-4 border-t border-slate-200 pt-4">
+                <div className="my-4 border-t border-border pt-4">
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <div>
                       <p className="font-medium">Versioning</p>
-                      <p className="text-xs leading-5 text-slate-500">
+                      <p className="text-xs leading-5 text-muted-foreground">
                         {revisionsLoading ? "Loading snapshots..." : `${revisions.length} snapshots available`}
                       </p>
                     </div>
@@ -838,19 +838,19 @@ export default function DashboardPage() {
                           showStatus(err instanceof Error ? err.message : "Snapshot failed");
                         });
                       }}
-                      className="inline-flex h-8 items-center rounded-md border border-slate-200 px-2.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                      className="inline-flex h-8 items-center rounded-md border border-border px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
                     >
                       Save version
                     </button>
                   </div>
                   <div className="space-y-2">
                       {revisions.slice(0, 4).map((revision) => (
-                        <div key={revision.id} className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+                        <div key={revision.id} className="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/40 px-3 py-2">
                         <div className="min-w-0">
-                          <p className="text-xs font-medium text-slate-800">
+                          <p className="text-xs font-medium text-foreground">
                             v{revision.revision} {revision.label ? `· ${revision.label}` : ""}
                           </p>
-                          <p className="truncate text-[11px] text-slate-500">
+                          <p className="truncate text-[11px] text-muted-foreground">
                             {revision.templateId} · {formatDate(revision.createdAt)}
                           </p>
                         </div>
@@ -863,7 +863,7 @@ export default function DashboardPage() {
                                 if (!older) return;
                                 void compareRevision(older.revision, revision.revision);
                               }}
-                              className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700"
+                              className="rounded-md border border-border bg-background px-2 py-1 text-[11px] font-medium text-foreground hover:bg-accent"
                             >
                               Compare
                             </button>
@@ -874,7 +874,7 @@ export default function DashboardPage() {
                                 showStatus(err instanceof Error ? err.message : "Restore failed");
                               });
                             }}
-                            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700"
+                            className="rounded-md border border-border bg-background px-2 py-1 text-[11px] font-medium text-foreground hover:bg-accent"
                           >
                             Restore
                           </button>
@@ -882,17 +882,17 @@ export default function DashboardPage() {
                       </div>
                     ))}
                     {revisions.length === 0 && (
-                      <p className="text-xs leading-5 text-slate-500">
+                      <p className="text-xs leading-5 text-muted-foreground">
                         No snapshots yet. Save one to pin a baseline.
                       </p>
                     )}
                   </div>
                 </div>
-                <div className="border-t border-slate-200 pt-4">
+                <div className="border-t border-border pt-4">
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <div>
                       <p className="font-medium">Comparison</p>
-                      <p className="text-xs leading-5 text-slate-500">
+                      <p className="text-xs leading-5 text-muted-foreground">
                         {compareLoading
                           ? "Comparing snapshots..."
                           : compareResult
@@ -903,19 +903,19 @@ export default function DashboardPage() {
                     {compareResult && (
                       <button
                         onClick={() => setCompareResult(null)}
-                        className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700"
+                        className="rounded-md border border-border bg-background px-2 py-1 text-[11px] font-medium text-foreground hover:bg-accent"
                       >
                         Clear
                       </button>
                     )}
                   </div>
                   {compareResult ? (
-                    <div className="space-y-3 rounded-md border border-slate-200 bg-slate-50 p-3">
+                    <div className="space-y-3 rounded-md border border-border bg-muted/40 p-3">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-xs font-medium text-slate-800">
+                        <p className="text-xs font-medium text-foreground">
                           {compareResult.changeCount} field changes
                         </p>
-                        <p className="text-[11px] text-slate-500">
+                        <p className="text-[11px] text-muted-foreground">
                           {compareResult.baseRevision.templateId} → {compareResult.targetRevision.templateId}
                         </p>
                       </div>
@@ -926,15 +926,15 @@ export default function DashboardPage() {
                           .map((item) => (
                             <div
                               key={item.section}
-                              className="flex items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-3 py-2"
+                              className="flex items-center justify-between gap-2 rounded-md border border-border bg-background px-3 py-2"
                             >
                               <div className="min-w-0">
-                                <p className="text-xs font-medium text-slate-800">{item.label}</p>
-                                <p className="text-[11px] text-slate-500">
+                                <p className="text-xs font-medium text-foreground">{item.label}</p>
+                                <p className="text-[11px] text-muted-foreground">
                                   {item.beforeCount} → {item.afterCount}
                                 </p>
                               </div>
-                              <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600">
+                              <span className="rounded-full bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground">
                                 {item.status}
                               </span>
                             </div>
@@ -942,20 +942,20 @@ export default function DashboardPage() {
                       </div>
                       <div className="space-y-2">
                         {compareResult.changes.slice(0, 6).map((change) => (
-                          <div key={`${change.kind}-${change.path}`} className="rounded-md border border-slate-200 bg-white px-3 py-2">
-                            <p className="text-xs font-medium text-slate-800">{change.path}</p>
-                            <p className="mt-1 text-[11px] text-slate-500">
+                          <div key={`${change.kind}-${change.path}`} className="rounded-md border border-border bg-background px-3 py-2">
+                            <p className="text-xs font-medium text-foreground">{change.path}</p>
+                            <p className="mt-1 text-[11px] text-muted-foreground">
                               {change.kind}
                             </p>
                           </div>
                         ))}
                         {compareResult.changes.length === 0 && (
-                          <p className="text-xs leading-5 text-slate-500">No structural changes detected.</p>
+                          <p className="text-xs leading-5 text-muted-foreground">No structural changes detected.</p>
                         )}
                       </div>
                     </div>
                   ) : (
-                    <p className="text-xs leading-5 text-slate-500">
+                    <p className="text-xs leading-5 text-muted-foreground">
                       Open two snapshots to inspect changes between revisions.
                     </p>
                   )}

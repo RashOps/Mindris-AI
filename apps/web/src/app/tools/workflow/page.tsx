@@ -338,15 +338,15 @@ export default function WorkflowPage() {
 
         <div className="mt-4 grid gap-4 2xl:grid-cols-[360px,minmax(0,1fr)]">
           <aside className="space-y-4">
-            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
               <div className="mb-3 flex items-center justify-between">
-                <p className="text-sm font-semibold text-slate-900">Create opportunity</p>
-                <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+                <p className="text-sm font-semibold text-foreground">Create opportunity</p>
+                <div className="flex rounded-lg border border-border bg-muted/40 p-1">
                   <button
                     type="button"
                     onClick={() => setCreateMode("job")}
                     className={`rounded-md px-3 py-1 text-xs font-medium ${
-                      createMode === "job" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
+                      createMode === "job" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
                     }`}
                   >
                     From job
@@ -355,7 +355,7 @@ export default function WorkflowPage() {
                     type="button"
                     onClick={() => setCreateMode("manual")}
                     className={`rounded-md px-3 py-1 text-xs font-medium ${
-                      createMode === "manual" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
+                      createMode === "manual" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
                     }`}
                   >
                     Manual
@@ -368,7 +368,7 @@ export default function WorkflowPage() {
                   <select
                     value={selectedJobId}
                     onChange={(event) => setSelectedJobId(event.target.value)}
-                    className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-slate-500"
+                    className="app-select h-10 w-full px-3 text-sm"
                   >
                     <option value="">Select scraped job</option>
                     {jobs.map((job) => (
@@ -383,19 +383,19 @@ export default function WorkflowPage() {
                       value={manualCompany}
                       onChange={(event) => setManualCompany(event.target.value)}
                       placeholder="Company"
-                      className="h-10 border-slate-300 bg-white text-slate-900"
+                      className="app-input h-10"
                     />
                     <Input
                       value={manualRole}
                       onChange={(event) => setManualRole(event.target.value)}
                       placeholder="Role"
-                      className="h-10 border-slate-300 bg-white text-slate-900"
+                      className="app-input h-10"
                     />
                     <Input
                       value={manualUrl}
                       onChange={(event) => setManualUrl(event.target.value)}
                       placeholder="Source URL (optional)"
-                      className="h-10 border-slate-300 bg-white text-slate-900"
+                      className="app-input h-10"
                     />
                   </>
                 )}
@@ -403,7 +403,7 @@ export default function WorkflowPage() {
                   value={notes}
                   onChange={(event) => setNotes(event.target.value)}
                   placeholder="Operator notes"
-                  className="min-h-24 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500"
+                  className="app-textarea min-h-24 w-full px-3 py-2 text-sm"
                 />
                 <Button
                   onClick={() =>
@@ -437,43 +437,43 @@ export default function WorkflowPage() {
               </div>
             </section>
 
-            <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <div className="border-b border-slate-200 px-4 py-3">
-                <p className="text-sm font-semibold text-slate-900">Active opportunities</p>
+            <section className="rounded-2xl border border-border bg-card shadow-sm">
+              <div className="border-b border-border px-4 py-3">
+                <p className="text-sm font-semibold text-foreground">Active opportunities</p>
               </div>
               {loading ? (
-                <div className="flex items-center gap-2 px-4 py-6 text-sm text-slate-500">
+                <div className="flex items-center gap-2 px-4 py-6 text-sm text-muted-foreground">
                   <Loader2 size={16} className="animate-spin" />
                   Loading workflows...
                 </div>
               ) : opportunities.length === 0 ? (
-                <div className="px-4 py-6 text-sm text-slate-500">
+                <div className="px-4 py-6 text-sm text-muted-foreground">
                   No opportunities yet. Start from a scraped job or create one manually.
                 </div>
               ) : (
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-border">
                   {opportunities.map((item) => (
                     <button
                       key={item.id}
                       type="button"
                       onClick={() => setSelectedId(item.id)}
                       data-testid={`workflow-card-${item.id}`}
-                      className={`w-full px-4 py-4 text-left transition-colors hover:bg-slate-50 ${
-                        selected?.id === item.id ? "bg-slate-50" : "bg-white"
+                      className={`w-full px-4 py-4 text-left transition-colors hover:bg-accent ${
+                        selected?.id === item.id ? "bg-accent" : "bg-card"
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        <span className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+                        <span className="rounded-full border border-border bg-background px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                           #{item.id}
                         </span>
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-muted-foreground">
                           {formatTimestamp(item.last_transition_at)}
                         </span>
                       </div>
-                      <p className="mt-2 text-sm font-semibold text-slate-900">{item.role}</p>
-                      <p className="mt-1 text-sm text-slate-600">{item.company}</p>
+                      <p className="mt-2 text-sm font-semibold text-foreground">{item.role}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{item.company}</p>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-muted-foreground">
                           {STATE_LABELS[item.current_state]}
                         </p>
                         <span
@@ -493,18 +493,18 @@ export default function WorkflowPage() {
 
           <section className="space-y-4">
             {!selected ? (
-              <div className="rounded-2xl border border-slate-200 bg-white px-5 py-8 text-sm text-slate-500 shadow-sm">
+              <div className="rounded-2xl border border-border bg-card px-5 py-8 text-sm text-muted-foreground shadow-sm">
                 Select an opportunity to drive the next workflow step.
               </div>
             ) : (
               <>
-                <section className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+                <section className="rounded-2xl border border-border bg-card px-5 py-4 shadow-sm">
                   <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
                         <span
                           data-testid={`workflow-selected-${selected.id}`}
-                          className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-600"
+                          className="rounded-full border border-border bg-background px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
                         >
                           #{selected.id}
                         </span>
@@ -518,14 +518,14 @@ export default function WorkflowPage() {
                         >
                           {integrity.status === "degraded" ? "Integrity degraded" : "Integrity healthy"}
                         </span>
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-muted-foreground">
                           Updated {formatTimestamp(selected.last_transition_at)}
                         </span>
                       </div>
-                      <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
+                      <h2 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
                         {selected.role}
                       </h2>
-                      <p className="text-sm text-slate-600">{selected.company}</p>
+                      <p className="text-sm text-muted-foreground">{selected.company}</p>
                       {selected.source_url && (
                         <a
                           href={selected.source_url}
@@ -548,14 +548,14 @@ export default function WorkflowPage() {
                       ].map((stat) => {
                         const Icon = stat.icon;
                         return (
-                          <div key={stat.label} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                          <div key={stat.label} className="rounded-xl border border-border bg-muted/40 px-3 py-3">
                             <div className="mb-2 flex items-center justify-between">
-                              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                                 {stat.label}
                               </p>
-                              <Icon size={14} className="text-slate-400" />
+                              <Icon size={14} className="text-muted-foreground" />
                             </div>
-                            <p className="text-base font-semibold text-slate-900">{stat.value}</p>
+                            <p className="text-base font-semibold text-foreground">{stat.value}</p>
                           </div>
                         );
                       })}
@@ -563,8 +563,8 @@ export default function WorkflowPage() {
                   </div>
                 </section>
 
-                <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <p className="mb-3 text-sm font-semibold text-slate-900">Workflow state</p>
+                <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+                  <p className="mb-3 text-sm font-semibold text-foreground">Workflow state</p>
                   <div className="grid gap-2 xl:grid-cols-7">
                     {STATE_ORDER.map((state) => {
                       const active = selected.current_state === state;
@@ -582,11 +582,11 @@ export default function WorkflowPage() {
                   </div>
                 </section>
 
-                <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">Integrity</p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-sm font-semibold text-foreground">Integrity</p>
+                      <p className="text-xs text-muted-foreground">
                         Backend-owned workflow health and bounded recovery actions.
                       </p>
                     </div>
@@ -611,16 +611,16 @@ export default function WorkflowPage() {
                           className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3"
                         >
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="rounded-full border border-amber-300 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+                            <span className="rounded-full border border-amber-300 bg-amber-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
                               {issue.artifact}
                             </span>
                             <span className="text-[11px] font-semibold uppercase tracking-wide text-amber-700">
                               {issue.severity}
                             </span>
                           </div>
-                          <p className="mt-2 text-sm font-medium text-slate-900">{issue.message}</p>
+                          <p className="mt-2 text-sm font-medium text-foreground">{issue.message}</p>
                           {Object.keys(issue.metadata ?? {}).length > 0 && (
-                            <pre className="mt-2 overflow-x-auto rounded-lg bg-white px-3 py-2 text-xs text-slate-600">
+                            <pre className="mt-2 overflow-x-auto rounded-lg bg-background px-3 py-2 text-xs text-muted-foreground">
                               {JSON.stringify(issue.metadata, null, 2)}
                             </pre>
                           )}
@@ -663,16 +663,16 @@ export default function WorkflowPage() {
                 </section>
 
                 <section className="grid gap-4 xl:grid-cols-2">
-                  <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <p className="mb-3 text-sm font-semibold text-slate-900">Next actions</p>
+                  <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+                    <p className="mb-3 text-sm font-semibold text-foreground">Next actions</p>
                     <div className="space-y-3">
-                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Resume</p>
+                      <div className="rounded-xl border border-border bg-muted/40 p-3">
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Resume</p>
                         <div className="flex flex-col gap-2 xl:flex-row">
                           <select
                             value={resumeId}
                             onChange={(event) => setResumeId(event.target.value)}
-                            className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-slate-500"
+                            className="app-select h-10 w-full px-3 text-sm"
                           >
                             <option value="">Select resume</option>
                             {resumes.map((resume) => (
@@ -684,7 +684,7 @@ export default function WorkflowPage() {
                           <select
                             value={resumeLocale}
                             onChange={(event) => setResumeLocale(event.target.value)}
-                            className="h-10 min-w-[120px] rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-slate-500"
+                            className="app-select h-10 min-w-[120px] px-3 text-sm"
                           >
                             {localeOptions.map((locale) => (
                               <option key={locale} value={locale}>
@@ -713,12 +713,12 @@ export default function WorkflowPage() {
                         </Button>
                       </div>
 
-                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">ATS report</p>
+                      <div className="rounded-xl border border-border bg-muted/40 p-3">
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">ATS report</p>
                         <select
                           value={atsReportId}
                           onChange={(event) => setAtsReportId(event.target.value)}
-                          className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-slate-500"
+                          className="app-select h-10 w-full px-3 text-sm"
                         >
                           <option value="">Select ATS report</option>
                           {filteredAtsReports.map((report) => (
@@ -744,12 +744,12 @@ export default function WorkflowPage() {
                         </Button>
                       </div>
 
-                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Cover letter</p>
+                      <div className="rounded-xl border border-border bg-muted/40 p-3">
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cover letter</p>
                         <select
                           value={coverLetterId}
                           onChange={(event) => setCoverLetterId(event.target.value)}
-                          className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-slate-500"
+                          className="app-select h-10 w-full px-3 text-sm"
                         >
                           <option value="">Select cover letter</option>
                           {filteredCoverLetters.map((letter) => (
@@ -775,12 +775,12 @@ export default function WorkflowPage() {
                         </Button>
                       </div>
 
-                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Tracker</p>
+                      <div className="rounded-xl border border-border bg-muted/40 p-3">
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tracker</p>
                         <select
                           value={applicationId}
                           onChange={(event) => setApplicationId(event.target.value)}
-                          className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-slate-500"
+                          className="app-select h-10 w-full px-3 text-sm"
                         >
                           <option value="">Create new tracker entry</option>
                           {applications.map((application) => (
@@ -826,9 +826,9 @@ export default function WorkflowPage() {
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-semibold text-slate-900">Transition log</p>
+                      <p className="text-sm font-semibold text-foreground">Transition log</p>
                       <Button
                         className="h-9"
                         disabled={busyAction === "ready"}
@@ -847,20 +847,20 @@ export default function WorkflowPage() {
 
                     <div className="mt-4 space-y-3">
                       {selected.transitions.map((transition) => (
-                        <div key={transition.id} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                        <div key={transition.id} className="rounded-xl border border-border bg-muted/40 px-3 py-3">
                           <div className="flex items-center justify-between gap-2">
-                            <p className="text-sm font-semibold text-slate-900">
+                            <p className="text-sm font-semibold text-foreground">
                               {STATE_LABELS[transition.state]}
                             </p>
-                            <p className="text-xs text-slate-400">
+                            <p className="text-xs text-muted-foreground">
                               {formatTimestamp(transition.created_at)}
                             </p>
                           </div>
-                          <p className="mt-1 text-xs uppercase tracking-wide text-slate-500">
+                          <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">
                             {transition.action}
                           </p>
                           {Object.keys(transition.metadata ?? {}).length > 0 && (
-                            <pre className="mt-2 overflow-x-auto rounded-lg bg-white px-3 py-2 text-xs text-slate-600">
+                            <pre className="mt-2 overflow-x-auto rounded-lg bg-background px-3 py-2 text-xs text-muted-foreground">
                               {JSON.stringify(transition.metadata, null, 2)}
                             </pre>
                           )}

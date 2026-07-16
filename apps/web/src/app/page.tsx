@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const FEATURES = [
   {
@@ -39,7 +40,7 @@ const STEPS = [
     title: "Upload Your CV",
     description: "Drop a PDF. LlamaCloud parses every experience, skill and achievement into a structured knowledge base.",
     icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
       </svg>
     ),
@@ -49,7 +50,7 @@ const STEPS = [
     title: "Paste Job URL",
     description: "Drop a LinkedIn, Indeed or WTTJ link. The stealth scraper extracts every requirement and keyword.",
     icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
       </svg>
     ),
@@ -59,7 +60,7 @@ const STEPS = [
     title: "Agents Work",
     description: "LangGraph orchestrates retrieval, drafting and self-correction. Watch the pipeline live in Ghost Mode.",
     icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
       </svg>
     ),
@@ -69,259 +70,168 @@ const STEPS = [
     title: "Download PDF",
     description: "A pixel-perfect, ATS-proof PDF via Puppeteer with Shadow DOM style isolation. Your design, your rules.",
     icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
       </svg>
     ),
   },
 ];
 
+const quickSteps = [
+  ["1", "Upload CV", "Parse your existing resume."],
+  ["2", "Paste job URL", "Extract the role requirements."],
+  ["3", "Export PDF", "Review, style, and download."],
+];
+
 export default function LandingPage() {
   return (
-    <div className="relative min-h-screen overflow-x-hidden" style={{ backgroundColor: "#0f172a", color: "#f1f5f9" }}>
-
-      {/* Animated background blobs */}
+    <div className="relative min-h-screen overflow-x-hidden bg-background text-foreground">
       <div className="land-blob land-blob-blue" />
       <div className="land-blob land-blob-indigo" />
       <div className="land-blob land-blob-purple" />
 
-      {/* ── Navbar ────────────────────────────────────────────────────── */}
-      <nav
-        className="fixed top-0 left-0 right-0 z-50 border-b"
-        style={{
-          backdropFilter: "blur(16px)",
-          WebkitBackdropFilter: "blur(16px)",
-          backgroundColor: "rgba(15,23,42,0.75)",
-          borderColor: "rgba(255,255,255,0.08)",
-        }}
-      >
-        <div className="max-w-6xl mx-auto px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div
-              className="w-9 h-9 rounded-lg flex items-center justify-center font-black text-lg text-white flex-shrink-0"
-              style={{ background: "linear-gradient(135deg, #2563eb, #818cf8)" }}
-            >
+      <nav className="fixed inset-x-0 top-0 z-50 border-b border-border bg-background/80 shadow-sm backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6 md:px-8">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-400 text-lg font-black text-white">
               M
             </div>
-            <span className="font-bold text-lg" style={{ color: "#f1f5f9" }}>Mindris AI</span>
-          </div>
-
-          <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="land-nav-link">Features</a>
-            <a href="#how-it-works" className="land-nav-link">How it works</a>
-            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="land-nav-link">GitHub ↗</a>
-          </div>
-
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all"
-            style={{
-              background: "linear-gradient(135deg, #2563eb, #818cf8)",
-              boxShadow: "0 0 20px rgba(37,99,235,0.3)",
-            }}
-          >
-            Open App →
+            <span className="text-lg font-bold text-foreground">Mindris AI</span>
           </Link>
+
+          <div className="hidden items-center gap-8 md:flex">
+            <a href="#features" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">Features</a>
+            <a href="#how-it-works" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">How it works</a>
+            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">GitHub ↗</a>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-400 px-4 py-2 text-sm font-semibold text-white shadow-[0_0_20px_rgba(37,99,235,0.25)] transition-all hover:shadow-[0_0_26px_rgba(37,99,235,0.35)]"
+            >
+              Open App →
+            </Link>
+          </div>
         </div>
       </nav>
 
-      {/* ── Hero ──────────────────────────────────────────────────────── */}
-      <section className="relative pt-40 pb-24 text-center z-10">
-        <div className="max-w-5xl mx-auto px-8">
-
-          {/* Pill */}
-          <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full text-xs font-semibold tracking-widest mb-8"
-            style={{
-              border: "1px solid rgba(99,102,241,0.5)",
-              backgroundColor: "rgba(99,102,241,0.1)",
-              color: "#818cf8",
-            }}
-          >
+      <section className="relative z-10 pb-24 pt-40 text-center">
+        <div className="mx-auto max-w-5xl px-6 md:px-8">
+          <div className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-xs font-semibold tracking-widest text-indigo-500 dark:text-indigo-300">
             <span className="land-pill-dot" />
             AI-Powered Career Engine
           </div>
 
-          {/* Headline */}
-          <h1
-            className="font-black leading-tight tracking-tight mb-6"
-            style={{ fontSize: "clamp(2.8rem, 6vw, 4.5rem)", color: "#f1f5f9" }}
-          >
+          <h1 className="mb-6 text-5xl font-black leading-tight tracking-tight text-foreground md:text-7xl">
             Build CVs that actually
             <br />
             <span className="land-gradient-text">get interviews.</span>
           </h1>
 
-          {/* Sub */}
-          <p className="text-lg leading-relaxed max-w-2xl mx-auto mb-10" style={{ color: "#94a3b8" }}>
+          <p className="mx-auto mb-10 max-w-2xl text-lg leading-relaxed text-muted-foreground">
             Mindris AI scrapes job offers, matches your profile via{" "}
-            <span style={{ color: "#818cf8" }}>RAG</span>, and tailors your CV
+            <span className="font-semibold text-indigo-500 dark:text-indigo-300">RAG</span>, and tailors your CV
             automatically — with a live agent feed you can watch in real time.
           </p>
 
-          {/* CTAs */}
-          <div className="flex items-center justify-center gap-4 flex-wrap mb-16">
+          <div className="mb-16 flex flex-wrap items-center justify-center gap-4">
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl text-base font-semibold text-white transition-all"
-              style={{
-                background: "linear-gradient(135deg, #2563eb, #818cf8)",
-                boxShadow: "0 0 30px rgba(37,99,235,0.35)",
-              }}
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-400 px-8 py-3.5 text-base font-semibold text-white shadow-[0_0_30px_rgba(37,99,235,0.3)] transition-all hover:shadow-[0_0_40px_rgba(37,99,235,0.4)]"
             >
               Start for free →
             </Link>
             <Link
               href="/tools/markdown"
-              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl text-base font-medium transition-all"
-              style={{
-                backgroundColor: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                color: "#94a3b8",
-                backdropFilter: "blur(8px)",
-              }}
+              className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-8 py-3.5 text-base font-medium text-muted-foreground shadow-sm transition-all hover:bg-accent hover:text-accent-foreground"
             >
               Markdown → PDF
             </Link>
           </div>
 
           <div className="mx-auto grid max-w-3xl grid-cols-1 gap-3 text-left sm:grid-cols-3">
-            {[
-              ["1", "Upload CV", "Parse your existing resume."],
-              ["2", "Paste job URL", "Extract the role requirements."],
-              ["3", "Export PDF", "Review, style, and download."],
-            ].map(([step, title, copy]) => (
-              <div
-                key={step}
-                className="rounded-2xl p-4"
-                style={{
-                  backgroundColor: "rgba(255,255,255,0.035)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  backdropFilter: "blur(8px)",
-                }}
-              >
-                <span className="text-xs font-bold tracking-widest" style={{ color: "#818cf8" }}>
-                  {step}
-                </span>
-                <p className="mt-2 text-sm font-semibold" style={{ color: "#f1f5f9" }}>{title}</p>
-                <p className="mt-1 text-xs leading-5" style={{ color: "#94a3b8" }}>{copy}</p>
+            {quickSteps.map(([step, title, copy]) => (
+              <div key={step} className="rounded-2xl border border-border bg-card/80 p-4 shadow-sm backdrop-blur">
+                <span className="text-xs font-bold tracking-widest text-indigo-500 dark:text-indigo-300">{step}</span>
+                <p className="mt-2 text-sm font-semibold text-foreground">{title}</p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">{copy}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── Features ──────────────────────────────────────────────────── */}
-      <section id="features" className="relative z-10 py-24" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-        <div className="max-w-6xl mx-auto px-8">
-          <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: "#818cf8" }}>Features</p>
-          <h2 className="font-black text-4xl mb-3" style={{ color: "#f1f5f9" }}>
+      <section id="features" className="relative z-10 border-t border-border py-24">
+        <div className="mx-auto max-w-6xl px-6 md:px-8">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-indigo-500 dark:text-indigo-300">Features</p>
+          <h2 className="mb-3 text-4xl font-black text-foreground">
             One engine. <span className="land-gradient-text">Multiple tools.</span>
           </h2>
-          <p className="text-base leading-relaxed mb-12 max-w-xl" style={{ color: "#94a3b8" }}>
+          <p className="mb-12 max-w-xl text-base leading-relaxed text-muted-foreground">
             Every tool shares the same intelligence pipeline — your CV data, your job targets, your style.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
             {FEATURES.map((f) => (
               <div
                 key={f.id}
-                className="flex flex-col gap-4 p-7 rounded-2xl transition-all duration-300"
-                style={{
-                  backgroundColor: "rgba(255,255,255,0.03)",
-                  border: "1px solid rgba(255,255,255,0.07)",
-                  backdropFilter: "blur(8px)",
-                  opacity: f.available ? 1 : 0.5,
-                }}
+                className="flex flex-col gap-4 rounded-2xl border border-border bg-card/80 p-7 shadow-sm backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
               >
                 <div className="flex items-center justify-between">
-                  <span style={{ fontSize: "1.75rem" }}>{f.icon}</span>
-                  <span
-                    className="text-xs font-semibold tracking-widest uppercase px-2.5 py-1 rounded-full"
-                    style={f.available
-                      ? { backgroundColor: "rgba(37,99,235,0.15)", color: "#818cf8", border: "1px solid rgba(99,102,241,0.3)" }
-                      : { backgroundColor: "rgba(100,116,139,0.15)", color: "#475569", border: "1px solid rgba(100,116,139,0.3)" }
-                    }
-                  >
+                  <span className="text-3xl">{f.icon}</span>
+                  <span className="rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-widest text-indigo-500 dark:text-indigo-300">
                     {f.label}
                   </span>
                 </div>
-                <h3 className="text-xl font-bold" style={{ color: "#f1f5f9" }}>{f.title}</h3>
-                <p className="text-sm leading-relaxed flex-1" style={{ color: "#94a3b8" }}>{f.description}</p>
-                {f.cta && (
-                  <Link href={f.cta.href} className="text-sm font-semibold mt-1 transition-colors" style={{ color: "#818cf8" }}>
-                    {f.cta.label} →
-                  </Link>
-                )}
+                <h3 className="text-xl font-bold text-foreground">{f.title}</h3>
+                <p className="flex-1 text-sm leading-relaxed text-muted-foreground">{f.description}</p>
+                <Link href={f.cta.href} className="mt-1 text-sm font-semibold text-indigo-500 transition-colors hover:text-indigo-600 dark:text-indigo-300 dark:hover:text-indigo-200">
+                  {f.cta.label} →
+                </Link>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── How It Works ──────────────────────────────────────────────── */}
-      <section id="how-it-works" className="relative z-10 py-24" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-        <div className="max-w-6xl mx-auto px-8">
-          <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: "#818cf8" }}>How it works</p>
-          <h2 className="font-black text-4xl mb-12" style={{ color: "#f1f5f9" }}>
+      <section id="how-it-works" className="relative z-10 border-t border-border py-24">
+        <div className="mx-auto max-w-6xl px-6 md:px-8">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-indigo-500 dark:text-indigo-300">How it works</p>
+          <h2 className="mb-12 text-4xl font-black text-foreground">
             From job URL to <span className="land-gradient-text">tailored PDF</span> in minutes.
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {STEPS.map((step) => (
-              <div
-                key={step.number}
-                className="flex flex-col gap-4 p-6 rounded-2xl transition-all duration-300"
-                style={{
-                  backgroundColor: "rgba(255,255,255,0.03)",
-                  border: "1px solid rgba(255,255,255,0.07)",
-                }}
-              >
-                <span className="text-xs font-bold tracking-widest uppercase" style={{ color: "#818cf8" }}>
+              <div key={step.number} className="flex flex-col gap-4 rounded-2xl border border-border bg-card/80 p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
+                <span className="text-xs font-bold uppercase tracking-widest text-indigo-500 dark:text-indigo-300">
                   {step.number}
                 </span>
-                <div
-                  className="w-11 h-11 rounded-xl flex items-center justify-center"
-                  style={{
-                    backgroundColor: "rgba(99,102,241,0.1)",
-                    border: "1px solid rgba(99,102,241,0.2)",
-                    color: "#818cf8",
-                  }}
-                >
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-500 dark:text-indigo-300">
                   {step.icon}
                 </div>
-                <h3 className="font-bold text-base" style={{ color: "#f1f5f9" }}>{step.title}</h3>
-                <p className="text-sm leading-relaxed" style={{ color: "#94a3b8" }}>{step.description}</p>
+                <h3 className="text-base font-bold text-foreground">{step.title}</h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">{step.description}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── CTA Banner ────────────────────────────────────────────────── */}
-      <section className="relative z-10 py-24" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-        <div className="max-w-6xl mx-auto px-8">
-          <div
-            className="rounded-3xl p-16 text-center"
-            style={{
-              background: "linear-gradient(135deg, rgba(37,99,235,0.12), rgba(129,140,248,0.08), rgba(167,139,250,0.06))",
-              border: "1px solid rgba(99,102,241,0.3)",
-              backdropFilter: "blur(12px)",
-              boxShadow: "0 0 80px rgba(37,99,235,0.1)",
-            }}
-          >
-            <h2 className="font-black text-4xl mb-3" style={{ color: "#f1f5f9" }}>
+      <section className="relative z-10 border-t border-border py-24">
+        <div className="mx-auto max-w-6xl px-6 md:px-8">
+          <div className="rounded-3xl border border-indigo-500/25 bg-gradient-to-br from-blue-500/10 via-indigo-500/10 to-purple-500/10 p-8 text-center shadow-[0_0_80px_rgba(37,99,235,0.08)] md:p-16">
+            <h2 className="mb-3 text-4xl font-black text-foreground">
               Ready to master your narrative?
             </h2>
-            <p className="text-base mb-8" style={{ color: "#94a3b8" }}>
+            <p className="mb-8 text-base text-muted-foreground">
               Upload your CV. Paste a job URL. Let the agents work.
             </p>
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-2 px-10 py-4 rounded-xl text-base font-semibold text-white transition-all"
-              style={{
-                background: "linear-gradient(135deg, #2563eb, #818cf8)",
-                boxShadow: "0 0 30px rgba(37,99,235,0.4)",
-              }}
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-400 px-10 py-4 text-base font-semibold text-white shadow-[0_0_30px_rgba(37,99,235,0.35)] transition-all hover:shadow-[0_0_42px_rgba(37,99,235,0.45)]"
             >
               Open Mindris AI →
             </Link>
@@ -329,24 +239,20 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Footer ────────────────────────────────────────────────────── */}
-      <footer className="relative z-10 py-8" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-        <div className="max-w-6xl mx-auto px-8 flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-2">
-            <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center font-black text-sm text-white"
-              style={{ background: "linear-gradient(135deg, #2563eb, #818cf8)" }}
-            >
+      <footer className="relative z-10 border-t border-border py-8">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 md:px-8">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-400 text-sm font-black text-white">
               M
             </div>
-            <span className="font-bold text-sm" style={{ color: "#f1f5f9" }}>Mindris AI</span>
-          </div>
+            <span className="text-sm font-bold text-foreground">Mindris AI</span>
+          </Link>
           <div className="flex gap-6">
-            <Link href="/tools/cv-creator" className="text-sm transition-colors" style={{ color: "#475569" }}>CV Creator</Link>
-            <Link href="/tools/markdown" className="text-sm transition-colors" style={{ color: "#475569" }}>Markdown → PDF</Link>
-            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-sm transition-colors" style={{ color: "#475569" }}>GitHub</a>
+            <Link href="/tools/cv-creator" className="text-sm text-muted-foreground transition-colors hover:text-foreground">CV Creator</Link>
+            <Link href="/tools/markdown" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Markdown → PDF</Link>
+            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground transition-colors hover:text-foreground">GitHub</a>
           </div>
-          <p className="text-xs" style={{ color: "#475569" }}>© {new Date().getFullYear()} Mindris AI. Built by Rayhan.</p>
+          <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Mindris AI. Built by Rayhan.</p>
         </div>
       </footer>
     </div>

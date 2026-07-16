@@ -63,7 +63,7 @@ function Slider({
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="mb-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+    <h3 className="mb-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
       {children}
     </h3>
   );
@@ -350,21 +350,16 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                       key={template.id}
                       onClick={() => updateTemplate(template.id)}
                       aria-label={`Template ${template.label}`}
-                      className="flex cursor-pointer flex-col items-start gap-1 rounded-lg border p-3 text-left transition-all"
-                      style={
+                      className={`flex cursor-pointer flex-col items-start gap-1 rounded-lg border p-3 text-left transition-all ${
                         settings.template_id === template.id
-                          ? {
-                              border: "2px solid #7c3aed",
-                              background: "#f5f3ff",
-                              boxShadow: "0 0 0 3px rgba(124,58,237,0.08)",
-                            }
-                          : { border: "1px solid #cbd5e1", background: "#fff" }
-                      }
+                          ? "border-violet-600 bg-violet-50 shadow-[0_0_0_3px_rgba(124,58,237,0.08)] dark:bg-violet-950/40"
+                          : "border-border bg-background hover:bg-accent"
+                      }`}
                     >
                       <span className="text-sm font-semibold text-foreground">
                         {template.label}
                       </span>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                      <span className="text-[10px] text-muted-foreground">
                         {template.compatibleLayouts.join("/")}-col
                       </span>
                     </button>
@@ -397,7 +392,7 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   {options.editableColors.map((token) => (
                     <label key={token} className="space-y-1">
-                      <span className="text-[10px] uppercase tracking-wider text-slate-500">
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
                         {token.replace("_", " ")}
                       </span>
                       <input
@@ -417,7 +412,7 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                   ))}
                 </div>
                 <label className={PANEL_TOGGLE_CLASS + " mt-3"}>
-                  <span className="text-xs font-medium text-slate-700 dark:text-slate-200">Monochrome</span>
+                    <span className="text-xs font-medium text-foreground">Monochrome</span>
                   <input
                     type="checkbox"
                     checked={colorSettings.monochrome ?? false}
@@ -594,7 +589,7 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                     ))}
                   </select>
                   <label className={PANEL_TOGGLE_CLASS}>
-                    <span className="text-xs font-medium text-slate-700">
+                    <span className="text-xs font-medium text-foreground">
                       Uppercase titles
                     </span>
                     <input
@@ -717,10 +712,10 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                   </select>
                   <label className={PANEL_TOGGLE_CLASS}>
                     <div>
-                      <span className="block text-xs font-medium text-slate-700">
+                      <span className="block text-xs font-medium text-foreground">
                         1 page challenge
                       </span>
-                      <span className="block text-[11px] text-slate-500">
+                      <span className="block text-[11px] text-muted-foreground">
                         Tightens spacing and typography without deleting data.
                       </span>
                     </div>
@@ -893,7 +888,7 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                     ))}
                   </select>
                   <label className={PANEL_TOGGLE_CLASS}>
-                    <span className="text-xs font-medium text-slate-700">Photo enabled</span>
+                    <span className="text-xs font-medium text-foreground">Photo enabled</span>
                     <input
                       type="checkbox"
                       checked={layoutSettings.photo?.enabled ?? false}
@@ -948,7 +943,7 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                           <p className="text-sm font-semibold text-foreground">
                             {section.label}
                           </p>
-                          <p className="text-[10px] uppercase tracking-wider text-slate-500">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
                             {section.type}
                           </p>
                         </div>
@@ -980,7 +975,7 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                         />
                         <div className="grid grid-cols-2 gap-2">
                           <label className={PANEL_TOGGLE_CLASS}>
-                            <span className="text-xs font-medium text-slate-700">Visible</span>
+                            <span className="text-xs font-medium text-foreground">Visible</span>
                             <input
                               type="checkbox"
                               checked={section.visible ?? true}
@@ -1045,7 +1040,7 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                           <label className={PANEL_TOGGLE_CLASS}>
-                            <span className="text-xs font-medium text-slate-700">Dates</span>
+                            <span className="text-xs font-medium text-foreground">Dates</span>
                             <input
                               type="checkbox"
                               checked={section.show_dates ?? true}
@@ -1054,7 +1049,7 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                             />
                           </label>
                           <label className={PANEL_TOGGLE_CLASS}>
-                            <span className="text-xs font-medium text-slate-700">Locations</span>
+                            <span className="text-xs font-medium text-foreground">Locations</span>
                             <input
                               type="checkbox"
                               checked={section.show_locations ?? true}
@@ -1080,10 +1075,10 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                 <div className="grid gap-2">
                   <label className={PANEL_TOGGLE_CLASS}>
                     <div>
-                      <span className="block text-xs font-medium text-slate-700">
+                      <span className="block text-xs font-medium text-foreground">
                         Enable expert CSS
                       </span>
-                      <span className="block text-[11px] text-slate-500">
+                      <span className="block text-[11px] text-muted-foreground">
                         Applied by the renderer inside the CV Shadow DOM only.
                       </span>
                     </div>
@@ -1140,7 +1135,7 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                     className={PANEL_TEXTAREA_CLASS}
                     placeholder=":host { --primary-color: #0f172a; }"
                   />
-                  <div className="flex items-center justify-between text-[11px] text-slate-500">
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                     <span>
                       {advancedCssSettings.css_text?.length ?? 0}/
                       {catalogue.advancedCss.maxLength}
@@ -1186,7 +1181,7 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
                 </div>
                 {advancedCssSettings.warnings &&
                   advancedCssSettings.warnings.length > 0 && (
-                    <div className="mt-2 rounded-lg border border-amber-300 bg-white px-3 py-2 text-[11px] text-amber-800">
+                    <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-[11px] text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
                       {advancedCssSettings.warnings.map((warning) => (
                         <p key={warning}>{warning}</p>
                       ))}
@@ -1197,7 +1192,7 @@ export function StylePanel({ open = true, onClose, variant = "drawer" }: StylePa
           )}
         </div>
 
-        <div className="shrink-0 border-t border-slate-200 px-5 py-3">
+        <div className="shrink-0 border-t border-border px-5 py-3">
           <button
             onClick={() => setGlobalSettings({ ...resetSettings, template_id: "modern" })}
             className="w-full cursor-pointer rounded-lg border border-input bg-background py-2 text-xs font-medium text-foreground shadow-sm transition-colors hover:bg-accent"
