@@ -6,6 +6,7 @@ Thumbs.db
 logs/
 *.swp
 *.log
+*.screenshots/
 
 # --- Python (uv & venv) ---
 __pycache__/
