@@ -33,13 +33,21 @@ function isActive(pathname: string, href: string): boolean {
 
 function Brand({ collapsed = false }: { collapsed?: boolean }) {
   return (
-    <Link href="/" className="flex items-center gap-3 no-underline" title="Back to home">
+    <Link
+      href="/"
+      className="flex items-center gap-3 no-underline"
+      title="Back to home"
+    >
       <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-sm font-black text-primary-foreground">
         M
       </div>
       <div className={cn("min-w-0", collapsed && "hidden")}>
-        <p className="truncate text-sm font-semibold text-foreground">Mindris AI</p>
-        <p className="truncate text-xs text-muted-foreground">Open resume studio</p>
+        <p className="truncate text-sm font-semibold text-foreground">
+          Mindris AI
+        </p>
+        <p className="truncate text-xs text-muted-foreground">
+          Open resume studio
+        </p>
       </div>
     </Link>
   );
@@ -71,10 +79,30 @@ function NavLinks({
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
             )}
-            title={collapsed ? item.label : undefined}
+            title={
+              collapsed
+                ? [item.label, item.badge].filter(Boolean).join(" ")
+                : undefined
+            }
           >
             <Icon size={17} />
-            {!collapsed && <span className="min-w-0 flex-1 truncate">{item.label}</span>}
+            {!collapsed && (
+              <span className="min-w-0 flex-1 truncate">
+                {item.label}
+                {item.badge && (
+                  <sup
+                    className={cn(
+                      "ml-1 inline-flex translate-y-[-0.28em] rounded-full border px-1 py-0 text-[8px] font-black uppercase leading-none tracking-[0.12em]",
+                      active
+                        ? "border-primary-foreground/40 bg-primary-foreground/15 text-primary-foreground"
+                        : "border-amber-300/70 bg-amber-50 text-amber-700 dark:border-amber-400/40 dark:bg-amber-400/10 dark:text-amber-300",
+                    )}
+                  >
+                    {item.badge}
+                  </sup>
+                )}
+              </span>
+            )}
           </Link>
         );
       })}
@@ -83,13 +111,15 @@ function NavLinks({
 }
 
 function SidebarUtilities({ collapsed = false }: { collapsed?: boolean }) {
-  const configuration = APP_SIDEBAR_SECTIONS.find((section) => section.id === "configuration");
+  const configuration = APP_SIDEBAR_SECTIONS.find(
+    (section) => section.id === "configuration",
+  );
 
   return (
     <div className="space-y-3">
       {configuration && (
         <ConfigurationDrawer
-          trigger={(
+          trigger={
             <Button
               variant="ghost"
               className={cn(
@@ -99,12 +129,15 @@ function SidebarUtilities({ collapsed = false }: { collapsed?: boolean }) {
               title={collapsed ? configuration.label : undefined}
             >
               <configuration.icon size={17} />
-              {!collapsed && <span className="min-w-0 flex-1 truncate text-left">{configuration.label}</span>}
+              {!collapsed && (
+                <span className="min-w-0 flex-1 truncate text-left">
+                  {configuration.label}
+                </span>
+              )}
             </Button>
-          )}
+          }
         />
       )}
-
     </div>
   );
 }
@@ -150,7 +183,9 @@ export function AppShell({
           <div className="flex items-center justify-between gap-2">
             <Brand collapsed={desktopCollapsed} />
             <Button
-              aria-label={desktopCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-label={
+                desktopCollapsed ? "Expand sidebar" : "Collapse sidebar"
+              }
               size="icon"
               variant="ghost"
               className="shrink-0"
@@ -160,7 +195,11 @@ export function AppShell({
                 )
               }
             >
-              {desktopCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+              {desktopCollapsed ? (
+                <ChevronRight size={16} />
+              ) : (
+                <ChevronLeft size={16} />
+              )}
             </Button>
           </div>
           <div className="mt-8">
@@ -195,7 +234,11 @@ export function AppShell({
 
         <div
           className="transition-[padding] duration-200 lg:pl-[var(--app-sidebar-width)]"
-          style={{ "--app-sidebar-width": `${desktopSidebar.reserveWidth}px` } as CSSProperties}
+          style={
+            {
+              "--app-sidebar-width": `${desktopSidebar.reserveWidth}px`,
+            } as CSSProperties
+          }
         >
           <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
             <div className="flex min-h-16 items-center justify-between gap-4 px-4 lg:px-6">
@@ -216,7 +259,9 @@ export function AppShell({
                     </h1>
                   )}
                   {description && (
-                    <p className="truncate text-sm text-muted-foreground">{description}</p>
+                    <p className="truncate text-sm text-muted-foreground">
+                      {description}
+                    </p>
                   )}
                 </div>
               </div>

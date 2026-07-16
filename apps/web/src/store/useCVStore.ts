@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import { arrayMove } from '@dnd-kit/sortable';
-import { apiUrl, jsonHeaders } from '@/lib/api';
+import { create } from "zustand";
+import { arrayMove } from "@dnd-kit/sortable";
+import { apiUrl, jsonHeaders } from "@/lib/api";
 
 // ── Types aligned with cv_schema.json ────────────────────────────────────────
 
@@ -66,23 +66,23 @@ export interface GlobalSettings {
     warnings?: string[];
   };
   // Typography
-  font_family:   string;
-  font_size:     string;     // e.g. "13px"
+  font_family: string;
+  font_size: string; // e.g. "13px"
   primary_color: string;
-  line_height:   string;     // e.g. "1.5"
+  line_height: string; // e.g. "1.5"
   // Spacing
-  margin_page:   string;     // legacy — kept for backward compat
-  margin_h:      string;     // left & right margin e.g. "64px"
-  margin_v:      string;     // top & bottom margin e.g. "48px"
-  entry_spacing: string;     // space between entries e.g. "20px"
+  margin_page: string; // legacy — kept for backward compat
+  margin_h: string; // left & right margin e.g. "64px"
+  margin_v: string; // top & bottom margin e.g. "48px"
+  entry_spacing: string; // space between entries e.g. "20px"
   // Layout
-  col_left_width: string;   // left column width in % e.g. "65"
-  col_swap:       string;   // "true" | "false" — swap L/R columns
-  template_id:    string;   // "modern" | "compact"
+  col_left_width: string; // left column width in % e.g. "65"
+  col_swap: string; // "true" | "false" — swap L/R columns
+  template_id: string; // "modern" | "compact"
 }
 
 export interface Social {
-  type: 'linkedin' | 'github' | 'website' | 'other';
+  type: "linkedin" | "github" | "website" | "other";
   url: string;
   label?: string;
 }
@@ -294,6 +294,8 @@ export interface CompanyInsight {
 }
 
 export interface AtsReport {
+  id?: number | null;
+  job_id?: number | null;
   score: number;
   mode: "standard" | "strict";
   summary: string;
@@ -313,19 +315,22 @@ const DEFAULT_ATS_RUBRIC: AtsRubric = {
       key: "keyword_match",
       label: "Keyword Match Rate",
       weight: 30,
-      description: "Coverage of required hard and soft skills from the target job.",
+      description:
+        "Coverage of required hard and soft skills from the target job.",
     },
     {
       key: "experience_relevance",
       label: "Experience Relevance",
       weight: 25,
-      description: "How directly the candidate experience maps to the target role.",
+      description:
+        "How directly the candidate experience maps to the target role.",
     },
     {
       key: "formatting_structure",
       label: "Formatting & Structure",
       weight: 15,
-      description: "Clarity, semantic structure, and ATS readability of the resume.",
+      description:
+        "Clarity, semantic structure, and ATS readability of the resume.",
     },
     {
       key: "quantification",
@@ -348,11 +353,15 @@ const DEFAULT_ATS_RUBRIC: AtsRubric = {
   ],
 };
 
-export function normalizeAtsReport(value: AtsReport | null | undefined): AtsReport {
+export function normalizeAtsReport(
+  value: AtsReport | null | undefined,
+): AtsReport {
   const candidate = (value ?? {}) as Partial<AtsReport>;
   const mode = candidate.mode === "strict" ? "strict" : "standard";
   const rubricCandidate = candidate.rubric ?? DEFAULT_ATS_RUBRIC;
   return {
+    id: typeof candidate.id === "number" ? candidate.id : null,
+    job_id: typeof candidate.job_id === "number" ? candidate.job_id : null,
     score: typeof candidate.score === "number" ? candidate.score : 0,
     mode,
     summary: typeof candidate.summary === "string" ? candidate.summary : "",
@@ -366,7 +375,8 @@ export function normalizeAtsReport(value: AtsReport | null | undefined): AtsRepo
         ? rubricCandidate.dimensions.map((dimension) => ({
             key: typeof dimension?.key === "string" ? dimension.key : "",
             label: typeof dimension?.label === "string" ? dimension.label : "",
-            weight: typeof dimension?.weight === "number" ? dimension.weight : 0,
+            weight:
+              typeof dimension?.weight === "number" ? dimension.weight : 0,
             description:
               typeof dimension?.description === "string"
                 ? dimension.description
@@ -386,7 +396,9 @@ export function normalizeAtsReport(value: AtsReport | null | undefined): AtsRepo
               ? deduction.severity
               : "medium",
           points_lost:
-            typeof deduction?.points_lost === "number" ? deduction.points_lost : 0,
+            typeof deduction?.points_lost === "number"
+              ? deduction.points_lost
+              : 0,
           evidence:
             typeof deduction?.evidence === "string" ? deduction.evidence : "",
           recommendation:
@@ -467,7 +479,8 @@ export function normalizeHistoryLedgerItem(
       ? candidate.links.map((link) => ({
           subject_type:
             typeof link?.subject_type === "string" ? link.subject_type : "",
-          subject_id: typeof link?.subject_id === "string" ? link.subject_id : "",
+          subject_id:
+            typeof link?.subject_id === "string" ? link.subject_id : "",
           relation: typeof link?.relation === "string" ? link.relation : "",
         }))
       : [],
@@ -479,33 +492,36 @@ export function normalizeHistoryLedgerItem(
 }
 
 export interface JobInsights {
+  job_id?: number | null;
+  job_record_id?: number | null;
+  source_url?: string | null;
   job_title: string;
   company: string;
   hard_skills: string[];
   soft_skills: string[];
-  drafted_bullets: string[];   // parsed from Markdown
+  drafted_bullets: string[]; // parsed from Markdown
   raw_markdown: string;
   score: number;
-  ats_report?: AtsReport;      // populated by on-demand detailed scoring
+  ats_report?: AtsReport; // populated by on-demand detailed scoring
   company_insight?: CompanyInsight;
 }
 
 // ── Multi-LLM per task ────────────────────────────────────────────────────────
 
-export type LLMProvider = 'groq' | 'gemini' | 'openai' | 'mistral' | 'ollama';
+export type LLMProvider = "groq" | "gemini" | "openai" | "mistral" | "ollama";
 
 export interface LLMConfig {
   provider: LLMProvider;
   model_name: string;
 }
 
-export type PdfIngestionMode = 'auto' | 'llama_parse' | 'local_text';
+export type PdfIngestionMode = "auto" | "llama_parse" | "local_text";
 
 export interface AppSettings {
-  optimize_llm:     LLMConfig;
+  optimize_llm: LLMConfig;
   cover_letter_llm: LLMConfig;
-  ats_llm:          LLMConfig;
-  patch_llm:        LLMConfig;
+  ats_llm: LLMConfig;
+  patch_llm: LLMConfig;
   pdf_ingestion_mode: PdfIngestionMode;
 }
 
@@ -525,23 +541,34 @@ interface BackendSystemConfiguration {
   };
 }
 
-
 const DEFAULT_APP_SETTINGS: AppSettings = {
-  optimize_llm:     { provider: 'groq',   model_name: 'llama-3.3-70b-versatile' },
-  cover_letter_llm: { provider: 'groq',   model_name: 'llama-3.3-70b-versatile' },
-  ats_llm:          { provider: 'groq',   model_name: 'llama-3.1-8b-instant' },
-  patch_llm:        { provider: 'groq',   model_name: 'llama-3.3-70b-versatile' },
-  pdf_ingestion_mode: 'auto',
+  optimize_llm: { provider: "groq", model_name: "llama-3.3-70b-versatile" },
+  cover_letter_llm: { provider: "groq", model_name: "llama-3.3-70b-versatile" },
+  ats_llm: { provider: "groq", model_name: "llama-3.1-8b-instant" },
+  patch_llm: { provider: "groq", model_name: "llama-3.3-70b-versatile" },
+  pdf_ingestion_mode: "auto",
 };
 
 export function normalizeAppSettings(value: unknown): AppSettings {
-  if (!value || typeof value !== 'object') return DEFAULT_APP_SETTINGS;
+  if (!value || typeof value !== "object") return DEFAULT_APP_SETTINGS;
   const candidate = value as Partial<AppSettings>;
   return {
-    optimize_llm: normalizeLLMConfig(candidate.optimize_llm, DEFAULT_APP_SETTINGS.optimize_llm),
-    cover_letter_llm: normalizeLLMConfig(candidate.cover_letter_llm, DEFAULT_APP_SETTINGS.cover_letter_llm),
-    ats_llm: normalizeLLMConfig(candidate.ats_llm, DEFAULT_APP_SETTINGS.ats_llm),
-    patch_llm: normalizeLLMConfig(candidate.patch_llm, DEFAULT_APP_SETTINGS.patch_llm),
+    optimize_llm: normalizeLLMConfig(
+      candidate.optimize_llm,
+      DEFAULT_APP_SETTINGS.optimize_llm,
+    ),
+    cover_letter_llm: normalizeLLMConfig(
+      candidate.cover_letter_llm,
+      DEFAULT_APP_SETTINGS.cover_letter_llm,
+    ),
+    ats_llm: normalizeLLMConfig(
+      candidate.ats_llm,
+      DEFAULT_APP_SETTINGS.ats_llm,
+    ),
+    patch_llm: normalizeLLMConfig(
+      candidate.patch_llm,
+      DEFAULT_APP_SETTINGS.patch_llm,
+    ),
     pdf_ingestion_mode: normalizePdfIngestionMode(
       candidate.pdf_ingestion_mode,
       DEFAULT_APP_SETTINGS.pdf_ingestion_mode,
@@ -563,26 +590,35 @@ export function systemConfigurationToAppSettings(
 }
 
 function normalizeLLMConfig(value: unknown, fallback: LLMConfig): LLMConfig {
-  if (!value || typeof value !== 'object') return fallback;
+  if (!value || typeof value !== "object") return fallback;
   const candidate = value as Partial<LLMConfig>;
   const provider = candidate.provider;
   const model_name = candidate.model_name;
   if (!provider || !model_name || !isLLMProvider(provider)) return fallback;
   return {
     provider,
-    model_name: typeof model_name === 'string' && model_name.trim() ? model_name : fallback.model_name,
+    model_name:
+      typeof model_name === "string" && model_name.trim()
+        ? model_name
+        : fallback.model_name,
   };
 }
 
 function isLLMProvider(value: unknown): value is LLMProvider {
-  return value === 'groq' || value === 'gemini' || value === 'openai' || value === 'mistral' || value === 'ollama';
+  return (
+    value === "groq" ||
+    value === "gemini" ||
+    value === "openai" ||
+    value === "mistral" ||
+    value === "ollama"
+  );
 }
 
 function normalizePdfIngestionMode(
   value: unknown,
   fallback: PdfIngestionMode,
 ): PdfIngestionMode {
-  return value === 'auto' || value === 'llama_parse' || value === 'local_text'
+  return value === "auto" || value === "llama_parse" || value === "local_text"
     ? value
     : fallback;
 }
@@ -608,21 +644,21 @@ export interface ResumeDocument {
   name: string;
   cvData: CVData;
   templateId: string;
-  locale: 'fr' | 'en' | 'de' | 'es';
+  locale: "fr" | "en" | "de" | "es";
   multilingual: {
-    defaultLocale: 'fr' | 'en' | 'de' | 'es';
-    activeLocale: 'fr' | 'en' | 'de' | 'es';
-    availableLocales: Array<'fr' | 'en' | 'de' | 'es'>;
+    defaultLocale: "fr" | "en" | "de" | "es";
+    activeLocale: "fr" | "en" | "de" | "es";
+    availableLocales: Array<"fr" | "en" | "de" | "es">;
   };
   revision?: number;
   createdAt: string;
   updatedAt: string;
 }
 
-export type ResumeSaveStatus = 'idle' | 'dirty' | 'saving' | 'saved' | 'error';
+export type ResumeSaveStatus = "idle" | "dirty" | "saving" | "saved" | "error";
 
 export function cvDataFromImport(data: unknown): CVData | null {
-  if (!data || typeof data !== 'object') return null;
+  if (!data || typeof data !== "object") return null;
   const candidate = data as Partial<CVData> & { cvData?: CVData };
 
   if (candidate.cvData?.global_settings && candidate.cvData.profile) {
@@ -637,9 +673,9 @@ export function cvDataFromImport(data: unknown): CVData | null {
 }
 
 export function resumeNameFromImport(data: unknown): string | null {
-  if (!data || typeof data !== 'object') return null;
+  if (!data || typeof data !== "object") return null;
   const candidate = data as { name?: unknown };
-  return typeof candidate.name === 'string' && candidate.name.trim()
+  return typeof candidate.name === "string" && candidate.name.trim()
     ? candidate.name.trim()
     : null;
 }
@@ -659,14 +695,21 @@ interface CVStore {
   // Resume library
   loadResumes: () => Promise<void>;
   createResume: (name?: string, templateId?: string) => Promise<string>;
-  importResume: (name: string, cvData: CVData, source?: string) => Promise<string>;
+  importResume: (
+    name: string,
+    cvData: CVData,
+    source?: string,
+  ) => Promise<string>;
   duplicateResume: (id?: string) => Promise<string>;
   deleteResume: (id: string) => Promise<void>;
   renameResume: (id: string, name: string) => void;
   setActiveResume: (id: string) => void;
-  createResumeLocale: (locale: 'fr' | 'en' | 'de' | 'es', sourceLocale?: 'fr' | 'en' | 'de' | 'es') => Promise<void>;
-  activateResumeLocale: (locale: 'fr' | 'en' | 'de' | 'es') => Promise<void>;
-  deleteResumeLocale: (locale: 'fr' | 'en' | 'de' | 'es') => Promise<void>;
+  createResumeLocale: (
+    locale: "fr" | "en" | "de" | "es",
+    sourceLocale?: "fr" | "en" | "de" | "es",
+  ) => Promise<void>;
+  activateResumeLocale: (locale: "fr" | "en" | "de" | "es") => Promise<void>;
+  deleteResumeLocale: (locale: "fr" | "en" | "de" | "es") => Promise<void>;
   exportActiveResume: () => Promise<ResumeDocument>;
   flushResumeSave: () => Promise<void>;
   retryResumeSave: () => Promise<void>;
@@ -682,7 +725,9 @@ interface CVStore {
   setAutoInjectMode: (v: boolean) => void;
 
   // Apply a patch from /api/v1/cv/patch-from-bullets
-  applyPatch: (patch: { experience?: Array<{ id: string; description_markdown: string }> }) => void;
+  applyPatch: (patch: {
+    experience?: Array<{ id: string; description_markdown: string }>;
+  }) => void;
 
   // App settings (multi-LLM per task)
   appSettings: AppSettings;
@@ -750,34 +795,34 @@ const uid = () => Math.random().toString(36).slice(2, 9);
 
 const initialCV: CVData = {
   global_settings: {
-    font_family:    'Inter',
-    font_size:      '13px',
-    primary_color:  '#2563eb',
-    line_height:    '1.5',
-    margin_page:    '48px',   // legacy fallback
-    margin_h:       '64px',
-    margin_v:       '48px',
-    entry_spacing:  '20px',
-    col_left_width: '65',
-    col_swap:       'false',
-    template_id:    'modern',
+    font_family: "Inter",
+    font_size: "13px",
+    primary_color: "#2563eb",
+    line_height: "1.5",
+    margin_page: "48px", // legacy fallback
+    margin_h: "64px",
+    margin_v: "48px",
+    entry_spacing: "20px",
+    col_left_width: "65",
+    col_swap: "false",
+    template_id: "modern",
     advanced_css: {
       enabled: false,
-      mode: 'off',
-      css_text: '',
+      mode: "off",
+      css_text: "",
       preset_id: null,
       warnings: [],
     },
   },
   profile: {
-    full_name: 'Jean Dupont',
-    title: 'AI Engineer & Full-Stack Developer',
-    phone: '+33 6 00 00 00 00',
-    email: 'jeandupont@gmail.com',
-    location: { city: 'Paris', country: 'France' },
+    full_name: "Jean Dupont",
+    title: "AI Engineer & Full-Stack Developer",
+    phone: "+33 6 00 00 00 00",
+    email: "jeandupont@gmail.com",
+    location: { city: "Paris", country: "France" },
     socials: [
-      { type: 'linkedin', url: 'https://linkedin.com/in/jeandupont' },
-      { type: 'github', url: 'https://github.com/jeandupont' },
+      { type: "linkedin", url: "https://linkedin.com/in/jeandupont" },
+      { type: "github", url: "https://github.com/jeandupont" },
     ],
     text_markdown:
       "Expert en **Data Science** et **IA**, spécialisé dans le déploiement d'architectures autonomes et scalables.",
@@ -785,56 +830,71 @@ const initialCV: CVData = {
   experience: [
     {
       id: uid(),
-      company: 'Tech Corp',
-      role: 'IA Engineer',
-      period: '2022 - Présent',
-      location: { city: 'Paris', country: 'France' },
-      description_markdown: "- Optimisation de **pipelines RAG**\n- Lead sur le projet X",
-      keywords: ['RAG', 'Python', 'LangGraph'],
+      company: "Tech Corp",
+      role: "IA Engineer",
+      period: "2022 - Présent",
+      location: { city: "Paris", country: "France" },
+      description_markdown:
+        "- Optimisation de **pipelines RAG**\n- Lead sur le projet X",
+      keywords: ["RAG", "Python", "LangGraph"],
     },
     {
       id: uid(),
-      company: 'Startup Inc',
-      role: 'Full-Stack Developer',
-      period: '2020 - 2022',
-      location: { city: 'Lyon', country: 'France' },
-      description_markdown: '- Développement du MVP en 3 mois\n- Architecture microservices',
-      keywords: ['Next.js', 'FastAPI', 'PostgreSQL'],
+      company: "Startup Inc",
+      role: "Full-Stack Developer",
+      period: "2020 - 2022",
+      location: { city: "Lyon", country: "France" },
+      description_markdown:
+        "- Développement du MVP en 3 mois\n- Architecture microservices",
+      keywords: ["Next.js", "FastAPI", "PostgreSQL"],
     },
   ],
   education: [
     {
       id: uid(),
-      institution: 'PSTB',
-      degree: 'Double Diplôme Data & IA',
-      period: '2024 - 2026',
-      location: 'Paris, France',
-      description_markdown: "Focus sur le Deep Learning et l'ingénierie des données.",
+      institution: "PSTB",
+      degree: "Double Diplôme Data & IA",
+      period: "2024 - 2026",
+      location: "Paris, France",
+      description_markdown:
+        "Focus sur le Deep Learning et l'ingénierie des données.",
     },
   ],
   skills: [
-    { id: uid(), category: 'Backend', skills: ['Python', 'FastAPI', 'Bun', 'PostgreSQL'] },
-    { id: uid(), category: 'AI/LLM', skills: ['LangGraph', 'CrewAI', 'RAG', 'Embeddings'] },
-    { id: uid(), category: 'Frontend', skills: ['Next.js', 'React', 'TypeScript', 'Tailwind'] },
+    {
+      id: uid(),
+      category: "Backend",
+      skills: ["Python", "FastAPI", "Bun", "PostgreSQL"],
+    },
+    {
+      id: uid(),
+      category: "AI/LLM",
+      skills: ["LangGraph", "CrewAI", "RAG", "Embeddings"],
+    },
+    {
+      id: uid(),
+      category: "Frontend",
+      skills: ["Next.js", "React", "TypeScript", "Tailwind"],
+    },
   ],
   projects: [
     {
       id: uid(),
-      name: 'Mindris AI',
-      url: 'https://github.com/mindrisai',
+      name: "Mindris AI",
+      url: "https://github.com/mindrisai",
       description_markdown:
         "Architecture microservices pour l'optimisation de carri\u00e8re via agents IA.",
-      tech_stack: ['LangGraph', 'Playwright', 'Supabase'],
+      tech_stack: ["LangGraph", "Playwright", "Supabase"],
     },
   ],
   certifications: [
     {
       id: uid(),
-      name: 'AWS Certified',
-      issuer: 'Amazon',
-      date: '2025',
-      url: 'https://aws.amazon.com',
-      description_markdown: '- Cloud architecture',
+      name: "AWS Certified",
+      issuer: "Amazon",
+      date: "2025",
+      url: "https://aws.amazon.com",
+      description_markdown: "- Cloud architecture",
     },
   ],
   volunteering: [],
@@ -842,26 +902,26 @@ const initialCV: CVData = {
   references: [],
   custom_sections: [],
   languages: [
-    { id: uid(), language: 'Français', level: 'Natif' },
-    { id: uid(), language: 'Anglais', level: 'Full Professional Proficiency' },
+    { id: uid(), language: "Français", level: "Natif" },
+    { id: uid(), language: "Anglais", level: "Full Professional Proficiency" },
   ],
-  hobbies: ['Informatique', 'Veille Technologique', 'Entrepreneuriat'],
+  hobbies: ["Informatique", "Veille Technologique", "Entrepreneuriat"],
 };
 
-function createBlankCVData(templateId = 'modern'): CVData {
+function createBlankCVData(templateId = "modern"): CVData {
   return {
     global_settings: {
       ...initialCV.global_settings,
       template_id: templateId,
     },
     profile: {
-      full_name: '',
-      title: '',
-      phone: '',
-      email: '',
-      location: { city: '', country: '' },
+      full_name: "",
+      title: "",
+      phone: "",
+      email: "",
+      location: { city: "", country: "" },
       socials: [],
-      text_markdown: '',
+      text_markdown: "",
     },
     experience: [],
     education: [],
@@ -879,7 +939,7 @@ function createBlankCVData(templateId = 'modern'): CVData {
 
 export function normalizeCVData(
   data: Partial<CVData> | undefined,
-  templateId = 'modern',
+  templateId = "modern",
 ): CVData {
   const blank = createBlankCVData(templateId);
   const source = data ?? {};
@@ -905,11 +965,15 @@ export function normalizeCVData(
     education: Array.isArray(source.education) ? source.education : [],
     skills: Array.isArray(source.skills) ? source.skills : [],
     projects: Array.isArray(source.projects) ? source.projects : [],
-    certifications: Array.isArray(source.certifications) ? source.certifications : [],
+    certifications: Array.isArray(source.certifications)
+      ? source.certifications
+      : [],
     volunteering: Array.isArray(source.volunteering) ? source.volunteering : [],
     publications: Array.isArray(source.publications) ? source.publications : [],
     references: Array.isArray(source.references) ? source.references : [],
-    custom_sections: Array.isArray(source.custom_sections) ? source.custom_sections : [],
+    custom_sections: Array.isArray(source.custom_sections)
+      ? source.custom_sections
+      : [],
     languages: Array.isArray(source.languages) ? source.languages : [],
     hobbies: Array.isArray(source.hobbies) ? source.hobbies : [],
   };
@@ -921,19 +985,22 @@ function nowIso(): string {
 
 function normalizeResumeLocale(
   value: unknown,
-  fallback: 'fr' | 'en' | 'de' | 'es' = 'fr',
-): 'fr' | 'en' | 'de' | 'es' {
-  return value === 'fr' || value === 'en' || value === 'de' || value === 'es'
+  fallback: "fr" | "en" | "de" | "es" = "fr",
+): "fr" | "en" | "de" | "es" {
+  return value === "fr" || value === "en" || value === "de" || value === "es"
     ? value
     : fallback;
 }
 
-function resumeLocaleFromCVData(cvData: CVData): 'fr' | 'en' | 'de' | 'es' {
-  return normalizeResumeLocale(cvData.global_settings?.locale?.label_language, 'fr');
+function resumeLocaleFromCVData(cvData: CVData): "fr" | "en" | "de" | "es" {
+  return normalizeResumeLocale(
+    cvData.global_settings?.locale?.label_language,
+    "fr",
+  );
 }
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : 'Resume save failed';
+  return error instanceof Error ? error.message : "Resume save failed";
 }
 
 function createResumeDocument(name: string, cvData: CVData): ResumeDocument {
@@ -944,7 +1011,7 @@ function createResumeDocument(name: string, cvData: CVData): ResumeDocument {
     id: uid(),
     name,
     cvData: normalized,
-    templateId: normalized.global_settings.template_id || 'modern',
+    templateId: normalized.global_settings.template_id || "modern",
     locale,
     multilingual: {
       defaultLocale: locale,
@@ -956,28 +1023,38 @@ function createResumeDocument(name: string, cvData: CVData): ResumeDocument {
   };
 }
 
-const initialResume = createResumeDocument('CV principal', initialCV);
+const initialResume = createResumeDocument("CV principal", initialCV);
 
-export function normalizeResumeDocument(data: Partial<ResumeDocument>): ResumeDocument {
+export function normalizeResumeDocument(
+  data: Partial<ResumeDocument>,
+): ResumeDocument {
   const locale = normalizeResumeLocale(
     data.locale ?? data.cvData?.global_settings?.locale?.label_language,
-    'fr',
+    "fr",
   );
   const templateId =
-    data.templateId ||
-    data.cvData?.global_settings?.template_id ||
-    'modern';
+    data.templateId || data.cvData?.global_settings?.template_id || "modern";
   const multilingual = data.multilingual;
-  const activeLocale = normalizeResumeLocale(multilingual?.activeLocale, locale);
-  const defaultLocale = normalizeResumeLocale(multilingual?.defaultLocale, locale);
+  const activeLocale = normalizeResumeLocale(
+    multilingual?.activeLocale,
+    locale,
+  );
+  const defaultLocale = normalizeResumeLocale(
+    multilingual?.defaultLocale,
+    locale,
+  );
   const availableLocales = Array.isArray(multilingual?.availableLocales)
-    ? multilingual.availableLocales.map((item) => normalizeResumeLocale(item, locale))
+    ? multilingual.availableLocales.map((item) =>
+        normalizeResumeLocale(item, locale),
+      )
     : [defaultLocale];
-  const uniqueLocales = Array.from(new Set([defaultLocale, activeLocale, ...availableLocales]));
+  const uniqueLocales = Array.from(
+    new Set([defaultLocale, activeLocale, ...availableLocales]),
+  );
   const cvData = normalizeCVData(data.cvData, templateId);
   return {
     id: data.id ?? uid(),
-    name: data.name?.trim() || 'Untitled CV',
+    name: data.name?.trim() || "Untitled CV",
     cvData,
     templateId,
     locale,
@@ -992,9 +1069,14 @@ export function normalizeResumeDocument(data: Partial<ResumeDocument>): ResumeDo
   };
 }
 
-function syncActiveResume(state: CVStore, cvData: CVData): Pick<CVStore, 'cvData' | 'resumes'> {
+function syncActiveResume(
+  state: CVStore,
+  cvData: CVData,
+): Pick<CVStore, "cvData" | "resumes"> {
   const timestamp = nowIso();
-  const activeResume = state.resumes.find((resume) => resume.id === state.activeResumeId);
+  const activeResume = state.resumes.find(
+    (resume) => resume.id === state.activeResumeId,
+  );
 
   if (!activeResume) {
     return {
@@ -1003,11 +1085,15 @@ function syncActiveResume(state: CVStore, cvData: CVData): Pick<CVStore, 'cvData
     };
   }
 
-  const normalized = normalizeCVData(cvData, activeResume.cvData.global_settings.template_id);
+  const normalized = normalizeCVData(
+    cvData,
+    activeResume.cvData.global_settings.template_id,
+  );
   const updatedResume = {
     ...activeResume,
     cvData: normalized,
-    templateId: normalized.global_settings.template_id || activeResume.templateId,
+    templateId:
+      normalized.global_settings.template_id || activeResume.templateId,
     locale: activeResume.locale,
     updatedAt: timestamp,
   };
@@ -1023,7 +1109,7 @@ function syncActiveResume(state: CVStore, cvData: CVData): Pick<CVStore, 'cvData
   return {
     cvData: normalized,
     resumes: state.resumes.map((resume) =>
-      resume.id === state.activeResumeId ? updatedResume : resume
+      resume.id === state.activeResumeId ? updatedResume : resume,
     ),
   };
 }
@@ -1044,14 +1130,14 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
 
 async function persistResume(resumeId: string, patch: Partial<ResumeDocument>) {
   return requestJson<{ item: ResumeDocument }>(`/api/v1/resumes/${resumeId}`, {
-    method: 'PATCH',
+    method: "PATCH",
     body: JSON.stringify({
       name: patch.name,
       cv_data: patch.cvData,
       template_id: patch.templateId,
       locale: patch.locale,
       target_locale: patch.multilingual?.activeLocale,
-      source: 'editor',
+      source: "editor",
     }),
   });
 }
@@ -1069,7 +1155,10 @@ let pendingResumeSave: PendingResumeSave | null = null;
 let lastFailedResumeSave: PendingResumeSave | null = null;
 let resumeSaveRevision = 0;
 
-function schedulePersistResume(resumeId: string, patch: Partial<ResumeDocument>) {
+function schedulePersistResume(
+  resumeId: string,
+  patch: Partial<ResumeDocument>,
+) {
   resumeSaveRevision += 1;
   pendingResumeSave = {
     resumeId,
@@ -1079,7 +1168,7 @@ function schedulePersistResume(resumeId: string, patch: Partial<ResumeDocument>)
   lastFailedResumeSave = null;
   if (resumeSaveTimer) clearTimeout(resumeSaveTimer);
   useCVStore.setState({
-    resumeSaveStatus: 'dirty',
+    resumeSaveStatus: "dirty",
     resumeSaveError: null,
   });
   resumeSaveTimer = setTimeout(() => {
@@ -1089,7 +1178,7 @@ function schedulePersistResume(resumeId: string, patch: Partial<ResumeDocument>)
 
 async function saveResumeSnapshot(snapshot: PendingResumeSave) {
   useCVStore.setState({
-    resumeSaveStatus: 'saving',
+    resumeSaveStatus: "saving",
     resumeSaveError: null,
   });
   try {
@@ -1097,13 +1186,15 @@ async function saveResumeSnapshot(snapshot: PendingResumeSave) {
     if (snapshot.revision === resumeSaveRevision) {
       useCVStore.setState((state) => ({
         resumes: state.resumes.map((resume) =>
-          resume.id === data.item.id ? normalizeResumeDocument(data.item) : resume
+          resume.id === data.item.id
+            ? normalizeResumeDocument(data.item)
+            : resume,
         ),
         cvData:
           state.activeResumeId === data.item.id
             ? normalizeResumeDocument(data.item).cvData
             : state.cvData,
-        resumeSaveStatus: 'saved',
+        resumeSaveStatus: "saved",
         resumeSaveError: null,
         lastResumeSavedAt: nowIso(),
       }));
@@ -1112,7 +1203,7 @@ async function saveResumeSnapshot(snapshot: PendingResumeSave) {
     lastFailedResumeSave = snapshot;
     if (snapshot.revision === resumeSaveRevision) {
       useCVStore.setState({
-        resumeSaveStatus: 'error',
+        resumeSaveStatus: "error",
         resumeSaveError: errorMessage(error),
       });
     }
@@ -1152,7 +1243,7 @@ export const useCVStore = create<CVStore>()((set, get) => ({
   resumes: [initialResume],
   activeResumeId: initialResume.id,
   isResumeLibraryLoading: false,
-  resumeSaveStatus: 'idle',
+  resumeSaveStatus: "idle",
   resumeSaveError: null,
   lastResumeSavedAt: null,
   isOptimizing: false,
@@ -1161,9 +1252,11 @@ export const useCVStore = create<CVStore>()((set, get) => ({
   loadResumes: async () => {
     set({ isResumeLibraryLoading: true });
     try {
-      const data = await requestJson<{ items: ResumeDocument[] }>('/api/v1/resumes');
+      const data = await requestJson<{ items: ResumeDocument[] }>(
+        "/api/v1/resumes",
+      );
       if (data.items.length === 0) {
-        const id = await get().createResume('CV principal', 'modern');
+        const id = await get().createResume("CV principal", "modern");
         get().setActiveResume(id);
         return;
       }
@@ -1175,7 +1268,7 @@ export const useCVStore = create<CVStore>()((set, get) => ({
         activeResumeId: activeResume.id,
         cvData: normalizeResumeDocument(activeResume).cvData,
         jobInsights: null,
-        resumeSaveStatus: 'idle',
+        resumeSaveStatus: "idle",
         resumeSaveError: null,
       });
     } finally {
@@ -1183,51 +1276,51 @@ export const useCVStore = create<CVStore>()((set, get) => ({
     }
   },
 
-  createResume: async (name = 'Untitled CV', templateId = 'modern') => {
+  createResume: async (name = "Untitled CV", templateId = "modern") => {
     const cvData = createBlankCVData(templateId);
-    const data = await requestJson<{ item: ResumeDocument }>('/api/v1/resumes', {
-      method: 'POST',
-      body: JSON.stringify({
-        name,
-        cv_data: cvData,
-        template_id: templateId,
-        locale: 'fr',
-        source: 'manual',
-      }),
-    });
+    const data = await requestJson<{ item: ResumeDocument }>(
+      "/api/v1/resumes",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          name,
+          cv_data: cvData,
+          template_id: templateId,
+          locale: "fr",
+          source: "manual",
+        }),
+      },
+    );
     set((state) => ({
-      resumes: [
-        normalizeResumeDocument(data.item),
-        ...state.resumes,
-      ],
+      resumes: [normalizeResumeDocument(data.item), ...state.resumes],
       activeResumeId: data.item.id,
       cvData: normalizeResumeDocument(data.item).cvData,
       jobInsights: null,
-      resumeSaveStatus: 'saved',
+      resumeSaveStatus: "saved",
       resumeSaveError: null,
       lastResumeSavedAt: nowIso(),
     }));
     return data.item.id;
   },
 
-  importResume: async (name, cvData, source = 'json') => {
-    const data = await requestJson<{ item: ResumeDocument }>('/api/v1/resumes/import-json', {
-      method: 'POST',
-      body: JSON.stringify({
-        name,
-        cv_data: cvData,
-        source,
-      }),
-    });
+  importResume: async (name, cvData, source = "json") => {
+    const data = await requestJson<{ item: ResumeDocument }>(
+      "/api/v1/resumes/import-json",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          name,
+          cv_data: cvData,
+          source,
+        }),
+      },
+    );
     set((state) => ({
-      resumes: [
-        normalizeResumeDocument(data.item),
-        ...state.resumes,
-      ],
+      resumes: [normalizeResumeDocument(data.item), ...state.resumes],
       activeResumeId: data.item.id,
       cvData: normalizeResumeDocument(data.item).cvData,
       jobInsights: null,
-      resumeSaveStatus: 'saved',
+      resumeSaveStatus: "saved",
       resumeSaveError: null,
       lastResumeSavedAt: nowIso(),
     }));
@@ -1238,17 +1331,14 @@ export const useCVStore = create<CVStore>()((set, get) => ({
     const sourceId = id ?? get().activeResumeId;
     const data = await requestJson<{ item: ResumeDocument }>(
       `/api/v1/resumes/${sourceId}/duplicate`,
-      { method: 'POST' }
+      { method: "POST" },
     );
     set((state) => ({
-      resumes: [
-        normalizeResumeDocument(data.item),
-        ...state.resumes,
-      ],
+      resumes: [normalizeResumeDocument(data.item), ...state.resumes],
       activeResumeId: data.item.id,
       cvData: normalizeResumeDocument(data.item).cvData,
       jobInsights: null,
-      resumeSaveStatus: 'saved',
+      resumeSaveStatus: "saved",
       resumeSaveError: null,
       lastResumeSavedAt: nowIso(),
     }));
@@ -1258,19 +1348,20 @@ export const useCVStore = create<CVStore>()((set, get) => ({
   deleteResume: async (id) => {
     const state = get();
     if (state.resumes.length <= 1) return;
-    await requestJson(`/api/v1/resumes/${id}`, { method: 'DELETE' });
+    await requestJson(`/api/v1/resumes/${id}`, { method: "DELETE" });
     set((current) => {
       const resumes = current.resumes.filter((resume) => resume.id !== id);
       const activeResume =
         id === current.activeResumeId
           ? resumes[0]
-          : resumes.find((resume) => resume.id === current.activeResumeId) ?? resumes[0];
+          : (resumes.find((resume) => resume.id === current.activeResumeId) ??
+            resumes[0]);
       return {
         resumes,
         activeResumeId: activeResume.id,
         cvData: normalizeCVData(activeResume.cvData, activeResume.templateId),
         jobInsights: id === current.activeResumeId ? null : current.jobInsights,
-        resumeSaveStatus: 'saved',
+        resumeSaveStatus: "saved",
         resumeSaveError: null,
         lastResumeSavedAt: nowIso(),
       };
@@ -1278,10 +1369,12 @@ export const useCVStore = create<CVStore>()((set, get) => ({
   },
 
   renameResume: (id, name) => {
-    const nextName = name.trim() || 'Untitled CV';
+    const nextName = name.trim() || "Untitled CV";
     set((state) => ({
       resumes: state.resumes.map((resume) =>
-        resume.id === id ? { ...resume, name: nextName, updatedAt: nowIso() } : resume
+        resume.id === id
+          ? { ...resume, name: nextName, updatedAt: nowIso() }
+          : resume,
       ),
     }));
     schedulePersistResume(id, { name: nextName });
@@ -1304,7 +1397,7 @@ export const useCVStore = create<CVStore>()((set, get) => ({
     const data = await requestJson<{ item: ResumeDocument }>(
       `/api/v1/resumes/${state.activeResumeId}/locales`,
       {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify({
           locale,
           source_locale: sourceLocale,
@@ -1314,10 +1407,13 @@ export const useCVStore = create<CVStore>()((set, get) => ({
     const normalized = normalizeResumeDocument(data.item);
     set((current) => ({
       resumes: current.resumes.map((resume) =>
-        resume.id === normalized.id ? normalized : resume
+        resume.id === normalized.id ? normalized : resume,
       ),
-      cvData: current.activeResumeId === normalized.id ? normalized.cvData : current.cvData,
-      resumeSaveStatus: 'saved',
+      cvData:
+        current.activeResumeId === normalized.id
+          ? normalized.cvData
+          : current.cvData,
+      resumeSaveStatus: "saved",
       resumeSaveError: null,
       lastResumeSavedAt: nowIso(),
     }));
@@ -1329,16 +1425,19 @@ export const useCVStore = create<CVStore>()((set, get) => ({
     const data = await requestJson<{ item: ResumeDocument }>(
       `/api/v1/resumes/${state.activeResumeId}/locales/${locale}/activate`,
       {
-        method: 'POST',
+        method: "POST",
       },
     );
     const normalized = normalizeResumeDocument(data.item);
     set((current) => ({
       resumes: current.resumes.map((resume) =>
-        resume.id === normalized.id ? normalized : resume
+        resume.id === normalized.id ? normalized : resume,
       ),
-      cvData: current.activeResumeId === normalized.id ? normalized.cvData : current.cvData,
-      resumeSaveStatus: 'saved',
+      cvData:
+        current.activeResumeId === normalized.id
+          ? normalized.cvData
+          : current.cvData,
+      resumeSaveStatus: "saved",
       resumeSaveError: null,
       lastResumeSavedAt: nowIso(),
     }));
@@ -1350,16 +1449,19 @@ export const useCVStore = create<CVStore>()((set, get) => ({
     const data = await requestJson<{ item: ResumeDocument }>(
       `/api/v1/resumes/${state.activeResumeId}/locales/${locale}`,
       {
-        method: 'DELETE',
+        method: "DELETE",
       },
     );
     const normalized = normalizeResumeDocument(data.item);
     set((current) => ({
       resumes: current.resumes.map((resume) =>
-        resume.id === normalized.id ? normalized : resume
+        resume.id === normalized.id ? normalized : resume,
       ),
-      cvData: current.activeResumeId === normalized.id ? normalized.cvData : current.cvData,
-      resumeSaveStatus: 'saved',
+      cvData:
+        current.activeResumeId === normalized.id
+          ? normalized.cvData
+          : current.cvData,
+      resumeSaveStatus: "saved",
       resumeSaveError: null,
       lastResumeSavedAt: nowIso(),
     }));
@@ -1369,7 +1471,7 @@ export const useCVStore = create<CVStore>()((set, get) => ({
     await flushPendingResumeSave();
     const state = get();
     return requestJson<ResumeDocument>(
-      `/api/v1/resumes/${state.activeResumeId}/export-json`
+      `/api/v1/resumes/${state.activeResumeId}/export-json`,
     );
   },
 
@@ -1421,17 +1523,20 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       if (!patch.experience) return state;
       const updated = state.cvData.experience.map((exp) => {
         const match = patch.experience!.find((p) => p.id === exp.id);
-        return match ? { ...exp, description_markdown: match.description_markdown } : exp;
+        return match
+          ? { ...exp, description_markdown: match.description_markdown }
+          : exp;
       });
       return syncActiveResume(state, { ...state.cvData, experience: updated });
     }),
 
   // ── App Settings (multi-LLM per task) ────────────────────────────────────────
   appSettings: DEFAULT_APP_SETTINGS,
-  setAppSettings: (s) => set((state) => {
-    const next = normalizeAppSettings({ ...state.appSettings, ...s });
-    return { appSettings: next };
-  }),
+  setAppSettings: (s) =>
+    set((state) => {
+      const next = normalizeAppSettings({ ...state.appSettings, ...s });
+      return { appSettings: next };
+    }),
   hydrateAppSettings: async () => {
     try {
       const data = await requestJson<{ item: BackendSystemConfiguration }>(
@@ -1449,7 +1554,7 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       syncActiveResume(state, {
         ...state.cvData,
         global_settings: { ...state.cvData.global_settings, ...s },
-      })
+      }),
     ),
 
   setProfile: (p) =>
@@ -1457,10 +1562,11 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       syncActiveResume(state, {
         ...state.cvData,
         profile: { ...state.cvData.profile, ...p },
-      })
+      }),
     ),
 
-  setHobbies: (h) => set((state) => syncActiveResume(state, { ...state.cvData, hobbies: h })),
+  setHobbies: (h) =>
+    set((state) => syncActiveResume(state, { ...state.cvData, hobbies: h })),
 
   setIsOptimizing: (v) => set({ isOptimizing: v }),
 
@@ -1469,8 +1575,10 @@ export const useCVStore = create<CVStore>()((set, get) => ({
     set((state) =>
       syncActiveResume(state, {
         ...state.cvData,
-        experience: state.cvData.experience.map((e) => (e.id === id ? { ...e, ...data } : e)),
-      })
+        experience: state.cvData.experience.map((e) =>
+          e.id === id ? { ...e, ...data } : e,
+        ),
+      }),
     ),
 
   reorderExperience: (oldIndex, newIndex) =>
@@ -1478,7 +1586,7 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       syncActiveResume(state, {
         ...state.cvData,
         experience: arrayMove(state.cvData.experience, oldIndex, newIndex),
-      })
+      }),
     ),
 
   addExperience: () =>
@@ -1489,15 +1597,15 @@ export const useCVStore = create<CVStore>()((set, get) => ({
           ...state.cvData.experience,
           {
             id: uid(),
-            company: 'Nouvelle Entreprise',
-            role: 'Poste',
-            period: '2024 - Présent',
-            location: { city: 'Paris', country: 'France' },
-            description_markdown: '',
+            company: "Nouvelle Entreprise",
+            role: "Poste",
+            period: "2024 - Présent",
+            location: { city: "Paris", country: "France" },
+            description_markdown: "",
             keywords: [],
           },
         ],
-      })
+      }),
     ),
 
   removeExperience: (id) =>
@@ -1505,7 +1613,7 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       syncActiveResume(state, {
         ...state.cvData,
         experience: state.cvData.experience.filter((e) => e.id !== id),
-      })
+      }),
     ),
 
   // ── Education ──────────────────────────────────────────────────────────────
@@ -1513,8 +1621,10 @@ export const useCVStore = create<CVStore>()((set, get) => ({
     set((state) =>
       syncActiveResume(state, {
         ...state.cvData,
-        education: state.cvData.education.map((e) => (e.id === id ? { ...e, ...data } : e)),
-      })
+        education: state.cvData.education.map((e) =>
+          e.id === id ? { ...e, ...data } : e,
+        ),
+      }),
     ),
 
   reorderEducation: (oldIndex, newIndex) =>
@@ -1522,7 +1632,7 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       syncActiveResume(state, {
         ...state.cvData,
         education: arrayMove(state.cvData.education, oldIndex, newIndex),
-      })
+      }),
     ),
 
   addEducation: () =>
@@ -1533,14 +1643,14 @@ export const useCVStore = create<CVStore>()((set, get) => ({
           ...state.cvData.education,
           {
             id: uid(),
-            institution: 'Université',
-            degree: 'Diplôme',
-            period: '2020 - 2024',
-            location: 'Paris, France',
-            description_markdown: '',
+            institution: "Université",
+            degree: "Diplôme",
+            period: "2020 - 2024",
+            location: "Paris, France",
+            description_markdown: "",
           },
         ],
-      })
+      }),
     ),
 
   removeEducation: (id) =>
@@ -1548,7 +1658,7 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       syncActiveResume(state, {
         ...state.cvData,
         education: state.cvData.education.filter((e) => e.id !== id),
-      })
+      }),
     ),
 
   // ── Skills ─────────────────────────────────────────────────────────────────
@@ -1556,16 +1666,21 @@ export const useCVStore = create<CVStore>()((set, get) => ({
     set((state) =>
       syncActiveResume(state, {
         ...state.cvData,
-        skills: state.cvData.skills.map((s) => (s.id === id ? { ...s, ...data } : s)),
-      })
+        skills: state.cvData.skills.map((s) =>
+          s.id === id ? { ...s, ...data } : s,
+        ),
+      }),
     ),
 
   addSkillGroup: () =>
     set((state) =>
       syncActiveResume(state, {
         ...state.cvData,
-        skills: [...state.cvData.skills, { id: uid(), category: 'Nouvelle catégorie', skills: [] }],
-      })
+        skills: [
+          ...state.cvData.skills,
+          { id: uid(), category: "Nouvelle catégorie", skills: [] },
+        ],
+      }),
     ),
 
   removeSkillGroup: (id) =>
@@ -1573,7 +1688,7 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       syncActiveResume(state, {
         ...state.cvData,
         skills: state.cvData.skills.filter((s) => s.id !== id),
-      })
+      }),
     ),
 
   // ── Projects ───────────────────────────────────────────────────────────────
@@ -1581,8 +1696,10 @@ export const useCVStore = create<CVStore>()((set, get) => ({
     set((state) =>
       syncActiveResume(state, {
         ...state.cvData,
-        projects: state.cvData.projects.map((p) => (p.id === id ? { ...p, ...data } : p)),
-      })
+        projects: state.cvData.projects.map((p) =>
+          p.id === id ? { ...p, ...data } : p,
+        ),
+      }),
     ),
 
   reorderProjects: (oldIndex, newIndex) =>
@@ -1590,7 +1707,7 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       syncActiveResume(state, {
         ...state.cvData,
         projects: arrayMove(state.cvData.projects, oldIndex, newIndex),
-      })
+      }),
     ),
 
   addProject: () =>
@@ -1601,13 +1718,13 @@ export const useCVStore = create<CVStore>()((set, get) => ({
           ...state.cvData.projects,
           {
             id: uid(),
-            name: 'Nouveau Projet',
-            url: '',
-            description_markdown: '',
+            name: "Nouveau Projet",
+            url: "",
+            description_markdown: "",
             tech_stack: [],
           },
         ],
-      })
+      }),
     ),
 
   removeProject: (id) =>
@@ -1615,7 +1732,7 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       syncActiveResume(state, {
         ...state.cvData,
         projects: state.cvData.projects.filter((p) => p.id !== id),
-      })
+      }),
     ),
 
   // ── Languages ──────────────────────────────────────────────────────────────
@@ -1623,16 +1740,21 @@ export const useCVStore = create<CVStore>()((set, get) => ({
     set((state) =>
       syncActiveResume(state, {
         ...state.cvData,
-        languages: state.cvData.languages.map((l) => (l.id === id ? { ...l, ...data } : l)),
-      })
+        languages: state.cvData.languages.map((l) =>
+          l.id === id ? { ...l, ...data } : l,
+        ),
+      }),
     ),
 
   addLanguage: () =>
     set((state) =>
       syncActiveResume(state, {
         ...state.cvData,
-        languages: [...state.cvData.languages, { id: uid(), language: 'Langue', level: 'B2' }],
-      })
+        languages: [
+          ...state.cvData.languages,
+          { id: uid(), language: "Langue", level: "B2" },
+        ],
+      }),
     ),
 
   removeLanguage: (id) =>
@@ -1640,7 +1762,7 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       syncActiveResume(state, {
         ...state.cvData,
         languages: state.cvData.languages.filter((l) => l.id !== id),
-      })
+      }),
     ),
 
   // ── Advanced sections ────────────────────────────────────────────────────
@@ -1649,9 +1771,9 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       syncActiveResume(state, {
         ...state.cvData,
         certifications: state.cvData.certifications.map((item) =>
-          item.id === id ? { ...item, ...data } : item
+          item.id === id ? { ...item, ...data } : item,
         ),
-      })
+      }),
     ),
 
   addCertification: () =>
@@ -1662,22 +1784,24 @@ export const useCVStore = create<CVStore>()((set, get) => ({
           ...state.cvData.certifications,
           {
             id: uid(),
-            name: 'Nouvelle certification',
-            issuer: 'Organisme',
-            date: '',
-            url: '',
-            description_markdown: '',
+            name: "Nouvelle certification",
+            issuer: "Organisme",
+            date: "",
+            url: "",
+            description_markdown: "",
           },
         ],
-      })
+      }),
     ),
 
   removeCertification: (id) =>
     set((state) =>
       syncActiveResume(state, {
         ...state.cvData,
-        certifications: state.cvData.certifications.filter((item) => item.id !== id),
-      })
+        certifications: state.cvData.certifications.filter(
+          (item) => item.id !== id,
+        ),
+      }),
     ),
 
   updateVolunteering: (id, data) =>
@@ -1685,9 +1809,9 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       syncActiveResume(state, {
         ...state.cvData,
         volunteering: state.cvData.volunteering.map((item) =>
-          item.id === id ? { ...item, ...data } : item
+          item.id === id ? { ...item, ...data } : item,
         ),
-      })
+      }),
     ),
 
   addVolunteering: () =>
@@ -1698,22 +1822,24 @@ export const useCVStore = create<CVStore>()((set, get) => ({
           ...state.cvData.volunteering,
           {
             id: uid(),
-            organization: 'Organisation',
-            role: 'Mentor',
-            period: '',
-            location: '',
-            description_markdown: '',
+            organization: "Organisation",
+            role: "Mentor",
+            period: "",
+            location: "",
+            description_markdown: "",
           },
         ],
-      })
+      }),
     ),
 
   removeVolunteering: (id) =>
     set((state) =>
       syncActiveResume(state, {
         ...state.cvData,
-        volunteering: state.cvData.volunteering.filter((item) => item.id !== id),
-      })
+        volunteering: state.cvData.volunteering.filter(
+          (item) => item.id !== id,
+        ),
+      }),
     ),
 
   updatePublication: (id, data) =>
@@ -1721,9 +1847,9 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       syncActiveResume(state, {
         ...state.cvData,
         publications: state.cvData.publications.map((item) =>
-          item.id === id ? { ...item, ...data } : item
+          item.id === id ? { ...item, ...data } : item,
         ),
-      })
+      }),
     ),
 
   addPublication: () =>
@@ -1734,22 +1860,24 @@ export const useCVStore = create<CVStore>()((set, get) => ({
           ...state.cvData.publications,
           {
             id: uid(),
-            title: 'Nouvelle publication',
-            publisher: 'Éditeur',
-            date: '',
-            url: '',
-            description_markdown: '',
+            title: "Nouvelle publication",
+            publisher: "Éditeur",
+            date: "",
+            url: "",
+            description_markdown: "",
           },
         ],
-      })
+      }),
     ),
 
   removePublication: (id) =>
     set((state) =>
       syncActiveResume(state, {
         ...state.cvData,
-        publications: state.cvData.publications.filter((item) => item.id !== id),
-      })
+        publications: state.cvData.publications.filter(
+          (item) => item.id !== id,
+        ),
+      }),
     ),
 
   updateReference: (id, data) =>
@@ -1757,9 +1885,9 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       syncActiveResume(state, {
         ...state.cvData,
         references: state.cvData.references.map((item) =>
-          item.id === id ? { ...item, ...data } : item
+          item.id === id ? { ...item, ...data } : item,
         ),
-      })
+      }),
     ),
 
   addReference: () =>
@@ -1770,14 +1898,14 @@ export const useCVStore = create<CVStore>()((set, get) => ({
           ...state.cvData.references,
           {
             id: uid(),
-            name: 'Référence',
-            role: '',
-            company: '',
-            contact: '',
-            description_markdown: '',
+            name: "Référence",
+            role: "",
+            company: "",
+            contact: "",
+            description_markdown: "",
           },
         ],
-      })
+      }),
     ),
 
   removeReference: (id) =>
@@ -1785,7 +1913,7 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       syncActiveResume(state, {
         ...state.cvData,
         references: state.cvData.references.filter((item) => item.id !== id),
-      })
+      }),
     ),
 
   updateCustomSection: (id, data) =>
@@ -1793,9 +1921,9 @@ export const useCVStore = create<CVStore>()((set, get) => ({
       syncActiveResume(state, {
         ...state.cvData,
         custom_sections: state.cvData.custom_sections.map((item) =>
-          item.id === id ? { ...item, ...data } : item
+          item.id === id ? { ...item, ...data } : item,
         ),
-      })
+      }),
     ),
 
   addCustomSection: () =>
@@ -1806,23 +1934,33 @@ export const useCVStore = create<CVStore>()((set, get) => ({
           ...state.cvData.custom_sections,
           {
             id: uid(),
-            title: 'Nouvelle section',
-            content_markdown: '',
+            title: "Nouvelle section",
+            content_markdown: "",
             items: [],
           },
         ],
-      })
+      }),
     ),
 
   removeCustomSection: (id) =>
     set((state) =>
       syncActiveResume(state, {
         ...state.cvData,
-        custom_sections: state.cvData.custom_sections.filter((item) => item.id !== id),
-      })
+        custom_sections: state.cvData.custom_sections.filter(
+          (item) => item.id !== id,
+        ),
+      }),
     ),
 
   // ── Full replace ─────────────────────────────────────────────────────────
   replaceCVData: (data) =>
-    set((state) => syncActiveResume(state, normalizeCVData({ ...state.cvData, ...data }, state.cvData.global_settings.template_id))),
+    set((state) =>
+      syncActiveResume(
+        state,
+        normalizeCVData(
+          { ...state.cvData, ...data },
+          state.cvData.global_settings.template_id,
+        ),
+      ),
+    ),
 }));

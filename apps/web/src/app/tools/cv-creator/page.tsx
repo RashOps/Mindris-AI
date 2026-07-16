@@ -264,6 +264,20 @@ export default function AppPage() {
   const handleJobResult = useCallback(
     (data: JobResultPayload) => {
       const insights: JobInsights = {
+        job_id:
+          typeof data.job_id === "number"
+            ? data.job_id
+            : typeof data.job_record_id === "number"
+              ? data.job_record_id
+              : null,
+        job_record_id:
+          typeof data.job_record_id === "number"
+            ? data.job_record_id
+            : typeof data.job_id === "number"
+              ? data.job_id
+              : null,
+        source_url:
+          typeof data.source_url === "string" ? data.source_url : null,
         job_title:
           typeof data.job_title === "string" ? data.job_title : "Unknown Role",
         company: typeof data.company === "string" ? data.company : "",

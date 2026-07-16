@@ -83,12 +83,13 @@ Converts Markdown to a PDF document.
 `,
 };
 
-
-
 type MarkdownDraft = {
   markdown?: string;
   style?: "document" | "letter";
   title?: string;
+  cover_letter_id?: number | null;
+  job_id?: number | null;
+  generated_at?: string | null;
 };
 
 function defaultDraft() {
@@ -111,8 +112,16 @@ export default function MarkdownToolPage() {
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isExportingDocx, setIsExportingDocx] = useState(false);
-  const [status, setStatus] = useState<{ type: "success" | "error"; msg: string } | null>(null);
-  const [activeTemplate, setActiveTemplate] = useState<keyof typeof TEMPLATES>(initialDraft.activeTemplate);
+  const [isSavingVersion, setIsSavingVersion] = useState(false);
+  const [status, setStatus] = useState<{
+    type: "success" | "error";
+    msg: string;
+  } | null>(null);
+  const [activeTemplate, setActiveTemplate] = useState<keyof typeof TEMPLATES>(
+    initialDraft.activeTemplate,
+  );
+  const [coverLetterId, setCoverLetterId] = useState<number | null>(null);
+  const [coverLetterJobId, setCoverLetterJobId] = useState<number | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -124,6 +133,14 @@ export default function MarkdownToolPage() {
         setMarkdown(draft.markdown);
         setStyle(nextStyle);
         setTitle(draft.title || "Document");
+        setCoverLetterId(
+          typeof draft.cover_letter_id === "number"
+            ? draft.cover_letter_id
+            : null,
+        );
+        setCoverLetterJobId(
+          typeof draft.job_id === "number" ? draft.job_id : null,
+        );
         setActiveTemplate(nextStyle === "letter" ? "cover_letter" : "blank");
         await deleteDraft("markdown");
       })
@@ -135,7 +152,10 @@ export default function MarkdownToolPage() {
 
   // ── Preview (debounced) ───────────────────────────────────────────────────
   const fetchPreview = useCallback(async (md: string, s: string, t: string) => {
-    if (!md.trim()) { setPreviewHtml(""); return; }
+    if (!md.trim()) {
+      setPreviewHtml("");
+      return;
+    }
     setIsLoadingPreview(true);
     try {
       const res = await fetch(rendererUrl("/render/markdown/preview"), {
@@ -153,8 +173,13 @@ export default function MarkdownToolPage() {
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => fetchPreview(markdown, style, title), 600);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+    debounceRef.current = setTimeout(
+      () => fetchPreview(markdown, style, title),
+      600,
+    );
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, [markdown, style, title, fetchPreview]);
 
   // ── Export PDF ────────────────────────────────────────────────────────────
@@ -180,7 +205,10 @@ export default function MarkdownToolPage() {
       URL.revokeObjectURL(url);
       setStatus({ type: "success", msg: "✅ PDF downloaded!" });
     } catch (err: unknown) {
-      setStatus({ type: "error", msg: `❌ ${err instanceof Error ? err.message : "Export failed"}` });
+      setStatus({
+        type: "error",
+        msg: `❌ ${err instanceof Error ? err.message : "Export failed"}`,
+      });
     } finally {
       setIsExporting(false);
       setTimeout(() => setStatus(null), 4000);
@@ -207,9 +235,44 @@ export default function MarkdownToolPage() {
       URL.revokeObjectURL(url);
       setStatus({ type: "success", msg: "✅ DOCX downloaded!" });
     } catch (err: unknown) {
-      setStatus({ type: "error", msg: `❌ ${err instanceof Error ? err.message : "DOCX export failed"}` });
+      setStatus({
+        type: "error",
+        msg: `❌ ${err instanceof Error ? err.message : "DOCX export failed"}`,
+      });
     } finally {
       setIsExportingDocx(false);
+      setTimeout(() => setStatus(null), 4000);
+    }
+  };
+
+  const handleSaveCoverLetterVersion = async () => {
+    if (!coverLetterId || !markdown.trim()) return;
+    setIsSavingVersion(true);
+    setStatus(null);
+    try {
+      const res = await fetch(
+        apiUrl(`/api/v1/cover-letter/${coverLetterId}/version`),
+        {
+          method: "POST",
+          headers: jsonHeaders(),
+          body: JSON.stringify({
+            markdown,
+            job_id: coverLetterJobId,
+          }),
+        },
+      );
+      if (!res.ok) throw new Error(`Save version error: ${res.status}`);
+      const data = await res.json();
+      if (typeof data.id === "number") setCoverLetterId(data.id);
+      if (typeof data.job_id === "number") setCoverLetterJobId(data.job_id);
+      setStatus({ type: "success", msg: "✅ Letter version saved!" });
+    } catch (err: unknown) {
+      setStatus({
+        type: "error",
+        msg: `❌ ${err instanceof Error ? err.message : "Save failed"}`,
+      });
+    } finally {
+      setIsSavingVersion(false);
       setTimeout(() => setStatus(null), 4000);
     }
   };
@@ -218,9 +281,18 @@ export default function MarkdownToolPage() {
   const applyTemplate = (key: keyof typeof TEMPLATES) => {
     setActiveTemplate(key);
     setMarkdown(TEMPLATES[key]);
-    if (key === "cover_letter") { setStyle("letter"); setTitle("Lettre de motivation"); }
-    if (key === "technical_doc") { setStyle("document"); setTitle("Technical Documentation"); }
-    if (key === "blank") { setStyle("document"); setTitle("Document"); }
+    if (key === "cover_letter") {
+      setStyle("letter");
+      setTitle("Lettre de motivation");
+    }
+    if (key === "technical_doc") {
+      setStyle("document");
+      setTitle("Technical Documentation");
+    }
+    if (key === "blank") {
+      setStyle("document");
+      setTitle("Document");
+    }
   };
 
   const wordCount = markdown.trim().split(/\s+/).filter(Boolean).length;
@@ -228,10 +300,11 @@ export default function MarkdownToolPage() {
 
   return (
     <div className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden bg-background text-foreground">
-
       {/* Toast */}
       {status && (
-        <div className={`fixed top-4 right-4 z-50 px-4 py-2.5 rounded-lg text-white text-sm shadow-xl transition-all ${status.type === 'success' ? 'bg-emerald-600' : 'bg-rose-600'}`}>
+        <div
+          className={`fixed top-4 right-4 z-50 px-4 py-2.5 rounded-lg text-white text-sm shadow-xl transition-all ${status.type === "success" ? "bg-emerald-600" : "bg-rose-600"}`}
+        >
           {status.msg}
         </div>
       )}
@@ -239,7 +312,9 @@ export default function MarkdownToolPage() {
       {/* ── Header ───────────────────────────────────────────────────────────── */}
       <header className="flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border bg-card px-4 py-2 shadow-sm">
         <div className="flex items-center gap-4">
-          <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Markdown PDF</span>
+          <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Markdown PDF
+          </span>
         </div>
 
         {/* Controls */}
@@ -271,13 +346,33 @@ export default function MarkdownToolPage() {
           </div>
 
           {/* Export */}
+          {coverLetterId ? (
+            <button
+              onClick={handleSaveCoverLetterVersion}
+              disabled={isSavingVersion || !markdown.trim()}
+              className="flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-semibold text-foreground transition-all hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isSavingVersion ? (
+                <>
+                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />{" "}
+                  Saving...
+                </>
+              ) : (
+                <>Save Letter Version</>
+              )}
+            </button>
+          ) : null}
+
           <button
             onClick={handleExportDocx}
             disabled={isExportingDocx || !markdown.trim()}
             className="flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-semibold text-foreground transition-all hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isExportingDocx ? (
-              <><span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" /> Generating...</>
+              <>
+                <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />{" "}
+                Generating...
+              </>
             ) : (
               <>↓ Export DOCX</>
             )}
@@ -289,7 +384,10 @@ export default function MarkdownToolPage() {
             className="flex h-9 cursor-pointer items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isExporting ? (
-              <><span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" /> Generating...</>
+              <>
+                <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />{" "}
+                Generating...
+              </>
             ) : (
               <>↓ Export PDF</>
             )}
@@ -299,22 +397,26 @@ export default function MarkdownToolPage() {
 
       {/* ── Template bar ─────────────────────────────────────────────────────────── */}
       <div className="flex shrink-0 items-center gap-2 border-b border-border bg-card px-4 py-2">
-        <span className="mr-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Template:</span>
-        {(Object.keys(TEMPLATES) as Array<keyof typeof TEMPLATES>).map((key) => (
-          <button
-            key={key}
-            onClick={() => applyTemplate(key)}
-            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-              activeTemplate === key
-                ? "border-violet-300 bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300"
-                : "border-border bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-            }`}
-          >
-            {key === "blank" && "Blank"}
-            {key === "cover_letter" && "Cover Letter"}
-            {key === "technical_doc" && "Technical Doc"}
-          </button>
-        ))}
+        <span className="mr-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+          Template:
+        </span>
+        {(Object.keys(TEMPLATES) as Array<keyof typeof TEMPLATES>).map(
+          (key) => (
+            <button
+              key={key}
+              onClick={() => applyTemplate(key)}
+              className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                activeTemplate === key
+                  ? "border-violet-300 bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300"
+                  : "border-border bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              }`}
+            >
+              {key === "blank" && "Blank"}
+              {key === "cover_letter" && "Cover Letter"}
+              {key === "technical_doc" && "Technical Doc"}
+            </button>
+          ),
+        )}
         <div className="ml-auto text-xs text-muted-foreground">
           {wordCount} words · {charCount} chars
         </div>
@@ -322,11 +424,12 @@ export default function MarkdownToolPage() {
 
       {/* ── Editor / Preview split ────────────────────────────────────────── */}
       <div className="flex-1 flex overflow-hidden">
-
         {/* Left — Markdown editor */}
         <div className="flex h-full w-1/2 flex-col border-r border-border bg-card">
           <div className="border-b border-border bg-card px-4 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Markdown Editor</p>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Markdown Editor
+            </p>
           </div>
           <textarea
             value={markdown}
@@ -334,14 +437,16 @@ export default function MarkdownToolPage() {
             spellCheck={false}
             placeholder={`# Start writing...\n\nSupports **GFM Markdown** — headings, lists, code blocks, tables, blockquotes.\n\nPick a template above to get started quickly.`}
             className="flex-1 w-full resize-none bg-background p-5 text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground focus:outline-none"
-            style={{ fontFamily: 'var(--font-mono)' }}
+            style={{ fontFamily: "var(--font-mono)" }}
           />
         </div>
 
         {/* Right — Live preview */}
         <div className="flex h-full w-1/2 flex-col bg-muted/40">
           <div className="flex items-center justify-between border-b border-border bg-card px-4 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Live Preview</p>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Live Preview
+            </p>
             {isLoadingPreview && (
               <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <span className="h-2.5 w-2.5 animate-spin rounded-full border border-current border-t-transparent" />
@@ -362,11 +467,25 @@ export default function MarkdownToolPage() {
               <div className="flex h-full w-full flex-col items-center justify-center text-muted-foreground">
                 {!markdown.trim() ? (
                   <>
-                    <svg className="mb-4 h-12 w-12 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <svg
+                      className="mb-4 h-12 w-12 text-muted-foreground"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
                     </svg>
-                    <p className="text-sm font-medium text-foreground">Start typing or pick a template</p>
-                    <p className="mt-1 text-xs text-muted-foreground">Preview updates automatically</p>
+                    <p className="text-sm font-medium text-foreground">
+                      Start typing or pick a template
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Preview updates automatically
+                    </p>
                   </>
                 ) : (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -383,11 +502,34 @@ export default function MarkdownToolPage() {
       {/* ── Status bar ─────────────────────────────────────────────────────────── */}
       <div className="flex h-8 shrink-0 items-center gap-4 border-t border-border bg-card px-4">
         <span className="text-xs text-muted-foreground">
-          Style: <span className="font-medium capitalize text-foreground">{style}</span>
+          Style:{" "}
+          <span className="font-medium capitalize text-foreground">
+            {style}
+          </span>
         </span>
         <span className="text-xs text-muted-foreground">
-          Renderer: <span className="font-medium text-foreground">{RENDERER_BASE_URL}</span>
+          Renderer:{" "}
+          <span className="font-medium text-foreground">
+            {RENDERER_BASE_URL}
+          </span>
         </span>
+        {coverLetterId ? (
+          <span className="text-xs text-muted-foreground">
+            Letter:{" "}
+            <span className="font-medium text-foreground">
+              #{coverLetterId}
+            </span>
+            {coverLetterJobId ? (
+              <>
+                {" "}
+                · Job{" "}
+                <span className="font-medium text-foreground">
+                  #{coverLetterJobId}
+                </span>
+              </>
+            ) : null}
+          </span>
+        ) : null}
         <span className="ml-auto text-xs text-muted-foreground">
           Markdown Converter
         </span>

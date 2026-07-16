@@ -122,6 +122,141 @@ def test_history_ledger_returns_normalized_items_and_filters(monkeypatch) -> Non
     assert all(item["subject_type"] == "ats_report" for item in ats_items)
 
 
+def test_score_and_cover_letter_routes_persist_job_aware_artifacts(monkeypatch) -> None:
+    async def _fake_score(*args, **kwargs):
+        return {
+            "score": 91,
+            "mode": "strict",
+            "summary": "Job-aware ATS report.",
+            "rubric": {"version": "ats-v1", "mode": "strict", "dimensions": []},
+            "scoring_breakdown": [],
+            "deductions": [],
+            "keyword_analysis": [],
+            "recommendations": [],
+            "context": {
+                "job_title": "Platform Engineer",
+                "job_company": "Mindris",
+                "provider": "groq",
+                "model_name": "llama-3.1-8b-instant",
+            },
+        }
+
+    async def _fake_letter(*args, **kwargs):
+        return "Dear Mindris,\n\nI build reliable workflows."
+
+    monkeypatch.setattr("intelligence.ats_score.calculate_ats_score", _fake_score)
+    monkeypatch.setattr("intelligence.cover_letter.generate_cover_letter", _fake_letter)
+
+    api = client()
+    headers = auth_headers()
+
+    with SessionLocal() as session:
+        job = ScrapedJobRecord(
+            url=f"https://example.com/job/job-aware-{uuid4().hex}",
+            title="Platform Engineer",
+            company="Mindris",
+            location="Paris",
+            hard_skills='["Python"]',
+            soft_skills='["Ownership"]',
+            description_markdown="Build reliable workflow systems.",
+        )
+        session.add(job)
+        session.commit()
+        session.refresh(job)
+        job_id = job.id
+
+    cv_payload = {
+        "global_settings": {
+            "template_id": "modern",
+            "locale": {"label_language": "fr"},
+        },
+        "profile": {
+            "full_name": "Ada Lovelace",
+            "title": "Platform Engineer",
+            "phone": "",
+            "email": "ada@example.com",
+            "location": {"city": "Paris", "country": "France"},
+            "socials": [],
+            "text_markdown": "Built production workflow systems.",
+        },
+        "experience": [],
+        "education": [],
+        "skills": [],
+        "projects": [],
+        "languages": [],
+        "hobbies": [],
+        "certifications": [],
+        "volunteering": [],
+        "publications": [],
+        "references": [],
+        "custom_sections": [],
+    }
+    job_insights = {
+        "job_title": "Platform Engineer",
+        "company": "Mindris",
+        "hard_skills": ["Python"],
+        "soft_skills": ["Ownership"],
+    }
+
+    score_response = api.post(
+        "/api/v1/cv/score",
+        headers=headers,
+        json={
+            "cv_data": cv_payload,
+            "job_insights": job_insights,
+            "provider": "groq",
+            "model_name": "llama-3.1-8b-instant",
+            "ats_mode": "strict",
+            "job_id": job_id,
+            "resume_id": 42,
+            "resume_locale": "fr",
+        },
+    )
+    assert score_response.status_code == 200
+    score_payload = score_response.json()
+    assert score_payload["id"]
+    assert score_payload["job_id"] == job_id
+    assert score_payload["ats_report"]["context"]["job_id"] == job_id
+    assert score_payload["ats_report"]["context"]["resume_id"] == 42
+
+    letter_response = api.post(
+        "/api/v1/cover-letter",
+        headers=headers,
+        json={
+            "cv_data": cv_payload,
+            "job_insights": job_insights,
+            "provider": "groq",
+            "model_name": "llama-3.3-70b-versatile",
+            "job_id": job_id,
+            "resume_id": 42,
+        },
+    )
+    assert letter_response.status_code == 200
+    letter_payload = letter_response.json()
+    assert letter_payload["id"]
+    assert letter_payload["job_id"] == job_id
+
+    version_response = api.post(
+        f"/api/v1/cover-letter/{letter_payload['id']}/version",
+        headers=headers,
+        json={
+            "markdown": "Dear Mindris,\n\nEdited version.",
+            "job_id": job_id,
+        },
+    )
+    assert version_response.status_code == 200
+    assert version_response.json()["previous_id"] == letter_payload["id"]
+    assert version_response.json()["job_id"] == job_id
+
+    ats_history = api.get("/api/v1/history/ats-reports", headers=headers)
+    assert any(item["job_id"] == job_id for item in ats_history.json()["items"])
+    letter_history = api.get("/api/v1/history/cover-letters", headers=headers)
+    linked_letters = [
+        item for item in letter_history.json()["items"] if item["job_id"] == job_id
+    ]
+    assert len(linked_letters) >= 2
+
+
 def test_history_ledger_builds_lineage_links_for_related_artifacts() -> None:
     api = client()
     headers = auth_headers()

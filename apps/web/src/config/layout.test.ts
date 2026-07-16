@@ -18,17 +18,31 @@ describe("app shell sidebar layout", () => {
     expect(guide?.description).toContain("workflow");
   });
 
+  test("keeps workflow name separate from its beta status badge", () => {
+    const workflow = APP_NAV_ITEMS.find((item) => item.id === "workflow");
+
+    expect(workflow?.label).toBe("Workflow");
+    expect(workflow?.shortLabel).toBe("Flow");
+    expect(workflow?.badge).toBe("Beta");
+  });
+
   test("places configuration above local services", () => {
     const ids = APP_SIDEBAR_SECTIONS.map((section) => section.id);
 
     expect(ids).toContain("configuration");
     expect(ids).toContain("local-services");
-    expect(ids.indexOf("configuration") < ids.indexOf("local-services")).toBe(true);
+    expect(ids.indexOf("configuration") < ids.indexOf("local-services")).toBe(
+      true,
+    );
   });
 
   test("keeps configuration visible as an icon entry when the sidebar collapses", () => {
-    const configuration = APP_SIDEBAR_SECTIONS.find((section) => section.id === "configuration");
-    const localServices = APP_SIDEBAR_SECTIONS.find((section) => section.id === "local-services");
+    const configuration = APP_SIDEBAR_SECTIONS.find(
+      (section) => section.id === "configuration",
+    );
+    const localServices = APP_SIDEBAR_SECTIONS.find(
+      (section) => section.id === "local-services",
+    );
 
     expect(configuration?.collapseMode).toBe("icon");
     expect(localServices?.collapseMode).toBe("hidden");

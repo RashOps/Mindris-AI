@@ -25,6 +25,7 @@ export interface ToolDefinition {
   id: AppNavItemId;
   label: string;
   shortLabel: string;
+  badge?: string;
   icon: LucideIcon;
   href: string;
   accentColor: string;
@@ -75,11 +76,12 @@ export const APP_NAV_ITEMS: ToolDefinition[] = [
     id: "workflow",
     label: "Workflow",
     shortLabel: "Flow",
+    badge: "Beta",
     icon: GitBranch,
     href: "/tools/workflow",
     accentColor: "#1d4ed8",
     accentVar: "--tool-workflow",
-    description: "Guided opportunity workflow from scrape to application",
+    description: "Beta opportunity workflow from scrape to application",
   },
   {
     id: "tracker",
@@ -109,7 +111,8 @@ export const APP_NAV_ITEMS: ToolDefinition[] = [
     href: "/tools/guide",
     accentColor: "#334155",
     accentVar: "--tool-guide",
-    description: "Internal product guide, workflow documentation and operating rules",
+    description:
+      "Internal product guide, workflow documentation and operating rules",
   },
   {
     id: "markdown",
@@ -130,7 +133,8 @@ export const APP_SIDEBAR_SECTIONS: AppSidebarSectionDefinition[] = [
     id: "configuration",
     label: "Configuration",
     icon: Settings2,
-    description: "Configure providers, models, secrets and local runtime behavior.",
+    description:
+      "Configure providers, models, secrets and local runtime behavior.",
     collapseMode: "icon",
   },
   {
@@ -159,10 +163,7 @@ export function resolveDesktopSidebarLayout(compact: boolean): {
 }
 
 export type DesktopSidebarTrigger =
-  | "pointer-enter"
-  | "pointer-leave"
-  | "focus-enter"
-  | "manual-toggle";
+  "pointer-enter" | "pointer-leave" | "focus-enter" | "manual-toggle";
 
 export function nextDesktopSidebarCompactState(
   compact: boolean,

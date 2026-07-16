@@ -109,8 +109,10 @@ async def run_intelligence_pipeline(
             return
 
         company_insight = None
+        job_record_id: int | None = None
         with Session(engine) as session:
             job_record = save_job_offer(session, job_offer)
+            job_record_id = job_record.id
             try:
                 company_insight = await asyncio.wait_for(
                     analyze_company(
@@ -153,6 +155,8 @@ async def run_intelligence_pipeline(
             "score": 0,
             "iterations": 0,
             "job_id": job_id,
+            "job_record_id": job_record_id,
+            "source_url": job_url,
         }
         loop = asyncio.get_running_loop()
         try:

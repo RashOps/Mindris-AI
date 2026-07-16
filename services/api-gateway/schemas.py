@@ -219,6 +219,18 @@ class CoverLetterRequest(LLMRequest):
     job_insights: dict[str, Any]
     instructions: str = ""
     example_letter: str | None = None
+    job_id: int | None = None
+    resume_id: int | None = None
+    opportunity_id: int | None = None
+
+
+class CoverLetterVersionRequest(BaseModel):
+    """Request body for saving an edited cover letter version."""
+
+    markdown: str = Field(min_length=1)
+    provider: Provider | None = None
+    model_name: str | None = None
+    job_id: int | None = None
 
 
 class ScoreRequest(LLMRequest):
@@ -228,7 +240,10 @@ class ScoreRequest(LLMRequest):
     job_insights: dict[str, Any]
     model_name: str = "llama-3.1-8b-instant"
     ats_mode: AtsMode = "standard"
+    job_id: int | None = None
     resume_id: int | None = None
+    resume_locale: str | None = None
+    opportunity_id: int | None = None
 
 
 class CVBaseModel(BaseModel):

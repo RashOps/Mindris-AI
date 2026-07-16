@@ -4,6 +4,7 @@ import asyncio
 import json
 from typing import Annotated, Literal
 
+from database.records import CoverLetterRecord
 from database.session import Session, get_session
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, UploadFile, status
 from monitoring import monitor
@@ -15,6 +16,7 @@ from persistence import (
 )
 from schemas import (
     CoverLetterRequest,
+    CoverLetterVersionRequest,
     CVDataModel,
     CVDocumentRequest,
     PatchRequest,
@@ -161,16 +163,32 @@ async def calculate_ats_score_route(request: ScoreRequest, session: SessionDep) 
         monitor.increment_pipeline_failure("ats_score")
         raise HTTPException(status_code=504, detail="ATS scoring timed out.") from exc
     report_context = dict(report.get("context", {}))
+    report_context.setdefault("job_id", request.job_id)
     report_context.setdefault("resume_id", request.resume_id)
     report_context.setdefault(
         "resume_locale",
-        request.cv_data.get("global_settings", {})
+        request.resume_locale
+        or request.cv_data.get("global_settings", {})
         .get("locale", {})
         .get("label_language"),
     )
     report["context"] = report_context
-    save_ats_report(session, report, request.provider, request.model_name)
-    return {"status": "success", "report": report, "ats_report": report}
+    record = save_ats_report(
+        session,
+        report,
+        request.provider,
+        request.model_name,
+        job_id=request.job_id,
+    )
+    report["id"] = record.id
+    report["job_id"] = record.job_id
+    return {
+        "status": "success",
+        "id": record.id,
+        "job_id": record.job_id,
+        "report": report,
+        "ats_report": report,
+    }
 
 
 @router.post("/cover-letter")
@@ -198,8 +216,47 @@ async def generate_cover_letter_route(
             status_code=504,
             detail="Cover letter generation timed out.",
         ) from exc
-    save_cover_letter(session, markdown, request.provider, request.model_name)
-    return {"status": "success", "markdown": markdown}
+    record = save_cover_letter(
+        session,
+        markdown,
+        request.provider,
+        request.model_name,
+        job_id=request.job_id,
+    )
+    return {
+        "status": "success",
+        "id": record.id,
+        "job_id": record.job_id,
+        "markdown": markdown,
+        "generated_at": record.generated_at.isoformat(),
+    }
+
+
+@router.post("/cover-letter/{letter_id}/version")
+async def save_cover_letter_version(
+    letter_id: int,
+    request: CoverLetterVersionRequest,
+    session: SessionDep,
+) -> dict:
+    """Persist an edited cover letter as a new version linked to the same job."""
+    previous = session.get(CoverLetterRecord, letter_id)
+    if not previous:
+        raise HTTPException(status_code=404, detail="Cover letter not found.")
+    record = save_cover_letter(
+        session,
+        request.markdown,
+        request.provider if request.provider is not None else previous.provider,
+        request.model_name if request.model_name is not None else previous.model_name,
+        job_id=request.job_id if request.job_id is not None else previous.job_id,
+    )
+    return {
+        "status": "success",
+        "id": record.id,
+        "previous_id": previous.id,
+        "job_id": record.job_id,
+        "markdown": record.markdown_content,
+        "generated_at": record.generated_at.isoformat(),
+    }
 
 
 @router.post("/cv/patch-from-bullets")

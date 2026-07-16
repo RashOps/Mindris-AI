@@ -34,6 +34,8 @@ class GraphState(TypedDict):
     score: int  # ATS/Matching score (0-100)
     iterations: int  # Number of drafting iterations
     job_id: str  # SSE job identifier
+    job_record_id: int | None  # Persisted scraped job ID
+    source_url: str | None  # Persisted job source URL
 
 
 # ── Node factory (receives job_id via closure) ────────────────────────────────
@@ -211,6 +213,9 @@ def make_nodes(job_id: str) -> tuple:
             {
                 "job_title": state["job_offer"].title,
                 "company": state["job_offer"].company,
+                "job_id": state.get("job_record_id"),
+                "job_record_id": state.get("job_record_id"),
+                "source_url": state.get("source_url"),
                 "hard_skills": state["job_offer"].hard_skills,
                 "soft_skills": state["job_offer"].soft_skills,
                 "drafted_bullets": bullets,
