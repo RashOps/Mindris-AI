@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 from database.records import CompanyInsightRecord
 from database.session import Session, get_session
 from fastapi import APIRouter, Depends
-from persistence import dump_json, load_json
+from persistence_lib.json import dump_json, load_json
 from schemas import CompanyAnalyzeRequest
 from sqlalchemy import or_, select
 from utils.logger import get_logger

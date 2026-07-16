@@ -136,6 +136,27 @@ class CompanyInsightRecord(Base):
     generated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
 
 
+class LLMRunRecord(Base):
+    """Trace of one backend-owned LLM execution."""
+
+    __tablename__ = "llmrunrecord"
+
+    id: Mapped[int | None] = mapped_column(primary_key=True, default=None)
+    task_key: Mapped[str] = mapped_column(index=True)
+    provider: Mapped[str] = mapped_column(default="")
+    model_name: Mapped[str] = mapped_column(default="")
+    prompt_version: Mapped[str | None] = mapped_column(default=None)
+    input_hash: Mapped[str | None] = mapped_column(default=None, index=True)
+    output_artifact_type: Mapped[str | None] = mapped_column(default=None, index=True)
+    output_artifact_id: Mapped[int | None] = mapped_column(default=None, index=True)
+    status: Mapped[str] = mapped_column(default="success", index=True)
+    error_message: Mapped[str | None] = mapped_column(Text, default=None)
+    duration_ms: Mapped[int | None] = mapped_column(default=None)
+    fallback_used: Mapped[int] = mapped_column(default=0)
+    metadata_json: Mapped[str] = mapped_column(Text, default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+
 class ApplicationRecord(Base):
     """Application tracker item."""
 

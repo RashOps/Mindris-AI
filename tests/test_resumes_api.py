@@ -8,7 +8,7 @@ import pytest
 from database.records import ResumeRecord
 from database.session import SessionLocal, init_db
 from fastapi import HTTPException
-from persistence import load_json
+from persistence_lib.json import load_json
 from pydantic import ValidationError
 from routers.resumes import (
     activate_resume_locale_route,

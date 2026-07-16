@@ -4,6 +4,7 @@ import { Elysia } from "elysia";
 import { createRendererLogger, type RendererLogger } from "./logger";
 import { renderMarkdownToHtml } from "./markdown";
 import { RendererMonitor } from "./monitoring";
+import { getBrowserManager } from "./pdf/browser-manager";
 import { generatePDF } from "./pdf/generator";
 import {
     buildDocsHtml,
@@ -116,14 +117,23 @@ export function buildRendererApp(
         })
         .get("/", ({ request }) => completeRequest(request, { status: "healthy", service: "renderer" }))
         .get("/health", ({ request }) => completeRequest(request, { status: "healthy", service: "renderer" }))
-        .get("/ready", ({ request }) => completeRequest(request, {
-            status: "ready",
-            service: "renderer",
-            checks: {
-                templates: { ok: true },
-                pdf: { ok: true },
-            },
-        }))
+        .get("/ready", ({ request }) => {
+            const browser = getBrowserManager().status();
+            return completeRequest(request, {
+                status: "ready",
+                service: "renderer",
+                checks: {
+                    templates: { ok: true },
+                    pdf: { ok: true },
+                    browser_manager: {
+                        ok: true,
+                        ready: browser.ready,
+                        active_pages: browser.activePages,
+                        max_concurrent_pages: browser.maxConcurrentPages,
+                    },
+                },
+            });
+        })
         .get("/metrics", ({ request }) => completeRequest(request, monitor.snapshot()))
         .get("/openapi.json", ({ request }) => completeRequest(request, openApiDocument))
         .get("/docs", ({ request }) => completeRequest(request, new Response(buildDocsHtml("/openapi.json"), {

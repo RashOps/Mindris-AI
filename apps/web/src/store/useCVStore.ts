@@ -2,683 +2,89 @@ import { create } from "zustand";
 import { arrayMove } from "@dnd-kit/sortable";
 import { apiUrl, jsonHeaders } from "@/lib/api";
 
-// ── Types aligned with cv_schema.json ────────────────────────────────────────
+import {
+  DEFAULT_APP_SETTINGS,
+  normalizeAppSettings,
+  systemConfigurationToAppSettings,
+  type BackendSystemConfiguration,
+} from "./cv-store/app-settings";
+import {
+  createBlankCVData,
+  createResumeDocument,
+  normalizeCVData,
+  normalizeResumeDocument,
+  nowIso,
+} from "./cv-store/resume-normalizers";
+import type {
+  AppSettings,
+  CertificationItem,
+  CVData,
+  CustomSectionItem,
+  EducationItem,
+  ExperienceItem,
+  GlobalSettings,
+  JobInsights,
+  LanguageItem,
+  Profile,
+  ProjectItem,
+  PublicationItem,
+  ReferenceItem,
+  ResumeDocument,
+  ResumeSaveStatus,
+  SkillGroup,
+  VolunteeringItem,
+} from "./cv-store/types";
 
-export interface GlobalSettings {
-  schema_version?: string;
-  page?: {
-    format?: "A4" | "Letter";
-    margins?: { horizontal?: string; vertical?: string };
-    page_break_mode?: "auto" | "manual";
-    one_page_challenge?: boolean;
-  };
-  layout?: {
-    columns?: 1 | 2;
-    sidebar_position?: "none" | "left" | "right";
-    sidebar_width?: string;
-    density?: "student" | "compact" | "normal" | "senior";
-    header_alignment?: "left" | "center" | "right";
-    photo?: { enabled?: boolean; shape?: "round" | "square" };
-    section_placement?: Record<string, "main" | "sidebar">;
-  };
-  typography?: {
-    body_font?: string;
-    heading_font?: string;
-    base_size?: string;
-    heading_scale?: string;
-    weight?: "regular" | "medium" | "bold";
-    titles_uppercase?: boolean;
-    line_height?: string;
-    date_style?: "normal" | "italic" | "small" | "right";
-    bullet_style?: "bullets" | "dash" | "dots" | "icons";
-  };
-  colors?: {
-    primary?: string;
-    secondary?: string;
-    text?: string;
-    heading?: string;
-    sidebar_background?: string;
-    separators?: string;
-    palette_preset?: "corporate" | "tech" | "minimal" | "creative" | "custom";
-    monochrome?: boolean;
-  };
-  sections?: Array<{
-    id: string;
-    type: string;
-    label: string;
-    visible?: boolean;
-    placement?: "main" | "sidebar";
-    display_mode?: "list" | "timeline" | "cards" | "compact";
-    show_dates?: boolean;
-    show_locations?: boolean;
-    detail_level?: "short" | "normal" | "detailed";
-    icon?: string | null;
-  }>;
-  locale?: {
-    label_language?: "fr" | "en" | "de" | "es";
-    text_direction?: "ltr" | "rtl";
-  };
-  advanced_css?: {
-    enabled?: boolean;
-    mode?: "off" | "tokens" | "css_patch";
-    css_text?: string;
-    preset_id?: string | null;
-    warnings?: string[];
-  };
-  // Typography
-  font_family: string;
-  font_size: string; // e.g. "13px"
-  primary_color: string;
-  line_height: string; // e.g. "1.5"
-  // Spacing
-  margin_page: string; // legacy — kept for backward compat
-  margin_h: string; // left & right margin e.g. "64px"
-  margin_v: string; // top & bottom margin e.g. "48px"
-  entry_spacing: string; // space between entries e.g. "20px"
-  // Layout
-  col_left_width: string; // left column width in % e.g. "65"
-  col_swap: string; // "true" | "false" — swap L/R columns
-  template_id: string; // "modern" | "compact"
-}
-
-export interface Social {
-  type: "linkedin" | "github" | "website" | "other";
-  url: string;
-  label?: string;
-}
-
-export interface Location {
-  city: string;
-  country: string;
-}
-
-export interface Profile {
-  full_name: string;
-  title: string;
-  phone: string;
-  email: string;
-  location: Location;
-  socials: Social[];
-  text_markdown: string; // summary / about
-}
-
-export interface ExperienceItem {
-  id: string;
-  company: string;
-  role: string;
-  period: string;
-  location: Location;
-  description_markdown: string;
-  keywords: string[];
-}
-
-export interface EducationItem {
-  id: string;
-  institution: string;
-  degree: string;
-  period: string;
-  location: string;
-  description_markdown: string;
-}
-
-export interface SkillGroup {
-  id: string;
-  category: string;
-  skills: string[];
-}
-
-export interface ProjectItem {
-  id: string;
-  name: string;
-  url?: string;
-  description_markdown: string;
-  tech_stack: string[];
-}
-
-export interface LanguageItem {
-  id: string;
-  language: string;
-  level: string;
-}
-
-export interface CertificationItem {
-  id: string;
-  name: string;
-  issuer: string;
-  date: string;
-  url: string;
-  description_markdown: string;
-}
-
-export interface VolunteeringItem {
-  id: string;
-  organization: string;
-  role: string;
-  period: string;
-  location: string;
-  description_markdown: string;
-}
-
-export interface PublicationItem {
-  id: string;
-  title: string;
-  publisher: string;
-  date: string;
-  url: string;
-  description_markdown: string;
-}
-
-export interface ReferenceItem {
-  id: string;
-  name: string;
-  role: string;
-  company: string;
-  contact: string;
-  description_markdown: string;
-}
-
-export interface CustomSectionItem {
-  id: string;
-  title: string;
-  content_markdown: string;
-  items: string[];
-}
-
-// ── Job Insights (from SSE job_result event) ──────────────────────────────────
-
-export interface KeywordStatus {
-  keyword: string;
-  found: boolean;
-  density: string;
-  severity: "high" | "medium" | "low";
-}
-
-export interface ScoringCriteria {
-  criterion: string;
-  weight: number;
-  score: number;
-  max_score: number;
-  explanation: string;
-}
-
-export interface AtsRubricDimension {
-  key: string;
-  label: string;
-  weight: number;
-  description: string;
-}
-
-export interface AtsRubric {
-  version: string;
-  mode: "standard" | "strict";
-  dimensions: AtsRubricDimension[];
-}
-
-export interface AtsDeduction {
-  code: string;
-  title: string;
-  severity: "high" | "medium" | "low";
-  points_lost: number;
-  evidence: string;
-  recommendation: string;
-}
-
-export interface AtsReportContext {
-  job_title: string;
-  job_company: string;
-  job_id?: number | null;
-  resume_id?: number | null;
-  resume_locale?: string | null;
-  provider: string;
-  model_name: string;
-}
-
-export interface HistoryLedgerLink {
-  subject_type: string;
-  subject_id: string;
-  relation: string;
-}
-
-export interface HistoryLedgerItem {
-  id: string;
-  subject_type:
-    | "job_scrape"
-    | "resume_revision"
-    | "cover_letter"
-    | "ats_report"
-    | "opportunity"
-    | "tracker_event"
-    | "llm_run";
-  subject_id: string;
-  title: string;
-  summary: string;
-  timestamp: string;
-  provider?: string | null;
-  model_name?: string | null;
-  status?: string | null;
-  links: HistoryLedgerLink[];
-  metadata: Record<string, unknown>;
-}
-
-export interface CompanyInsight {
-  name: string;
-  canonical_domain?: string | null;
-  homepage_url?: string | null;
-  careers_url?: string | null;
-  industry: string;
-  size: string;
-  work_mode?: string;
-  locations?: string[];
-  culture_values: string[];
-  recent_news: string[];
-  glassdoor_summary?: string | null;
-  tech_stack_known: string[];
-  role_fit?: {
-    skills_to_foreground?: string[];
-    wording_to_mirror?: string[];
-    priority_experiences?: string[];
-    cv_emphasis?: string[];
-    cover_letter_emphasis?: string[];
-  };
-  risk_flags?: Array<{
-    code: string;
-    severity: string;
-    title: string;
-    detail: string;
-    provenance: string;
-  }>;
-  evidence?: Record<string, string[]>;
-  provenance?: Record<string, string>;
-  cache?: Record<string, string>;
-  unavailable_reason?: string | null;
-}
-
-export interface AtsReport {
-  id?: number | null;
-  job_id?: number | null;
-  score: number;
-  mode: "standard" | "strict";
-  summary: string;
-  rubric: AtsRubric;
-  scoring_breakdown: ScoringCriteria[];
-  deductions: AtsDeduction[];
-  keyword_analysis: KeywordStatus[];
-  recommendations: string[];
-  context: AtsReportContext;
-}
-
-const DEFAULT_ATS_RUBRIC: AtsRubric = {
-  version: "ats-v1",
-  mode: "standard",
-  dimensions: [
-    {
-      key: "keyword_match",
-      label: "Keyword Match Rate",
-      weight: 30,
-      description:
-        "Coverage of required hard and soft skills from the target job.",
-    },
-    {
-      key: "experience_relevance",
-      label: "Experience Relevance",
-      weight: 25,
-      description:
-        "How directly the candidate experience maps to the target role.",
-    },
-    {
-      key: "formatting_structure",
-      label: "Formatting & Structure",
-      weight: 15,
-      description:
-        "Clarity, semantic structure, and ATS readability of the resume.",
-    },
-    {
-      key: "quantification",
-      label: "Quantification",
-      weight: 10,
-      description: "Presence of metrics and measurable impact in bullets.",
-    },
-    {
-      key: "title_alignment",
-      label: "Title & Role Alignment",
-      weight: 10,
-      description: "Alignment between resume framing and target role.",
-    },
-    {
-      key: "overall_coherence",
-      label: "Overall Coherence",
-      weight: 10,
-      description: "Consistency and clarity for the application context.",
-    },
-  ],
-};
-
-export function normalizeAtsReport(
-  value: AtsReport | null | undefined,
-): AtsReport {
-  const candidate = (value ?? {}) as Partial<AtsReport>;
-  const mode = candidate.mode === "strict" ? "strict" : "standard";
-  const rubricCandidate = candidate.rubric ?? DEFAULT_ATS_RUBRIC;
-  return {
-    id: typeof candidate.id === "number" ? candidate.id : null,
-    job_id: typeof candidate.job_id === "number" ? candidate.job_id : null,
-    score: typeof candidate.score === "number" ? candidate.score : 0,
-    mode,
-    summary: typeof candidate.summary === "string" ? candidate.summary : "",
-    rubric: {
-      version:
-        typeof rubricCandidate.version === "string"
-          ? rubricCandidate.version
-          : DEFAULT_ATS_RUBRIC.version,
-      mode,
-      dimensions: Array.isArray(rubricCandidate.dimensions)
-        ? rubricCandidate.dimensions.map((dimension) => ({
-            key: typeof dimension?.key === "string" ? dimension.key : "",
-            label: typeof dimension?.label === "string" ? dimension.label : "",
-            weight:
-              typeof dimension?.weight === "number" ? dimension.weight : 0,
-            description:
-              typeof dimension?.description === "string"
-                ? dimension.description
-                : "",
-          }))
-        : DEFAULT_ATS_RUBRIC.dimensions,
-    },
-    scoring_breakdown: Array.isArray(candidate.scoring_breakdown)
-      ? candidate.scoring_breakdown
-      : [],
-    deductions: Array.isArray(candidate.deductions)
-      ? candidate.deductions.map((deduction) => ({
-          code: typeof deduction?.code === "string" ? deduction.code : "",
-          title: typeof deduction?.title === "string" ? deduction.title : "",
-          severity:
-            deduction?.severity === "high" || deduction?.severity === "low"
-              ? deduction.severity
-              : "medium",
-          points_lost:
-            typeof deduction?.points_lost === "number"
-              ? deduction.points_lost
-              : 0,
-          evidence:
-            typeof deduction?.evidence === "string" ? deduction.evidence : "",
-          recommendation:
-            typeof deduction?.recommendation === "string"
-              ? deduction.recommendation
-              : "",
-        }))
-      : [],
-    keyword_analysis: Array.isArray(candidate.keyword_analysis)
-      ? candidate.keyword_analysis
-      : [],
-    recommendations: Array.isArray(candidate.recommendations)
-      ? candidate.recommendations
-      : [],
-    context: {
-      job_title:
-        typeof candidate.context?.job_title === "string"
-          ? candidate.context.job_title
-          : "",
-      job_company:
-        typeof candidate.context?.job_company === "string"
-          ? candidate.context.job_company
-          : "",
-      job_id:
-        typeof candidate.context?.job_id === "number"
-          ? candidate.context.job_id
-          : null,
-      resume_id:
-        typeof candidate.context?.resume_id === "number"
-          ? candidate.context.resume_id
-          : null,
-      resume_locale:
-        typeof candidate.context?.resume_locale === "string"
-          ? candidate.context.resume_locale
-          : null,
-      provider:
-        typeof candidate.context?.provider === "string"
-          ? candidate.context.provider
-          : "",
-      model_name:
-        typeof candidate.context?.model_name === "string"
-          ? candidate.context.model_name
-          : "",
-    },
-  };
-}
-
-export function normalizeHistoryLedgerItem(
-  value: HistoryLedgerItem | null | undefined,
-): HistoryLedgerItem {
-  const candidate = (value ?? {}) as Partial<HistoryLedgerItem>;
-  const subjectType =
-    candidate.subject_type === "job_scrape" ||
-    candidate.subject_type === "resume_revision" ||
-    candidate.subject_type === "cover_letter" ||
-    candidate.subject_type === "ats_report" ||
-    candidate.subject_type === "opportunity" ||
-    candidate.subject_type === "tracker_event" ||
-    candidate.subject_type === "llm_run"
-      ? candidate.subject_type
-      : "llm_run";
-
-  return {
-    id: typeof candidate.id === "string" ? candidate.id : "",
-    subject_type: subjectType,
-    subject_id:
-      typeof candidate.subject_id === "string" ? candidate.subject_id : "",
-    title: typeof candidate.title === "string" ? candidate.title : "",
-    summary: typeof candidate.summary === "string" ? candidate.summary : "",
-    timestamp:
-      typeof candidate.timestamp === "string" ? candidate.timestamp : "",
-    provider:
-      typeof candidate.provider === "string" ? candidate.provider : null,
-    model_name:
-      typeof candidate.model_name === "string" ? candidate.model_name : null,
-    status: typeof candidate.status === "string" ? candidate.status : null,
-    links: Array.isArray(candidate.links)
-      ? candidate.links.map((link) => ({
-          subject_type:
-            typeof link?.subject_type === "string" ? link.subject_type : "",
-          subject_id:
-            typeof link?.subject_id === "string" ? link.subject_id : "",
-          relation: typeof link?.relation === "string" ? link.relation : "",
-        }))
-      : [],
-    metadata:
-      candidate.metadata && typeof candidate.metadata === "object"
-        ? candidate.metadata
-        : {},
-  };
-}
-
-export interface JobInsights {
-  job_id?: number | null;
-  job_record_id?: number | null;
-  source_url?: string | null;
-  job_title: string;
-  company: string;
-  hard_skills: string[];
-  soft_skills: string[];
-  drafted_bullets: string[]; // parsed from Markdown
-  raw_markdown: string;
-  score: number;
-  ats_report?: AtsReport; // populated by on-demand detailed scoring
-  company_insight?: CompanyInsight;
-}
-
-// ── Multi-LLM per task ────────────────────────────────────────────────────────
-
-export type LLMProvider = "groq" | "gemini" | "openai" | "mistral" | "ollama";
-
-export interface LLMConfig {
-  provider: LLMProvider;
-  model_name: string;
-}
-
-export type PdfIngestionMode = "auto" | "llama_parse" | "local_text";
-
-export interface AppSettings {
-  optimize_llm: LLMConfig;
-  cover_letter_llm: LLMConfig;
-  ats_llm: LLMConfig;
-  patch_llm: LLMConfig;
-  pdf_ingestion_mode: PdfIngestionMode;
-}
-
-interface BackendTaskConfig {
-  provider?: unknown;
-  model_name?: unknown;
-}
-
-interface BackendSystemConfiguration {
-  app?: {
-    defaults?: Record<string, BackendTaskConfig>;
-    pdf_ingestion_mode?: unknown;
-  };
-  llm?: {
-    defaults?: Record<string, BackendTaskConfig>;
-    providers?: Record<string, unknown>;
-  };
-}
-
-const DEFAULT_APP_SETTINGS: AppSettings = {
-  optimize_llm: { provider: "groq", model_name: "llama-3.3-70b-versatile" },
-  cover_letter_llm: { provider: "groq", model_name: "llama-3.3-70b-versatile" },
-  ats_llm: { provider: "groq", model_name: "llama-3.1-8b-instant" },
-  patch_llm: { provider: "groq", model_name: "llama-3.3-70b-versatile" },
-  pdf_ingestion_mode: "auto",
-};
-
-export function normalizeAppSettings(value: unknown): AppSettings {
-  if (!value || typeof value !== "object") return DEFAULT_APP_SETTINGS;
-  const candidate = value as Partial<AppSettings>;
-  return {
-    optimize_llm: normalizeLLMConfig(
-      candidate.optimize_llm,
-      DEFAULT_APP_SETTINGS.optimize_llm,
-    ),
-    cover_letter_llm: normalizeLLMConfig(
-      candidate.cover_letter_llm,
-      DEFAULT_APP_SETTINGS.cover_letter_llm,
-    ),
-    ats_llm: normalizeLLMConfig(
-      candidate.ats_llm,
-      DEFAULT_APP_SETTINGS.ats_llm,
-    ),
-    patch_llm: normalizeLLMConfig(
-      candidate.patch_llm,
-      DEFAULT_APP_SETTINGS.patch_llm,
-    ),
-    pdf_ingestion_mode: normalizePdfIngestionMode(
-      candidate.pdf_ingestion_mode,
-      DEFAULT_APP_SETTINGS.pdf_ingestion_mode,
-    ),
-  };
-}
-
-export function systemConfigurationToAppSettings(
-  value: BackendSystemConfiguration | null | undefined,
-): AppSettings {
-  const defaults = value?.app?.defaults ?? value?.llm?.defaults ?? {};
-  return normalizeAppSettings({
-    optimize_llm: defaults.optimize,
-    cover_letter_llm: defaults.cover_letter,
-    ats_llm: defaults.ats_score,
-    patch_llm: defaults.patch,
-    pdf_ingestion_mode: value?.app?.pdf_ingestion_mode,
-  });
-}
-
-function normalizeLLMConfig(value: unknown, fallback: LLMConfig): LLMConfig {
-  if (!value || typeof value !== "object") return fallback;
-  const candidate = value as Partial<LLMConfig>;
-  const provider = candidate.provider;
-  const model_name = candidate.model_name;
-  if (!provider || !model_name || !isLLMProvider(provider)) return fallback;
-  return {
-    provider,
-    model_name:
-      typeof model_name === "string" && model_name.trim()
-        ? model_name
-        : fallback.model_name,
-  };
-}
-
-function isLLMProvider(value: unknown): value is LLMProvider {
-  return (
-    value === "groq" ||
-    value === "gemini" ||
-    value === "openai" ||
-    value === "mistral" ||
-    value === "ollama"
-  );
-}
-
-function normalizePdfIngestionMode(
-  value: unknown,
-  fallback: PdfIngestionMode,
-): PdfIngestionMode {
-  return value === "auto" || value === "llama_parse" || value === "local_text"
-    ? value
-    : fallback;
-}
-
-export interface CVData {
-  global_settings: GlobalSettings;
-  profile: Profile;
-  experience: ExperienceItem[];
-  education: EducationItem[];
-  skills: SkillGroup[];
-  projects: ProjectItem[];
-  certifications: CertificationItem[];
-  volunteering: VolunteeringItem[];
-  publications: PublicationItem[];
-  references: ReferenceItem[];
-  custom_sections: CustomSectionItem[];
-  languages: LanguageItem[];
-  hobbies: string[];
-}
-
-export interface ResumeDocument {
-  id: string;
-  name: string;
-  cvData: CVData;
-  templateId: string;
-  locale: "fr" | "en" | "de" | "es";
-  multilingual: {
-    defaultLocale: "fr" | "en" | "de" | "es";
-    activeLocale: "fr" | "en" | "de" | "es";
-    availableLocales: Array<"fr" | "en" | "de" | "es">;
-  };
-  revision?: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export type ResumeSaveStatus = "idle" | "dirty" | "saving" | "saved" | "error";
-
-export function cvDataFromImport(data: unknown): CVData | null {
-  if (!data || typeof data !== "object") return null;
-  const candidate = data as Partial<CVData> & { cvData?: CVData };
-
-  if (candidate.cvData?.global_settings && candidate.cvData.profile) {
-    return candidate.cvData;
-  }
-
-  if (candidate.global_settings && candidate.profile) {
-    return candidate as CVData;
-  }
-
-  return null;
-}
-
-export function resumeNameFromImport(data: unknown): string | null {
-  if (!data || typeof data !== "object") return null;
-  const candidate = data as { name?: unknown };
-  return typeof candidate.name === "string" && candidate.name.trim()
-    ? candidate.name.trim()
-    : null;
-}
+export { normalizeAtsReport } from "./cv-store/ats-normalizers";
+export {
+  normalizeAppSettings,
+  systemConfigurationToAppSettings,
+} from "./cv-store/app-settings";
+export { normalizeHistoryLedgerItem } from "./cv-store/history-normalizers";
+export {
+  cvDataFromImport,
+  resumeNameFromImport,
+} from "./cv-store/import-normalizers";
+export {
+  createBlankCVData,
+  normalizeCVData,
+  normalizeResumeDocument,
+} from "./cv-store/resume-normalizers";
+export type {
+  AppSettings,
+  AtsReport,
+  AtsDeduction,
+  AtsReportContext,
+  AtsRubric,
+  AtsRubricDimension,
+  CertificationItem,
+  CompanyInsight,
+  CVData,
+  CustomSectionItem,
+  EducationItem,
+  ExperienceItem,
+  GlobalSettings,
+  HistoryLedgerItem,
+  HistoryLedgerLink,
+  JobInsights,
+  KeywordStatus,
+  LanguageItem,
+  LLMConfig,
+  LLMProvider,
+  Location,
+  PdfIngestionMode,
+  Profile,
+  ProjectItem,
+  PublicationItem,
+  ReferenceItem,
+  ResumeDocument,
+  ResumeLocale,
+  ResumeSaveStatus,
+  ScoringCriteria,
+  SkillGroup,
+  Social,
+  VolunteeringItem,
+} from "./cv-store/types";
 
 // ── Store Interface ───────────────────────────────────────────────────────────
 
@@ -908,166 +314,11 @@ const initialCV: CVData = {
   hobbies: ["Informatique", "Veille Technologique", "Entrepreneuriat"],
 };
 
-function createBlankCVData(templateId = "modern"): CVData {
-  return {
-    global_settings: {
-      ...initialCV.global_settings,
-      template_id: templateId,
-    },
-    profile: {
-      full_name: "",
-      title: "",
-      phone: "",
-      email: "",
-      location: { city: "", country: "" },
-      socials: [],
-      text_markdown: "",
-    },
-    experience: [],
-    education: [],
-    skills: [],
-    projects: [],
-    certifications: [],
-    volunteering: [],
-    publications: [],
-    references: [],
-    custom_sections: [],
-    languages: [],
-    hobbies: [],
-  };
-}
-
-export function normalizeCVData(
-  data: Partial<CVData> | undefined,
-  templateId = "modern",
-): CVData {
-  const blank = createBlankCVData(templateId);
-  const source = data ?? {};
-  const settings = (source.global_settings ?? {}) as Partial<GlobalSettings>;
-  return {
-    global_settings: {
-      ...blank.global_settings,
-      ...settings,
-      template_id: settings.template_id ?? blank.global_settings.template_id,
-      advanced_css: {
-        ...blank.global_settings.advanced_css,
-        ...(settings.advanced_css ?? {}),
-        warnings: Array.isArray(settings.advanced_css?.warnings)
-          ? settings.advanced_css?.warnings
-          : [],
-      },
-    },
-    profile: {
-      ...blank.profile,
-      ...(source.profile ?? {}),
-    },
-    experience: Array.isArray(source.experience) ? source.experience : [],
-    education: Array.isArray(source.education) ? source.education : [],
-    skills: Array.isArray(source.skills) ? source.skills : [],
-    projects: Array.isArray(source.projects) ? source.projects : [],
-    certifications: Array.isArray(source.certifications)
-      ? source.certifications
-      : [],
-    volunteering: Array.isArray(source.volunteering) ? source.volunteering : [],
-    publications: Array.isArray(source.publications) ? source.publications : [],
-    references: Array.isArray(source.references) ? source.references : [],
-    custom_sections: Array.isArray(source.custom_sections)
-      ? source.custom_sections
-      : [],
-    languages: Array.isArray(source.languages) ? source.languages : [],
-    hobbies: Array.isArray(source.hobbies) ? source.hobbies : [],
-  };
-}
-
-function nowIso(): string {
-  return new Date().toISOString();
-}
-
-function normalizeResumeLocale(
-  value: unknown,
-  fallback: "fr" | "en" | "de" | "es" = "fr",
-): "fr" | "en" | "de" | "es" {
-  return value === "fr" || value === "en" || value === "de" || value === "es"
-    ? value
-    : fallback;
-}
-
-function resumeLocaleFromCVData(cvData: CVData): "fr" | "en" | "de" | "es" {
-  return normalizeResumeLocale(
-    cvData.global_settings?.locale?.label_language,
-    "fr",
-  );
-}
-
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Resume save failed";
 }
 
-function createResumeDocument(name: string, cvData: CVData): ResumeDocument {
-  const timestamp = nowIso();
-  const normalized = normalizeCVData(cvData);
-  const locale = resumeLocaleFromCVData(normalized);
-  return {
-    id: uid(),
-    name,
-    cvData: normalized,
-    templateId: normalized.global_settings.template_id || "modern",
-    locale,
-    multilingual: {
-      defaultLocale: locale,
-      activeLocale: locale,
-      availableLocales: [locale],
-    },
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  };
-}
-
-const initialResume = createResumeDocument("CV principal", initialCV);
-
-export function normalizeResumeDocument(
-  data: Partial<ResumeDocument>,
-): ResumeDocument {
-  const locale = normalizeResumeLocale(
-    data.locale ?? data.cvData?.global_settings?.locale?.label_language,
-    "fr",
-  );
-  const templateId =
-    data.templateId || data.cvData?.global_settings?.template_id || "modern";
-  const multilingual = data.multilingual;
-  const activeLocale = normalizeResumeLocale(
-    multilingual?.activeLocale,
-    locale,
-  );
-  const defaultLocale = normalizeResumeLocale(
-    multilingual?.defaultLocale,
-    locale,
-  );
-  const availableLocales = Array.isArray(multilingual?.availableLocales)
-    ? multilingual.availableLocales.map((item) =>
-        normalizeResumeLocale(item, locale),
-      )
-    : [defaultLocale];
-  const uniqueLocales = Array.from(
-    new Set([defaultLocale, activeLocale, ...availableLocales]),
-  );
-  const cvData = normalizeCVData(data.cvData, templateId);
-  return {
-    id: data.id ?? uid(),
-    name: data.name?.trim() || "Untitled CV",
-    cvData,
-    templateId,
-    locale,
-    multilingual: {
-      defaultLocale,
-      activeLocale,
-      availableLocales: uniqueLocales,
-    },
-    revision: data.revision,
-    createdAt: data.createdAt ?? nowIso(),
-    updatedAt: data.updatedAt ?? nowIso(),
-  };
-}
+const initialResume = createResumeDocument("CV principal", initialCV, uid);
 
 function syncActiveResume(
   state: CVStore,

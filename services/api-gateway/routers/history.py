@@ -1,5 +1,6 @@
 """History routes."""
 
+import json
 from datetime import datetime
 from typing import Annotated, Any
 
@@ -8,6 +9,7 @@ from database.records import (
     ApplicationReminderRecord,
     AtsReportRecord,
     CoverLetterRecord,
+    LLMRunRecord,
     OpportunityRecord,
     OpportunityTransitionRecord,
     ResumeRevisionRecord,
@@ -217,42 +219,39 @@ def _opportunity_ledger_item(session: Session, row: OpportunityRecord) -> dict:
     )
 
 
-def _llm_run_items(
-    ats_rows: list[AtsReportRecord],
-    cover_rows: list[CoverLetterRecord],
-) -> list[dict]:
-    items: list[dict] = []
-    for row in ats_rows:
-        items.append(
-            _ledger_item(
-                id=f"llm_run:ats_report:{row.id}",
-                subject_type="llm_run",
-                subject_id=f"ats_report:{row.id}",
-                title="ATS scoring run",
-                summary=f"{row.provider}/{row.model_name}",
-                timestamp=row.generated_at,
-                provider=row.provider,
-                model_name=row.model_name,
-                links=[_link("ats_report", row.id or 0, "produced")],
-                metadata={"artifact_type": "ats_report", "artifact_id": row.id},
-            )
-        )
-    for row in cover_rows:
-        items.append(
-            _ledger_item(
-                id=f"llm_run:cover_letter:{row.id}",
-                subject_type="llm_run",
-                subject_id=f"cover_letter:{row.id}",
-                title="Cover letter run",
-                summary=f"{row.provider}/{row.model_name}",
-                timestamp=row.generated_at,
-                provider=row.provider,
-                model_name=row.model_name,
-                links=[_link("cover_letter", row.id or 0, "produced")],
-                metadata={"artifact_type": "cover_letter", "artifact_id": row.id},
-            )
-        )
-    return items
+def _llm_run_ledger_item(row: LLMRunRecord) -> dict:
+    artifact_type = row.output_artifact_type
+    artifact_id = row.output_artifact_id
+    links = []
+    if artifact_type and artifact_id is not None:
+        links.append(_link(artifact_type, artifact_id, "produced"))
+    try:
+        metadata = json.loads(row.metadata_json or "{}")
+    except json.JSONDecodeError:
+        metadata = {}
+    metadata.update(
+        {
+            "task_key": row.task_key,
+            "artifact_type": artifact_type,
+            "artifact_id": artifact_id,
+            "duration_ms": row.duration_ms,
+            "fallback_used": bool(row.fallback_used),
+            "input_hash": row.input_hash,
+        }
+    )
+    return _ledger_item(
+        id=f"llm_run:{row.id}",
+        subject_type="llm_run",
+        subject_id=row.id or 0,
+        title=f"{row.task_key.replace('_', ' ').title()} run",
+        summary=f"{row.provider}/{row.model_name}",
+        timestamp=row.created_at,
+        provider=row.provider,
+        model_name=row.model_name,
+        status=row.status,
+        links=links,
+        metadata=metadata,
+    )
 
 
 def _build_history_ledger(session: Session) -> list[dict]:
@@ -274,6 +273,9 @@ def _build_history_ledger(session: Session) -> list[dict]:
     opportunities = session.exec(
         select(OpportunityRecord).order_by(OpportunityRecord.last_transition_at.desc())
     ).all()
+    llm_runs = session.exec(
+        select(LLMRunRecord).order_by(LLMRunRecord.created_at.desc())
+    ).all()
 
     items = [
         *[_job_ledger_item(row) for row in jobs],
@@ -282,7 +284,7 @@ def _build_history_ledger(session: Session) -> list[dict]:
         *[_resume_revision_ledger_item(row) for row in revisions],
         *[_tracker_ledger_item(row) for row in tracker_rows],
         *[_opportunity_ledger_item(session, row) for row in opportunities],
-        *_llm_run_items(ats_reports, cover_letters),
+        *[_llm_run_ledger_item(row) for row in llm_runs],
     ]
     return sorted(items, key=lambda item: item["timestamp"], reverse=True)
 
@@ -404,6 +406,7 @@ async def clear_history_ledger(session: SessionDep) -> dict:
         )
         deleted["opportunities"] = _purge_records(session, OpportunityRecord)
         deleted["applications"] = _purge_records(session, ApplicationRecord)
+        deleted["llm_runs"] = _purge_records(session, LLMRunRecord)
         deleted["ats_reports"] = _purge_records(session, AtsReportRecord)
         deleted["cover_letters"] = _purge_records(session, CoverLetterRecord)
         deleted["jobs"] = _purge_records(session, ScrapedJobRecord)

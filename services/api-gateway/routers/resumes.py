@@ -20,15 +20,14 @@ from persistence import (
     create_resume_locale_variant,
     create_resume_revision,
     delete_resume_locale_variant,
-    dump_json,
     get_resume_revision,
     list_resume_revisions,
-    load_json,
     localized_resume_record,
     serialize_resume,
     serialize_resume_revision,
     update_resume,
 )
+from persistence_lib.json import dump_json, load_json
 from routers.templates import apply_template_defaults
 from schemas import (
     CVDataModel,

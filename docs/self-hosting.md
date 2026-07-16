@@ -62,6 +62,12 @@ Depuis la racine :
 docker compose up --build
 ```
 
+Ou avec le script dédié :
+
+```bash
+./scripts/docker_local.sh up
+```
+
 URLs :
 
 ```text
@@ -87,12 +93,24 @@ Ou avec le script smoke :
 ./scripts/smoke_self_hosting.sh
 ```
 
+Ou :
+
+```bash
+./scripts/docker_local.sh smoke
+```
+
 ## Logs
 
 ```bash
 docker compose logs -f api-gateway
 docker compose logs -f renderer
 docker compose logs -f web
+```
+
+Ou :
+
+```bash
+./scripts/docker_local.sh logs
 ```
 
 En plus des flux `docker compose logs`, les services ecrivent dans les volumes locaux.
@@ -103,6 +121,12 @@ Les erreurs API normalisees exposent un `X-Request-Id` pour recouper les traces.
 
 ```bash
 docker compose down
+```
+
+Ou :
+
+```bash
+./scripts/docker_local.sh down
 ```
 
 ## Reset local

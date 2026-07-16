@@ -9,7 +9,8 @@ from database.session import Session, engine
 from fastapi import APIRouter, BackgroundTasks, Request
 from intelligence.event_bus import create_job_queue, emit, stream_events
 from monitoring import monitor
-from persistence import dump_json, save_job_offer
+from persistence import save_job_offer
+from persistence_lib.json import dump_json
 from schemas import OptimizationResponse, OptimizeRequest
 from sse_starlette.sse import EventSourceResponse
 from utils.config import settings

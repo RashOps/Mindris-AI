@@ -2,11 +2,13 @@
 
 import asyncio
 import json
+from time import perf_counter
 from typing import Annotated, Literal
 
 from database.records import CoverLetterRecord
 from database.session import Session, get_session
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, UploadFile, status
+from llm_runs import save_llm_run
 from monitoring import monitor
 from persistence import (
     get_current_cv,
@@ -148,6 +150,7 @@ async def calculate_ats_score_route(request: ScoreRequest, session: SessionDep) 
     """Calculate and persist the ATS score for a CV against job insights."""
     from intelligence.ats_score import calculate_ats_score
 
+    started_at = perf_counter()
     try:
         report = await asyncio.wait_for(
             calculate_ats_score(
@@ -161,6 +164,20 @@ async def calculate_ats_score_route(request: ScoreRequest, session: SessionDep) 
         )
     except TimeoutError as exc:
         monitor.increment_pipeline_failure("ats_score")
+        save_llm_run(
+            session,
+            task_key="ats_score",
+            provider=request.provider,
+            model_name=request.model_name,
+            status="timeout",
+            input_payload={
+                "job_id": request.job_id,
+                "resume_id": request.resume_id,
+                "ats_mode": request.ats_mode,
+            },
+            error_message="ATS scoring timed out.",
+            duration_ms=int((perf_counter() - started_at) * 1000),
+        )
         raise HTTPException(status_code=504, detail="ATS scoring timed out.") from exc
     report_context = dict(report.get("context", {}))
     report_context.setdefault("job_id", request.job_id)
@@ -180,12 +197,36 @@ async def calculate_ats_score_route(request: ScoreRequest, session: SessionDep) 
         request.model_name,
         job_id=request.job_id,
     )
+    llm_run = save_llm_run(
+        session,
+        task_key="ats_score",
+        provider=request.provider,
+        model_name=request.model_name,
+        status="success",
+        input_payload={
+            "job_id": request.job_id,
+            "resume_id": request.resume_id,
+            "resume_locale": report_context.get("resume_locale"),
+            "ats_mode": request.ats_mode,
+        },
+        output_artifact_type="ats_report",
+        output_artifact_id=record.id,
+        duration_ms=int((perf_counter() - started_at) * 1000),
+        fallback_used=any(
+            deduction.get("code") == "llm_output_invalid"
+            for deduction in report.get("deductions", [])
+            if isinstance(deduction, dict)
+        ),
+        metadata={"job_id": record.job_id, "mode": report.get("mode")},
+    )
     report["id"] = record.id
     report["job_id"] = record.job_id
+    report["llm_run_id"] = llm_run.id
     return {
         "status": "success",
         "id": record.id,
         "job_id": record.job_id,
+        "llm_run_id": llm_run.id,
         "report": report,
         "ats_report": report,
     }
@@ -198,6 +239,7 @@ async def generate_cover_letter_route(
     """Generate and persist a tailored cover letter in Markdown."""
     from intelligence.cover_letter import generate_cover_letter
 
+    started_at = perf_counter()
     try:
         markdown = await asyncio.wait_for(
             generate_cover_letter(
@@ -212,6 +254,20 @@ async def generate_cover_letter_route(
         )
     except TimeoutError as exc:
         monitor.increment_pipeline_failure("cover_letter")
+        save_llm_run(
+            session,
+            task_key="cover_letter",
+            provider=request.provider,
+            model_name=request.model_name,
+            status="timeout",
+            input_payload={
+                "job_id": request.job_id,
+                "resume_id": request.resume_id,
+                "opportunity_id": request.opportunity_id,
+            },
+            error_message="Cover letter generation timed out.",
+            duration_ms=int((perf_counter() - started_at) * 1000),
+        )
         raise HTTPException(
             status_code=504,
             detail="Cover letter generation timed out.",
@@ -223,10 +279,27 @@ async def generate_cover_letter_route(
         request.model_name,
         job_id=request.job_id,
     )
+    llm_run = save_llm_run(
+        session,
+        task_key="cover_letter",
+        provider=request.provider,
+        model_name=request.model_name,
+        status="success",
+        input_payload={
+            "job_id": request.job_id,
+            "resume_id": request.resume_id,
+            "opportunity_id": request.opportunity_id,
+        },
+        output_artifact_type="cover_letter",
+        output_artifact_id=record.id,
+        duration_ms=int((perf_counter() - started_at) * 1000),
+        metadata={"job_id": record.job_id},
+    )
     return {
         "status": "success",
         "id": record.id,
         "job_id": record.job_id,
+        "llm_run_id": llm_run.id,
         "markdown": markdown,
         "generated_at": record.generated_at.isoformat(),
     }
