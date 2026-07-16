@@ -270,7 +270,7 @@ export function CvBuilderHeader(props: {
       </div>
 
       {isAdvanced ? (
-        <div className="flex w-full flex-wrap items-start gap-2">
+        <div className="grid w-full gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(430px,0.72fr)]">
           <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/25 p-2 max-sm:w-full">
             <span className="px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               CV
@@ -295,16 +295,22 @@ export function CvBuilderHeader(props: {
             >
               Supprimer
             </button>
-          </div>
-
-          <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/25 p-2 max-sm:w-full">
-            <span className="px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Langues
-            </span>
             {localeControls}
           </div>
 
-          <div className="flex w-full min-w-0 items-center gap-2 rounded-xl border border-border bg-muted/25 p-2 max-sm:flex-wrap sm:min-w-[360px] sm:flex-1">
+          <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/25 p-2">
+            <span className="px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              IA
+            </span>
+            <PdfIngestionModeSelect label="Lecture PDF" variant="toolbar" />
+            <LLMSelector
+              taskKey="optimize_llm"
+              label="Moteur IA"
+              variant="toolbar"
+            />
+          </div>
+
+          <div className="flex min-w-0 items-center gap-2 rounded-xl border border-border bg-muted/25 p-2 max-sm:flex-wrap">
             <span className="px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               Offre
             </span>
@@ -313,7 +319,7 @@ export function CvBuilderHeader(props: {
 
           <div
             ref={headerMenuRef}
-            className="flex min-w-0 flex-wrap items-center gap-1.5 rounded-xl border border-border bg-muted/25 p-2 max-sm:w-full"
+            className="flex min-w-0 flex-wrap items-center gap-1.5 rounded-xl border border-border bg-muted/25 p-2"
           >
             <span className="px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               Actions
@@ -346,18 +352,6 @@ export function CvBuilderHeader(props: {
             >
               Journal
             </button>
-          </div>
-
-          <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/25 p-2 max-sm:w-full">
-            <span className="px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              IA
-            </span>
-            <PdfIngestionModeSelect label="Lecture PDF" variant="toolbar" />
-            <LLMSelector
-              taskKey="optimize_llm"
-              label="Moteur IA"
-              variant="toolbar"
-            />
           </div>
         </div>
       ) : (
