@@ -90,18 +90,18 @@ export function TrackerHeader({
             className="app-input h-10"
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
           <Input
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             placeholder="Search applications"
-            className="app-input h-10 min-w-[260px]"
+            className="app-input h-10 w-full sm:min-w-[260px]"
           />
           <Button
             onClick={onCreate}
             disabled={isSubmitting || !canCreate}
             data-testid="tracker-add-button"
-            className="h-10 cursor-pointer px-4 disabled:cursor-not-allowed"
+            className="h-10 w-full cursor-pointer px-4 disabled:cursor-not-allowed sm:w-auto"
             title={!canCreate ? "Company and role are required" : "Add application"}
           >
             <Plus size={16} />

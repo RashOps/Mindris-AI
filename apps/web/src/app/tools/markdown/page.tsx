@@ -318,7 +318,7 @@ export default function MarkdownToolPage() {
         </div>
 
         {/* Controls */}
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
           {/* Title */}
           <input
             type="text"

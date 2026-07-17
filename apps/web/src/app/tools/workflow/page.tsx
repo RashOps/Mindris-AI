@@ -147,12 +147,12 @@ export default function WorkflowPage() {
             {error}
           </div>
         )}
-        <div className="mt-4 grid gap-4 2xl:grid-cols-[360px,minmax(0,1fr)]">
-          <aside className="space-y-4">
-            <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-              <div className="mb-3 flex items-center justify-between">
+        <div className="mt-4 grid min-w-0 grid-cols-1 gap-4 2xl:grid-cols-[360px,minmax(0,1fr)]">
+          <aside className="min-w-0 space-y-4">
+            <section className="min-w-0 rounded-2xl border border-border bg-card p-4 shadow-sm">
+              <div className="mb-3 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm font-semibold text-foreground">Create opportunity</p>
-                <div className="flex rounded-lg border border-border bg-muted/40 p-1">
+                <div className="flex w-fit rounded-lg border border-border bg-muted/40 p-1">
                   <button
                     type="button"
                     onClick={() => setCreateMode("job")}
@@ -173,7 +173,7 @@ export default function WorkflowPage() {
                   </button>
                 </div>
               </div>
-              <div className="space-y-3">
+              <div className="min-w-0 space-y-3">
                 {createMode === "job" ? (
                   <ToolbarSelect
                     value={selectedJobId}
@@ -302,7 +302,7 @@ export default function WorkflowPage() {
               )}
             </section>
           </aside>
-          <section className="space-y-4">
+          <section className="min-w-0 space-y-4">
             {!selected ? (
               <div className="rounded-2xl border border-border bg-card px-5 py-8 text-sm text-muted-foreground shadow-sm">
                 Select an opportunity to drive the next workflow step.
@@ -471,13 +471,13 @@ export default function WorkflowPage() {
                   )}
                 </section>
 
-                <section className="grid gap-4 xl:grid-cols-2">
-                  <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+                <section className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-2">
+                  <div className="min-w-0 rounded-2xl border border-border bg-card p-4 shadow-sm">
                     <p className="mb-3 text-sm font-semibold text-foreground">Next actions</p>
-                    <div className="space-y-3">
-                      <div className="rounded-xl border border-border bg-muted/40 p-3">
+                    <div className="min-w-0 space-y-3">
+                      <div className="min-w-0 rounded-xl border border-border bg-muted/40 p-3">
                         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Resume</p>
-                        <div className="flex flex-col gap-2 xl:flex-row">
+                        <div className="flex min-w-0 flex-col gap-2 xl:flex-row">
                           <ToolbarSelect
                             value={resumeId}
                             ariaLabel="Select resume"
@@ -524,7 +524,7 @@ export default function WorkflowPage() {
                         </Button>
                       </div>
 
-                      <div className="rounded-xl border border-border bg-muted/40 p-3">
+                      <div className="min-w-0 rounded-xl border border-border bg-muted/40 p-3">
                         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">ATS report</p>
                         <ToolbarSelect
                           value={atsReportId}
@@ -557,7 +557,7 @@ export default function WorkflowPage() {
                         </Button>
                       </div>
 
-                      <div className="rounded-xl border border-border bg-muted/40 p-3">
+                      <div className="min-w-0 rounded-xl border border-border bg-muted/40 p-3">
                         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cover letter</p>
                         <ToolbarSelect
                           value={coverLetterId}
@@ -590,7 +590,7 @@ export default function WorkflowPage() {
                         </Button>
                       </div>
 
-                      <div className="rounded-xl border border-border bg-muted/40 p-3">
+                      <div className="min-w-0 rounded-xl border border-border bg-muted/40 p-3">
                         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tracker</p>
                         <ToolbarSelect
                           value={applicationId}

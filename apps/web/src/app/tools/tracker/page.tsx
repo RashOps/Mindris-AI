@@ -283,17 +283,17 @@ export default function TrackerPage() {
             Loading tracker...
           </div>
         ) : (
-          <div className="grid gap-4 xl:grid-cols-5">
+          <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-5">
             {STATUSES.map((status) => {
               const itemsForStatus = filteredColumns[status.id] ?? [];
               const tone = statTone(status.id);
               return (
                 <section
                   key={status.id}
-                  className="flex min-h-[72vh] flex-col rounded-lg border border-border bg-card shadow-sm"
+                  className="flex min-h-[72vh] w-full min-w-0 flex-col rounded-lg border border-border bg-card shadow-sm"
                 >
-                  <div className="border-b border-border px-4 py-4">
-                    <div className="mb-2 flex items-center justify-between">
+                  <div className="min-w-0 border-b border-border px-4 py-4">
+                    <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
                       <h2 className="text-sm font-semibold">{status.label}</h2>
                       <span
                         className="rounded-full border px-2 py-0.5 text-[11px] font-medium"
@@ -302,12 +302,12 @@ export default function TrackerPage() {
                         {itemsForStatus.length}
                       </span>
                     </div>
-                    <p className="text-xs text-muted-foreground">{status.hint}</p>
+                    <p className="min-w-0 text-xs text-muted-foreground">{status.hint}</p>
                   </div>
 
-                  <div className="flex-1 space-y-3 p-3">
+                  <div className="min-w-0 flex-1 space-y-3 p-3">
                     {itemsForStatus.length === 0 ? (
-                      <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border px-4 py-10 text-center text-xs text-muted-foreground">
+                      <div className="flex h-full min-w-0 items-center justify-center rounded-lg border border-dashed border-border px-4 py-10 text-center text-xs text-muted-foreground">
                         No applications in this stage.
                       </div>
                     ) : (

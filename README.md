@@ -16,7 +16,7 @@
 
 ---
 
-[Features](#-features) · [Architecture](#-architecture) · [Quick Start](#-quick-start) · [Self-hosting](#-self-hosting-docker) · [Usage](#-usage) · [Configuration](#%EF%B8%8F-configuration) · [ADRs](#-architecture-decision-records) · [Roadmap](#-roadmap)
+[Features](#-features) · [Architecture](#-architecture) · [Quick Start](#-quick-start) · [One-command install](#-one-command-install) · [Self-hosting](#-self-hosting-docker) · [Usage](#-usage) · [Configuration](#%EF%B8%8F-configuration) · [ADRs](#-architecture-decision-records) · [Roadmap](#-roadmap)
 
 </div>
 
@@ -179,7 +179,24 @@ SCRAPER_HEADLESS=false
 
 ## 🐳 Self-hosting Docker
 
-The MVP1 can run locally with Docker Compose:
+### One-command install
+
+Mindris can be installed without cloning the repository once the GHCR images are
+published:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/RashOps/Mindris-AI/main/scripts/install_self_hosted.sh | sh
+```
+
+This creates a local `~/.mindris-ai` install directory, downloads the release
+Compose file, generates a private `.env`, pulls GHCR images, and starts the
+stack.
+
+Detailed guide: [`docs/install.md`](docs/install.md).
+
+### Build from source
+
+The project can also run locally with Docker Compose from a cloned repository:
 
 ```bash
 cp .env.example .env
