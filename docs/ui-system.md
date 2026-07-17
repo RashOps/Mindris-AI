@@ -1,6 +1,6 @@
 # UI system Mindris AI
 
-Date : 24 juin 2026
+Date : 17 juillet 2026
 
 ## Direction
 
@@ -17,6 +17,9 @@ Les pages produit utilisent `AppShell` :
 - `/tools/ats-score`
 - `/tools/tracker`
 - `/tools/markdown`
+- `/tools/history`
+- `/tools/workflow`
+- `/tools/guide`
 
 Le shell fournit :
 
@@ -33,6 +36,13 @@ Le shell et le guide produit doivent decrire le runtime reel :
 - etat et secrets backend-owned ;
 - acces navigateur local via loopback ;
 - appels externes via `X-API-Key`.
+
+`RuntimeGate` fait partie du produit. Il doit attendre :
+
+- `GET /api/v1/system/ready` cote API Gateway ;
+- `GET /ready` cote renderer.
+
+L'AppShell ne doit s'ouvrir que lorsque ces endpoints sont prets.
 
 ## Primitives
 
@@ -74,6 +84,46 @@ Les surfaces et champs frequents doivent preferer :
 
 Ces classes definissent le contrat minimum entre light/dark mode, lisibilite, focus et hover.
 
+Les classes hardcodees de type `bg-white`, `text-slate-*` et
+`border-slate-*` doivent etre evitees sur les surfaces produit. Preferer :
+
+- `bg-card`
+- `bg-background`
+- `bg-muted/40`
+- `text-foreground`
+- `text-muted-foreground`
+- `border-border`
+
+Les accents couleur restent autorises pour des badges/stats si une variante
+dark explicite existe.
+
+## CV Builder
+
+Le CV Builder expose trois modes :
+
+- `Simple` : controles essentiels pour utilisateurs non techniques ;
+- `Normal` : usage courant ;
+- `Avance` : diagnostics, IA, offre et actions avancees regroupees.
+
+Regles :
+
+- la section Style est une tab voisine de Structure, pas un overlay bloquant ;
+- aucun choix metier ne doit etre resolu dans le frontend ;
+- les dropdowns toolbar utilisent les primitives centralisees ;
+- les zones avancees doivent occuper l'espace sans creer de vide structurel ;
+- les overlays restants doivent etre justifies par une interaction ponctuelle.
+
+## Langue produit
+
+La langue produit prioritaire est le francais.
+
+Etat actuel :
+
+- Dashboard, CV Builder, Guide et History sont francais-first ;
+- ATS Score, Markdown PDF, Tracker et Workflow peuvent encore contenir des
+  libelles anglais ;
+- la centralisation i18n reste a faire avant une traduction utilisateur propre.
+
 ## Configuration
 
 La surface `Configuration` doit rester backend-owned et etre organisee par intentions distinctes :
@@ -101,3 +151,11 @@ Verifier aussi que le scan stockage frontend ne montre pas de nouvelle persistan
 ```bash
 rg -n "localStorage|sessionStorage|indexedDB|document\\.cookie" apps/web/src
 ```
+
+Pour les changements visuels, verifier au minimum la route modifiee en :
+
+- `1600x900`
+- `390x844`
+
+Les captures temporaires vont dans `.screenshots/` et ne doivent pas etre
+committees.

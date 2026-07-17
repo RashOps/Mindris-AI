@@ -1,5 +1,10 @@
 # Desktop packaging plan
 
+Date : 17 juillet 2026
+
+Statut : reporte apres stabilisation Docker self-hosted, Workflow Beta, i18n et
+guide utilisateur.
+
 Mindris Desktop should be a thin local shell around the same product contracts as
 the web app. It must not become a second backend or a second source of truth.
 
@@ -42,15 +47,19 @@ The desktop shell must not:
 
 ## Packaging phases
 
-1. Ship Docker self-hosting as the stable deployment target.
-2. Add a desktop development shell that points to `http://127.0.0.1:3000`.
-3. Add service supervision for API and renderer.
-4. Bundle the frontend as static/standalone assets if the Next.js runtime allows it.
-5. Add signed installers after the local runtime is stable.
+1. Ship Docker self-hosting as the stable deployment target. **Done** via GHCR
+   and one-command install.
+2. Stabilize secondary tools, Workflow Beta and i18n before adding another
+   packaging surface.
+3. Add a desktop development shell that points to `http://127.0.0.1:3000`.
+4. Add service supervision for API and renderer.
+5. Bundle the frontend as static/standalone assets if the Next.js runtime allows it.
+6. Add signed installers after the local runtime is stable.
 
 ## Open decisions
 
 - Whether Desktop starts Docker containers or native binaries.
 - Whether the frontend is bundled or served by an embedded local web process.
 - How backups/restores are exposed to non-technical users.
-- Which OS targets are first-class: Linux first, then macOS/Windows.
+- Which OS targets are first-class: Linux and Windows first, macOS later.
+- Whether the Windows path should supervise services natively or rely on Docker Desktop.

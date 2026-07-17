@@ -9,8 +9,7 @@ mindris-ai/
 ├── apps/               # Applications finales (ex: Frontend Next.js)
 ├── docs/               # Documentation projet, ADRs et Roadmap
 ├── packages/           # Bibliothèques partagées (Workspace packages)
-│   ├── database/       # Schémas communs (Pydantic, JSON) et modèles
-│   ├── ui-components/  # Bibliothèque de composants UI partagée
+│   ├── database/       # SQLite, records, migrations et persistance locale
 │   └── utils/          # Utilitaires transverses (Logger, Helpers)
 ├── services/           # Services backend autonomes (Monolithe Modulaire)
 │   ├── api-gateway/    # Point d'entrée API & Routage (FastAPI)
@@ -18,8 +17,10 @@ mindris-ai/
 │   ├── renderer/       # Moteur de rendu PDF & UI (Bun/Puppeteer)
 │   └── scraper/        # Extraction de données web (Playwright)
 ├── storage/            # Persistance locale, caches et exports temporaires
+├── docker-compose.yml  # Build local depuis le dépôt
+├── docker-compose.release.yml # Release self-hosted via GHCR
 ├── pyproject.toml      # Configuration racine du workspace (uv)
-└── docker-compose.yml  # Orchestration de l'infrastructure locale
+└── README.md
 ```
 
 ---
@@ -42,9 +43,12 @@ graph TD
         F[Utils/Logger]
     end
 
-    subgraph "External"
-        G[(Supabase / PGVector)]
-        H[LLMs - OpenAI/Gemini]
+    subgraph "Local Persistence"
+        G[(SQLite + Vector storage)]
+    end
+
+    subgraph "External / BYOK"
+        H[LLMs - OpenAI/Groq/Gemini/Mistral/Ollama]
         I[LinkedIn / Web]
     end
 
@@ -53,6 +57,7 @@ graph TD
     B --> C
     B --> E
     C --> I
+    A --> G
     B --> G
     B --> H
     D --> E
@@ -69,17 +74,38 @@ graph TD
 
 ### 1. Services (`/services`)
 Chaque service est un projet indépendant géré par le workspace `uv`.
-- **API Gateway** : Reçoit les requêtes du frontend et les dirige vers le service Intelligence.
-- **Intelligence** : Utilise CrewAI pour l'analyse et LangGraph pour les workflows de décision.
+- **API Gateway** : Reçoit les requêtes du frontend, possède les contrats produit, persiste l'état durable et orchestre les routes publiques locales.
+- **Intelligence** : Gère le scoring ATS, les lettres, les providers IA et les workflows de décision.
 - **Scraper** : Encapsule la complexité de Playwright et des stratégies anti-détection.
 - **Renderer** : Isolé dans un environnement Bun/TS pour garantir un rendu PDF fidèle via Puppeteer.
 
 ### 2. Packages (`/packages`)
-- **database** : Point de vérité unique pour les structures de données (Schemas CV, Job Descriptions).
-- **utils** : Contient le logger centralisé utilisé par tous les services Python.
+- **database** : Records SQLModel, session SQLite, migrations et stockage vectoriel local.
+- **utils** : Settings, logger centralisé et utilitaires runtime partagés.
 
 ### 3. Apps (`/apps`)
-- **web** : L'interface utilisateur principale construite avec Next.js.
+- **web** : Interface utilisateur principale construite avec Next.js. Elle reste client-only et ne devient pas une couche de service.
+
+---
+
+## Frontières produit
+
+- Le frontend appelle les APIs et rend l'état.
+- Le backend possède l'état durable, les secrets, les defaults métier et les actions destructives.
+- Le renderer possède le rendu HTML/PDF.
+- Les scripts et callers externes utilisent `X-API-Key`.
+- Le navigateur local utilise la frontière loopback.
+- Les secrets ne doivent pas être exposés dans les réponses API, les logs ou les sorties de commandes.
+
+## Distribution
+
+Mindris dispose de deux modes Docker :
+
+- build local : `docker compose up --build` depuis un clone ;
+- release self-hosted : installation one-command depuis GHCR via `scripts/install_self_hosted.sh`.
+
+Le Desktop/Tauri est documenté mais reporté : il devra rester un shell local fin
+autour des mêmes contrats backend/frontend.
 
 ---
 

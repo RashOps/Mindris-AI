@@ -2,6 +2,13 @@
 
 Ce guide décrit le lancement local open-source de Mindris AI avec Docker Compose.
 
+Deux chemins existent :
+
+- `docker-compose.yml` pour builder depuis un clone du depot ;
+- `docker-compose.release.yml` pour installer depuis les images GHCR publiees.
+
+Pour l'installation one-command sans clone, voir [`docs/install.md`](./install.md).
+
 ## Services
 
 | Service | Port | Rôle |
@@ -14,6 +21,8 @@ Les données locales sont montées depuis :
 
 - `./storage` vers `/app/storage`
 - `./logs` vers `/app/logs`
+
+En release one-command, ces dossiers vivent par defaut dans `~/.mindris-ai/`.
 
 ## Prérequis
 
@@ -83,6 +92,20 @@ URLs :
 Frontend  http://localhost:3000
 API       http://localhost:8000
 Renderer  http://localhost:4000
+```
+
+Si `3000` est deja occupe, utilise un port frontend different :
+
+```bash
+MINDRIS_WEB_PORT=3100 docker compose up -d
+```
+
+Ou, pour l'installation one-command, modifie `~/.mindris-ai/.env` puis relance :
+
+```bash
+cd "$HOME/.mindris-ai"
+printf '\nMINDRIS_WEB_PORT=3100\n' >> .env
+docker compose up -d
 ```
 
 ## Healthchecks
@@ -157,6 +180,29 @@ rm -rf storage logs
 ```
 
 Cette commande supprime les CV, drafts, rapports et fichiers locaux.
+
+## Nettoyage d'un test release
+
+Depuis un clone du depot, pour nettoyer un test one-command installe dans
+`~/.mindris-ai` :
+
+```bash
+./scripts/clean_self_hosted_test.sh
+```
+
+Le script supprime :
+
+- conteneurs Mindris ;
+- reseaux Compose ;
+- volumes Compose ;
+- images GHCR du stack.
+
+Il garde les donnees locales dans `~/.mindris-ai` par defaut. Pour supprimer
+aussi `storage/`, `logs/`, `.env` et le compose installe :
+
+```bash
+REMOVE_DATA=true ./scripts/clean_self_hosted_test.sh
+```
 
 ## Backup / restore
 

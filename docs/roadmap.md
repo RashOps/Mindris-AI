@@ -168,6 +168,38 @@
 - [x] **Frontiere local vs online explicite :** Documenter et tester une separation nette entre ergonomie locale et posture future hebergee.
 
 ## 🔵 Phase 27 : Product Coherence, QA & Content Governance
-- [ ] **Regression finale produit :** Revalider les parcours critiques apres les runs de consolidation.
-- [ ] **Guide/copy/branding alignes :** Harmoniser le contenu in-app et repo avec le comportement reel de Mindris.
-- [ ] **Derniere passe de coherence UI :** Corriger les derniers ilots visuels restants apres normalisation et decomposition.
+- [x] **Regression produit ciblee :** Revalider les parcours critiques avec Playwright Python sur Dashboard, CV Builder, Guide, History, Markdown, Tracker et Workflow.
+- [x] **Guide/copy/branding alignes :** Harmoniser le guide interne, README public et surfaces prioritaires avec le comportement reel de Mindris.
+- [x] **Derniere passe de coherence UI prioritaire :** Corriger les derniers ilots visuels sur Dashboard, CV Builder, History, Guide, Markdown, Tracker et Workflow.
+- [x] **Francais-first prioritaire :** Dashboard, CV Builder, Guide et History utilisent une copy produit coherente en francais.
+
+## 🟢 Phase 28 : Self-hosted Release Distribution (Terminée)
+- [x] **Compose release GHCR :** Ajouter `docker-compose.release.yml` avec images publiques versionnables.
+- [x] **Install one-command :** Ajouter `install_self_hosted.sh` pour installer sans cloner le depot.
+- [x] **Update/uninstall/smoke :** Ajouter scripts de mise a jour, desinstallation et verification release.
+- [x] **GitHub Actions Docker release :** Publier `api-gateway`, `renderer` et `web` sur GHCR.
+- [x] **Fresh install WSL Debian :** Valider pull images, healthchecks, RuntimeGate endpoints et override de port `MINDRIS_WEB_PORT=3100`.
+- [x] **Cleanup test self-hosted :** Ajouter un script de nettoyage containers/images/volumes/network depuis la racine du repo.
+
+## 🔵 Phase 29 : Secondary Tools Simplification
+- [ ] **Markdown PDF + lettres persistantes :** Ouvrir une lettre existante, afficher `cover_letter_id`, sauvegarder une version et revenir a History/Workflow.
+- [ ] **ATS Score simplifie :** Clarifier les CTA, etats vides, selection job/CV et restitution des deductions.
+- [ ] **Tracker simplifie :** Reduire la densite, clarifier les colonnes et rendre les actions secondaires moins envahissantes.
+- [ ] **History polish :** Garder le ledger lisible quand le volume augmente et faciliter les filtres par job/opportunite.
+
+## 🔵 Phase 30 : Workflow Beta Maturity
+- [ ] **Filtrage job-aware :** Restreindre les artefacts proposes aux jobs/opportunites coherents.
+- [ ] **Checklist "pret a candidater" :** Exposer clairement ce qui manque avant tracker/envoi.
+- [ ] **Recovery paths :** Rendre reparables les liens orphelins ou incoherents sans action fragile.
+- [ ] **Promotion hors Beta :** Ne retirer le badge Beta qu'apres validation des historiques, liens et parcours UX.
+
+## 🔵 Phase 31 : I18n & Guide Experience
+- [ ] **Textes UI centralises :** Sortir progressivement les strings produit des composants.
+- [ ] **Francais-first canonique :** Garder le francais comme langue produit par defaut.
+- [ ] **Traduction utilisateur :** Preparer une couche EN sans deplacer la logique metier dans le frontend.
+- [ ] **Guide contextualise :** Ajouter des parcours/checklists relies aux pages et actions critiques.
+
+## ⚪ Phase 32 : Desktop/Tauri (Reportée)
+- [ ] **Shell Tauri :** Reprendre apres stabilisation Docker, Workflow Beta et i18n.
+- [ ] **Supervision services locaux :** Decider native binaries vs Docker containers.
+- [ ] **Installateurs Linux/Windows :** Priorite apres one-command Docker et guide utilisateur mature.
