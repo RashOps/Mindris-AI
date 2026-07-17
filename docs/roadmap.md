@@ -173,6 +173,11 @@
 - [x] **Derniere passe de coherence UI prioritaire :** Corriger les derniers ilots visuels sur Dashboard, CV Builder, History, Guide, Markdown, Tracker et Workflow.
 - [x] **Francais-first prioritaire :** Dashboard, CV Builder, Guide et History utilisent une copy produit coherente en francais.
 
+ADRs : [013](adr/013-runtime-gate-and-cv-builder-stabilization.md),
+[014](adr/014-workflow-beta-and-artifact-lineage.md),
+[015](adr/015-ui-simplification-theme-and-french-first.md),
+[017](adr/017-documentation-governance-and-desktop-deferral.md).
+
 ## 🟢 Phase 28 : Self-hosted Release Distribution (Terminée)
 - [x] **Compose release GHCR :** Ajouter `docker-compose.release.yml` avec images publiques versionnables.
 - [x] **Install one-command :** Ajouter `install_self_hosted.sh` pour installer sans cloner le depot.
@@ -180,6 +185,8 @@
 - [x] **GitHub Actions Docker release :** Publier `api-gateway`, `renderer` et `web` sur GHCR.
 - [x] **Fresh install WSL Debian :** Valider pull images, healthchecks, RuntimeGate endpoints et override de port `MINDRIS_WEB_PORT=3100`.
 - [x] **Cleanup test self-hosted :** Ajouter un script de nettoyage containers/images/volumes/network depuis la racine du repo.
+
+ADR : [016](adr/016-ghcr-one-command-self-hosting.md).
 
 ## 🔵 Phase 29 : Secondary Tools Simplification
 - [ ] **Markdown PDF + lettres persistantes :** Ouvrir une lettre existante, afficher `cover_letter_id`, sauvegarder une version et revenir a History/Workflow.

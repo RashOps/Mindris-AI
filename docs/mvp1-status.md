@@ -179,6 +179,9 @@ Resultat intermediaire : OK.
 Objectif : remettre l'application en coherence avec les contrats documentes et
 garder la logique metier hors frontend.
 
+ADRs : [`013`](adr/013-runtime-gate-and-cv-builder-stabilization.md),
+[`014`](adr/014-workflow-beta-and-artifact-lineage.md).
+
 Termine :
 
 - RuntimeGate corrige et revalide contre `/api/v1/system/ready` et `/ready`.
@@ -203,6 +206,8 @@ cd apps/web && bun run typecheck
 
 Objectif : reduire la surcharge du CV Builder et corriger les incoherences
 dark/light observees via Playwright.
+
+ADR : [`015`](adr/015-ui-simplification-theme-and-french-first.md).
 
 Termine :
 
@@ -233,6 +238,9 @@ Playwright Python :
 
 Objectif : rendre le projet installable sans clone et aligner la documentation
 publique avec le produit reel.
+
+ADRs : [`016`](adr/016-ghcr-one-command-self-hosting.md),
+[`017`](adr/017-documentation-governance-and-desktop-deferral.md).
 
 Termine :
 
