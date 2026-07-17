@@ -1,12 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { ArrowRight, BookOpen, CheckCircle2, Sparkles } from "lucide-react";
 
 import { GUIDE_SECTIONS } from "@/components/help/guide-content";
 
 export default function GuidePage() {
   const primaryFlow = GUIDE_SECTIONS.find(
-    (section) => section.title === "Recommended daily workflow",
+    (section) => section.title === "Parcours recommandé quotidien",
   );
 
   return (
@@ -17,7 +18,7 @@ export default function GuidePage() {
             <div className="space-y-5">
               <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
                 <Sparkles size={13} className="text-primary" />
-                Mindris Manual
+                Manuel Mindris
               </div>
               <div className="flex items-start gap-4">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
@@ -28,9 +29,8 @@ export default function GuidePage() {
                     Guide visuel pour utiliser Mindris efficacement
                   </h1>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    Un parcours opérationnel pour comprendre quoi faire, dans quel ordre,
-                    et où l’application garde ses frontières entre frontend, backend,
-                    renderer et stockage local.
+                    Des parcours guidés, checklists et repères visuels pour préparer
+                    une candidature sans se perdre dans les réglages avancés.
                   </p>
                 </div>
               </div>
@@ -100,6 +100,20 @@ export default function GuidePage() {
                   </div>
                 </div>
 
+                <div className="mt-4 rounded-xl border border-border bg-background p-3">
+                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    Checklist
+                  </p>
+                  <div className="space-y-2">
+                    {section.checklist.map((item) => (
+                      <div key={item} className="flex items-start gap-2 text-sm text-foreground">
+                        <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-emerald-500" />
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="mt-4 space-y-3">
                   {section.items.map((item, index) => (
                     <p
@@ -113,8 +127,18 @@ export default function GuidePage() {
 
                 {section.tips.length > 0 && (
                   <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-xs leading-5 text-primary">
-                    {section.tips[0]}
+                    Conseil : {section.tips[0]}
                   </div>
+                )}
+
+                {section.route && (
+                  <Link
+                    href={section.route}
+                    className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-primary no-underline hover:underline"
+                  >
+                    Ouvrir la surface associée
+                    <ArrowRight size={14} />
+                  </Link>
                 )}
               </section>
             );

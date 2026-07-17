@@ -21,20 +21,20 @@ const SUBJECT_OPTIONS: Array<{
     | "llm_run";
   label: string;
 }> = [
-  { id: "all", label: "All" },
-  { id: "job_scrape", label: "Jobs" },
-  { id: "resume_revision", label: "Revisions" },
-  { id: "cover_letter", label: "Letters" },
+  { id: "all", label: "Tous" },
+  { id: "job_scrape", label: "Offres" },
+  { id: "resume_revision", label: "Révisions" },
+  { id: "cover_letter", label: "Lettres" },
   { id: "ats_report", label: "ATS" },
   { id: "opportunity", label: "Workflow" },
   { id: "tracker_event", label: "Tracker" },
-  { id: "llm_run", label: "LLM runs" },
+  { id: "llm_run", label: "Runs LLM" },
 ];
 
 function formatTimestamp(value: string): string {
-  if (!value) return "Unknown";
+  if (!value) return "Inconnu";
   try {
-    return new Intl.DateTimeFormat("en", {
+    return new Intl.DateTimeFormat("fr-FR", {
       month: "short",
       day: "2-digit",
       hour: "2-digit",
@@ -48,19 +48,19 @@ function formatTimestamp(value: string): string {
 function subjectTone(subjectType: HistoryLedgerItem["subject_type"]): string {
   switch (subjectType) {
     case "ats_report":
-      return "bg-violet-50 text-violet-700 border-violet-200";
+      return "border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300";
     case "cover_letter":
-      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
     case "tracker_event":
-      return "bg-sky-50 text-sky-700 border-sky-200";
+      return "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300";
     case "opportunity":
-      return "bg-blue-50 text-blue-700 border-blue-200";
+      return "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300";
     case "resume_revision":
-      return "bg-amber-50 text-amber-700 border-amber-200";
+      return "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300";
     case "job_scrape":
-      return "bg-slate-100 text-slate-700 border-slate-200";
+      return "border-border bg-muted text-foreground";
     default:
-      return "bg-white text-slate-700 border-slate-200";
+      return "border-border bg-card text-foreground";
   }
 }
 
@@ -117,7 +117,7 @@ export default function HistoryPage() {
 
   const clearHistory = useCallback(async () => {
     const confirmed = window.confirm(
-      "Delete all history artifacts permanently? This clears jobs, ATS reports, cover letters, workflow events, tracker history, and resume revisions. Source resumes stay intact.",
+      "Supprimer définitivement tout l’historique ? Les offres, rapports ATS, lettres, événements Workflow, éléments Tracker et révisions seront supprimés. Les CV sources restent conservés.",
     );
     if (!confirmed) return;
 
@@ -134,7 +134,7 @@ export default function HistoryPage() {
       }
       setSelectedId(null);
       setItems([]);
-      setNotice("Unified history cleared permanently.");
+      setNotice("Historique unifié supprimé définitivement.");
       await load();
     } catch (clearError) {
       setError(
@@ -162,11 +162,11 @@ export default function HistoryPage() {
                 </div>
                 <div>
                   <h1 className="text-2xl font-semibold tracking-tight">
-                    Unified Activity History
+                    Historique d’activité
                   </h1>
                   <p className="text-sm text-muted-foreground">
-                    Chronological ledger of jobs, ATS reports, cover letters,
-                    revisions, tracker items, and model-backed runs.
+                    Journal chronologique des offres, rapports ATS, lettres,
+                    révisions, suivis Tracker et exécutions IA.
                   </p>
                 </div>
               </div>
@@ -177,13 +177,13 @@ export default function HistoryPage() {
                 type="button"
                 onClick={() => void clearHistory()}
                 disabled={clearing || loading || items.length === 0}
-                className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 transition-colors hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/15 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {clearing ? "Clearing..." : "Clear history"}
+                {clearing ? "Suppression..." : "Vider l’historique"}
               </button>
               <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
                 <Filter size={14} />
-                <span>Filter</span>
+                <span>Filtrer</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {SUBJECT_OPTIONS.map((option) => (
@@ -193,7 +193,7 @@ export default function HistoryPage() {
                     onClick={() => setSubjectType(option.id)}
                     className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
                       subjectType === option.id
-                        ? "border-slate-900 bg-slate-900 text-white"
+                        ? "border-primary bg-primary text-primary-foreground"
                         : "border-border bg-card text-muted-foreground hover:border-border hover:bg-accent hover:text-accent-foreground"
                     }`}
                   >
@@ -206,13 +206,13 @@ export default function HistoryPage() {
         </header>
 
         {error && (
-          <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             {error}
           </div>
         )}
 
         {notice && (
-          <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
             {notice}
           </div>
         )}
@@ -221,17 +221,17 @@ export default function HistoryPage() {
           <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
             <div className="border-b border-border px-4 py-3">
               <p className="text-sm font-semibold text-foreground">
-                Recent activity · {items.length}
+                Activité récente · {items.length}
               </p>
             </div>
             {loading ? (
               <div className="flex items-center gap-2 px-4 py-6 text-sm text-muted-foreground">
                 <Loader2 size={16} className="animate-spin" />
-                Loading activity ledger…
+                Chargement du journal…
               </div>
             ) : items.length === 0 ? (
               <div className="px-4 py-6 text-sm text-muted-foreground">
-                No activity available for this filter.
+                Aucune activité pour ce filtre.
               </div>
             ) : (
               <div className="max-h-[calc(100vh-18rem)] divide-y divide-border overflow-y-auto">
@@ -278,18 +278,18 @@ export default function HistoryPage() {
           <section className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
             <div className="border-b border-border px-4 py-3">
               <p className="text-sm font-semibold text-foreground">
-                Lineage details
+                Détails de lignée
               </p>
             </div>
             {!selectedItem ? (
               <div className="px-4 py-6 text-sm text-muted-foreground">
-                Select a ledger item to inspect its linked artifacts.
+                Sélectionne une ligne pour inspecter les artefacts liés.
               </div>
             ) : (
               <div className="max-h-[calc(100vh-10rem)] space-y-4 overflow-y-auto px-4 py-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Selected item
+                    Élément sélectionné
                   </p>
                   <p className="mt-2 text-lg font-semibold text-foreground">
                     {selectedItem.title}
@@ -307,15 +307,15 @@ export default function HistoryPage() {
                       Runtime
                     </p>
                     <p className="mt-2 text-sm text-foreground">
-                      Provider: {selectedItem.provider || "n/a"}
+                      Provider : {selectedItem.provider || "n/a"}
                     </p>
                     <p className="mt-1 text-sm text-foreground">
-                      Model: {selectedItem.model_name || "n/a"}
+                      Modèle : {selectedItem.model_name || "n/a"}
                     </p>
                   </div>
                   <div className="rounded-xl border border-border bg-muted/40 p-3">
                     <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Metadata
+                      Métadonnées
                     </p>
                     <div className="mt-2 space-y-1 text-sm text-muted-foreground">
                       {Object.entries(selectedItem.metadata).slice(0, 5).map(([key, value]) => (
@@ -330,11 +330,11 @@ export default function HistoryPage() {
 
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Linked artifacts
+                    Artefacts liés
                   </p>
                   {selectedItem.links.length === 0 ? (
                     <p className="mt-2 text-sm text-muted-foreground">
-                      No linked artifacts recorded for this item.
+                      Aucun artefact lié enregistré pour cet élément.
                     </p>
                   ) : (
                     <div className="mt-3 space-y-2">
