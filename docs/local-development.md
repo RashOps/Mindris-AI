@@ -1,6 +1,6 @@
 # Developpement local sans Docker
 
-Date : 24 juin 2026
+Date : 17 juillet 2026
 
 Ce workflow lance les trois services locaux sans Docker :
 
@@ -152,6 +152,60 @@ WEB_URL=http://localhost:3010 \
 ./scripts/smoke_local.sh
 ```
 
+## Audit visuel Playwright
+
+Quand `js_repl` n'est pas disponible dans l'environnement Codex, utiliser
+Playwright via Python.
+
+Regles de verification visuelle :
+
+- verifier la route modifiee en `1600x900` ;
+- verifier la meme route en `390x844` ;
+- inspecter overflow horizontal, alignements, contraste, spacing, etats vides
+  et interactions principales ;
+- stocker les captures temporaires dans `.screenshots/` ;
+- ne pas committer `.screenshots/`.
+
+Les derniers audits de consolidation ont couvert :
+
+- `/dashboard`
+- `/tools/cv-creator`
+- `/tools/markdown`
+- `/tools/tracker`
+- `/tools/workflow`
+- `/tools/history`
+- `/tools/guide`
+
+## Release self-hosted locale
+
+Pour valider le package release sans publier ni lancer les images :
+
+```bash
+MINDRIS_INSTALL_DRY_RUN=true scripts/install_self_hosted.sh
+```
+
+Pour valider la syntaxe des scripts release :
+
+```bash
+sh -n scripts/install_self_hosted.sh \
+  scripts/update_self_hosted.sh \
+  scripts/uninstall_self_hosted.sh \
+  scripts/smoke_release.sh \
+  scripts/clean_self_hosted_test.sh
+```
+
+Pour nettoyer un test release installe dans `~/.mindris-ai` :
+
+```bash
+./scripts/clean_self_hosted_test.sh
+```
+
+Avec suppression des donnees :
+
+```bash
+REMOVE_DATA=true ./scripts/clean_self_hosted_test.sh
+```
+
 ## Job navigateur manuel en CI
 
 Le workflow GitHub Actions expose aussi un job manuel `browser-e2e` via `workflow_dispatch`.
@@ -188,3 +242,7 @@ Si seuls les logs t'interessent, ne restaure pas `storage/`.
 
 Les scripts ne lisent pas le contenu de `.env` dans la sortie terminal et ne doivent pas afficher de secrets.
 Le dossier `logs/` est considere comme legacy local; les nouveaux flux utilisent `.logs/`.
+
+Ne pas partager la sortie de `docker compose config` si `.env` contient de
+vraies cles : Compose y developpe les secrets en clair. Utiliser les variantes
+`config --quiet` ou les scripts `doctor/smoke`.

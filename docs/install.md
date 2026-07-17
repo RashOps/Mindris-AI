@@ -39,6 +39,38 @@ API       http://localhost:8000
 Renderer  http://localhost:4000
 ```
 
+## Port 3000 déjà utilisé
+
+Si l'installation échoue avec une erreur du type
+`failed to bind host port 0.0.0.0:3000`, un autre service utilise déjà le port
+frontend.
+
+Change le port web dans `~/.mindris-ai/.env`, puis relance Compose :
+
+```bash
+cd "$HOME/.mindris-ai"
+
+if grep -q '^MINDRIS_WEB_PORT=' .env; then
+  sed -i 's/^MINDRIS_WEB_PORT=.*/MINDRIS_WEB_PORT=3100/' .env
+else
+  printf '\nMINDRIS_WEB_PORT=3100\n' >> .env
+fi
+
+docker compose up -d
+```
+
+L'application sera alors disponible sur :
+
+```text
+http://localhost:3100
+```
+
+Smoke test avec le port personnalisé :
+
+```bash
+MINDRIS_WEB_PORT=3100 "$HOME/.mindris-ai/smoke.sh"
+```
+
 ## Installation dans un autre dossier
 
 ```bash
@@ -104,6 +136,19 @@ Supprimer aussi les données locales :
 ```bash
 curl -fsSL https://raw.githubusercontent.com/RashOps/Mindris-AI/main/scripts/uninstall_self_hosted.sh \
   | MINDRIS_HOME="$HOME/.mindris-ai" REMOVE_DATA=true sh
+```
+
+Depuis un clone du dépôt, tu peux aussi nettoyer un test self-hosted complet :
+
+```bash
+./scripts/clean_self_hosted_test.sh
+```
+
+Ce script arrête le stack, supprime les conteneurs, réseaux, volumes Compose et
+images GHCR utilisées par Mindris. Pour supprimer aussi `~/.mindris-ai` :
+
+```bash
+REMOVE_DATA=true ./scripts/clean_self_hosted_test.sh
 ```
 
 ## Configuration
