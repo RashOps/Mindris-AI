@@ -2,322 +2,8 @@ import Handlebars from "handlebars";
 import { readFileSync } from "fs";
 import { join } from "path";
 
-// ── CSS Token Injection ───────────────────────────────────────────────────────
-
-/**
- * Build a :host { } override block from cv_data.global_settings.
- * Only properties explicitly set by the user are overridden.
- */
-function cssFontFamily(value: string): string {
-    const family = value.includes(" ") ? `'${value}'` : value;
-    return `${family}, sans-serif`;
-}
-
-type AdvancedCssConfig = {
-    enabled?: boolean;
-    mode?: "off" | "tokens" | "css_patch";
-    css_text?: string;
-};
-
-type SanitizedCssResult = {
-    css: string;
-    warnings: string[];
-};
-
-function sanitizeAdvancedCss(settings?: any): SanitizedCssResult {
-    const config = settings?.advanced_css as AdvancedCssConfig | undefined;
-    if (!config || config.enabled !== true || !config.css_text?.trim()) {
-        return { css: "", warnings: [] };
-    }
-
-    if (config.mode === "tokens") {
-        return sanitizeTokenCss(config.css_text);
-    }
-    if (config.mode !== "css_patch") {
-        return { css: "", warnings: [] };
-    }
-
-    const warnings: string[] = [];
-    const safeRules: string[] = [];
-    const rules = config.css_text
-        .split("}")
-        .map((chunk) => chunk.trim())
-        .filter(Boolean);
-
-    for (const rule of rules) {
-        const [selectorPart, declarationPart] = rule.split("{");
-        if (!selectorPart || !declarationPart) {
-            warnings.push("Dropped malformed CSS rule.");
-            continue;
-        }
-        const selectors = selectorPart
-            .split(",")
-            .map((selector) => selector.trim())
-            .filter(Boolean);
-        const safeSelectors = selectors.filter(isSafeShadowSelector);
-        if (!safeSelectors.length) {
-            warnings.push("Dropped unsupported selector outside the resume scope.");
-            continue;
-        }
-        const safeDeclarations = sanitizeDeclarations(declarationPart);
-        if (!safeDeclarations.length) {
-            warnings.push("Dropped unsafe declaration from advanced CSS.");
-            continue;
-        }
-        safeRules.push(`${safeSelectors.join(", ")} {\n${safeDeclarations.join("\n")}\n}`);
-        if (safeSelectors.length !== selectors.length) {
-            warnings.push("Dropped unsupported selector outside the resume scope.");
-        }
-    }
-
-    return { css: safeRules.join("\n\n"), warnings: dedupeWarnings(warnings) };
-}
-
-function sanitizeTokenCss(cssText: string): SanitizedCssResult {
-    const warnings: string[] = [];
-    const rules = cssText
-        .split("}")
-        .map((chunk) => chunk.trim())
-        .filter(Boolean);
-    const hostRules: string[] = [];
-
-    for (const rule of rules) {
-        const [selectorPart, declarationPart] = rule.split("{");
-        if (!selectorPart || !declarationPart) {
-            warnings.push("Dropped malformed CSS rule.");
-            continue;
-        }
-        if (selectorPart.trim() !== ":host") {
-            warnings.push("Token mode only accepts :host rules.");
-            continue;
-        }
-        const safeDeclarations = sanitizeDeclarations(declarationPart);
-        if (!safeDeclarations.length) {
-            warnings.push("Dropped unsafe declaration from advanced CSS.");
-            continue;
-        }
-        hostRules.push(`:host {\n${safeDeclarations.join("\n")}\n}`);
-    }
-
-    return { css: hostRules.join("\n\n"), warnings: dedupeWarnings(warnings) };
-}
-
-function sanitizeDeclarations(rawDeclarations: string): string[] {
-    return rawDeclarations
-        .split(";")
-        .map((declaration) => declaration.trim())
-        .filter(Boolean)
-        .filter((declaration) => {
-            const lowered = declaration.toLowerCase();
-            return !(
-                lowered.includes("url(") ||
-                lowered.includes("expression(") ||
-                lowered.includes("javascript:") ||
-                lowered.includes("@import")
-            );
-        })
-        .map((declaration) => `  ${declaration};`);
-}
-
-function isSafeShadowSelector(selector: string): boolean {
-    const normalized = selector.trim().toLowerCase();
-    if (!normalized) return false;
-    if (normalized === ":host") return true;
-    if (
-        normalized.includes("html") ||
-        normalized.includes("body") ||
-        normalized.includes(":root") ||
-        normalized.includes("script") ||
-        normalized.includes("iframe")
-    ) {
-        return false;
-    }
-    return (
-        normalized.startsWith(".") ||
-        normalized.startsWith("[data-") ||
-        normalized.startsWith(":host")
-    );
-}
-
-function dedupeWarnings(warnings: string[]): string[] {
-    return Array.from(new Set(warnings));
-}
-
-function buildTokenOverrides(settings?: any): string {
-    if (!settings || typeof settings !== "object") return "";
-
-    const props: string[] = [];
-    const typography = settings.typography ?? {};
-    const colors = settings.colors ?? {};
-    const page = settings.page ?? {};
-    const layout = settings.layout ?? {};
-    const onePageChallenge = page.one_page_challenge === true;
-
-    const primaryColor = colors.primary ?? settings.primary_color;
-    if (primaryColor)
-        props.push(`  --primary-color: ${primaryColor};`);
-    if (colors.secondary)
-        props.push(`  --secondary-color: ${colors.secondary};`);
-    if (colors.text)
-        props.push(`  --text-color: ${colors.text};`);
-    if (colors.heading)
-        props.push(`  --heading-color: ${colors.heading};`);
-    if (colors.sidebar_background)
-        props.push(`  --sidebar-background: ${colors.sidebar_background};`);
-    if (colors.separators)
-        props.push(`  --separator-color: ${colors.separators};`);
-    if (colors.monochrome) {
-        props.push(`  --primary-color: ${colors.heading ?? "#111827"};`);
-        props.push(`  --secondary-color: ${colors.text ?? "#475569"};`);
-        props.push(`  --sidebar-background: #ffffff;`);
-    }
-
-    const bodyFont = typography.body_font ?? settings.font_family;
-    if (bodyFont) {
-        props.push(`  --font-family: ${cssFontFamily(bodyFont)};`);
-    }
-    if (typography.heading_font)
-        props.push(`  --heading-font-family: ${cssFontFamily(typography.heading_font)};`);
-    if (typography.base_size ?? settings.font_size)
-        props.push(`  --font-size-base: ${typography.base_size ?? settings.font_size};`);
-    if (typography.heading_scale)
-        props.push(`  --heading-scale: ${typography.heading_scale};`);
-    if (typography.weight)
-        props.push(`  --body-font-weight: ${typography.weight};`);
-    if (typeof typography.titles_uppercase === "boolean") {
-        props.push(
-            `  --section-title-transform: ${typography.titles_uppercase ? "uppercase" : "none"};`,
-        );
-    }
-
-    if (typography.line_height ?? settings.line_height)
-        props.push(`  --line-height: ${typography.line_height ?? settings.line_height};`);
-    if (typography.date_style === "italic")
-        props.push(`  --date-font-style: italic;`);
-    if (typography.date_style === "small")
-        props.push(`  --date-font-size: calc(var(--font-size-base) * 0.78);`);
-    if (typography.date_style === "right") {
-        props.push(`  --date-text-align: right;`);
-        props.push(`  --date-display: block;`);
-    }
-    if (typography.bullet_style === "dash")
-        props.push(`  --description-bullet-indent: 0.8em;`);
-    if (typography.bullet_style === "dots")
-        props.push(`  --description-bullet-indent: 1em;`);
-    if (typography.bullet_style === "icons")
-        props.push(`  --description-bullet-indent: 1.2em;`);
-
-    // Spacing — prefer granular tokens, fall back to margin_page
-    if (page.margins?.horizontal)
-        props.push(`  --margin-page-h: ${page.margins.horizontal};`);
-    else if (settings.margin_h)
-        props.push(`  --margin-page-h: ${settings.margin_h};`);
-    else if (settings.margin_page)
-        props.push(`  --margin-page-h: ${settings.margin_page};`);
-
-    if (page.margins?.vertical)
-        props.push(`  --margin-page-v: ${page.margins.vertical};`);
-    else if (settings.margin_v)
-        props.push(`  --margin-page-v: ${settings.margin_v};`);
-    else if (settings.margin_page)
-        props.push(`  --margin-page-v: ${settings.margin_page};`);
-
-    if (settings.entry_spacing)
-        props.push(`  --entry-spacing: ${settings.entry_spacing};`);
-
-    // Layout — column width & placement
-    const sidebarWidth =
-        layout.sidebar_width ??
-        (settings.col_left_width ? `${settings.col_left_width}%` : "35%");
-    if (layout.columns === 1 || layout.sidebar_position === "none") {
-        props.push(`  --col-left-width: 100%;`);
-        props.push(`  --grid-template-columns: 1fr;`);
-        props.push(`  --main-column: 1;`);
-        props.push(`  --sidebar-column: 1;`);
-    } else if (layout.sidebar_position === "left" || settings.col_swap === "true") {
-        props.push(`  --col-left-width: ${sidebarWidth};`);
-        props.push(`  --grid-template-columns: ${sidebarWidth} 1fr;`);
-        props.push(`  --main-column: 2;`);
-        props.push(`  --sidebar-column: 1;`);
-    } else {
-        props.push(`  --col-left-width: ${sidebarWidth};`);
-        props.push(`  --grid-template-columns: 1fr ${sidebarWidth};`);
-        props.push(`  --main-column: 1;`);
-        props.push(`  --sidebar-column: 2;`);
-    }
-
-    if (layout.header_alignment)
-        props.push(`  --header-text-align: ${layout.header_alignment};`);
-    if (layout.density)
-        props.push(`  --resume-density: ${layout.density};`);
-    if (!settings.entry_spacing) {
-        const densitySpacing =
-            layout.density === "compact"
-                ? "16px"
-                : layout.density === "student"
-                  ? "18px"
-                  : layout.density === "senior"
-                    ? "24px"
-                    : "20px";
-        props.push(`  --entry-spacing: ${densitySpacing};`);
-    }
-
-    if (onePageChallenge) {
-        props.push(`  --font-size-base: ${smallerCssSize(typography.base_size ?? settings.font_size, "11.5px")};`);
-        props.push(`  --line-height: ${smallerLineHeight(typography.line_height ?? settings.line_height, "1.35")};`);
-        props.push(`  --margin-page-h: ${smallerCssSize(page.margins?.horizontal ?? settings.margin_h ?? "64px", "36px")};`);
-        props.push(`  --margin-page-v: ${smallerCssSize(page.margins?.vertical ?? settings.margin_v ?? "48px", "28px")};`);
-        props.push(`  --entry-spacing: ${smallerCssSize(settings.entry_spacing ?? "20px", "10px")};`);
-        props.push(`  --resume-density: compact;`);
-        props.push(`  --section-title-spacing: 5px;`);
-    }
-
-    const blocks: string[] = [];
-    if (props.length) {
-        blocks.push(`:host {\n${props.join("\n")}\n}`);
-    }
-    if (onePageChallenge) {
-        blocks.push(`
-.one-page-warning {
-  display: block;
-  margin: 0 0 14px;
-  padding: 10px 12px;
-  border: 1px solid #f59e0b;
-  border-radius: 10px;
-  background: #fffbeb;
-  color: #92400e;
-  font-size: 11px;
-  line-height: 1.4;
-}
-@media print {
-  .one-page-warning {
-    display: none;
-  }
-}
-`);
-    }
-    return blocks.join("\n\n");
-}
-
-function smallerCssSize(current: string, fallback: string): string {
-    const currentValue = numericPrefix(current);
-    const fallbackValue = numericPrefix(fallback);
-    if (currentValue === null || fallbackValue === null) return fallback;
-    return currentValue <= fallbackValue ? current : fallback;
-}
-
-function smallerLineHeight(current: string, fallback: string): string {
-    const currentValue = Number.parseFloat(current);
-    const fallbackValue = Number.parseFloat(fallback);
-    if (Number.isNaN(currentValue) || Number.isNaN(fallbackValue)) return fallback;
-    return currentValue <= fallbackValue ? current : fallback;
-}
-
-function numericPrefix(value: string): number | null {
-    const candidate = String(value).trim().replace(/(px|%)$/, "");
-    const parsed = Number.parseFloat(candidate);
-    return Number.isNaN(parsed) ? null : parsed;
-}
+import { sanitizeAdvancedCss } from "./css/sanitizer";
+import { buildTokenOverrides } from "./css/tokens";
 
 const shellTemplate = Handlebars.compile(`<!DOCTYPE html>
 <html lang="fr">
@@ -381,6 +67,7 @@ type SectionConfig = {
     visible?: boolean;
     placement?: "main" | "sidebar";
     display_mode?: string;
+    detail_level?: string;
     show_dates?: boolean;
     show_locations?: boolean;
 };
@@ -408,6 +95,71 @@ function configuredSections(cvData: any): SectionConfig[] {
         ? configured
         : DEFAULT_SECTIONS;
 }
+
+const dynamicSectionCss = `
+.main-grid {
+    display: grid;
+    grid-template-columns: var(--grid-template-columns, var(--col-left-width, 65%) 1fr);
+    gap: var(--section-gap, 28px);
+    align-items: start;
+}
+
+.section-placement-main {
+    grid-column: var(--main-column, 1);
+}
+
+.section-placement-sidebar {
+    grid-column: var(--sidebar-column, 2);
+}
+
+.section-display-compact .item,
+.section-display-compact .skill-group,
+.section-display-compact .lang-item {
+    margin-bottom: calc(var(--entry-spacing, 16px) * 0.65);
+    padding-bottom: calc(var(--entry-spacing, 16px) * 0.65);
+}
+
+.section-display-cards .item,
+.section-display-cards .skill-group {
+    border: 1px solid var(--separator-color, #e2e8f0);
+    border-radius: 10px;
+    background: #ffffff;
+    padding: 10px;
+}
+
+.section-display-timeline .item {
+    position: relative;
+    border-left: 2px solid var(--separator-color, #e2e8f0);
+    padding-left: 14px;
+}
+
+.section-display-timeline .item::before {
+    content: "";
+    position: absolute;
+    top: 0.45em;
+    left: -5px;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--primary-color, #2563eb);
+}
+
+.section-detail-short .description,
+.section-detail-short .keyword-tags {
+    display: none;
+}
+
+.section-detail-detailed .description {
+    white-space: pre-line;
+}
+
+@media print {
+    .main-grid {
+        display: grid;
+        grid-template-columns: var(--grid-template-columns, var(--col-left-width, 65%) 1fr);
+    }
+}
+`;
 
 function renderContact(profile: any): string {
     const contacts = [
@@ -444,7 +196,9 @@ function renderHeader(cvData: any): string {
 function sectionShell(section: SectionConfig, content: string): string {
     if (!content) return "";
     const placement = section.placement || "main";
-    return `<section class="section section-placement-${placement}" data-section-type="${html(section.type)}" data-section-placement="${html(placement)}">
+    const displayMode = section.display_mode || "list";
+    const detailLevel = section.detail_level || "normal";
+    return `<section class="section section-placement-${placement} section-display-${html(displayMode)} section-detail-${html(detailLevel)}" data-section-type="${html(section.type)}" data-section-placement="${html(placement)}" data-section-display-mode="${html(displayMode)}" data-section-detail-level="${html(detailLevel)}">
       <h2 class="section-title">${html(section.label)}</h2>
       ${content}
     </section>`;
@@ -940,6 +694,7 @@ export function generateHtml(cvData: any, templateId: string = "modern"): string
 
     // Append user token overrides — these win the cascade inside Shadow DOM
     const tokenOverrides = buildTokenOverrides(cvData?.global_settings);
+    css += `\n\n/* ── Dynamic Section Layout Contract ── */\n${dynamicSectionCss}`;
     if (tokenOverrides) css += `\n\n/* ── User Design Tokens ── */\n${tokenOverrides}`;
     if (advancedCss.css) {
         css += `\n\n/* ── Advanced CSS Patch ── */\n${advancedCss.css}`;

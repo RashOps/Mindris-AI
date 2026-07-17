@@ -1,0 +1,58 @@
+services:
+  api-gateway:
+    image: ${MINDRIS_API_IMAGE:-ghcr.io/rashops/mindris-ai-api-gateway}:${MINDRIS_VERSION:-latest}
+    restart: unless-stopped
+    ports:
+      - "${MINDRIS_API_PORT:-8000}:8000"
+    env_file:
+      - .env
+    environment:
+      API_KEY: ${API_KEY:-dev-mindris-api-key}
+      RENDERER_URL: http://renderer:4000
+      STORAGE_DIR: /app/storage
+      LOGS_DIR: /app/logs
+      CHROMA_DB_DIR: /app/storage/vectordb
+    volumes:
+      - ./storage:/app/storage
+      - ./logs:/app/logs
+    depends_on:
+      renderer:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/system/ready', timeout=5).read()"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  renderer:
+    image: ${MINDRIS_RENDERER_IMAGE:-ghcr.io/rashops/mindris-ai-renderer}:${MINDRIS_VERSION:-latest}
+    restart: unless-stopped
+    ports:
+      - "${MINDRIS_RENDERER_PORT:-4000}:4000"
+    healthcheck:
+      test: ["CMD", "bun", "-e", "const r = await fetch('http://127.0.0.1:4000/ready'); if (!r.ok) process.exit(1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  web:
+    image: ${MINDRIS_WEB_IMAGE:-ghcr.io/rashops/mindris-ai-web}:${MINDRIS_VERSION:-latest}
+    restart: unless-stopped
+    ports:
+      - "${MINDRIS_WEB_PORT:-3000}:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      NEXT_PUBLIC_RENDERER_URL: ${NEXT_PUBLIC_RENDERER_URL:-http://localhost:4000}
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+      renderer:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "bun", "-e", "const r = await fetch('http://127.0.0.1:3000/'); if (!r.ok) process.exit(1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s

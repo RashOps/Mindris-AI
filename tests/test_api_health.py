@@ -48,7 +48,7 @@ def test_runtime_metrics_are_public_and_include_readiness_and_request_stats() ->
 
 
 def test_api_key_required_for_llm_catalogue() -> None:
-    api = client()
+    api = client(client_host="198.51.100.25", base_url="http://mindris.example")
     unauthorized = api.get("/api/v1/llm/catalogue")
     assert unauthorized.status_code == 401
     assert unauthorized.json()["status"] == "error"
@@ -56,14 +56,33 @@ def test_api_key_required_for_llm_catalogue() -> None:
     assert api.get("/api/v1/llm/catalogue", headers=auth_headers()).status_code == 200
 
 
-def test_llm_catalogue_accepts_api_key_query_for_sse_compat() -> None:
+def test_llm_catalogue_accepts_local_loopback_without_browser_key() -> None:
     api = client()
-    response = api.get("/api/v1/llm/catalogue?api_key=dev-mindris-api-key")
+    response = api.get("/api/v1/llm/catalogue")
     assert response.status_code == 200
     payload = response.json()
     assert "providers" in payload
     assert payload["providers"]["ollama"]["mode"] == "local"
     assert payload["providers"]["groq"]["mode"] == "cloud"
+
+
+def test_llm_catalogue_rejects_query_string_credentials() -> None:
+    api = client(client_host="198.51.100.25", base_url="http://mindris.example")
+    response = api.get("/api/v1/llm/catalogue?api_key=dev-mindris-api-key")
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Local loopback access or X-API-Key required."
+
+
+def test_public_auth_mode_documents_local_vs_hosted_boundary() -> None:
+    api = client()
+    response = api.get("/api/v1/system/auth-mode")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "success"
+    assert payload["item"]["mode"] == "local_browser_or_api_key"
+    assert payload["item"]["query_string_credentials"] is False
+    assert payload["item"]["browser_loopback_enabled"] is True
 
 
 def test_invalid_provider_or_model_is_rejected() -> None:

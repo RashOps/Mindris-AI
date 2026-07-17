@@ -9,7 +9,8 @@ from database.session import Session, engine
 from fastapi import APIRouter, BackgroundTasks, Request
 from intelligence.event_bus import create_job_queue, emit, stream_events
 from monitoring import monitor
-from persistence import dump_json, save_job_offer
+from persistence import save_job_offer
+from persistence_lib.json import dump_json
 from schemas import OptimizationResponse, OptimizeRequest
 from sse_starlette.sse import EventSourceResponse
 from utils.config import settings
@@ -109,15 +110,17 @@ async def run_intelligence_pipeline(
             return
 
         company_insight = None
+        job_record_id: int | None = None
         with Session(engine) as session:
             job_record = save_job_offer(session, job_offer)
+            job_record_id = job_record.id
             try:
                 company_insight = await asyncio.wait_for(
                     analyze_company(
                         job_offer.company,
                         provider,
                         model_name,
-                        source_url=str(request.job_url),
+                        source_url=job_url,
                         evidence_text=job_offer.description_markdown,
                     ),
                     timeout=settings.service_timeout_seconds,
@@ -153,6 +156,8 @@ async def run_intelligence_pipeline(
             "score": 0,
             "iterations": 0,
             "job_id": job_id,
+            "job_record_id": job_record_id,
+            "source_url": job_url,
         }
         loop = asyncio.get_running_loop()
         try:

@@ -19,12 +19,14 @@ from persistence import (
     link_opportunity_cover_letter,
     link_opportunity_resume,
     mark_opportunity_ready_to_apply,
+    repair_opportunity_integrity,
     serialize_opportunity,
 )
 from schemas import (
     OpportunityAtsLinkRequest,
     OpportunityCoverLetterLinkRequest,
     OpportunityCreateRequest,
+    OpportunityRepairRequest,
     OpportunityResumeLinkRequest,
     OpportunityTrackerLinkRequest,
 )
@@ -118,7 +120,10 @@ def get_opportunity_route(opportunity_id: int, session: SessionDep) -> dict:
     """Return one workflow opportunity."""
     return {
         "status": "success",
-        "item": serialize_opportunity(session, _get_opportunity(session, opportunity_id)),
+        "item": serialize_opportunity(
+            session,
+            _get_opportunity(session, opportunity_id),
+        ),
     }
 
 
@@ -158,7 +163,11 @@ def link_ats_route(
     if not ats_report:
         raise HTTPException(status_code=404, detail="ATS report not found.")
     _validate_job_alignment(record, ats_report.job_id, "ATS report")
-    logger.info("Linking ATS report %s to opportunity %s", ats_report.id, opportunity_id)
+    logger.info(
+        "Linking ATS report %s to opportunity %s",
+        ats_report.id,
+        opportunity_id,
+    )
     link_opportunity_ats_report(session, record, ats_report=ats_report)
     return {"status": "success", "item": serialize_opportunity(session, record)}
 
@@ -219,6 +228,26 @@ def mark_ready_route(opportunity_id: int, session: SessionDep) -> dict:
     logger.info("Marking opportunity %s ready to apply", opportunity_id)
     try:
         mark_opportunity_ready_to_apply(session, record)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"status": "success", "item": serialize_opportunity(session, record)}
+
+
+@router.post("/opportunities/{opportunity_id}/repair")
+def repair_opportunity_route(
+    opportunity_id: int,
+    request: OpportunityRepairRequest,
+    session: SessionDep,
+) -> dict:
+    """Execute one bounded integrity repair action on an opportunity."""
+    record = _get_opportunity(session, opportunity_id)
+    logger.info(
+        "Repairing opportunity %s with action=%s",
+        opportunity_id,
+        request.action,
+    )
+    try:
+        repair_opportunity_integrity(session, record, action=request.action)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return {"status": "success", "item": serialize_opportunity(session, record)}

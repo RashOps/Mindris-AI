@@ -1,2 +1,9 @@
 model_verbosity = "low"
 model_reasoning_summary = "none"
+js_repl = true
+
+[features]
+browser_use = true
+browser_use_external = true
+browser_use_full_cdp_access = true
+in_app_browser = true

@@ -26,6 +26,14 @@ Le shell fournit :
 - navigation mobile ;
 - rappel des ports locaux.
 
+Le shell et le guide produit doivent decrire le runtime reel :
+
+- local-first ;
+- frontend client-only ;
+- etat et secrets backend-owned ;
+- acces navigateur local via loopback ;
+- appels externes via `X-API-Key`.
+
 ## Primitives
 
 Primitives ajoutees :
@@ -40,12 +48,42 @@ Ces composants doivent etre preferes aux headers, sidebars et panneaux crees loc
 
 ## Regles visuelles
 
-- UI produit claire par defaut.
-- Surfaces sombres reservees aux previews, logs, editeurs et consoles.
+- Le theme est determine a l'ouverture par `mindris-theme`, sinon par la preference systeme.
+- Le bootstrap theme doit s'appliquer avant hydratation via le root layout.
+- Le shell, les formulaires et les panneaux produit utilisent des tokens semantiques, pas des couleurs locales.
+- UI produit claire ou sombre selon le theme actif.
+- Surfaces sombres reservees aux previews, logs, editeurs et consoles specifiques si elles ne suivent pas encore les tokens de base.
 - Rayon standard : `rounded-lg`.
 - Navigation avec icones `lucide-react`, pas d'emojis.
 - Actions compactes avec boutons standards.
 - Pas de page tool avec logo/header produit duplique : le shell est responsable du chrome.
+
+## Classes de base
+
+Les surfaces et champs frequents doivent preferer :
+
+- `.app-page`
+- `.app-surface`
+- `.app-surface-muted`
+- `.app-header-surface`
+- `.app-input`
+- `.app-select`
+- `.app-textarea`
+- `.app-toolbar-button`
+- `.app-toolbar-button-active`
+
+Ces classes definissent le contrat minimum entre light/dark mode, lisibilite, focus et hover.
+
+## Configuration
+
+La surface `Configuration` doit rester backend-owned et etre organisee par intentions distinctes :
+
+- `Task model defaults` pour les modeles/task routing
+- `Ingestion and local runtime` pour les toggles runtime non sensibles
+- `Runtime diagnostics` pour l'etat local et les chemins d'operation
+- `Secret slots` pour les cles write-only
+
+Les secrets, diagnostics et defaults ne doivent plus etre presentes comme un seul bloc uniforme.
 
 ## Verification
 

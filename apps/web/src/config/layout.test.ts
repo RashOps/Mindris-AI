@@ -1,21 +1,67 @@
 import { describe, expect, test } from "bun:test";
 
-import { APP_SIDEBAR_SECTIONS } from "./layout";
+import {
+  APP_NAV_ITEMS,
+  APP_SIDEBAR_SECTIONS,
+  nextDesktopSidebarCompactState,
+  SIDEBAR_WIDTH_COMPACT,
+  resolveDesktopSidebarLayout,
+  SIDEBAR_WIDTH_EXPANDED,
+} from "./layout";
 
 describe("app shell sidebar layout", () => {
+  test("exposes guide as a first-class tool route instead of a drawer-only utility", () => {
+    const guide = APP_NAV_ITEMS.find((item) => item.id === "guide");
+
+    expect(guide?.href).toBe("/tools/guide");
+    expect(guide?.label).toBe("Guide");
+    expect(guide?.description).toContain("workflow");
+  });
+
+  test("keeps workflow name separate from its beta status badge", () => {
+    const workflow = APP_NAV_ITEMS.find((item) => item.id === "workflow");
+
+    expect(workflow?.label).toBe("Workflow");
+    expect(workflow?.shortLabel).toBe("Flow");
+    expect(workflow?.badge).toBe("Beta");
+  });
+
   test("places configuration above local services", () => {
     const ids = APP_SIDEBAR_SECTIONS.map((section) => section.id);
 
     expect(ids).toContain("configuration");
     expect(ids).toContain("local-services");
-    expect(ids.indexOf("configuration") < ids.indexOf("local-services")).toBe(true);
+    expect(ids.indexOf("configuration") < ids.indexOf("local-services")).toBe(
+      true,
+    );
   });
 
   test("keeps configuration visible as an icon entry when the sidebar collapses", () => {
-    const configuration = APP_SIDEBAR_SECTIONS.find((section) => section.id === "configuration");
-    const localServices = APP_SIDEBAR_SECTIONS.find((section) => section.id === "local-services");
+    const configuration = APP_SIDEBAR_SECTIONS.find(
+      (section) => section.id === "configuration",
+    );
+    const localServices = APP_SIDEBAR_SECTIONS.find(
+      (section) => section.id === "local-services",
+    );
 
     expect(configuration?.collapseMode).toBe("icon");
     expect(localServices?.collapseMode).toBe("hidden");
+  });
+
+  test("keeps desktop content reserve width stable when the sidebar compacts", () => {
+    const expanded = resolveDesktopSidebarLayout(false);
+    const compact = resolveDesktopSidebarLayout(true);
+
+    expect(expanded.reserveWidth).toBe(SIDEBAR_WIDTH_EXPANDED);
+    expect(compact.reserveWidth).toBe(SIDEBAR_WIDTH_COMPACT);
+    expect(expanded.asideWidth).toBe(SIDEBAR_WIDTH_EXPANDED);
+    expect(compact.asideWidth).toBe(SIDEBAR_WIDTH_COMPACT);
+  });
+
+  test("keeps auto-collapse behavior independent from layout reserve width", () => {
+    expect(nextDesktopSidebarCompactState(true, "pointer-enter")).toBe(false);
+    expect(nextDesktopSidebarCompactState(false, "pointer-leave")).toBe(true);
+    expect(nextDesktopSidebarCompactState(true, "focus-enter")).toBe(false);
+    expect(nextDesktopSidebarCompactState(false, "manual-toggle")).toBe(true);
   });
 });

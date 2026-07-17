@@ -27,7 +27,9 @@ def test_opportunity_tables_exist_after_migration() -> None:
         }
         opportunity_columns = {
             row[1]
-            for row in session.execute(text("PRAGMA table_info(opportunityrecord)")).all()
+            for row in session.execute(
+                text("PRAGMA table_info(opportunityrecord)")
+            ).all()
         }
         transition_columns = {
             row[1]
@@ -94,3 +96,36 @@ def test_application_reminder_table_exists_after_migration() -> None:
         "created_at",
         "updated_at",
     } <= reminder_columns
+
+
+def test_llm_run_table_exists_after_migration() -> None:
+    client()
+    with SessionLocal() as session:
+        tables = {
+            row[0]
+            for row in session.execute(
+                text("SELECT name FROM sqlite_master WHERE type='table'")
+            ).all()
+        }
+        columns = {
+            row[1]
+            for row in session.execute(text("PRAGMA table_info(llmrunrecord)")).all()
+        }
+
+    assert "llmrunrecord" in tables
+    assert {
+        "id",
+        "task_key",
+        "provider",
+        "model_name",
+        "prompt_version",
+        "input_hash",
+        "output_artifact_type",
+        "output_artifact_id",
+        "status",
+        "error_message",
+        "duration_ms",
+        "fallback_used",
+        "metadata_json",
+        "created_at",
+    } <= columns

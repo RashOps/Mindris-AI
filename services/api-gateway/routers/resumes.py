@@ -16,19 +16,18 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from persistence import (
     activate_resume_locale_variant,
     compare_resume_revisions,
-    create_resume_locale_variant,
     create_resume,
+    create_resume_locale_variant,
     create_resume_revision,
     delete_resume_locale_variant,
-    dump_json,
     get_resume_revision,
     list_resume_revisions,
     localized_resume_record,
-    load_json,
     serialize_resume,
     serialize_resume_revision,
     update_resume,
 )
+from persistence_lib.json import dump_json, load_json
 from routers.templates import apply_template_defaults
 from schemas import (
     CVDataModel,

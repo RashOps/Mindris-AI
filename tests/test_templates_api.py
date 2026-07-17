@@ -5,6 +5,7 @@ from io import BytesIO
 from zipfile import ZIP_DEFLATED, ZipFile
 
 import pytest
+from conftest import auth_headers, client
 from database.session import SessionLocal, init_db
 from fastapi import HTTPException
 from routers.templates import (
@@ -17,8 +18,10 @@ from routers.templates import (
     list_customization_catalogue,
     list_templates,
     resolve_template_defaults,
+    resolve_template_render_payload_route,
     router,
 )
+from schemas import TemplateRenderPayloadRequest
 
 VALID_PREVIEW_PNG = (
     b"\x89PNG\r\n\x1a\n"
@@ -29,6 +32,32 @@ VALID_PREVIEW_PNG = (
     b"\xef\x9c'\xa9"
     b"\x00\x00\x00\x00IEND\xaeB`\x82"
 )
+
+
+def _cv_payload(template_id: str = "modern") -> dict:
+    return {
+        "global_settings": {"template_id": template_id},
+        "profile": {
+            "full_name": "Ada Lovelace",
+            "title": "AI Engineer",
+            "phone": "",
+            "email": "ada@example.com",
+            "location": {"city": "Paris", "country": "France"},
+            "socials": [],
+            "text_markdown": "",
+        },
+        "experience": [],
+        "education": [],
+        "skills": [],
+        "projects": [],
+        "languages": [],
+        "hobbies": [],
+        "certifications": [],
+        "volunteering": [],
+        "publications": [],
+        "references": [],
+        "custom_sections": [],
+    }
 
 
 def test_template_catalog_lists_ready_templates() -> None:
@@ -74,6 +103,23 @@ def test_customization_catalogue_exposes_backend_owned_options() -> None:
     assert options["locale"]["languages"] == ["fr", "en", "de", "es"]
     assert options["locale"]["directions"] == ["ltr", "rtl"]
     assert options["templates"]["ats"]["enforced"]["layout"]["columns"] == 1
+
+
+def test_resolve_render_payload_applies_backend_template_defaults() -> None:
+    with _session() as session:
+        response = resolve_template_render_payload_route(
+            TemplateRenderPayloadRequest(
+                template_id="opensource",
+                cv_data=_cv_payload("opensource"),
+            ),
+            session,
+        )
+
+    item = response["item"]
+    assert item["template_id"] == "modern"
+    assert item["cv_data"]["global_settings"]["template_id"] == "modern"
+    assert item["cv_data"]["global_settings"]["colors"]["palette_preset"] == "tech"
+    assert item["cv_data"]["global_settings"]["locale"]["label_language"] == "en"
 
 
 def _template_package_bytes(
@@ -173,6 +219,17 @@ def test_template_package_inspection_rejects_oversized_stylesheet() -> None:
     assert "styles.css" in str(exc_info.value.detail).lower()
 
 
+def test_template_package_inspection_rejects_unsafe_stylesheet_constructs() -> None:
+    with pytest.raises(HTTPException) as exc_info:
+        inspect_template_package(
+            _template_package_bytes(
+                stylesheet="@import url('https://evil.test/malware.css');"
+            )
+        )
+    assert exc_info.value.status_code == 422
+    assert "styles.css" in str(exc_info.value.detail).lower()
+
+
 def _session():
     init_db()
     return SessionLocal()
@@ -187,6 +244,24 @@ def test_template_package_import_persists_installed_template() -> None:
 
         items = list_templates(session)["items"]
         assert any(item["id"] == "mindris/community-open-source" for item in items)
+
+
+def test_template_package_import_route_rejects_invalid_content_type() -> None:
+    api = client()
+    response = api.post(
+        "/api/v1/templates/import",
+        headers=auth_headers(),
+        files={
+            "file": (
+                "community-template.mindris-template",
+                BytesIO(_template_package_bytes()),
+                "text/plain",
+            )
+        },
+    )
+
+    assert response.status_code == 422
+    assert "content type" in str(response.json()["message"]).lower()
 
 
 def test_template_package_export_round_trip_preserves_manifest() -> None:

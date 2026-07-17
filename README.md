@@ -1,178 +1,39 @@
-<div align="center">
+# Mindris AI
 
-# 🧠 Mindris AI
+Mindris AI est un studio local-first pour préparer une candidature complète :
+importer un CV, analyser une offre, adapter le contenu, générer les artefacts
+utiles, exporter un PDF propre et suivre l’opportunité.
 
-**AI-Powered Job Intelligence Platform**
+Le navigateur reste un client. Les décisions métier, secrets, historiques,
+exports et orchestrations IA sont backend-owned.
 
-[![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
-[![uv](https://img.shields.io/badge/uv-workspace-DE5FE9?style=for-the-badge&logo=uv&logoColor=white)](https://docs.astral.sh/uv/)
-[![Ruff](https://img.shields.io/badge/ruff-passing-30173D?style=for-the-badge&logo=ruff&logoColor=white)](https://docs.astral.sh/ruff/)
-[![CrewAI](https://img.shields.io/badge/CrewAI-agents-FF6B35?style=for-the-badge)](https://www.crewai.com/)
-[![Ollama](https://img.shields.io/badge/Ollama-Gemma4-000000?style=for-the-badge&logo=ollama&logoColor=white)](https://ollama.com/)
-[![Playwright](https://img.shields.io/badge/Playwright-stealth-2EAD33?style=for-the-badge&logo=playwright&logoColor=white)](https://playwright.dev/)
-[![License](https://img.shields.io/github/license/RashOps/Mindris-AI?style=for-the-badge)](LICENSE)
+## Ce que fait l’application
 
-*Scrape job offers from the web, extract structured intelligence with local AI — 100% offline, 100% private.*
+- CV Builder avec modes Simple, Normal et Avancé.
+- Parsing de CV PDF via le backend.
+- Scraping d’offres avec Playwright et stratégie de fallback.
+- Analyse ATS avec historique persistant.
+- Génération de lettres de motivation avec historique et versions.
+- Markdown to PDF / DOCX pour éditer et exporter des documents.
+- Tracker de candidatures.
+- Workflow Beta pour relier job, CV, ATS, lettre et tracker.
+- History ledger pour auditer les artefacts et runs IA.
+- Renderer Bun/Puppeteer pour produire les exports HTML/PDF.
+- Configuration locale des providers IA, defaults et diagnostics runtime.
 
----
+## Installation rapide Docker
 
-[Features](#-features) · [Architecture](#-architecture) · [Quick Start](#-quick-start) · [Self-hosting](#-self-hosting-docker) · [Usage](#-usage) · [Configuration](#%EF%B8%8F-configuration) · [ADRs](#-architecture-decision-records) · [Roadmap](#-roadmap)
-
-</div>
-
----
-
-## ✨ Features
-
-- 🕵️ **Stealth Web Scraping** — Playwright with anti-Cloudflare bypass (Chrome 125 UA, human simulation, two-pass challenge detection)
-- 🧠 **AI-Powered Extraction** — CrewAI agents powered by local Ollama models (Gemma 4) extract structured data from raw HTML
-- 📊 **Structured Output** — Type-safe Pydantic models with `AliasChoices` to tolerate LLM key-name drift
-- 🔒 **100% Private** — All AI inference runs locally on your GPU — no data leaves your machine
-- 📦 **Modular Monorepo** — `uv` workspace with independent services and shared packages
-- ✅ **Code Quality** — Full `ruff` ruleset (0 errors), Google-style English docstrings, Python 3.12 native types
-- ⚙️ **Centralised Config** — Single `pydantic-settings` source of truth for all runtime configuration
-
----
-
-## 🏗️ Architecture
-
-```text
-mindris-ai/
-├── apps/                       # Frontend applications (Next.js)
-├── docs/                       # Documentation, ADRs, Roadmap
-│   └── adr/                    # Architecture Decision Records
-├── packages/                   # Shared libraries (workspace packages)
-│   ├── database/               # Pydantic models, JSON schemas
-│   └── utils/                  # Logger, centralised config (pydantic-settings)
-├── services/                   # Backend services (Modular Monolith)
-│   ├── api-gateway/            # API entrypoint & routing (FastAPI)
-│   ├── intelligence/           # AI orchestration (CrewAI, LangGraph)
-│   ├── renderer/               # PDF rendering engine (Bun/Puppeteer)
-│   └── scraper/                # Stealth web scraper (Playwright)
-├── storage/                    # Local persistence, browser profiles
-├── gemma4-32k.modelfile        # Ollama Modelfile for 32k context
-├── run_pipeline.py             # End-to-end pipeline entrypoint
-├── pyproject.toml              # Workspace root (uv + ruff config)
-└── docker-compose.yml          # Local infrastructure orchestration
-```
-
-### Data Flow
-
-```mermaid
-graph LR
-    URL[🌐 Job URL] --> S[Scraper<br/>Playwright + Stealth]
-    S --> MD[📄 Markdown<br/>Clean text]
-    MD --> AI[🧠 Intelligence<br/>CrewAI + Ollama]
-    AI --> JO[📊 JobOffer<br/>Pydantic model]
-    JO --> DB[(💾 Storage)]
-
-    style S fill:#2EAD33,color:#fff,stroke:none
-    style AI fill:#FF6B35,color:#fff,stroke:none
-    style JO fill:#3776AB,color:#fff,stroke:none
-```
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-| Tool | Version | Purpose |
-|---|---|---|
-| [Python](https://www.python.org/) | ≥ 3.12 | Runtime |
-| [uv](https://docs.astral.sh/uv/) | latest | Package manager & workspace |
-| [Ollama](https://ollama.com/) | ≥ 0.20 | Local LLM inference |
-| [Playwright](https://playwright.dev/) | ≥ 1.58 | Browser automation |
-
-### Installation
+Quand les images GHCR sont publiées, l’installation self-hosted ne nécessite
+pas de cloner le dépôt :
 
 ```bash
-# 1. Clone the repository
-git clone git@github.com:RashOps/Mindris-AI.git
-cd Mindris-AI
-
-# 2. Install all dependencies (workspace-wide)
-uv sync --all-packages
-
-# 3. Install Playwright browsers
-uv run playwright install chromium
-
-# 4. Pull the base model
-ollama pull gemma4:latest
-
-# 5. Create the 32k context variant (run from the project root)
-ollama create gemma4:32k -f gemma4-32k.modelfile
+curl -fsSL https://raw.githubusercontent.com/RashOps/Mindris-AI/main/scripts/install_self_hosted.sh | sh
 ```
 
-### Local app without Docker
+Le script crée `~/.mindris-ai`, télécharge le compose de release, génère un
+`.env` privé, récupère les images et lance le stack.
 
-Install all local dependencies:
-
-```bash
-./scripts/setup_local.sh
-```
-
-Start the API gateway, renderer and frontend together:
-
-```bash
-./scripts/dev_local.sh
-```
-
-Smoke check from another terminal:
-
-```bash
-./scripts/smoke_local.sh
-```
-
-Reinstall dependencies cleanly while keeping lockfiles:
-
-```bash
-./scripts/reset_local_deps.sh
-```
-
-Detailed guide: [`docs/local-development.md`](docs/local-development.md).
-
-### Environment
-
-Create a `.env` file at the project root:
-
-```env
-# Local API
-API_KEY="dev-mindris-api-key"
-RENDERER_URL="http://localhost:4000"
-MAX_PDF_UPLOAD_BYTES="10485760"
-
-# Local Ollama
-OLLAMA_API_BASE="http://127.0.0.1:11434"
-OLLAMA_NUM_CTX="32768"
-
-# Optional cloud providers. Do not commit real keys.
-OPENAI_API_KEY=""
-GROQ_API_KEY=""
-GEMINI_API_KEY=""
-MISTRAL_API_KEY=""
-LLAMA_CLOUD_API_KEY=""
-
-# Scraper
-SCRAPER_HEADLESS=false
-```
-
-> [!NOTE]
-> If running Ollama on a separate machine (e.g. Windows host from WSL), replace
-> `127.0.0.1` with the host's IP address.
-
----
-
-## 🐳 Self-hosting Docker
-
-The MVP1 can run locally with Docker Compose:
-
-```bash
-cp .env.example .env
-docker compose up --build
-```
-
-Services:
+URLs par défaut :
 
 ```text
 Frontend  http://localhost:3000
@@ -180,207 +41,215 @@ API       http://localhost:8000
 Renderer  http://localhost:4000
 ```
 
-Smoke check:
+Commandes utiles :
 
 ```bash
-./scripts/smoke_self_hosting.sh
+~/.mindris-ai/update.sh
+~/.mindris-ai/smoke.sh
+~/.mindris-ai/uninstall.sh
 ```
 
-Detailed guide: [`docs/self-hosting.md`](docs/self-hosting.md).
+Guide détaillé : [docs/install.md](docs/install.md).
 
----
+## Développement local depuis le dépôt
 
-## 💡 Usage
+Prérequis :
 
-### Run the full pipeline
+| Outil | Usage |
+|---|---|
+| Python 3.12 | backend FastAPI, intelligence, scraper |
+| uv | workspace Python |
+| Bun | frontend Next.js et renderer |
+| Docker | packaging self-hosted |
+| Playwright Chromium | scraping, tests visuels, renderer |
+
+Installation :
 
 ```bash
-uv run python run_pipeline.py
+git clone git@github.com:RashOps/Mindris-AI.git
+cd Mindris-AI
+./scripts/setup_local.sh
 ```
 
-This will:
-1. **Scrape** the target URL with stealth Playwright
-2. **Convert** the page to clean Markdown
-3. **Analyse** with CrewAI (local Ollama model)
-4. **Output** a structured `JobOffer` object with extracted skills
+Lancer le stack local :
 
-### Example output
-
-```python
-{
-    'url': 'https://recrutement.axa.fr/nos-offres-emploi/...',
-    'title': 'Data Analyst (F/H) en alternance',
-    'company': 'JURIDICA',
-    'location': 'MARLY LE ROI CEDEX, Yvelines',
-    'hard_skills': ['Power Bi', 'Excel', 'SAS', 'SQL', 'R', 'Python'],
-    'soft_skills': ['Dynamique', 'Curieux', 'Autonome', "Esprit d'analyse"],
-    'experience_level': 'Student',
-    'remote_policy': 'On-site',
-    'salary_range': None,
-}
+```bash
+./scripts/dev_local.sh
 ```
 
-### Scraper standalone
+Smoke check :
 
-```python
-import asyncio
-from scraper.core import BaseScraper
-
-async def main():
-    async with BaseScraper(headless=False) as s:
-        md = await s.get_cleaned_content("https://example.com/job", selector="main")
-        print(md)
-
-asyncio.run(main())
+```bash
+./scripts/smoke_local.sh
 ```
 
----
+Validation globale :
 
-## ⚙️ Configuration
+```bash
+./scripts/check_all.sh
+```
 
-All settings are centralised in `packages/utils/config.py` and read from `.env`:
+## Configuration
 
-| Variable | Default | Description |
+Crée un `.env` local à partir de l’exemple du dépôt si nécessaire. Ne commit
+jamais de vraie clé.
+
+Variables principales :
+
+| Variable | Rôle |
+|---|---|
+| `API_KEY` | clé opérateur pour scripts et appels non navigateur |
+| `RENDERER_URL` | URL du renderer Bun |
+| `MAX_PDF_UPLOAD_BYTES` | limite d’upload PDF |
+| `OPENAI_API_KEY` | provider OpenAI optionnel |
+| `GROQ_API_KEY` | provider Groq optionnel |
+| `GEMINI_API_KEY` | provider Gemini optionnel |
+| `MISTRAL_API_KEY` | provider Mistral optionnel |
+| `LLAMA_CLOUD_API_KEY` | parsing PDF optionnel via LlamaCloud |
+| `SCRAPER_HEADLESS` | mode headless du scraper |
+
+Les secrets sont write-only côté produit : l’UI peut indiquer qu’un secret est
+configuré, mais ne doit jamais afficher sa valeur brute.
+
+## Architecture
+
+```text
+apps/web
+  Next.js client-only UI
+
+services/api-gateway
+  FastAPI, contrats produit, persistance, routes publiques locales
+
+services/intelligence
+  scoring ATS, génération de lettres, providers IA, logique workflow
+
+services/scraper
+  scraping Playwright et fallback providers
+
+services/renderer
+  Bun/Elysia + Puppeteer pour HTML/PDF
+
+packages/database
+  SQLite, records, migrations et persistance partagée
+
+packages/utils
+  settings, logs, runtime utilities
+```
+
+Flux simplifié :
+
+```text
+Offre URL/PDF/CV
+  -> API Gateway
+  -> Scraper ou parser
+  -> Intelligence
+  -> Database locale
+  -> Frontend
+  -> Renderer pour export PDF
+```
+
+## Frontières importantes
+
+- Le frontend est client-only.
+- Le frontend ne devient pas un backend caché.
+- L’état durable et les secrets appartiennent au backend.
+- Le browser lit/écrit via les APIs.
+- Les exports passent par le renderer.
+- `.logs/` est le répertoire canonique des logs locaux.
+- Les routes API ne doivent pas exposer de secrets bruts dans les réponses ou logs.
+
+## Surfaces produit
+
+| Surface | Statut | Rôle |
 |---|---|---|
-| `API_KEY` | `dev-mindris-api-key` | Shared local API key for protected routes |
-| `RENDERER_URL` | `http://localhost:4000` | Renderer service URL |
-| `MAX_PDF_UPLOAD_BYTES` | `10485760` | Maximum accepted PDF upload size |
-| `OLLAMA_API_BASE` | `http://127.0.0.1:11434` | Ollama server URL |
-| `OLLAMA_NUM_CTX` | `32768` | Context window size |
-| `OPENAI_API_KEY` | empty | Optional OpenAI key; never commit real keys |
-| `GROQ_API_KEY` | empty | Optional Groq key |
-| `GEMINI_API_KEY` | empty | Optional Gemini key |
-| `MISTRAL_API_KEY` | empty | Optional Mistral key |
-| `LLAMA_CLOUD_API_KEY` | empty | Optional LlamaCloud key for PDF parsing |
-| `SCRAPER_HEADLESS` | `true` | Run browser without UI |
-| `SCRAPER_TIMEOUT_MS` | `60000` | Page load timeout (ms) |
+| Dashboard | stable | vue d’entrée, résumés, diagnostics |
+| CV Builder | prioritaire | édition CV, modes Simple/Normal/Avancé, preview/export |
+| ATS Score | stable | rapport ATS persistant et lié au job quand disponible |
+| Markdown PDF | stable | édition/export Markdown, lettres générées et versions |
+| Tracker | stable | suivi des candidatures |
+| History | stable | ledger unifié job ↔ ATS ↔ lettre ↔ workflow ↔ tracker |
+| Workflow | Beta | chaînage d’opportunité, encore volontairement signalé comme Beta |
+| Guide | actif | parcours visuels, checklists et règles d’usage |
 
-```python
-from utils.config import settings
+## Validation développeur
 
-settings.openai_api_base   # → "http://127.0.0.1:11434"
-settings.llm_num_ctx       # → 32768
-settings.scraper_headless  # → True
-```
-
----
-
-## 🔍 Code Quality
+Backend Python :
 
 ```bash
-# Unit/API tests; LLM smoke tests are skipped unless RUN_LLM_TESTS=1
-uv run pytest -q
+uv run pytest tests/test_history_api.py tests/test_workflows_api.py tests/test_ats_score.py
+uv run ruff check services packages tests
+```
 
-# Python lint and format checks
-uv run ruff check services packages tests run_pipeline.py test_llm.py test_ollama.py
-uv run ruff format services packages tests run_pipeline.py test_llm.py test_ollama.py
+Frontend :
 
-# Frontend checks
+```bash
 cd apps/web
 bun run lint
 bun run typecheck
-bun run build
+```
 
-# Renderer checks
-cd ../../services/renderer
+Renderer :
+
+```bash
+cd services/renderer
 bun run typecheck
 bun run build
 ```
 
-**Active ruff rules:** `E` `F` `I` `N` `W` `B` `UP` `D` `ANN` `T20` `SIM` `C4`  
-**Docstring convention:** Google  
-**Target version:** Python 3.12  
+Docker release :
 
----
+```bash
+docker compose -f docker-compose.release.yml config --quiet
+MINDRIS_INSTALL_DRY_RUN=true scripts/install_self_hosted.sh
+```
 
-## 📚 Architecture Decision Records
+Utilise `docker compose config --quiet` pour éviter d’imprimer des secrets
+résolus depuis `.env`.
 
-All major technical decisions are documented in [`docs/adr/`](docs/adr/):
+## Docker et release GitHub
 
-| ADR | Title |
-|---|---|
-| [001](docs/adr/001-core-architecture.md) | Core Architecture |
-| [002](docs/adr/002-paradigme-de-programmation-hybride.md) | Hybrid Programming Paradigm |
-| [003](docs/adr/003-workspace-restructuring-best-practices.md) | Workspace Restructuring Best Practices |
-| [004](docs/adr/004-ai-scraping-pipeline-decisions.md) | AI Scraping Pipeline — 12 Technical Decisions |
-| [007](docs/adr/007-local-ci-stabilization.md) | Local and CI Stabilization |
+La distribution self-hosted utilise :
 
----
+- `docker-compose.release.yml`
+- `.env.self-hosted.example`
+- `scripts/install_self_hosted.sh`
+- `scripts/update_self_hosted.sh`
+- `scripts/uninstall_self_hosted.sh`
+- `scripts/smoke_release.sh`
+- `.github/workflows/docker-release.yml`
 
-## 🗺️ Roadmap
+Les images attendues sont publiées sur GHCR :
 
-- [x] Stealth web scraper with Cloudflare bypass
-- [x] CrewAI pipeline with local Ollama inference
-- [x] Structured Pydantic output with alias tolerance
-- [x] Centralised config and logger
-- [x] Full ruff compliance (227 → 0 errors)
-- [ ] FastAPI gateway for HTTP endpoint
-- [ ] Supabase/PGVector persistence
-- [ ] CV parsing and matching engine
-- [ ] PDF resume renderer (Bun/Puppeteer)
-- [ ] Frontend dashboard (Next.js)
-- [ ] Docker Compose production deployment
-- [ ] CI/CD pipeline (GitHub Actions)
+```text
+ghcr.io/rashops/mindris-ai-api-gateway
+ghcr.io/rashops/mindris-ai-renderer
+ghcr.io/rashops/mindris-ai-web
+```
 
----
+## Documentation utile
 
-## 🛠️ Tech Stack
+- [Installation self-hosted](docs/install.md)
+- [Développement local](docs/local-development.md)
+- [Self-hosting Docker](docs/self-hosting.md)
+- [Runtime agent](docs/agent-runtime.md)
+- [ADRs](docs/adr/)
+- [Politique marque](TRADEMARKS.md)
 
-<table>
-<tr>
-<td align="center"><b>Category</b></td>
-<td align="center"><b>Technology</b></td>
-</tr>
-<tr>
-<td>Language</td>
-<td>Python 3.12</td>
-</tr>
-<tr>
-<td>Package Manager</td>
-<td>uv (workspace mode)</td>
-</tr>
-<tr>
-<td>AI Framework</td>
-<td>CrewAI + LangGraph</td>
-</tr>
-<tr>
-<td>LLM Runtime</td>
-<td>Ollama (Gemma 4, 5B params, Q4_K_M)</td>
-</tr>
-<tr>
-<td>Web Scraping</td>
-<td>Playwright + playwright-stealth</td>
-</tr>
-<tr>
-<td>Data Validation</td>
-<td>Pydantic v2 + pydantic-settings</td>
-</tr>
-<tr>
-<td>Linter/Formatter</td>
-<td>Ruff</td>
-</tr>
-<tr>
-<td>API (planned)</td>
-<td>FastAPI</td>
-</tr>
-<tr>
-<td>Database (planned)</td>
-<td>Supabase / PGVector</td>
-</tr>
-<tr>
-<td>Frontend (planned)</td>
-<td>Next.js</td>
-</tr>
-</table>
+## Roadmap courte
 
----
+- Stabiliser les pages secondaires après CV Builder, Guide et Dashboard.
+- Finaliser l’i18n français-first puis ajouter la traduction utilisateur.
+- Continuer à simplifier les surfaces trop chargées.
+- Garder Workflow en Beta jusqu’à maturité complète des liens et historiques.
+- Ajouter une option one-command encore plus guidée pour utilisateurs non techniques.
+- Reporter Tauri/Desktop à une phase dédiée.
 
-## 📄 License
+## Licence et marque
 
-This project is licensed under the terms of the [MIT License](LICENSE).
+Le code source est distribué sous licence [MIT](LICENSE).
 
----
+La marque Mindris, le nom Mindris AI, les logos, wordmarks et éléments
+d’identité ne sont pas concédés sous MIT. Les forks publics, services dérivés
+ou distributions commerciales doivent se rebrander sauf autorisation écrite.
 
-<div align="center">
-<sub>Built with 🧠 by <a href="https://github.com/RashOps">RashOps</a></sub>
-</div>
+Voir [TRADEMARKS.md](TRADEMARKS.md).

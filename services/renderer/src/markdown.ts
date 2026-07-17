@@ -20,8 +20,10 @@ function sanitizeHtml(html: string): string {
         .replace(/<link[\s\S]*?>/gi, "")
         .replace(/<meta[\s\S]*?>/gi, "")
         .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
-        .replace(/\s(href|src)\s*=\s*("|')\s*javascript:[\s\S]*?/gi, "")
-        .replace(/\s(href|src)\s*=\s*("|')\s*data:[\s\S]*?/gi, "");
+        .replace(
+            /\s(href|src)\s*=\s*(?:"\s*(?:javascript:|data:)[^"]*"|'\s*(?:javascript:|data:)[^']*'|(?:javascript:|data:)[^\s>]+)/gi,
+            "",
+        );
 }
 
 function buildShell(css: string, body: string, title: string): string {

@@ -1,7 +1,7 @@
 """Markdown workspace API tests."""
 
-from zipfile import ZipFile
 from io import BytesIO
+from zipfile import ZipFile
 
 from routers.markdown import export_markdown_docx
 from schemas import MarkdownDocumentRequest

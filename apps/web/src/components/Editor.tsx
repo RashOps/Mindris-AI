@@ -6,6 +6,7 @@ import type { Social } from "@/store/useCVStore";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ToolbarSelect } from "@/components/ToolbarSelect";
 
 import {
   DndContext,
@@ -28,12 +29,12 @@ import { CSS } from "@dnd-kit/utilities";
 // ── Shared UI primitives ─────────────────────────────────────────────────────
 
 const FIELD_INPUT_CLASS =
-  "border-slate-300 bg-white text-slate-800 shadow-sm placeholder:text-slate-400 focus-visible:border-slate-500";
+  "app-input";
 
-const ITEM_CARD_CLASS = "space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3";
+const ITEM_CARD_CLASS = "space-y-2 rounded-lg border border-border bg-muted/40 p-3";
 
 const SELECT_CLASS =
-  "rounded-lg border border-slate-300 bg-white text-slate-800 shadow-sm outline-none focus:border-slate-500";
+  "app-select";
 
 const DragHandle = () => (
   <div className="flex-shrink-0 cursor-grab px-1 text-slate-400 transition-colors hover:text-slate-700">
@@ -98,13 +99,13 @@ const SectionCard = ({
   addLabel?: string;
   children: React.ReactNode;
 }) => (
-  <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-    <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-2.5">
-      <h3 className="text-xs font-semibold uppercase tracking-widest text-slate-500">{title}</h3>
+  <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+    <div className="flex items-center justify-between border-b border-border bg-muted/40 px-4 py-2.5">
+      <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{title}</h3>
       {onAdd && (
         <button
           onClick={onAdd}
-          className="flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-violet-700 transition-colors hover:bg-violet-50"
+          className="flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-violet-700 transition-colors hover:bg-violet-50 dark:text-violet-300 dark:hover:bg-violet-950/40"
         >
           <span className="text-base leading-none">+</span> {addLabel}
         </button>
@@ -116,7 +117,7 @@ const SectionCard = ({
 
 const FieldRow = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div className="space-y-1">
-    <Label className="text-xs text-slate-600">{label}</Label>
+    <Label className="text-xs text-muted-foreground">{label}</Label>
     {children}
   </div>
 );
@@ -137,7 +138,7 @@ const Textarea = ({
     value={value}
     onChange={(e) => onChange(e.target.value)}
     placeholder={placeholder}
-    className="w-full resize-none rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-slate-500"
+    className="app-textarea w-full resize-none px-3 py-2 text-sm"
     style={{ fontFamily: 'var(--font-mono)' }}
   />
 );
@@ -166,10 +167,10 @@ function TagInput({
   };
   return (
     <div
-      className="flex min-h-[36px] flex-wrap gap-1.5 rounded-lg border border-slate-300 bg-white p-2 shadow-sm"
+      className="flex min-h-[36px] flex-wrap gap-1.5 rounded-lg border border-input bg-background p-2 shadow-sm"
     >
       {tags.map((tag, i) => (
-        <span key={i} className="inline-flex items-center gap-1 rounded border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
+        <span key={i} className="inline-flex items-center gap-1 rounded border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-300">
           {tag}
           <button
             onClick={() => onChange(tags.filter((_, j) => j !== i))}
@@ -184,7 +185,7 @@ function TagInput({
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKey}
         placeholder={tags.length === 0 ? placeholder : ""}
-        className="min-w-[80px] flex-1 bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400"
+        className="min-w-[80px] flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
       />
     </div>
   );
@@ -523,13 +524,14 @@ function LanguagesSection() {
         {cvData.languages.map((lang) => (
           <div key={lang.id} className="flex items-center gap-2">
             <Input value={lang.language} onChange={(e) => updateLanguage(lang.id, { language: e.target.value })} placeholder="Langue" className={`text-sm ${FIELD_INPUT_CLASS}`} />
-            <select
+            <ToolbarSelect
               value={lang.level}
-              onChange={(e) => updateLanguage(lang.id, { level: e.target.value })}
-              className={`h-9 flex-shrink-0 px-2 text-sm ${SELECT_CLASS}`}
-            >
-              {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
-            </select>
+              ariaLabel={`${lang.language || "Language"} level`}
+              options={LEVELS.map((level) => ({ value: level, label: level }))}
+              onChange={(level) => updateLanguage(lang.id, { level })}
+              triggerClassName={`h-9 flex-shrink-0 px-2 text-sm ${SELECT_CLASS}`}
+              menuClassName="min-w-52"
+            />
             <RemoveBtn onClick={() => removeLanguage(lang.id)} />
           </div>
         ))}
@@ -592,20 +594,22 @@ function ProfileSection() {
           <Label className="mb-1 block text-xs text-slate-600">Réseaux sociaux</Label>
           {p.socials.map((s, i) => (
             <div key={i} className="flex items-center gap-2">
-              <select
+              <ToolbarSelect
                 value={s.type}
-                onChange={(e) => {
+                ariaLabel={`Social type ${i + 1}`}
+                options={[
+                  { value: "linkedin", label: "LinkedIn" },
+                  { value: "github", label: "GitHub" },
+                  { value: "website", label: "Portfolio" },
+                  { value: "other", label: "Autre" },
+                ]}
+                onChange={(value) => {
                   const updated = [...p.socials];
-                  updated[i] = { ...s, type: e.target.value as Social["type"] };
+                  updated[i] = { ...s, type: value as Social["type"] };
                   setProfile({ socials: updated });
                 }}
-                className={`h-8 w-28 flex-shrink-0 px-2 text-xs ${SELECT_CLASS}`}
-              >
-                <option value="linkedin">LinkedIn</option>
-                <option value="github">GitHub</option>
-                <option value="website">Portfolio</option>
-                <option value="other">Autre</option>
-              </select>
+                triggerClassName={`h-8 w-28 flex-shrink-0 px-2 text-xs ${SELECT_CLASS}`}
+              />
               <Input
                 value={s.url}
                 onChange={(e) => {

@@ -49,3 +49,26 @@
 - Backend Python: `uv run pytest ...` and `uv run ruff check ...`
 - Frontend: `cd apps/web && bun run lint && bun run typecheck`
 - Renderer: `cd services/renderer && bun run typecheck && bun run build`
+
+## Agent efficiency
+
+- Make the smallest safe change needed for the task.
+- Read only files relevant to the requested change.
+- Ignore generated directories such as `node_modules`, `dist`, `build`,
+  `.next`, `coverage` and caches.
+- Prefer targeted tests over the full test suite.
+- Prefer concise terminal commands and RTK for noisy supported commands.
+- Use raw command output when complete logs are required for diagnosis.
+- Do not use subagents unless parallel work clearly benefits the task.
+- Keep the final report concise: changed files, tests run and remaining issues.
+
+## Frontend visual verification
+
+- Use Playwright to inspect frontend changes in a real browser.
+- Verify relevant pages at desktop and mobile viewport sizes.
+- Take screenshots before and after significant UI changes.
+- Check for overflow, alignment, spacing, loading and interaction issues.
+- Prefer targeted visual checks over crawling the whole application.
+- Do not consider a frontend task complete until the changed route has
+  been rendered successfully.
+- Store temporary screenshots in `.screenshots/`.

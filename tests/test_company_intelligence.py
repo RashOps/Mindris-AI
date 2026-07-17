@@ -3,7 +3,8 @@
 from intelligence.company_analyzer import analyze_company
 
 
-def test_company_intelligence_builds_deterministic_profile_from_local_evidence() -> None:
+def test_company_intelligence_builds_deterministic_profile_from_local_evidence(
+) -> None:
     insight = __import__("asyncio").run(
         analyze_company(
             "Mindris",
@@ -57,9 +58,15 @@ def test_company_intelligence_computes_role_fit_and_risk_flags_locally() -> None
                 "soft_skills": ["Ownership", "Communication"],
             },
             cv_data={
-                "profile": {"title": "Backend Engineer", "text_markdown": "FastAPI systems"},
+                "profile": {
+                    "title": "Backend Engineer",
+                    "text_markdown": "FastAPI systems",
+                },
                 "skills": [
-                    {"category": "Backend", "skills": ["Python", "FastAPI", "PostgreSQL"]}
+                    {
+                        "category": "Backend",
+                        "skills": ["Python", "FastAPI", "PostgreSQL"],
+                    }
                 ],
                 "experience": [
                     {
@@ -73,7 +80,13 @@ def test_company_intelligence_computes_role_fit_and_risk_flags_locally() -> None
         )
     )
 
-    assert "python" in [item.lower() for item in insight["role_fit"]["skills_to_foreground"]]
-    assert "ownership" in [item.lower() for item in insight["role_fit"]["wording_to_mirror"]]
+    assert "python" in [
+        item.lower() for item in insight["role_fit"]["skills_to_foreground"]
+    ]
+    assert "ownership" in [
+        item.lower() for item in insight["role_fit"]["wording_to_mirror"]
+    ]
     assert any(flag["code"] == "missing_job_skill" for flag in insight["risk_flags"])
-    assert any(flag["code"] == "missing_location_signal" for flag in insight["risk_flags"])
+    assert any(
+        flag["code"] == "missing_location_signal" for flag in insight["risk_flags"]
+    )

@@ -12,7 +12,7 @@ from sqlalchemy import Connection, text
 
 from .records import Base
 
-SCHEMA_VERSION = 7
+SCHEMA_VERSION = 8
 
 
 Migration = Callable[[Connection], None]
@@ -121,6 +121,10 @@ def _migration_007_extend_company_insight_cache_keys(connection: Connection) -> 
     )
 
 
+def _migration_008_create_llm_run_table(connection: Connection) -> None:
+    Base.metadata.create_all(bind=connection)
+
+
 MIGRATIONS: dict[int, Migration] = {
     1: _migration_001_create_current_schema,
     2: _migration_002_create_revision_history,
@@ -129,6 +133,7 @@ MIGRATIONS: dict[int, Migration] = {
     5: _migration_005_create_opportunity_workflow_tables,
     6: _migration_006_create_application_reminder_tables,
     7: _migration_007_extend_company_insight_cache_keys,
+    8: _migration_008_create_llm_run_table,
 }
 
 

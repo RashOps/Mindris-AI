@@ -2,9 +2,13 @@
 
 from uuid import uuid4
 
-from database.records import ResumeRecord, ScrapedJobRecord
+from database.records import ApplicationRecord, ResumeRecord, ScrapedJobRecord
 from database.session import SessionLocal
-from persistence import save_ats_report, save_cover_letter
+from persistence import (
+    delete_resume_locale_variant,
+    save_ats_report,
+    save_cover_letter,
+)
 from routers.workflows import (
     create_opportunity_route,
     get_opportunity_route,
@@ -13,11 +17,13 @@ from routers.workflows import (
     link_resume_route,
     link_tracker_route,
     mark_ready_route,
+    repair_opportunity_route,
 )
 from schemas import (
     OpportunityAtsLinkRequest,
     OpportunityCoverLetterLinkRequest,
     OpportunityCreateRequest,
+    OpportunityRepairRequest,
     OpportunityResumeLinkRequest,
     OpportunityTrackerLinkRequest,
 )
@@ -247,3 +253,117 @@ def test_workflow_tracker_creation_and_ready_to_apply() -> None:
         ready_item = ready["item"]
     assert ready_item["current_state"] == "ready_to_apply"
     assert ready_item["application_id"] == tracker_item["application_id"]
+
+
+def test_workflow_surfaces_missing_tracker_link_as_degraded_integrity() -> None:
+    job = _seed_job("workflow-orphan-application")
+    resume = _seed_resume("Workflow Orphan App")
+
+    with SessionLocal() as session:
+        created = create_opportunity_route(
+            OpportunityCreateRequest(job_id=job.id),
+            session,
+        )
+        opportunity_id = created["item"]["id"]
+        link_resume_route(
+            opportunity_id,
+            OpportunityResumeLinkRequest(resume_id=resume.id, locale="fr"),
+            session,
+        )
+        tracker = link_tracker_route(
+            opportunity_id,
+            OpportunityTrackerLinkRequest(create=True, status="wishlist"),
+            session,
+        )
+        application_id = tracker["item"]["application_id"]
+
+    with SessionLocal() as session:
+        application = session.get(ApplicationRecord, application_id)
+        assert application is not None
+        session.delete(application)
+        session.commit()
+
+        fetched = get_opportunity_route(opportunity_id, session)
+
+    integrity = fetched["item"]["integrity"]
+    assert integrity["status"] == "degraded"
+    assert "detach_missing_application" in integrity["repair_actions"]
+    assert any(
+        issue["code"] == "missing_application_link" for issue in integrity["issues"]
+    )
+
+    with SessionLocal() as session:
+        repaired = repair_opportunity_route(
+            opportunity_id,
+            OpportunityRepairRequest(action="detach_missing_application"),
+            session,
+        )
+
+    repaired_item = repaired["item"]
+    assert repaired_item["application_id"] is None
+    assert repaired_item["integrity"]["status"] == "healthy"
+    assert repaired_item["current_state"] == "resume_linked"
+    assert (
+        repaired_item["transitions"][-1]["action"]
+        == "repair:detach_missing_application"
+    )
+
+
+def test_workflow_surfaces_invalid_resume_locale_as_degraded_integrity() -> None:
+    job = _seed_job("workflow-invalid-locale")
+
+    with SessionLocal() as session:
+        resume = ResumeRecord(
+            name="Workflow Locale Drift",
+            data_json=(
+                '{"multilingual":{"default_locale":"fr","active_locale":"fr","variants":'
+                '{"fr":{"profile":{"full_name":"Ada Lovelace"},'
+                '"global_settings":{"template_id":"modern","locale":{"label_language":"fr"}}},'
+                '"en":{"profile":{"full_name":"Ada Lovelace"},'
+                '"global_settings":{"template_id":"modern","locale":{"label_language":"en"}}}}}}'
+            ),
+            template_id="modern",
+            locale="fr",
+            source="manual",
+        )
+        session.add(resume)
+        session.commit()
+        session.refresh(resume)
+        resume_id = resume.id
+
+        created = create_opportunity_route(
+            OpportunityCreateRequest(job_id=job.id),
+            session,
+        )
+        opportunity_id = created["item"]["id"]
+        link_resume_route(
+            opportunity_id,
+            OpportunityResumeLinkRequest(resume_id=resume_id, locale="en"),
+            session,
+        )
+
+        persisted_resume = session.get(ResumeRecord, resume_id)
+        assert persisted_resume is not None
+        delete_resume_locale_variant(session, persisted_resume, locale="en")
+        fetched = get_opportunity_route(opportunity_id, session)
+
+    integrity = fetched["item"]["integrity"]
+    assert integrity["status"] == "degraded"
+    assert "reset_resume_locale" in integrity["repair_actions"]
+    assert any(
+        issue["code"] == "invalid_resume_locale"
+        and issue["metadata"]["resume_locale"] == "en"
+        for issue in integrity["issues"]
+    )
+
+    with SessionLocal() as session:
+        repaired = repair_opportunity_route(
+            opportunity_id,
+            OpportunityRepairRequest(action="reset_resume_locale"),
+            session,
+        )
+
+    repaired_item = repaired["item"]
+    assert repaired_item["resume_locale"] == "fr"
+    assert repaired_item["integrity"]["status"] == "healthy"
+    assert repaired_item["transitions"][-1]["action"] == "repair:reset_resume_locale"

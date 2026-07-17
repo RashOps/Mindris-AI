@@ -14,6 +14,8 @@ from schemas import (
     CommunityTemplateConfig,
     CommunityTemplateManifest,
     TemplateCatalogItem,
+    TemplateRenderPayloadRequest,
+    _contains_unsafe_css_fragment,
 )
 from sqlalchemy import select
 from utils.logger import get_logger
@@ -126,6 +128,13 @@ COMMUNITY_TEMPLATES = [
 TEMPLATE_CATALOG = [*READY_TEMPLATES, *COMMUNITY_TEMPLATES]
 
 
+def _catalog_template_item(template_id: str) -> TemplateCatalogItem | None:
+    for template in TEMPLATE_CATALOG:
+        if template.id == template_id:
+            return template
+    return None
+
+
 def _read_package_json(archive: ZipFile, path: str) -> dict[str, Any]:
     try:
         raw = archive.read(path).decode("utf-8")
@@ -222,6 +231,17 @@ def inspect_template_package(package_bytes: bytes) -> dict[str, Any]:
             raise HTTPException(
                 status_code=422,
                 detail="Template package styles.css exceeds the allowed size.",
+            )
+        blocked_stylesheet_fragment = _contains_unsafe_css_fragment(
+            stylesheet.decode("utf-8", errors="ignore")
+        )
+        if blocked_stylesheet_fragment:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "Template package styles.css contains blocked construct: "
+                    f"{blocked_stylesheet_fragment}"
+                ),
             )
         preview_path = "preview.png"
         try:
@@ -385,9 +405,9 @@ def resolve_template_defaults(
     template_id: str, session: Session | None = None
 ) -> dict[str, Any]:
     """Return the preset settings associated with a template."""
-    for template in TEMPLATE_CATALOG:
-        if template.id == template_id:
-            return template.preset_settings
+    template = _catalog_template_item(template_id)
+    if template is not None:
+        return template.preset_settings
     if session is not None:
         record = session.exec(
             select(CommunityTemplateRecord).where(
@@ -420,6 +440,10 @@ def apply_template_defaults(
     if not defaults:
         return cv_data
     merged = _deep_merge(defaults, cv_data)
+    template = _catalog_template_item(template_id)
+    if template is not None and template.base_template_id:
+        global_settings = merged.setdefault("global_settings", {})
+        global_settings["template_id"] = template.base_template_id
     if session is not None:
         record = session.exec(
             select(CommunityTemplateRecord).where(
@@ -581,6 +605,36 @@ def list_customization_catalogue() -> dict:
     return {"status": "success", "item": CUSTOMIZATION_CATALOGUE}
 
 
+@router.post("/resolve-render-payload")
+def resolve_template_render_payload_route(
+    request: TemplateRenderPayloadRequest, session: SessionDep
+) -> dict[str, Any]:
+    """Resolve backend-owned template defaults before renderer preview/export."""
+    cv_data = request.cv_data.model_dump(mode="json")
+    settings = cv_data.get("global_settings", {})
+    requested_template_id = request.template_id
+    if requested_template_id is None and isinstance(settings, dict):
+        settings_template_id = settings.get("template_id")
+        if isinstance(settings_template_id, str):
+            requested_template_id = settings_template_id
+    requested_template_id = requested_template_id or "modern"
+    resolved_cv_data = apply_template_defaults(
+        cv_data, requested_template_id, session=session
+    )
+    resolved_settings = resolved_cv_data.setdefault("global_settings", {})
+    resolved_template_id = resolved_settings.get("template_id")
+    if not isinstance(resolved_template_id, str) or not resolved_template_id:
+        resolved_template_id = requested_template_id
+        resolved_settings["template_id"] = resolved_template_id
+    return {
+        "status": "success",
+        "item": {
+            "cv_data": resolved_cv_data,
+            "template_id": resolved_template_id,
+        },
+    }
+
+
 @router.get("/{template_id:path}/preview")
 def get_template_preview(template_id: str, session: SessionDep) -> Response:
     """Return the preview image for an installed community template."""
@@ -596,6 +650,11 @@ async def import_template_package_route(
     file: UploadFile = TEMPLATE_IMPORT_FILE,
 ) -> dict[str, Any]:
     """Import a portable community template package."""
+    if file.content_type not in {"application/zip", "application/octet-stream"}:
+        raise HTTPException(
+            status_code=422,
+            detail="Template package file has an unsupported content type.",
+        )
     package_bytes = await file.read()
     if not package_bytes:
         raise HTTPException(status_code=422, detail="Template package file is empty.")

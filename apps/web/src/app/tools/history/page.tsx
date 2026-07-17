@@ -21,20 +21,20 @@ const SUBJECT_OPTIONS: Array<{
     | "llm_run";
   label: string;
 }> = [
-  { id: "all", label: "All" },
-  { id: "job_scrape", label: "Jobs" },
-  { id: "resume_revision", label: "Revisions" },
-  { id: "cover_letter", label: "Letters" },
+  { id: "all", label: "Tous" },
+  { id: "job_scrape", label: "Offres" },
+  { id: "resume_revision", label: "Révisions" },
+  { id: "cover_letter", label: "Lettres" },
   { id: "ats_report", label: "ATS" },
   { id: "opportunity", label: "Workflow" },
   { id: "tracker_event", label: "Tracker" },
-  { id: "llm_run", label: "LLM runs" },
+  { id: "llm_run", label: "Runs LLM" },
 ];
 
 function formatTimestamp(value: string): string {
-  if (!value) return "Unknown";
+  if (!value) return "Inconnu";
   try {
-    return new Intl.DateTimeFormat("en", {
+    return new Intl.DateTimeFormat("fr-FR", {
       month: "short",
       day: "2-digit",
       hour: "2-digit",
@@ -48,26 +48,28 @@ function formatTimestamp(value: string): string {
 function subjectTone(subjectType: HistoryLedgerItem["subject_type"]): string {
   switch (subjectType) {
     case "ats_report":
-      return "bg-violet-50 text-violet-700 border-violet-200";
+      return "border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300";
     case "cover_letter":
-      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
     case "tracker_event":
-      return "bg-sky-50 text-sky-700 border-sky-200";
+      return "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300";
     case "opportunity":
-      return "bg-blue-50 text-blue-700 border-blue-200";
+      return "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300";
     case "resume_revision":
-      return "bg-amber-50 text-amber-700 border-amber-200";
+      return "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300";
     case "job_scrape":
-      return "bg-slate-100 text-slate-700 border-slate-200";
+      return "border-border bg-muted text-foreground";
     default:
-      return "bg-white text-slate-700 border-slate-200";
+      return "border-border bg-card text-foreground";
   }
 }
 
 export default function HistoryPage() {
   const [items, setItems] = useState<HistoryLedgerItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [clearing, setClearing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [subjectType, setSubjectType] =
     useState<(typeof SUBJECT_OPTIONS)[number]["id"]>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -75,6 +77,7 @@ export default function HistoryPage() {
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setNotice(null);
     try {
       const params = new URLSearchParams();
       if (subjectType !== "all") params.set("subject_type", subjectType);
@@ -112,35 +115,75 @@ export default function HistoryPage() {
     [items, selectedId],
   );
 
+  const clearHistory = useCallback(async () => {
+    const confirmed = window.confirm(
+      "Supprimer définitivement tout l’historique ? Les offres, rapports ATS, lettres, événements Workflow, éléments Tracker et révisions seront supprimés. Les CV sources restent conservés.",
+    );
+    if (!confirmed) return;
+
+    setClearing(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const response = await fetch(apiUrl("/api/v1/history/ledger"), {
+        method: "DELETE",
+        headers: jsonHeaders(),
+      });
+      if (!response.ok) {
+        throw new Error("Unable to clear unified history.");
+      }
+      setSelectedId(null);
+      setItems([]);
+      setNotice("Historique unifié supprimé définitivement.");
+      await load();
+    } catch (clearError) {
+      setError(
+        clearError instanceof Error
+          ? clearError.message
+          : "Unable to clear unified history.",
+      );
+    } finally {
+      setClearing(false);
+    }
+  }, [load]);
+
   return (
-    <main className="min-h-[calc(100vh-4rem)] bg-slate-50 text-slate-950">
+    <main className="min-h-[calc(100vh-4rem)] bg-background text-foreground">
       <div className="mx-auto max-w-[1500px] px-4 py-4 lg:px-6">
-        <header className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+        <header className="rounded-2xl border border-border bg-card px-5 py-4 shadow-sm">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-1">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
                 Audit
               </p>
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950 text-white">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                   <History size={18} />
                 </div>
                 <div>
                   <h1 className="text-2xl font-semibold tracking-tight">
-                    Unified Activity History
+                    Historique d’activité
                   </h1>
-                  <p className="text-sm text-slate-500">
-                    Chronological ledger of jobs, ATS reports, cover letters,
-                    revisions, tracker items, and model-backed runs.
+                  <p className="text-sm text-muted-foreground">
+                    Journal chronologique des offres, rapports ATS, lettres,
+                    révisions, suivis Tracker et exécutions IA.
                   </p>
                 </div>
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+              <button
+                type="button"
+                onClick={() => void clearHistory()}
+                disabled={clearing || loading || items.length === 0}
+                className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/15 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {clearing ? "Suppression..." : "Vider l’historique"}
+              </button>
+              <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
                 <Filter size={14} />
-                <span>Filter</span>
+                <span>Filtrer</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {SUBJECT_OPTIONS.map((option) => (
@@ -150,8 +193,8 @@ export default function HistoryPage() {
                     onClick={() => setSubjectType(option.id)}
                     className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
                       subjectType === option.id
-                        ? "border-slate-900 bg-slate-900 text-white"
-                        : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-card text-muted-foreground hover:border-border hover:bg-accent hover:text-accent-foreground"
                     }`}
                   >
                     {option.label}
@@ -163,36 +206,42 @@ export default function HistoryPage() {
         </header>
 
         {error && (
-          <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             {error}
           </div>
         )}
 
-        <div className="mt-4 grid gap-4 xl:grid-cols-[1.15fr,0.85fr]">
-          <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-200 px-4 py-3">
-              <p className="text-sm font-semibold text-slate-900">
-                Recent activity
+        {notice && (
+          <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
+            {notice}
+          </div>
+        )}
+
+        <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.8fr)]">
+          <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+            <div className="border-b border-border px-4 py-3">
+              <p className="text-sm font-semibold text-foreground">
+                Activité récente · {items.length}
               </p>
             </div>
             {loading ? (
-              <div className="flex items-center gap-2 px-4 py-6 text-sm text-slate-500">
+              <div className="flex items-center gap-2 px-4 py-6 text-sm text-muted-foreground">
                 <Loader2 size={16} className="animate-spin" />
-                Loading activity ledger…
+                Chargement du journal…
               </div>
             ) : items.length === 0 ? (
-              <div className="px-4 py-6 text-sm text-slate-500">
-                No activity available for this filter.
+              <div className="px-4 py-6 text-sm text-muted-foreground">
+                Aucune activité pour ce filtre.
               </div>
             ) : (
-              <div className="divide-y divide-slate-100">
+              <div className="max-h-[calc(100vh-18rem)] divide-y divide-border overflow-y-auto">
                 {items.map((item) => (
                   <button
                     key={item.id}
                     type="button"
                     onClick={() => setSelectedId(item.id)}
-                    className={`flex w-full flex-col gap-2 px-4 py-4 text-left transition-colors hover:bg-slate-50 ${
-                      selectedItem?.id === item.id ? "bg-slate-50" : "bg-white"
+                    className={`flex w-full flex-col gap-2 px-4 py-4 text-left transition-colors hover:bg-accent ${
+                      selectedItem?.id === item.id ? "bg-accent" : "bg-card"
                     }`}
                   >
                     <div className="flex flex-wrap items-center gap-2">
@@ -202,20 +251,20 @@ export default function HistoryPage() {
                         {item.subject_type.replace("_", " ")}
                       </span>
                       {item.status && (
-                        <span className="text-[11px] font-medium text-slate-500">
+                        <span className="text-[11px] font-medium text-muted-foreground">
                           {item.status}
                         </span>
                       )}
-                      <span className="ml-auto text-xs text-slate-400">
+                      <span className="ml-auto text-xs text-muted-foreground">
                         {formatTimestamp(item.timestamp)}
                       </span>
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">
+                      <p className="text-sm font-semibold text-foreground">
                         {item.title}
                       </p>
                       {item.summary && (
-                        <p className="mt-1 text-sm text-slate-600">
+                        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
                           {item.summary}
                         </p>
                       )}
@@ -226,52 +275,52 @@ export default function HistoryPage() {
             )}
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-200 px-4 py-3">
-              <p className="text-sm font-semibold text-slate-900">
-                Lineage details
+          <section className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+            <div className="border-b border-border px-4 py-3">
+              <p className="text-sm font-semibold text-foreground">
+                Détails de lignée
               </p>
             </div>
             {!selectedItem ? (
-              <div className="px-4 py-6 text-sm text-slate-500">
-                Select a ledger item to inspect its linked artifacts.
+              <div className="px-4 py-6 text-sm text-muted-foreground">
+                Sélectionne une ligne pour inspecter les artefacts liés.
               </div>
             ) : (
-              <div className="space-y-4 px-4 py-4">
+              <div className="max-h-[calc(100vh-10rem)] space-y-4 overflow-y-auto px-4 py-4">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Selected item
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Élément sélectionné
                   </p>
-                  <p className="mt-2 text-lg font-semibold text-slate-900">
+                  <p className="mt-2 text-lg font-semibold text-foreground">
                     {selectedItem.title}
                   </p>
                   {selectedItem.summary && (
-                    <p className="mt-1 text-sm text-slate-600">
+                    <p className="mt-1 text-sm text-muted-foreground">
                       {selectedItem.summary}
                     </p>
                   )}
                 </div>
 
                 <div className="grid gap-3 md:grid-cols-2">
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  <div className="rounded-xl border border-border bg-muted/40 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       Runtime
                     </p>
-                    <p className="mt-2 text-sm text-slate-700">
-                      Provider: {selectedItem.provider || "n/a"}
+                    <p className="mt-2 text-sm text-foreground">
+                      Provider : {selectedItem.provider || "n/a"}
                     </p>
-                    <p className="mt-1 text-sm text-slate-700">
-                      Model: {selectedItem.model_name || "n/a"}
+                    <p className="mt-1 text-sm text-foreground">
+                      Modèle : {selectedItem.model_name || "n/a"}
                     </p>
                   </div>
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Metadata
+                  <div className="rounded-xl border border-border bg-muted/40 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Métadonnées
                     </p>
-                    <div className="mt-2 space-y-1 text-sm text-slate-700">
+                    <div className="mt-2 space-y-1 text-sm text-muted-foreground">
                       {Object.entries(selectedItem.metadata).slice(0, 5).map(([key, value]) => (
                         <p key={key}>
-                          <span className="font-medium text-slate-900">{key}</span>{" "}
+                          <span className="font-medium text-foreground">{key}</span>{" "}
                           {String(value)}
                         </p>
                       ))}
@@ -280,30 +329,30 @@ export default function HistoryPage() {
                 </div>
 
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Linked artifacts
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Artefacts liés
                   </p>
                   {selectedItem.links.length === 0 ? (
-                    <p className="mt-2 text-sm text-slate-500">
-                      No linked artifacts recorded for this item.
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      Aucun artefact lié enregistré pour cet élément.
                     </p>
                   ) : (
                     <div className="mt-3 space-y-2">
                       {selectedItem.links.map((link, index) => (
                         <div
                           key={`${link.subject_type}-${link.subject_id}-${index}`}
-                          className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3"
+                          className="flex items-center gap-3 rounded-xl border border-border bg-background px-3 py-3"
                         >
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                             <Link2 size={14} />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-slate-900">
+                            <p className="text-sm font-medium text-foreground">
                               {link.subject_type.replace("_", " ")} #{link.subject_id}
                             </p>
-                            <p className="text-xs text-slate-500">{link.relation}</p>
+                            <p className="text-xs text-muted-foreground">{link.relation}</p>
                           </div>
-                          <ArrowRight size={14} className="text-slate-400" />
+                          <ArrowRight size={14} className="text-muted-foreground" />
                         </div>
                       ))}
                     </div>

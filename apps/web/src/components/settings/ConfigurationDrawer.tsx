@@ -2,11 +2,9 @@
 
 import type { ReactElement } from "react";
 import { useMemo, useState } from "react";
-import { Cloud, HardDrive, KeyRound, Loader2, Settings2, ShieldCheck } from "lucide-react";
+import { Loader2, Settings2, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Sheet,
   SheetContent,
@@ -19,65 +17,22 @@ import { apiUrl, jsonHeaders } from "@/lib/api";
 import { summarizeSystemDiagnostics, type SystemDiagnosticsPayload } from "@/lib/system-diagnostics";
 import {
   type AppSettings,
-  type LLMProvider,
   systemConfigurationToAppSettings,
   useCVStore,
 } from "@/store/useCVStore";
-
-type ProviderStatus = Record<
-  string,
-  { configured: boolean; mode: "local" | "cloud"; reason: string }
->;
-
-type Catalogue = Record<string, Array<{ id: string; label: string }>>;
-
-type SecretSlot =
-  | "groq_api_key"
-  | "gemini_api_key"
-  | "openai_api_key"
-  | "mistral_api_key"
-  | "llama_cloud_api_key"
-  | "scrape_do_api_key"
-  | "scrapingbee_api_key";
-
-type SystemConfigurationPayload = {
-  item: {
-    app?: {
-      defaults?: Record<string, { provider?: string; model_name?: string }>;
-      pdf_ingestion_mode?: AppSettings["pdf_ingestion_mode"];
-    };
-    llm?: {
-      providers?: ProviderStatus;
-    };
-    secrets?: Record<string, { configured: boolean; masked: boolean }>;
-  };
-};
-
-type DiagnosticsCard = ReturnType<typeof summarizeSystemDiagnostics>["cards"][number];
-
-const TASK_ROWS = [
-  { key: "optimize_llm", backendKey: "optimize", label: "CV optimization" },
-  { key: "cover_letter_llm", backendKey: "cover_letter", label: "Cover letter" },
-  { key: "ats_llm", backendKey: "ats_score", label: "ATS scoring" },
-  { key: "patch_llm", backendKey: "patch", label: "Patch generation" },
-] as const;
-
-const SECRET_ROWS: Array<{ slot: SecretSlot; label: string; hint: string }> = [
-  { slot: "groq_api_key", label: "Groq", hint: "Cloud inference" },
-  { slot: "gemini_api_key", label: "Gemini", hint: "Google models" },
-  { slot: "openai_api_key", label: "OpenAI", hint: "GPT providers" },
-  { slot: "mistral_api_key", label: "Mistral", hint: "Mistral API" },
-  { slot: "llama_cloud_api_key", label: "LlamaParse", hint: "Cloud PDF parsing" },
-  { slot: "scrape_do_api_key", label: "Scrape.do", hint: "Proxy scraping" },
-  { slot: "scrapingbee_api_key", label: "ScrapingBee", hint: "Proxy scraping" },
-];
-
-function taskLabel(value: string): string {
-  return value
-    .split("_")
-    .map((part) => part[0]?.toUpperCase() + part.slice(1))
-    .join(" ");
-}
+import { resolveProviderList } from "@/components/settings/helpers";
+import { DiagnosticsSection } from "@/components/settings/DiagnosticsSection";
+import { RuntimeConfigurationSection } from "@/components/settings/RuntimeConfigurationSection";
+import { SecretSlotsSection } from "@/components/settings/SecretSlotsSection";
+import { TaskModelDefaultsSection } from "@/components/settings/TaskModelDefaultsSection";
+import type {
+  Catalogue,
+  DiagnosticsCard,
+  ProviderStatus,
+  SecretSlot,
+  SystemConfigurationPayload,
+} from "@/components/settings/types";
+import { TASK_ROWS } from "@/components/settings/types";
 
 export function ConfigurationDrawer({
   trigger,
@@ -116,10 +71,7 @@ export function ConfigurationDrawer({
   });
 
   const providerList = useMemo(
-    () =>
-      Object.keys(catalogue).length
-        ? (Object.keys(catalogue) as LLMProvider[])
-        : ["groq", "gemini", "openai", "mistral", "ollama"],
+    () => resolveProviderList(catalogue),
     [catalogue],
   );
 
@@ -265,20 +217,20 @@ export function ConfigurationDrawer({
           </Button>
         )}
       />
-      <SheetContent className="w-full border-slate-200 bg-white p-0 sm:max-w-2xl">
-        <SheetHeader className="border-b border-slate-200">
-          <SheetTitle className="flex items-center gap-2 text-slate-950">
+      <SheetContent className="w-full border-border bg-card p-0 sm:max-w-2xl">
+        <SheetHeader className="border-b border-border">
+          <SheetTitle className="flex items-center gap-2 text-foreground">
             <ShieldCheck size={18} />
             Configuration
           </SheetTitle>
-          <SheetDescription className="text-slate-500">
+          <SheetDescription className="text-muted-foreground">
             Backend-owned runtime settings, provider defaults and write-only secret slots.
           </SheetDescription>
         </SheetHeader>
 
         <div className="flex h-full flex-col overflow-y-auto px-4 py-4">
           {loading ? (
-            <div className="flex items-center gap-2 text-sm text-slate-500">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 size={16} className="animate-spin" />
               Loading runtime configuration…
             </div>
@@ -290,187 +242,36 @@ export function ConfigurationDrawer({
                 </div>
               )}
 
-              <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-950">
-                  <Cloud size={16} />
-                  Task model defaults
-                </div>
-                <div className="space-y-4">
-                  {TASK_ROWS.map((task) => {
-                    const current = draftSettings[task.key];
-                    const models = catalogue[current.provider] ?? [
-                      { id: current.model_name, label: current.model_name },
-                    ];
-                    const meta = providerStatus[current.provider];
-                    return (
-                      <div key={task.key} className="grid gap-2 rounded-lg border border-slate-200 bg-white p-3 md:grid-cols-[180px,1fr,1fr,110px] md:items-center">
-                        <div>
-                          <p className="text-sm font-medium text-slate-900">{task.label}</p>
-                          <p className="text-xs text-slate-500">{taskLabel(task.backendKey)}</p>
-                        </div>
-                        <select
-                          value={current.provider}
-                          onChange={(event) => {
-                            const provider = event.target.value as LLMProvider;
-                            const firstModel = catalogue[provider]?.[0]?.id ?? current.model_name;
-                            updateTask(task.key, { provider, model_name: firstModel });
-                          }}
-                          className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-slate-500"
-                        >
-                          {providerList.map((provider) => (
-                            <option
-                              key={provider}
-                              value={provider}
-                              disabled={providerStatus[provider]?.configured === false}
-                            >
-                              {provider}
-                            </option>
-                          ))}
-                        </select>
-                        <select
-                          value={current.model_name}
-                          onChange={(event) => updateTask(task.key, { model_name: event.target.value })}
-                          className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-slate-500"
-                        >
-                          {models.map((model) => (
-                            <option key={model.id} value={model.id}>
-                              {model.label}
-                            </option>
-                          ))}
-                        </select>
-                        <div className="text-xs text-slate-500">
-                          {meta?.configured ? meta.mode : "setup required"}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
+              <TaskModelDefaultsSection
+                draftSettings={draftSettings}
+                catalogue={catalogue}
+                providerStatus={providerStatus}
+                providerList={providerList}
+                updateTask={updateTask}
+              />
 
-              <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-950">
-                  <HardDrive size={16} />
-                  Ingestion and local runtime
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="pdf-ingestion-mode">PDF ingestion mode</Label>
-                    <select
-                      id="pdf-ingestion-mode"
-                      value={draftSettings.pdf_ingestion_mode}
-                      onChange={(event) =>
-                        setDraftSettings((current) => ({
-                          ...current,
-                          pdf_ingestion_mode: event.target.value as AppSettings["pdf_ingestion_mode"],
-                        }))
-                      }
-                      className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-slate-500"
-                    >
-                      <option value="auto">Auto</option>
-                      <option value="llama_parse">LlamaParse</option>
-                      <option value="local_text">Full local text</option>
-                    </select>
-                  </div>
-                  <div className="rounded-lg border border-slate-200 bg-white p-3">
-                    <p className="text-sm font-medium text-slate-900">Provider status</p>
-                    <div className="mt-2 space-y-1">
-                      {providerList.map((provider) => (
-                        <div key={provider} className="flex items-center justify-between text-xs text-slate-600">
-                          <span>{provider}</span>
-                          <span>{providerStatus[provider]?.configured ? providerStatus[provider]?.mode : "missing"}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 flex justify-end">
-                  <Button onClick={() => void saveConfiguration()} disabled={saving}>
-                    {saving ? "Saving…" : "Save configuration"}
-                  </Button>
-                </div>
-              </section>
+              <RuntimeConfigurationSection
+                draftSettings={draftSettings}
+                setDraftSettings={setDraftSettings}
+                providerList={providerList}
+                providerStatus={providerStatus}
+                saving={saving}
+                onSave={() => void saveConfiguration()}
+              />
 
-              <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-950">
-                  <Settings2 size={16} />
-                  Runtime diagnostics
-                </div>
-                <div className="grid gap-3 md:grid-cols-2">
-                  {diagnosticsCards.map((card) => (
-                    <div key={card.id} className="rounded-lg border border-slate-200 bg-white p-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm font-medium text-slate-900">{card.label}</p>
-                        <span
-                          className={
-                            card.state === "ready"
-                              ? "rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-medium text-emerald-700"
-                              : "rounded-full bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-700"
-                          }
-                        >
-                          {card.state}
-                        </span>
-                      </div>
-                      <p className="mt-2 text-sm text-slate-900">{card.value}</p>
-                      <p className="mt-1 text-xs leading-5 text-slate-500">{card.meta}</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  <div className="rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600">
-                    <p className="font-medium text-slate-900">Runtime endpoints</p>
-                    <p className="mt-2 break-all">Renderer: {diagnosticsRuntime.renderer_url || "unavailable"}</p>
-                    <p className="mt-1 break-all">Ollama: {diagnosticsRuntime.ollama_api_base || "unavailable"}</p>
-                    <p className="mt-1">Log level: {diagnosticsRuntime.log_level || "unknown"}</p>
-                  </div>
-                  <div className="rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600">
-                    <p className="font-medium text-slate-900">Storage paths</p>
-                    <p className="mt-2 break-all">Logs: {diagnosticsPaths.logs_dir || "unavailable"}</p>
-                    <p className="mt-1 break-all">Storage: {diagnosticsPaths.storage_dir || "unavailable"}</p>
-                    <p className="mt-1 break-all">Chroma: {diagnosticsPaths.chroma_db_dir || "unavailable"}</p>
-                  </div>
-                </div>
-              </section>
+              <DiagnosticsSection
+                diagnosticsCards={diagnosticsCards}
+                diagnosticsPaths={diagnosticsPaths}
+                diagnosticsRuntime={diagnosticsRuntime}
+              />
 
-              <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-950">
-                  <KeyRound size={16} />
-                  Secret slots
-                </div>
-                <div className="space-y-3">
-                  {SECRET_ROWS.map((row) => (
-                    <div key={row.slot} className="grid gap-2 rounded-lg border border-slate-200 bg-white p-3 md:grid-cols-[160px,1fr,120px] md:items-center">
-                      <div>
-                        <p className="text-sm font-medium text-slate-900">{row.label}</p>
-                        <p className="text-xs text-slate-500">{row.hint}</p>
-                      </div>
-                      <Input
-                        type="password"
-                        value={secretInputs[row.slot]}
-                        onChange={(event) =>
-                          setSecretInputs((current) => ({
-                            ...current,
-                            [row.slot]: event.target.value,
-                          }))
-                        }
-                        placeholder={
-                          secretStatus[row.slot]?.configured
-                            ? "Configured on backend"
-                            : "Paste secret value"
-                        }
-                        className="h-10 border-slate-300 bg-white text-slate-900"
-                      />
-                      <div className="text-xs text-slate-500">
-                        {secretStatus[row.slot]?.configured ? "configured" : "missing"}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4 flex justify-end">
-                  <Button onClick={() => void saveSecrets()} disabled={secretSaving}>
-                    {secretSaving ? "Saving…" : "Save secret slots"}
-                  </Button>
-                </div>
-              </section>
+              <SecretSlotsSection
+                secretInputs={secretInputs}
+                setSecretInputs={setSecretInputs}
+                secretStatus={secretStatus}
+                secretSaving={secretSaving}
+                onSave={() => void saveSecrets()}
+              />
             </div>
           )}
         </div>

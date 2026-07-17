@@ -8,6 +8,8 @@ Ce workflow lance les trois services locaux sans Docker :
 - Renderer Bun/Elysia : `http://localhost:4000`
 - Frontend Next.js : `http://localhost:3000`
 
+Pour la configuration de sandbox, les permissions persistantes recommandees et les niveaux d'autonomie d'un agent de code, voir aussi [`docs/agent-runtime.md`](./agent-runtime.md).
+
 ## Prerequis
 
 - `uv`
@@ -69,6 +71,9 @@ Logs :
 Les modules Python utilisent aussi des fichiers separes par service pour eviter le melange des traces.
 Le dossier canonique pour les logs locaux est `.logs/`.
 
+Chaque reponse API expose aussi un header `X-Request-Id`.
+En cas d'erreur backend, utilise cet identifiant pour recouper le terminal, `.logs/api-gateway.log` et les appels navigateur.
+
 Ports personnalisables :
 
 ```bash
@@ -82,6 +87,40 @@ Dans un autre terminal, une fois les services lances :
 ```bash
 ./scripts/smoke_local.sh
 ```
+
+## Validation repo-first
+
+Pour les checks qui ne dependent pas d'une stack locale deja demarree :
+
+```bash
+./scripts/check_all.sh
+```
+
+`check_all.sh` regroupe par defaut :
+
+- `./scripts/lint_all.sh`
+- `./scripts/test_all.sh`
+
+Options :
+
+```bash
+RUN_LOCAL_SMOKE=1 ./scripts/check_all.sh
+RUN_LOCAL_SMOKE=1 RUN_BROWSER_E2E=1 ./scripts/check_all.sh
+```
+
+`lint_all.sh` couvre :
+
+- Ruff sur la surface Python stable du runtime local ;
+- lint et typecheck du frontend ;
+- typecheck et build du renderer.
+
+`test_all.sh` couvre :
+
+- un set cible de tests backend Python ;
+- les tests frontend ;
+- les tests renderer.
+
+Le smoke local et l'E2E navigateur restent opt-in et ne s'executent via `check_all.sh` que si tu actives explicitement les variables d'environnement.
 
 ## E2E navigateur MVP1
 
@@ -126,6 +165,26 @@ Il :
 - publie les logs `.logs` en artefact.
 
 ## Notes
+
+## Sauvegarde locale rapide
+
+Sauvegarder l'etat local utile :
+
+```bash
+mkdir -p /tmp/mindris-backup
+cp -R storage /tmp/mindris-backup/storage
+cp -R .logs /tmp/mindris-backup/logs
+```
+
+Restaurer :
+
+```bash
+rm -rf storage .logs
+cp -R /tmp/mindris-backup/storage ./storage
+cp -R /tmp/mindris-backup/logs ./.logs
+```
+
+Si seuls les logs t'interessent, ne restaure pas `storage/`.
 
 Les scripts ne lisent pas le contenu de `.env` dans la sortie terminal et ne doivent pas afficher de secrets.
 Le dossier `logs/` est considere comme legacy local; les nouveaux flux utilisent `.logs/`.

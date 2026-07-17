@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiUrl, jsonHeaders } from "@/lib/api";
+import { ToolbarSelect } from "@/components/ToolbarSelect";
 import { useCVStore, type AppSettings, type LLMProvider } from "@/store/useCVStore";
 
 type TaskKey = "optimize_llm" | "cover_letter_llm" | "ats_llm" | "patch_llm";
@@ -14,13 +15,18 @@ type ProviderStatus = Record<
 interface LLMSelectorProps {
   taskKey: TaskKey;
   label?: string;
+  variant?: "default" | "toolbar";
 }
 
-export function LLMSelector({ taskKey, label = "Model" }: LLMSelectorProps) {
+export function LLMSelector({ taskKey, label = "Model", variant = "default" }: LLMSelectorProps) {
   const { appSettings, setAppSettings } = useCVStore();
   const [catalogue, setCatalogue] = useState<Catalogue>({});
   const [providersStatus, setProvidersStatus] = useState<ProviderStatus>({});
   const current = appSettings[taskKey];
+  const isToolbar = variant === "toolbar";
+  const selectClass = isToolbar
+    ? "app-select h-9 px-2 text-xs"
+    : "app-select h-9 px-2 text-xs";
 
   useEffect(() => {
     fetch(apiUrl("/api/v1/llm/catalogue"), { headers: jsonHeaders() })
@@ -46,40 +52,36 @@ export function LLMSelector({ taskKey, label = "Model" }: LLMSelectorProps) {
   };
 
   return (
-    <div className="flex items-center gap-1.5">
-      <span className="text-[10px] uppercase tracking-wider text-slate-500">{label}</span>
-      <select
+    <div className="flex items-center gap-2">
+      <span className={`${isToolbar ? "text-xs" : "text-[10px] uppercase"} tracking-wider text-muted-foreground`}>{label}</span>
+      <ToolbarSelect
         value={current.provider}
-        onChange={(event) => {
-          const provider = event.target.value as LLMProvider;
+        ariaLabel={`${label} provider`}
+        options={providers.map((provider) => ({
+          value: provider,
+          label: provider,
+          hint: providersStatus[provider]?.mode,
+          disabled: providersStatus[provider]?.configured === false,
+        }))}
+        onChange={(value) => {
+          const provider = value as LLMProvider;
           const first = catalogue[provider]?.[0]?.id ?? current.model_name;
           update({ provider, model_name: first });
         }}
-        className="h-9 cursor-pointer rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-700 shadow-sm outline-none focus:border-slate-500"
-      >
-        {providers.map((provider) => (
-          <option
-            key={provider}
-            value={provider}
-            disabled={providersStatus[provider]?.configured === false}
-          >
-            {provider}
-          </option>
-        ))}
-      </select>
-      <select
+        triggerClassName={`${selectClass} min-w-22`}
+      />
+      <ToolbarSelect
         value={current.model_name}
-        onChange={(event) => update({ model_name: event.target.value })}
-        className="h-9 max-w-44 cursor-pointer rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-700 shadow-sm outline-none focus:border-slate-500"
-      >
-        {models.map((model) => (
-          <option key={model.id} value={model.id}>{model.label}</option>
-        ))}
-      </select>
+        ariaLabel={`${label} model`}
+        options={models.map((model) => ({ value: model.id, label: model.label }))}
+        onChange={(value) => update({ model_name: value })}
+        triggerClassName={`${selectClass} w-40`}
+        menuClassName="min-w-64"
+      />
       {providerMeta && (
         <span
           className={`text-[10px] ${
-            providerMeta.configured ? "text-slate-500" : "text-amber-700"
+            providerMeta.configured ? "text-muted-foreground" : "text-amber-700 dark:text-amber-300"
           }`}
           title={providerMeta.reason || undefined}
         >

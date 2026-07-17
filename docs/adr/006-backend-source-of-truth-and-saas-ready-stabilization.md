@@ -73,7 +73,7 @@ Les modèles de requêtes/réponses sont extraits dans `services/api-gateway/sch
 
 ### 2.3 Protéger `/api/v1/*` par clé API
 
-**Décision :** Ajouter une authentification simple par header `X-API-Key` pour les routes `/api/v1/*`.
+**Décision :** Ajouter une authentification simple par header `X-API-Key` pour les routes `/api/v1/*`, avec une exception explicite pour le navigateur local en loopback.
 
 Configuration :
 
@@ -81,10 +81,9 @@ Configuration :
 API_KEY=dev-mindris-api-key
 ```
 
-**Cas particulier SSE :** `EventSource` ne permet pas d'envoyer de header custom. La clé API est donc aussi acceptée en query string `?api_key=...` pour les endpoints SSE.
-
 **Conséquences :**
 - Les routes métier sont protégées localement.
+- Le navigateur local n'a pas besoin d'une clé publique embarquée tant qu'il appelle l'API depuis `localhost` / loopback.
 - `/` et `/api/v1/system/status` restent publics pour le healthcheck.
 - `/docs` et `/redoc` sont désactivés par défaut dans FastAPI.
 
@@ -94,9 +93,8 @@ API_KEY=dev-mindris-api-key
 
 - `NEXT_PUBLIC_API_URL`
 - `NEXT_PUBLIC_RENDERER_URL`
-- `NEXT_PUBLIC_API_KEY`
-- headers JSON + API key
-- URL SSE avec `api_key`
+- les headers JSON standards
+- le contrat de transport navigateur local vs appels opérateur
 
 **Justification :**
 - Éliminer les appels hardcodés à `localhost:8000` et `localhost:4000`.
@@ -168,7 +166,6 @@ API_KEY=dev-mindris-api-key
 RENDERER_URL=http://localhost:4000
 NEXT_PUBLIC_API_URL=http://localhost:8000
 NEXT_PUBLIC_RENDERER_URL=http://localhost:4000
-NEXT_PUBLIC_API_KEY=dev-mindris-api-key
 ```
 
 ### Nouvelles routes principales
@@ -230,7 +227,7 @@ Vérifications effectuées dans l'environnement courant :
   - Docker Compose peut lancer les trois services principaux.
 
 - **Négatives / Points de vigilance :**
-  - La clé API exposée via `NEXT_PUBLIC_API_KEY` est acceptable uniquement pour un outil local. Une future version SaaS devra remplacer ce modèle par une authentification serveur/session.
+  - La frontière locale doit rester explicite: navigateur loopback autorisé, appels externes via `X-API-Key`, aucun alias en query string.
   - La CI n'utilise pas `uv sync --frozen` tant que le lock ne peut pas être régénéré dans un environnement avec réseau.
   - Les fichiers morts identifiés doivent encore être supprimés dans un environnement où l'opération destructive est autorisée.
 

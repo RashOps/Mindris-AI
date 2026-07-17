@@ -8,7 +8,7 @@ import pytest
 from database.records import ResumeRecord
 from database.session import SessionLocal, init_db
 from fastapi import HTTPException
-from persistence import load_json
+from persistence_lib.json import load_json
 from pydantic import ValidationError
 from routers.resumes import (
     activate_resume_locale_route,
@@ -280,7 +280,9 @@ def test_resume_locale_variants_are_backend_owned() -> None:
             "activeLocale": "en",
             "availableLocales": ["fr", "en"],
         }
-        assert localized["cvData"]["global_settings"]["locale"]["label_language"] == "en"
+        assert (
+            localized["cvData"]["global_settings"]["locale"]["label_language"] == "en"
+        )
         assert localized["cvData"]["profile"]["full_name"] == "Ada Lovelace"
 
         en_payload = _cv_payload()
@@ -779,7 +781,10 @@ def test_cv_schema_accepts_advanced_css_contract() -> None:
         "advanced_css": {
             "enabled": True,
             "mode": "css_patch",
-            "css_text": ":host { --primary-color: #111827; }\n.resume-name { letter-spacing: 0; }",
+            "css_text": (
+                ":host { --primary-color: #111827; }\n"
+                ".resume-name { letter-spacing: 0; }"
+            ),
         },
     }
 

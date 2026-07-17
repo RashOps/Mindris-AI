@@ -4,21 +4,18 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
   BellRing,
-  Briefcase,
   CalendarClock,
-  CheckCircle2,
   CheckCheck,
   ExternalLink,
   Plus,
-  Search,
   Trash2,
-  Clock3,
-  CircleDot,
   X,
 } from "lucide-react";
 import { apiUrl, jsonHeaders } from "@/lib/api";
+import { compactTrackerSummary, toggleExpandedTrackerCard } from "@/lib/tracker-ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { TrackerHeader } from "./components/TrackerHeader";
 
 const STATUSES = [
   { id: "wishlist", label: "Wishlist", hint: "Opportunities to review" },
@@ -83,6 +80,7 @@ export default function TrackerPage() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [draft, setDraft] = useState({ company: "", role: "", url: "" });
+  const [expandedIds, setExpandedIds] = useState<number[]>([]);
   const [reminderDrafts, setReminderDrafts] = useState<
     Record<number, { title: string; dueAt: string }>
   >({});
@@ -158,6 +156,7 @@ export default function TrackerPage() {
         );
       }
       setDraft({ company: "", role: "", url: "" });
+      setExpandedIds([]);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Tracker create failed");
@@ -260,88 +259,18 @@ export default function TrackerPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#f7f8fb] text-slate-950">
+    <main className="min-h-screen bg-background text-foreground">
       <div className="mx-auto flex min-h-screen max-w-[1600px] flex-col px-4 py-4 lg:px-6">
-        <header className="mb-4 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-            <div className="space-y-1">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500">Applications</p>
-              <div className="flex items-center gap-2">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950 text-white">
-                  <Briefcase size={18} />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-semibold tracking-tight">Job Tracker</h1>
-                  <p className="text-sm text-slate-500">Backend-owned pipeline for applications, interviews, and offers.</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-              {[
-                { label: "Total", value: metrics.totalCount, icon: CircleDot },
-                { label: "Applied", value: metrics.appliedCount, icon: Clock3 },
-                { label: "Interview", value: metrics.interviewCount, icon: Search },
-                { label: "Offers", value: metrics.offerCount, icon: CheckCircle2 },
-              ].map((metric) => {
-                const Icon = metric.icon;
-                return (
-                  <div key={metric.label} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
-                    <div className="mb-2 flex items-center justify-between">
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{metric.label}</p>
-                      <Icon size={14} className="text-slate-400" />
-                    </div>
-                    <p className="text-2xl font-semibold">{metric.value}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="mt-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="grid gap-2 sm:grid-cols-3 xl:flex xl:flex-1">
-              <Input
-                value={draft.company}
-                onChange={(e) => setDraft({ ...draft, company: e.target.value })}
-                placeholder="Company"
-                data-testid="tracker-company-input"
-                className="h-10 border-slate-300 bg-white text-slate-800 shadow-sm placeholder:text-slate-400 focus-visible:border-slate-500"
-              />
-              <Input
-                value={draft.role}
-                onChange={(e) => setDraft({ ...draft, role: e.target.value })}
-                placeholder="Role"
-                data-testid="tracker-role-input"
-                className="h-10 border-slate-300 bg-white text-slate-800 shadow-sm placeholder:text-slate-400 focus-visible:border-slate-500"
-              />
-              <Input
-                value={draft.url}
-                onChange={(e) => setDraft({ ...draft, url: e.target.value })}
-                placeholder="Job URL"
-                data-testid="tracker-url-input"
-                className="h-10 border-slate-300 bg-white text-slate-800 shadow-sm placeholder:text-slate-400 focus-visible:border-slate-500"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search applications"
-                className="h-10 min-w-[260px] border-slate-300 bg-white text-slate-800 shadow-sm placeholder:text-slate-400 focus-visible:border-slate-500"
-              />
-              <Button
-                onClick={create}
-                disabled={isSubmitting || !canCreate}
-                data-testid="tracker-add-button"
-                className="h-10 cursor-pointer px-4 disabled:cursor-not-allowed"
-                title={!canCreate ? "Company and role are required" : "Add application"}
-              >
-                <Plus size={16} />
-                {isSubmitting ? "Adding..." : "Add application"}
-              </Button>
-            </div>
-          </div>
-        </header>
+        <TrackerHeader
+          metrics={metrics}
+          draft={draft}
+          query={query}
+          isSubmitting={isSubmitting}
+          canCreate={canCreate}
+          onDraftChange={(patch) => setDraft((current) => ({ ...current, ...patch }))}
+          onQueryChange={setQuery}
+          onCreate={create}
+        />
 
         {error && (
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
@@ -350,21 +279,21 @@ export default function TrackerPage() {
         )}
 
         {loading ? (
-          <div className="rounded-lg border border-slate-200 bg-white px-4 py-8 text-sm text-slate-500 shadow-sm">
+          <div className="rounded-lg border border-border bg-card px-4 py-8 text-sm text-muted-foreground shadow-sm">
             Loading tracker...
           </div>
         ) : (
-          <div className="grid gap-4 xl:grid-cols-5">
+          <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-5">
             {STATUSES.map((status) => {
               const itemsForStatus = filteredColumns[status.id] ?? [];
               const tone = statTone(status.id);
               return (
                 <section
                   key={status.id}
-                  className="flex min-h-[72vh] flex-col rounded-lg border border-slate-200 bg-white shadow-sm"
+                  className="flex min-h-[72vh] w-full min-w-0 flex-col rounded-lg border border-border bg-card shadow-sm"
                 >
-                  <div className="border-b border-slate-200 px-4 py-4">
-                    <div className="mb-2 flex items-center justify-between">
+                  <div className="min-w-0 border-b border-border px-4 py-4">
+                    <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
                       <h2 className="text-sm font-semibold">{status.label}</h2>
                       <span
                         className="rounded-full border px-2 py-0.5 text-[11px] font-medium"
@@ -373,23 +302,31 @@ export default function TrackerPage() {
                         {itemsForStatus.length}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-500">{status.hint}</p>
+                    <p className="min-w-0 text-xs text-muted-foreground">{status.hint}</p>
                   </div>
 
-                  <div className="flex-1 space-y-3 p-3">
+                  <div className="min-w-0 flex-1 space-y-3 p-3">
                     {itemsForStatus.length === 0 ? (
-                      <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-slate-200 px-4 py-10 text-center text-xs text-slate-400">
+                      <div className="flex h-full min-w-0 items-center justify-center rounded-lg border border-dashed border-border px-4 py-10 text-center text-xs text-muted-foreground">
                         No applications in this stage.
                       </div>
                     ) : (
                       itemsForStatus.map((item, index) => {
                         const itemTone = statTone(item.status);
+                        const expanded = expandedIds.includes(item.id);
+                        const summaryBadges = compactTrackerSummary({
+                          notes: item.notes,
+                          reminderCounts: item.reminder_counts,
+                          nextReminderLabel: item.next_reminder?.due_at
+                            ? formatDate(item.next_reminder.due_at)
+                            : null,
+                        });
                         return (
-                          <article key={item.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                          <article key={item.id} className="rounded-lg border border-border bg-muted/40 p-3">
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
                                 <p className="truncate text-sm font-semibold">{item.role}</p>
-                                <p className="truncate text-xs text-slate-500">{item.company}</p>
+                                <p className="truncate text-xs text-muted-foreground">{item.company}</p>
                               </div>
                               <span
                                 className="rounded-full border px-2 py-0.5 text-[10px] font-medium capitalize"
@@ -401,6 +338,17 @@ export default function TrackerPage() {
                               >
                                 {item.status}
                               </span>
+                            </div>
+
+                            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                              {summaryBadges.map((badge) => (
+                                <span
+                                  key={badge}
+                                  className="inline-flex rounded-full border border-border bg-card px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
+                                >
+                                  {badge}
+                                </span>
+                              ))}
                             </div>
 
                             {item.url && (
@@ -415,10 +363,30 @@ export default function TrackerPage() {
                               </a>
                             )}
 
-                            {item.notes && (
+                            {expanded && item.notes && (
                               <p className="mt-2 line-clamp-3 text-xs leading-5 text-slate-600">{item.notes}</p>
                             )}
 
+                            <div className="mt-3 flex items-center justify-between gap-2">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setExpandedIds((current) =>
+                                    toggleExpandedTrackerCard(current, item.id),
+                                  )
+                                }
+                                className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-900"
+                              >
+                                {expanded ? "Hide details" : "Show details"}
+                              </button>
+                              {item.applied_at && (
+                                <p className="text-[10px] uppercase tracking-wide text-slate-400">
+                                  Applied {formatDate(item.applied_at)}
+                                </p>
+                              )}
+                            </div>
+
+                            {expanded && (
                             <div className="mt-3 rounded-lg border border-slate-200 bg-white p-2.5">
                               <div className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -538,7 +506,9 @@ export default function TrackerPage() {
                                 </Button>
                               </div>
                             </div>
+                            )}
 
+                            {expanded && (
                             <div className="mt-3 flex flex-wrap gap-1.5">
                               {STATUSES.filter((candidate) => candidate.id !== item.status).map((target) => (
                                 <button
@@ -558,11 +528,6 @@ export default function TrackerPage() {
                                 Delete
                               </button>
                             </div>
-
-                            {item.applied_at && (
-                              <p className="mt-3 text-[10px] uppercase tracking-wide text-slate-400">
-                                Applied {formatDate(item.applied_at)}
-                              </p>
                             )}
                           </article>
                         );

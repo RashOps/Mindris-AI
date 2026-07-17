@@ -103,7 +103,9 @@ def _application_payload(request: ApplicationCreateRequest) -> dict:
     return payload
 
 
-def _application_reminders_map(session: Session) -> dict[int, list[ApplicationReminderRecord]]:
+def _application_reminders_map(
+    session: Session,
+) -> dict[int, list[ApplicationReminderRecord]]:
     reminders = session.exec(
         select(ApplicationReminderRecord).order_by(ApplicationReminderRecord.due_at.asc())
     ).all()
@@ -153,7 +155,8 @@ async def list_applications(session: SessionDep) -> dict:
     return {
         "status": "success",
         "items": [
-            serialize_application(row, reminder_map.get(row.id or 0, [])) for row in rows
+            serialize_application(row, reminder_map.get(row.id or 0, []))
+            for row in rows
         ],
         "columns": grouped,
     }

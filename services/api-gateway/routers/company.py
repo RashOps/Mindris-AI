@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 from database.records import CompanyInsightRecord
 from database.session import Session, get_session
 from fastapi import APIRouter, Depends
-from persistence import dump_json, load_json
+from persistence_lib.json import dump_json, load_json
 from schemas import CompanyAnalyzeRequest
 from sqlalchemy import or_, select
 from utils.logger import get_logger
@@ -71,7 +71,10 @@ async def analyze_company_route(
         enable_llm_summary=request.enable_llm_summary,
     )
     logger.info("Company insight generated for %s", name)
-    record = cached or CompanyInsightRecord(company_name=name.lower(), cache_key=cache_key)
+    record = cached or CompanyInsightRecord(
+        company_name=name.lower(),
+        cache_key=cache_key,
+    )
     record.company_name = name.lower()
     record.cache_key = cache_key
     record.insight_json = dump_json(insight)

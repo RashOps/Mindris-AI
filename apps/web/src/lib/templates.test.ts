@@ -18,9 +18,9 @@ describe("template helpers", () => {
     );
   });
 
-  test("builds an authenticated preview URL for browser image loading", () => {
+  test("builds a preview URL without leaking auth in the query string", () => {
     expect(resumeTemplatePreviewUrl("mindris/community-open-source")).toBe(
-      "http://localhost:8000/api/v1/templates/mindris/community-open-source/preview?api_key=dev-mindris-api-key",
+      "http://localhost:8000/api/v1/templates/mindris/community-open-source/preview",
     );
   });
 });

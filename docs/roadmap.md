@@ -132,3 +132,42 @@
 - [x] **Guide interne Mindris :** Aide produit integree et contextuelle dans l'AppShell.
 - [x] **Theme system :** Dark/light mode aligne au design system.
 - [x] **Markdown workspace plus riche :** Export DOCX et finitions du convertisseur.
+
+## 🔵 Phase 21 : UI System Consolidation
+- [x] **Guide produit dedie :** Page interne complete sur Mindris, ses workflows et ses frontieres runtime.
+- [x] **Normalisation UI & dark mode :** Tokens partages, survols lisibles, surfaces coherentes et theme unifie.
+- [x] **Historique gouverne :** Purge globale avec confirmation destructive et contrat backend transactionnel.
+- [x] **Job Tracker compact :** Densite plus SaaS et details secondaires en disclosure.
+- [x] **CV Builder stabilise :** Barre d'outils refondue et alignement robuste en shell etendu.
+
+## 🔵 Phase 22 : Workflow Reliability & Data Integrity
+- [x] **Workflow candidat fiable :** Durcir les transitions d'etat entre opportunite, ATS, CV, LM et tracker.
+- [x] **Integrite des liens metier :** Detecter, prevenir et reparer les references orphelines ou incoherentes.
+- [x] **Reprise et reprise sur erreur :** Exposer des etats clairs, retries bornes et recovery paths pour les workflows incomplets.
+- [x] **QA de continuite produit :** Renforcer les tests API/E2E sur les parcours relies et les cas de donnees degradees.
+
+## 🔵 Phase 23 : Security & Operational Hardening
+- [x] **Durcissement des entrees et du rendu :** Valider et sanitiser uploads, templates, CSS, markdown/html et URLs non fiables.
+- [x] **Durcissement runtime et API :** Renforcer config env, timeouts, retries, CORS/headers et erreurs normalisees.
+- [x] **Durcissement secrets et etat local :** Revalider BYOK, frontieres de persistence client et redaction des logs.
+- [x] **Resilience operationnelle :** Structurer logs, verifier health/readiness, documenter backup/restore et etendre les tests critiques.
+
+## 🔵 Phase 24 : Theme System Completion & UI Contract Normalization
+- [x] **Theme contract canonique :** Finaliser le bootstrap dark/light, les tokens semantiques et les regles de persistance.
+- [x] **Surfaces unifiees :** Normaliser CV Builder, ATS, Tracker, History, Workflow et Runtime Gate sur des etats de surface partages.
+- [x] **Regression theme/UI :** Ajouter des tests cibles pour le switch de theme, les hover states et la lisibilite.
+
+## 🔵 Phase 25 : Frontend Surface Decomposition & IA Settings Refactor
+- [x] **Decomposition des gros modules front :** Redecouper les surfaces les plus fragiles du web app pour reduire la derive UI.
+- [x] **Configuration clarifiee :** Separer configuration operateur, secrets/providers et diagnostics runtime.
+- [x] **CV Builder simplifie :** Reorganiser header et zones d'action sans casser les contrats backend.
+
+## 🔵 Phase 26 : Online Boundary & API Trust Contract
+- [x] **Transport client assaini :** Retirer les hypotheses de cle publique cote front pour preparer un futur mode online plus propre.
+- [x] **Entrees API durcies :** Supprimer les alias de credentials en query string et resserrer le contrat auth/erreur.
+- [x] **Frontiere local vs online explicite :** Documenter et tester une separation nette entre ergonomie locale et posture future hebergee.
+
+## 🔵 Phase 27 : Product Coherence, QA & Content Governance
+- [ ] **Regression finale produit :** Revalider les parcours critiques apres les runs de consolidation.
+- [ ] **Guide/copy/branding alignes :** Harmoniser le contenu in-app et repo avec le comportement reel de Mindris.
+- [ ] **Derniere passe de coherence UI :** Corriger les derniers ilots visuels restants apres normalisation et decomposition.

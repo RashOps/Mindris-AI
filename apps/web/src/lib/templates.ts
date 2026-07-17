@@ -1,4 +1,5 @@
-import { apiHeaders, apiUrl, authenticatedApiUrl, jsonHeaders } from "@/lib/api";
+import { apiHeaders, apiUrl, jsonHeaders } from "@/lib/api";
+import type { CVData } from "@/store/useCVStore";
 
 export type ResumeTemplateManifest = {
   id: string;
@@ -48,6 +49,33 @@ export async function fetchResumeTemplates(): Promise<ResumeTemplate[]> {
   return payload.items ?? [];
 }
 
+export async function resolveTemplateRenderPayload(
+  cvData: CVData,
+  templateId?: string,
+): Promise<{ cv_data: CVData; template_id: string }> {
+  const response = await fetch(apiUrl("/api/v1/templates/resolve-render-payload"), {
+    method: "POST",
+    headers: jsonHeaders(),
+    body: JSON.stringify({
+      cv_data: cvData,
+      template_id: templateId,
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(`Template render payload resolution failed: ${response.status}`);
+  }
+  const payload = (await response.json()) as {
+    item?: { cv_data?: CVData; template_id?: string };
+  };
+  if (!payload.item?.cv_data || !payload.item.template_id) {
+    throw new Error("Template render payload resolution returned no item");
+  }
+  return {
+    cv_data: payload.item.cv_data,
+    template_id: payload.item.template_id,
+  };
+}
+
 export async function importResumeTemplatePackage(file: File): Promise<ResumeTemplate> {
   const form = new FormData();
   form.append("file", file);
@@ -76,6 +104,14 @@ export async function exportResumeTemplatePackage(templateId: string): Promise<B
   return response.blob();
 }
 
+export async function fetchResumeTemplatePreviewBlob(templateId: string): Promise<Blob> {
+  const response = await fetch(apiUrl(`/api/v1/templates/${templateId}/preview`), {
+    headers: apiHeaders(),
+  });
+  if (!response.ok) throw new Error("Template preview failed");
+  return response.blob();
+}
+
 export function resumeTemplatePreviewUrl(templateId: string): string {
-  return authenticatedApiUrl(`/api/v1/templates/${templateId}/preview`);
+  return apiUrl(`/api/v1/templates/${templateId}/preview`);
 }

@@ -84,32 +84,33 @@ def provider_configuration_status() -> dict[str, dict[str, str | bool]]:
     gemini_api_key = resolve_secret_slot("gemini_api_key", settings.gemini_api_key)
     openai_api_key = resolve_secret_slot("openai_api_key", settings.openai_api_key)
     mistral_api_key = resolve_secret_slot("mistral_api_key", settings.mistral_api_key)
+    cloud_secret_reason = "Configure this provider in backend secret slots."
     return {
         "groq": {
             "configured": bool(groq_api_key),
             "mode": "cloud",
-            "reason": "" if groq_api_key else "Set GROQ_API_KEY in the environment.",
+            "reason": "" if groq_api_key else cloud_secret_reason,
         },
         "gemini": {
             "configured": bool(gemini_api_key),
             "mode": "cloud",
             "reason": ""
             if gemini_api_key
-            else "Set GEMINI_API_KEY in the environment.",
+            else cloud_secret_reason,
         },
         "openai": {
             "configured": bool(openai_api_key),
             "mode": "cloud",
             "reason": ""
             if openai_api_key
-            else "Set OPENAI_API_KEY in the environment.",
+            else cloud_secret_reason,
         },
         "mistral": {
             "configured": bool(mistral_api_key),
             "mode": "cloud",
             "reason": ""
             if mistral_api_key
-            else "Set MISTRAL_API_KEY in the environment.",
+            else cloud_secret_reason,
         },
         "ollama": {
             "configured": bool(settings.ollama_api_base.strip()),

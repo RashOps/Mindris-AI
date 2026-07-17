@@ -6,6 +6,7 @@ import {
   normalizeHistoryLedgerItem,
   normalizeResumeDocument,
   systemConfigurationToAppSettings,
+  useCVStore,
 } from "./useCVStore";
 import { mergeSections } from "../components/StylePanel";
 import { FALLBACK_CUSTOMIZATION_CATALOGUE } from "../lib/customization-catalogue";
@@ -86,6 +87,28 @@ describe("useCVStore normalization", () => {
     expect(mapped.ats_llm).toEqual({ provider: "openai", model_name: "gpt-4o-mini" });
     expect(mapped.patch_llm).toEqual({ provider: "mistral", model_name: "mistral-small-latest" });
     expect(mapped.pdf_ingestion_mode).toBe("local_text");
+  });
+
+  test("does not persist app settings into browser localStorage", () => {
+    const originalSetItem = globalThis.localStorage?.setItem;
+    let setItemCalls = 0;
+
+    if (globalThis.localStorage) {
+      globalThis.localStorage.setItem = ((...args: Parameters<Storage["setItem"]>) => {
+        setItemCalls += 1;
+        return originalSetItem?.apply(globalThis.localStorage, args);
+      }) as Storage["setItem"];
+    }
+
+    useCVStore.getState().setAppSettings({
+      optimize_llm: { provider: "ollama", model_name: "llama3.2" },
+    });
+
+    if (globalThis.localStorage && originalSetItem) {
+      globalThis.localStorage.setItem = originalSetItem;
+    }
+
+    expect(setItemCalls).toBe(0);
   });
 
   test("normalizes advanced css settings and warnings from partial CV data", () => {

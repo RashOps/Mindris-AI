@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from auth import verify_api_key
+from auth import auth_boundary_contract, verify_api_key
 from database.session import DB_PATH, engine
 from fastapi import APIRouter, Depends
 from intelligence.llm_config import provider_configuration_status
@@ -72,6 +72,12 @@ async def system_status() -> dict:
             "ok": checks["checks"]["sqlite"]["ok"],
         },
     }
+
+
+@router.get("/api/v1/system/auth-mode")
+async def system_auth_mode() -> dict:
+    """Return the public local-vs-hosted auth contract."""
+    return {"status": "success", "item": auth_boundary_contract()}
 
 
 @router.get("/api/v1/system/ready")

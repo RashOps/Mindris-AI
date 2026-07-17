@@ -1,24 +1,16 @@
 "use client";
-
-import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowRight,
-  Copy,
   Download,
   FileJson,
   FileText,
   FolderOpen,
   LayoutTemplate,
   Plus,
-  Trash2,
-  Upload,
 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageBody, StatusBanner } from "@/components/layout/PagePrimitives";
-import { Button } from "@/components/ui/button";
-import { PdfIngestionModeSelect } from "@/components/PdfIngestionModeSelect";
 import {
   cvDataFromImport,
   resumeNameFromImport,
@@ -27,6 +19,14 @@ import {
 } from "@/store/useCVStore";
 import { apiHeaders, apiUrl, jsonHeaders } from "@/lib/api";
 import {
+  FALLBACK_TEMPLATES,
+  fileNameToResumeName,
+  formatDate,
+  type ResumeRevision,
+  type ResumeRevisionCompare,
+} from "./dashboard-model";
+import {
+  fetchResumeTemplatePreviewBlob,
   exportResumeTemplatePackage,
   fetchResumeTemplates,
   importResumeTemplatePackage,
@@ -35,151 +35,7 @@ import {
   templatePackageFileName,
   type ResumeTemplate,
 } from "@/lib/templates";
-
-const FALLBACK_TEMPLATES: ResumeTemplate[] = [
-  {
-    id: "modern",
-    name: "Modern",
-    description: "Balanced two-column layout for tech, product, and business profiles.",
-    status: "ready",
-    category: "tech",
-    accent: "#2563eb",
-    layout: "two-column",
-  },
-  {
-    id: "compact",
-    name: "Compact",
-    description: "Dense one-page format for experienced profiles and long histories.",
-    status: "ready",
-    category: "senior",
-    accent: "#0f766e",
-    layout: "two-column",
-  },
-  {
-    id: "ats",
-    name: "ATS Strict",
-    description: "Single-column, low-decoration template for ATS-friendly CVs.",
-    status: "ready",
-    category: "ats",
-    accent: "#475569",
-    layout: "single",
-  },
-  {
-    id: "student",
-    name: "Student",
-    description: "Education-first template for internships and first roles.",
-    status: "ready",
-    category: "student",
-    accent: "#7c3aed",
-    layout: "single",
-  },
-  {
-    id: "creative",
-    name: "Creative",
-    description: "Editorial template for marketing, design, and content roles.",
-    status: "ready",
-    category: "creative",
-    accent: "#e11d48",
-    layout: "two-column",
-  },
-  {
-    id: "opensource",
-    name: "Open Source",
-    description: "Community-made template for developers, GitHub links, and OSS contributions.",
-    status: "community",
-    category: "developer",
-    accent: "#0f766e",
-    layout: "two-column",
-    base_template_id: "modern",
-    author: "Mindris Community",
-  },
-  {
-    id: "bilingual",
-    name: "Bilingual FR/EN",
-    description: "Community template tuned for bilingual CVs and international applications.",
-    status: "community",
-    category: "international",
-    accent: "#7c3aed",
-    layout: "two-column",
-    base_template_id: "compact",
-    author: "Mindris Community",
-  },
-];
-
-type ResumeExportFormat = "json" | "markdown" | "html";
-
-type ResumeRevision = {
-  id: string;
-  resumeId: string;
-  revision: number;
-  name: string;
-  templateId: string;
-  locale: string;
-  source: string;
-  label?: string | null;
-  createdAt: string;
-};
-
-type ResumeRevisionChange = {
-  path: string;
-  kind: "added" | "removed" | "changed";
-  before?: unknown;
-  after?: unknown;
-};
-
-type ResumeRevisionSectionSummary = {
-  section: string;
-  label: string;
-  status: "added" | "removed" | "changed" | "unchanged";
-  beforeCount: number;
-  afterCount: number;
-};
-
-type ResumeRevisionCompare = {
-  resumeId: string;
-  baseRevision: ResumeRevision;
-  targetRevision: ResumeRevision;
-  changeCount: number;
-  sectionSummaries: ResumeRevisionSectionSummary[];
-  changes: ResumeRevisionChange[];
-};
-
-const RESUME_EXPORTS: Record<
-  ResumeExportFormat,
-  { endpoint: string; extension: string; label: string }
-> = {
-  json: { endpoint: "export-json", extension: "json", label: "JSON" },
-  markdown: { endpoint: "export-markdown", extension: "md", label: "Markdown" },
-  html: { endpoint: "export-html", extension: "html", label: "HTML" },
-};
-
-function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
-}
-
-async function downloadResume(id: string, name: string, format: ResumeExportFormat) {
-  const exportConfig = RESUME_EXPORTS[format];
-  const response = await fetch(apiUrl(`/api/v1/resumes/${id}/${exportConfig.endpoint}`), {
-    headers: apiHeaders(),
-  });
-  if (!response.ok) throw new Error(`${exportConfig.label} export failed`);
-  const blob = await response.blob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${name.replace(/\s+/g, "_") || "mindris_cv"}.${exportConfig.extension}`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function fileNameToResumeName(file: File): string {
-  return file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim() || "Imported CV";
-}
+import { DashboardActions, ResumeCard, TemplatePreview } from "./dashboard-components";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -205,6 +61,7 @@ export default function DashboardPage() {
   const [status, setStatus] = useState<string | null>(null);
   const [isImportingPdf, setIsImportingPdf] = useState(false);
   const [templates, setTemplates] = useState<ResumeTemplate[]>(FALLBACK_TEMPLATES);
+  const [templatePreviewUrls, setTemplatePreviewUrls] = useState<Record<string, string>>({});
   const [revisions, setRevisions] = useState<ResumeRevision[]>([]);
   const [revisionsLoading, setRevisionsLoading] = useState(false);
   const [compareResult, setCompareResult] = useState<ResumeRevisionCompare | null>(null);
@@ -225,12 +82,12 @@ export default function DashboardPage() {
 
   const saveStatusText =
     resumeSaveStatus === "dirty"
-      ? "Unsaved changes"
+      ? "Modifications non sauvegardées"
       : resumeSaveStatus === "saving"
-        ? "Saving..."
+        ? "Sauvegarde..."
         : resumeSaveStatus === "error"
-          ? "Save failed"
-          : "Saved";
+          ? "Échec sauvegarde"
+          : "Sauvegardé";
   const activePersistedResumeId =
     activeResumeId && /^\d+$/.test(String(activeResumeId))
       ? String(activeResumeId)
@@ -238,7 +95,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     void loadResumes().catch((err: unknown) => {
-      showStatus(err instanceof Error ? err.message : "Resume loading failed");
+      showStatus(err instanceof Error ? err.message : "Chargement des CV impossible");
     });
   }, [loadResumes, showStatus]);
 
@@ -253,7 +110,7 @@ export default function DashboardPage() {
       })
       .catch((err: unknown) => {
         if (!cancelled) {
-          showStatus(err instanceof Error ? err.message : "Template loading failed");
+          showStatus(err instanceof Error ? err.message : "Chargement des templates impossible");
         }
       });
 
@@ -261,6 +118,45 @@ export default function DashboardPage() {
       cancelled = true;
     };
   }, [showStatus]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const createdUrls: string[] = [];
+
+    void (async () => {
+      const entries = await Promise.all(
+        templates
+          .filter((template) => template.previewAvailable)
+          .map(async (template) => {
+            try {
+              const blob = await fetchResumeTemplatePreviewBlob(template.id);
+              const url = URL.createObjectURL(blob);
+              createdUrls.push(url);
+              return [template.id, url] as const;
+            } catch {
+              return [template.id, resumeTemplatePreviewUrl(template.id)] as const;
+            }
+          }),
+      );
+
+      if (cancelled) {
+        createdUrls.forEach((url) => URL.revokeObjectURL(url));
+        return;
+      }
+
+      setTemplatePreviewUrls((current) => {
+        Object.values(current)
+          .filter((url) => url.startsWith("blob:"))
+          .forEach((url) => URL.revokeObjectURL(url));
+        return Object.fromEntries(entries);
+      });
+    })();
+
+    return () => {
+      cancelled = true;
+      createdUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [templates]);
 
   useEffect(() => {
     const loadRevisions = async () => {
@@ -273,12 +169,12 @@ export default function DashboardPage() {
         const response = await fetch(apiUrl(`/api/v1/resumes/${activePersistedResumeId}/revisions`), {
           headers: apiHeaders(),
         });
-        if (!response.ok) throw new Error("Revision loading failed");
+        if (!response.ok) throw new Error("Chargement des révisions impossible");
         const payload = (await response.json()) as { items?: ResumeRevision[] };
         setRevisions(payload.items ?? []);
       } catch (err: unknown) {
         setRevisions([]);
-        showStatus(err instanceof Error ? err.message : "Revision loading failed");
+        showStatus(err instanceof Error ? err.message : "Chargement des révisions impossible");
       } finally {
         setRevisionsLoading(false);
       }
@@ -303,13 +199,13 @@ export default function DashboardPage() {
       method: "POST",
       headers: apiHeaders(),
     });
-    if (!response.ok) throw new Error("Snapshot failed");
+    if (!response.ok) throw new Error("Snapshot impossible");
     const payload = (await response.json()) as { item?: ResumeRevision };
     if (payload.item) {
       const snapshot = payload.item;
       setRevisions((current) => [snapshot, ...current]);
     }
-    showStatus("Version snapshot saved");
+    showStatus("Version sauvegardée");
   };
 
   const restoreRevision = async (revision: number) => {
@@ -321,11 +217,11 @@ export default function DashboardPage() {
         headers: apiHeaders(),
       }
     );
-    if (!response.ok) throw new Error("Restore failed");
+    if (!response.ok) throw new Error("Restauration impossible");
     const payload = (await response.json()) as { item?: ResumeRevision };
     await loadResumes();
     if (payload.item) {
-      showStatus(`Restored version ${revision}`);
+      showStatus(`Version ${revision} restaurée`);
     }
   };
 
@@ -341,15 +237,15 @@ export default function DashboardPage() {
           headers: apiHeaders(),
         }
       );
-      if (!response.ok) throw new Error("Compare failed");
+      if (!response.ok) throw new Error("Comparaison impossible");
       const payload = (await response.json()) as { item?: ResumeRevisionCompare };
       setCompareResult(payload.item ?? null);
       if (payload.item) {
-        showStatus(`Compared v${baseRevision} → v${targetRevision}`);
+        showStatus(`Comparaison v${baseRevision} → v${targetRevision}`);
       }
     } catch (err: unknown) {
       setCompareResult(null);
-      showStatus(err instanceof Error ? err.message : "Compare failed");
+      showStatus(err instanceof Error ? err.message : "Comparaison impossible");
     } finally {
       setCompareLoading(false);
     }
@@ -374,11 +270,11 @@ export default function DashboardPage() {
     try {
       const parsed = JSON.parse(await file.text()) as unknown;
       const cvData = cvDataFromImport(parsed);
-      if (!cvData) throw new Error("Invalid CV JSON");
+      if (!cvData) throw new Error("JSON CV invalide");
       await importCVData(cvData, resumeNameFromImport(parsed) ?? fileNameToResumeName(file));
-      showStatus("JSON resume imported");
+      showStatus("CV JSON importé");
     } catch (err: unknown) {
-      showStatus(err instanceof Error ? err.message : "JSON import failed");
+      showStatus(err instanceof Error ? err.message : "Import JSON impossible");
     }
   };
 
@@ -396,14 +292,14 @@ export default function DashboardPage() {
         headers: apiHeaders(),
         body: form,
       });
-      if (!res.ok) throw new Error("PDF import failed");
+      if (!res.ok) throw new Error("Import PDF impossible");
       const data = await res.json();
       const cvData = cvDataFromImport(data.cv_data);
-      if (!cvData) throw new Error("PDF parser returned invalid CV data");
+      if (!cvData) throw new Error("Le parser PDF a retourné un CV invalide");
       await importCVData(cvData, cvData.profile.full_name || fileNameToResumeName(file), false);
-      showStatus("PDF resume imported");
+      showStatus("CV PDF importé");
     } catch (err: unknown) {
-      showStatus(err instanceof Error ? err.message : "PDF import failed");
+      showStatus(err instanceof Error ? err.message : "Import PDF impossible");
     } finally {
       setIsImportingPdf(false);
     }
@@ -413,9 +309,9 @@ export default function DashboardPage() {
     try {
       const item = await importResumeTemplatePackage(file);
       await reloadTemplates();
-      showStatus(`Template imported: ${item.name}`);
+      showStatus(`Template importé : ${item.name}`);
     } catch (err: unknown) {
-      showStatus(err instanceof Error ? err.message : "Template import failed");
+      showStatus(err instanceof Error ? err.message : "Import du template impossible");
     }
   };
 
@@ -429,112 +325,26 @@ export default function DashboardPage() {
     URL.revokeObjectURL(url);
   };
 
-  const renderTemplatePreview = (template: ResumeTemplate) => {
-    if (template.previewAvailable) {
-      return (
-        <Image
-          src={resumeTemplatePreviewUrl(template.id)}
-          alt={`${template.name} preview`}
-          width={480}
-          height={192}
-          unoptimized
-          className="h-full w-full rounded-md object-cover"
-        />
-      );
-    }
-    return (
-      <div className="h-full p-3">
-        <div className="mb-2 h-3 w-24 rounded-full" style={{ background: template.accent }} />
-        <div className="mb-1 h-2 w-32 rounded-full bg-slate-200" />
-        <div className="h-2 w-20 rounded-full bg-slate-200" />
-      </div>
-    );
-  };
-
   return (
     <AppShell
-      title="Resume Library"
-      description="Create, import, duplicate and export backend-backed resumes."
+      title="Bibliothèque de CV"
+      description="Créer, importer, dupliquer et exporter des CV persistés par le backend."
       actions={
-        <>
-              <button
-                onClick={() => {
-                  if (resumeSaveStatus === "error") {
-                    void retryResumeSave().catch((err: unknown) => {
-                      showStatus(err instanceof Error ? err.message : "Save retry failed");
-                    });
-                  }
-                }}
-                className="hidden h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 shadow-sm sm:inline-flex sm:items-center"
-                title={resumeSaveError ?? "Backend save status"}
-              >
-                {saveStatusText}
-              </button>
-              <input
-                ref={jsonInputRef}
-                type="file"
-                accept=".json,application/json"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) void handleJsonImport(file);
-                  e.currentTarget.value = "";
-                }}
-              />
-              <input
-                ref={pdfInputRef}
-                type="file"
-                accept=".pdf,application/pdf"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) void handlePdfImport(file);
-                  e.currentTarget.value = "";
-                }}
-              />
-              <input
-                ref={templatePackageInputRef}
-                type="file"
-                accept=".mindris-template,.zip,application/zip"
-                className="hidden"
-                data-testid="template-package-input"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) void handleTemplatePackageImport(file);
-                  e.currentTarget.value = "";
-                }}
-              />
-              <PdfIngestionModeSelect compact />
-              <Button
-                variant="outline"
-                onClick={() => templatePackageInputRef.current?.click()}
-                data-testid="template-package-button"
-              >
-                <FolderOpen size={15} />
-                Template
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => jsonInputRef.current?.click()}
-              >
-                <Upload size={15} />
-                JSON
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => pdfInputRef.current?.click()}
-                disabled={isImportingPdf}
-              >
-                <FileText size={15} />
-                {isImportingPdf ? "Parsing..." : "PDF"}
-              </Button>
-              <Button
-                onClick={() => void createFromTemplate("modern", "Untitled")}
-              >
-                <Plus size={15} />
-                New CV
-              </Button>
-        </>
+        <DashboardActions
+          saveStatusText={saveStatusText}
+          resumeSaveStatus={resumeSaveStatus}
+          resumeSaveError={resumeSaveError}
+          retryResumeSave={retryResumeSave}
+          showStatus={showStatus}
+          jsonInputRef={jsonInputRef}
+          pdfInputRef={pdfInputRef}
+          templatePackageInputRef={templatePackageInputRef}
+          handleJsonImport={handleJsonImport}
+          handlePdfImport={handlePdfImport}
+          handleTemplatePackageImport={handleTemplatePackageImport}
+          isImportingPdf={isImportingPdf}
+          createFromTemplate={createFromTemplate}
+        />
       }
     >
           <PageBody>
@@ -547,112 +357,40 @@ export default function DashboardPage() {
             <section className="mb-8">
               <div className="mb-4 flex items-end justify-between gap-4">
                 <div>
-                  <h2 className="text-base font-semibold">Your resumes</h2>
-                  <p className="text-sm text-slate-500">Drafts persisted by the backend API.</p>
+                  <h2 className="text-base font-semibold">Tes CV</h2>
+                  <p className="text-sm text-muted-foreground">Brouillons persistés par l’API backend.</p>
                 </div>
-                <p className="text-sm text-slate-500">
-                  {isResumeLibraryLoading ? "Loading..." : `${resumes.length} saved`}
+                <p className="text-sm text-muted-foreground">
+                  {isResumeLibraryLoading ? "Chargement..." : `${resumes.length} sauvegardé(s)`}
                 </p>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                 <button
-                  onClick={() => void createFromTemplate("modern", "Untitled")}
-                  className="flex min-h-52 flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white p-5 text-center transition-colors hover:border-slate-400"
+                  onClick={() => void createFromTemplate("modern", "Nouveau")}
+                  className="flex min-h-52 w-full min-w-0 flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card p-5 text-center transition-colors hover:bg-accent"
                 >
-                  <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
+                  <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                     <Plus size={20} />
                   </div>
-                  <p className="text-sm font-semibold">Create blank CV</p>
-                  <p className="mt-1 max-w-48 text-xs leading-5 text-slate-500">
-                    Start from a clean structured resume and customize it section by section.
+                  <p className="text-sm font-semibold">Créer un CV vide</p>
+                  <p className="mt-1 max-w-48 text-xs leading-5 text-muted-foreground">
+                    Démarre depuis une structure propre puis personnalise le CV section par section.
                   </p>
                 </button>
 
                 {resumes.map((resume) => (
-                  <article
+                  <ResumeCard
                     key={resume.id}
-                    className="flex min-h-52 flex-col rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
-                  >
-                    <div className="mb-4 flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <input
-                          value={resume.name}
-                          onChange={(e) => renameResume(resume.id, e.target.value)}
-                          className="w-full rounded border-none bg-transparent p-0 text-sm font-semibold outline-none"
-                        />
-                        <p className="mt-1 truncate text-xs text-slate-500">
-                          {resume.cvData.profile.title || "No target title yet"}
-                        </p>
-                      </div>
-                      {resume.id === activeResumeId && (
-                        <span className="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-medium text-emerald-700">
-                          Active
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="mb-4 grid grid-cols-2 gap-2 text-xs text-slate-500">
-                      <div className="rounded-md bg-slate-50 p-2">
-                        <p className="font-medium text-slate-700">Template</p>
-                        <p className="mt-1 capitalize">{resume.templateId}</p>
-                      </div>
-                      <div className="rounded-md bg-slate-50 p-2">
-                        <p className="font-medium text-slate-700">Updated</p>
-                        <p className="mt-1">{formatDate(resume.updatedAt)}</p>
-                      </div>
-                    </div>
-
-                    <div className="mt-auto flex flex-wrap gap-2">
-                      <button
-                        onClick={() => openResume(resume.id)}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-md bg-slate-950 px-2.5 text-xs font-semibold text-white"
-                      >
-                        Open <ArrowRight size={13} />
-                      </button>
-                      <button
-                        onClick={() => {
-                          void duplicateResume(resume.id).catch((err: unknown) => {
-                            showStatus(err instanceof Error ? err.message : "Duplicate failed");
-                          });
-                        }}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 px-2.5 text-xs font-medium text-slate-700"
-                      >
-                        <Copy size={13} /> Duplicate
-                      </button>
-                      {(["json", "markdown", "html"] as const).map((format) => (
-                        <button
-                          key={format}
-                          onClick={() => {
-                            const exportConfig = RESUME_EXPORTS[format];
-                            void downloadResume(resume.id, resume.name, format)
-                              .then(() => showStatus(`${exportConfig.label} resume exported`))
-                              .catch((err: unknown) => {
-                                showStatus(
-                                  err instanceof Error
-                                    ? err.message
-                                    : `${exportConfig.label} export failed`
-                                );
-                              });
-                          }}
-                          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 px-2.5 text-xs font-medium text-slate-700"
-                        >
-                          <Download size={13} /> {RESUME_EXPORTS[format].label}
-                        </button>
-                      ))}
-                      <button
-                        onClick={() => {
-                          void deleteResume(resume.id).catch((err: unknown) => {
-                            showStatus(err instanceof Error ? err.message : "Delete failed");
-                          });
-                        }}
-                        disabled={resumes.length <= 1}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-md border border-red-100 px-2.5 text-xs font-medium text-red-600 disabled:opacity-40"
-                      >
-                        <Trash2 size={13} /> Delete
-                      </button>
-                    </div>
-                  </article>
+                    resume={resume}
+                    activeResumeId={activeResumeId}
+                    resumesLength={resumes.length}
+                    renameResume={renameResume}
+                    openResume={openResume}
+                    duplicateResume={duplicateResume}
+                    deleteResume={deleteResume}
+                    showStatus={showStatus}
+                  />
                 ))}
               </div>
             </section>
@@ -661,92 +399,98 @@ export default function DashboardPage() {
               <div>
                 <div className="mb-4 flex items-center justify-between">
                   <div>
-                    <h2 className="text-base font-semibold">Start from a template</h2>
-                    <p className="text-sm text-slate-500">Backend-owned templates plus community presets.</p>
+                    <h2 className="text-base font-semibold">Démarrer depuis un template</h2>
+                    <p className="text-sm text-muted-foreground">Templates backend et presets communautaires.</p>
                   </div>
-                  <LayoutTemplate className="text-slate-400" size={20} />
+                  <LayoutTemplate className="text-muted-foreground" size={20} />
                 </div>
                 <div className="space-y-5">
                   <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-500">Ready</p>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Prêts</p>
                     <div className="grid gap-3 md:grid-cols-2">
                       {templates.filter((template) => template.status === "ready").map((template) => (
                         <button
                           key={template.id}
                           onClick={() => void createFromTemplate(template.id, template.name)}
-                          className="rounded-lg border border-slate-200 bg-white p-4 text-left shadow-sm transition-colors enabled:hover:border-slate-300"
+                          className="rounded-lg border border-border bg-card p-4 text-left shadow-sm transition-colors enabled:hover:bg-accent"
                         >
                           <div
-                            className="mb-3 h-24 rounded-md border border-slate-200"
+                            className="relative mb-3 h-24 overflow-hidden rounded-md border border-border"
                             style={{
-                              background: `linear-gradient(135deg, ${template.accent}18, white 55%)`,
+                              background: `linear-gradient(135deg, ${template.accent}18, var(--card) 55%)`,
                             }}
                           >
-                            {renderTemplatePreview(template)}
+                            <TemplatePreview
+                              template={template}
+                              previewUrl={templatePreviewUrls[template.id]}
+                            />
                           </div>
                           <div className="flex items-center justify-between gap-2">
                             <p className="text-sm font-semibold">{template.name}</p>
-                            <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium capitalize text-slate-600">
-                              {template.status}
+                            <span className="rounded-full bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground">
+                              Prêt
                             </span>
                           </div>
-                          <p className="mt-2 text-xs leading-5 text-slate-500">{template.description}</p>
+                          <p className="mt-2 text-xs leading-5 text-muted-foreground">{template.description}</p>
                         </button>
                       ))}
                     </div>
                   </div>
 
                   <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-500">Community</p>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Communauté</p>
                     <div className="grid gap-3 md:grid-cols-2">
                       {templates.filter((template) => template.status === "community").map((template) => (
                         <div
                           key={template.id}
                           data-testid={`template-card-${templateHandle(template.id)}`}
-                          className="rounded-lg border border-slate-200 bg-white p-4 text-left shadow-sm"
+                          className="rounded-lg border border-border bg-card p-4 text-left shadow-sm"
                         >
                           <div
-                            className="mb-3 h-24 rounded-md border border-slate-200"
+                            className="relative mb-3 h-24 overflow-hidden rounded-md border border-border"
                             style={{
-                              background: `linear-gradient(135deg, ${template.accent}18, white 55%)`,
+                              background: `linear-gradient(135deg, ${template.accent}18, var(--card) 55%)`,
                             }}
                           >
-                            {renderTemplatePreview(template)}
+                            <TemplatePreview
+                              template={template}
+                              previewUrl={templatePreviewUrls[template.id]}
+                            />
                           </div>
                           <div className="flex items-center justify-between gap-2">
                             <p className="text-sm font-semibold">{template.name}</p>
-                            <span className="rounded-full bg-violet-50 px-2 py-1 text-[11px] font-medium capitalize text-violet-700">
-                              community
+                            <span className="rounded-full border border-violet-500/30 bg-violet-500/10 px-2 py-1 text-[11px] font-medium text-violet-700 dark:text-violet-300">
+                              Communauté
                             </span>
                           </div>
-                          <p className="mt-2 text-xs leading-5 text-slate-500">{template.description}</p>
+                          <p className="mt-2 text-xs leading-5 text-muted-foreground">{template.description}</p>
                           <div className="mt-3 flex flex-wrap gap-2">
                             <button
                               onClick={() => void createFromTemplate(template.id, template.name)}
                               data-testid={`template-use-${templateHandle(template.id)}`}
-                              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-slate-950 px-2.5 text-xs font-semibold text-white"
+                              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-2.5 text-xs font-semibold text-primary-foreground"
                             >
                               <Plus size={13} />
-                              Use template
+                              Utiliser
                             </button>
                             {template.previewAvailable && (
                               <button
                                 onClick={() => {
                                   void downloadTemplatePackage(template).then(() => {
-                                    showStatus(`Template exported: ${template.name}`);
+                                    showStatus(`Template exporté : ${template.name}`);
                                   }).catch((err: unknown) => {
-                                    showStatus(err instanceof Error ? err.message : "Template export failed");
+                                    showStatus(err instanceof Error ? err.message : "Export du template impossible");
                                   });
                                 }}
                                 data-testid={`template-export-${templateHandle(template.id)}`}
-                                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 px-2.5 text-xs font-medium text-slate-700"
+                                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-2.5 text-xs font-medium text-foreground hover:bg-accent"
                               >
                                 <Download size={13} />
-                                Export package
+                              Exporter
                               </button>
                             )}
-                            <span className="inline-flex h-8 items-center rounded-md bg-slate-100 px-2.5 text-[11px] font-medium text-slate-600">
-                              {template.author ?? "Community"}
+                            <span className="inline-flex h-8 items-center rounded-md bg-muted px-2.5 text-[11px] font-medium text-muted-foreground">
+                              {template.author ?? "Communauté"}
                             </span>
                           </div>
                         </div>
@@ -756,61 +500,61 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <aside className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+              <aside className="rounded-lg border border-border bg-card p-4 shadow-sm">
                 <div className="mb-4 flex items-center gap-2">
-                  <FolderOpen size={18} className="text-slate-500" />
-                  <h2 className="text-base font-semibold">MVP1 status</h2>
+                  <FolderOpen size={18} className="text-muted-foreground" />
+                  <h2 className="text-base font-semibold">État MVP1</h2>
                 </div>
                 <div className="space-y-3 text-sm">
                   <div className="flex items-start gap-3">
                     <FileJson size={16} className="mt-0.5 text-emerald-600" />
                     <div>
-                      <p className="font-medium">API-backed resume library</p>
-                      <p className="text-xs leading-5 text-slate-500">Create, duplicate, import, export, and keep multiple CV drafts via backend endpoints.</p>
+                      <p className="font-medium">Bibliothèque CV via API</p>
+                      <p className="text-xs leading-5 text-muted-foreground">Créer, dupliquer, importer, exporter et conserver plusieurs brouillons via les endpoints backend.</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
                     <LayoutTemplate size={16} className="mt-0.5 text-indigo-600" />
                     <div>
-                      <p className="font-medium">Template gallery</p>
-                      <p className="text-xs leading-5 text-slate-500">Five ready templates are exposed by the backend and reused by the renderer.</p>
+                      <p className="font-medium">Galerie de templates</p>
+                      <p className="text-xs leading-5 text-muted-foreground">Les templates sont exposés par le backend et réutilisés par le renderer.</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <FileText size={16} className="mt-0.5 text-slate-600" />
+                    <FileText size={16} className="mt-0.5 text-muted-foreground" />
                     <div>
-                      <p className="font-medium">Builder remains focused</p>
-                      <p className="text-xs leading-5 text-slate-500">Open any resume to edit structure, style, live preview, and export PDF.</p>
+                      <p className="font-medium">Builder concentré</p>
+                      <p className="text-xs leading-5 text-muted-foreground">Ouvre un CV pour éditer structure, style, preview live et export PDF.</p>
                     </div>
                   </div>
                 </div>
-                <div className="my-4 border-t border-slate-200 pt-4">
+                <div className="my-4 border-t border-border pt-4">
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <div>
-                      <p className="font-medium">Versioning</p>
-                      <p className="text-xs leading-5 text-slate-500">
-                        {revisionsLoading ? "Loading snapshots..." : `${revisions.length} snapshots available`}
+                      <p className="font-medium">Versions</p>
+                      <p className="text-xs leading-5 text-muted-foreground">
+                        {revisionsLoading ? "Chargement des versions..." : `${revisions.length} version(s) disponible(s)`}
                       </p>
                     </div>
                     <button
                       onClick={() => {
                         void createSnapshot().catch((err: unknown) => {
-                          showStatus(err instanceof Error ? err.message : "Snapshot failed");
+                          showStatus(err instanceof Error ? err.message : "Snapshot impossible");
                         });
                       }}
-                      className="inline-flex h-8 items-center rounded-md border border-slate-200 px-2.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                      className="inline-flex h-8 items-center rounded-md border border-border px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
                     >
-                      Save version
+                      Sauvegarder
                     </button>
                   </div>
                   <div className="space-y-2">
                       {revisions.slice(0, 4).map((revision) => (
-                        <div key={revision.id} className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+                        <div key={revision.id} className="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/40 px-3 py-2">
                         <div className="min-w-0">
-                          <p className="text-xs font-medium text-slate-800">
+                          <p className="text-xs font-medium text-foreground">
                             v{revision.revision} {revision.label ? `· ${revision.label}` : ""}
                           </p>
-                          <p className="truncate text-[11px] text-slate-500">
+                          <p className="truncate text-[11px] text-muted-foreground">
                             {revision.templateId} · {formatDate(revision.createdAt)}
                           </p>
                         </div>
@@ -823,59 +567,59 @@ export default function DashboardPage() {
                                 if (!older) return;
                                 void compareRevision(older.revision, revision.revision);
                               }}
-                              className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700"
+                              className="rounded-md border border-border bg-background px-2 py-1 text-[11px] font-medium text-foreground hover:bg-accent"
                             >
-                              Compare
+                              Comparer
                             </button>
                           )}
                           <button
                             onClick={() => {
                               void restoreRevision(revision.revision).catch((err: unknown) => {
-                                showStatus(err instanceof Error ? err.message : "Restore failed");
+                                showStatus(err instanceof Error ? err.message : "Restauration impossible");
                               });
                             }}
-                            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700"
+                            className="rounded-md border border-border bg-background px-2 py-1 text-[11px] font-medium text-foreground hover:bg-accent"
                           >
-                            Restore
+                            Restaurer
                           </button>
                         </div>
                       </div>
                     ))}
                     {revisions.length === 0 && (
-                      <p className="text-xs leading-5 text-slate-500">
-                        No snapshots yet. Save one to pin a baseline.
+                      <p className="text-xs leading-5 text-muted-foreground">
+                        Aucune version pour l’instant. Sauvegarde une baseline.
                       </p>
                     )}
                   </div>
                 </div>
-                <div className="border-t border-slate-200 pt-4">
+                <div className="border-t border-border pt-4">
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <div>
-                      <p className="font-medium">Comparison</p>
-                      <p className="text-xs leading-5 text-slate-500">
+                      <p className="font-medium">Comparaison</p>
+                      <p className="text-xs leading-5 text-muted-foreground">
                         {compareLoading
-                          ? "Comparing snapshots..."
+                          ? "Comparaison des versions..."
                           : compareResult
                             ? `v${compareResult.baseRevision.revision} → v${compareResult.targetRevision.revision}`
-                            : "Compare two versions from the list"}
+                            : "Compare deux versions depuis la liste"}
                       </p>
                     </div>
                     {compareResult && (
                       <button
                         onClick={() => setCompareResult(null)}
-                        className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700"
+                        className="rounded-md border border-border bg-background px-2 py-1 text-[11px] font-medium text-foreground hover:bg-accent"
                       >
-                        Clear
+                        Effacer
                       </button>
                     )}
                   </div>
                   {compareResult ? (
-                    <div className="space-y-3 rounded-md border border-slate-200 bg-slate-50 p-3">
+                    <div className="space-y-3 rounded-md border border-border bg-muted/40 p-3">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-xs font-medium text-slate-800">
-                          {compareResult.changeCount} field changes
+                        <p className="text-xs font-medium text-foreground">
+                          {compareResult.changeCount} changement(s)
                         </p>
-                        <p className="text-[11px] text-slate-500">
+                        <p className="text-[11px] text-muted-foreground">
                           {compareResult.baseRevision.templateId} → {compareResult.targetRevision.templateId}
                         </p>
                       </div>
@@ -886,15 +630,15 @@ export default function DashboardPage() {
                           .map((item) => (
                             <div
                               key={item.section}
-                              className="flex items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-3 py-2"
+                              className="flex items-center justify-between gap-2 rounded-md border border-border bg-background px-3 py-2"
                             >
                               <div className="min-w-0">
-                                <p className="text-xs font-medium text-slate-800">{item.label}</p>
-                                <p className="text-[11px] text-slate-500">
+                                <p className="text-xs font-medium text-foreground">{item.label}</p>
+                                <p className="text-[11px] text-muted-foreground">
                                   {item.beforeCount} → {item.afterCount}
                                 </p>
                               </div>
-                              <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600">
+                              <span className="rounded-full bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground">
                                 {item.status}
                               </span>
                             </div>
@@ -902,21 +646,21 @@ export default function DashboardPage() {
                       </div>
                       <div className="space-y-2">
                         {compareResult.changes.slice(0, 6).map((change) => (
-                          <div key={`${change.kind}-${change.path}`} className="rounded-md border border-slate-200 bg-white px-3 py-2">
-                            <p className="text-xs font-medium text-slate-800">{change.path}</p>
-                            <p className="mt-1 text-[11px] text-slate-500">
+                          <div key={`${change.kind}-${change.path}`} className="rounded-md border border-border bg-background px-3 py-2">
+                            <p className="text-xs font-medium text-foreground">{change.path}</p>
+                            <p className="mt-1 text-[11px] text-muted-foreground">
                               {change.kind}
                             </p>
                           </div>
                         ))}
                         {compareResult.changes.length === 0 && (
-                          <p className="text-xs leading-5 text-slate-500">No structural changes detected.</p>
+                          <p className="text-xs leading-5 text-muted-foreground">Aucun changement structurel détecté.</p>
                         )}
                       </div>
                     </div>
                   ) : (
-                    <p className="text-xs leading-5 text-slate-500">
-                      Open two snapshots to inspect changes between revisions.
+                    <p className="text-xs leading-5 text-muted-foreground">
+                      Ouvre deux versions pour inspecter les différences.
                     </p>
                   )}
                 </div>

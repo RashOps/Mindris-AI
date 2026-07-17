@@ -188,7 +188,8 @@ def _build_role_fit(
     matched_skills = [
         term
         for term in job_hard
-        if term.lower() in {skill.lower() for skill in cv_signals["skills"] + tech_stack}
+        if term.lower()
+        in {skill.lower() for skill in cv_signals["skills"] + tech_stack}
     ]
     mirrored_terms = [
         term
@@ -198,14 +199,19 @@ def _build_role_fit(
     priority_experiences = [
         title
         for title in cv_signals["experience_titles"]
-        if any(token in title.lower() for token in ("engineer", "platform", "backend", "devops"))
+        if any(
+            token in title.lower()
+            for token in ("engineer", "platform", "backend", "devops")
+        )
     ]
 
     cv_emphasis = [
-        f"Highlight {term} evidence in the top experience bullets." for term in matched_skills[:3]
+        f"Highlight {term} evidence in the top experience bullets."
+        for term in matched_skills[:3]
     ]
     cover_letter_emphasis = [
-        f"Mirror {term} in the recruiter-facing narrative." for term in mirrored_terms[:3]
+        f"Mirror {term} in the recruiter-facing narrative."
+        for term in mirrored_terms[:3]
     ]
     if culture:
         cover_letter_emphasis.append(
@@ -242,7 +248,10 @@ def _build_risk_flags(
                     "code": "missing_job_skill",
                     "severity": "medium",
                     "title": f"Missing {skill} evidence",
-                    "detail": f"The target job mentions {skill} but it is not clearly surfaced in the CV signals.",
+                    "detail": (
+                        f"The target job mentions {skill} but it is not clearly "
+                        "surfaced in the CV signals."
+                    ),
                     "provenance": "derived",
                 }
             )
@@ -254,7 +263,10 @@ def _build_risk_flags(
                 "code": "missing_work_mode_signal",
                 "severity": "low",
                 "title": "Work mode unclear",
-                "detail": "No explicit remote, hybrid, or onsite signal was found in deterministic company evidence.",
+                "detail": (
+                    "No explicit remote, hybrid, or onsite signal was found in "
+                    "deterministic company evidence."
+                ),
                 "provenance": "unknown",
             }
         )
@@ -264,7 +276,9 @@ def _build_risk_flags(
                 "code": "missing_location_signal",
                 "severity": "low",
                 "title": "Location context missing",
-                "detail": "No reliable location signal was found for the company profile.",
+                "detail": (
+                    "No reliable location signal was found for the company profile."
+                ),
                 "provenance": "unknown",
             }
         )
@@ -353,9 +367,13 @@ async def analyze_company(
             "canonical_domain": [source_url] if source_url else [],
             "homepage_url": [source_url] if source_url else [],
             "careers_url": [source_url] if source_url else [],
-            "industry": [evidence_text] if evidence_text and industry != "Unknown" else [],
+            "industry": (
+                [evidence_text] if evidence_text and industry != "Unknown" else []
+            ),
             "size": [evidence_text] if evidence_text and size != "Unknown" else [],
-            "work_mode": [evidence_text] if evidence_text and work_mode != "unknown" else [],
+            "work_mode": (
+                [evidence_text] if evidence_text and work_mode != "unknown" else []
+            ),
             "tech_stack_known": [evidence_text] if evidence_text and tech_stack else [],
             "culture_values": [evidence_text] if evidence_text and culture else [],
             "locations": [],
@@ -372,9 +390,14 @@ async def analyze_company(
             "tech_stack_known": "verified" if tech_stack else "unknown",
             "culture_values": "verified" if culture else "unknown",
         },
-        cache={"strategy": "deterministic", "provider": "local", "freshness": "runtime"},
+        cache={
+            "strategy": "deterministic",
+            "provider": "local",
+            "freshness": "runtime",
+        },
         unavailable_reason=(
-            "Deterministic company profile only; no external company crawl evidence yet."
+            "Deterministic company profile only; no external company crawl "
+            "evidence yet."
             if not evidence_text and not source_url
             else None
         ),

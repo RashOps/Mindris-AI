@@ -36,7 +36,6 @@ API_KEY="dev-mindris-api-key"
 RENDERER_URL="http://localhost:4000"
 NEXT_PUBLIC_API_URL="http://localhost:8000"
 NEXT_PUBLIC_RENDERER_URL="http://localhost:4000"
-NEXT_PUBLIC_API_KEY="dev-mindris-api-key"
 STORAGE_DIR="./storage"
 LOGS_DIR="./logs"
 CHROMA_DB_DIR="./storage/vectordb"
@@ -51,7 +50,7 @@ LOGS_DIR=/app/logs
 CHROMA_DB_DIR=/app/storage/vectordb
 ```
 
-Les variables `NEXT_PUBLIC_*` restent en `localhost` parce qu'elles sont utilisées par le navigateur de l'utilisateur, pas par le réseau interne Docker.
+Les variables `NEXT_PUBLIC_*` restent en `localhost` parce qu'elles sont utilisées par le navigateur de l'utilisateur, pas par le réseau interne Docker. Le navigateur local n'embarque plus de clé publique: l'accès web repose sur la frontière loopback locale, tandis que les scripts et appels externes utilisent `X-API-Key`.
 
 Ne pas mettre de vraies clés API dans `.env.example`.
 
@@ -60,8 +59,23 @@ Ne pas mettre de vraies clés API dans `.env.example`.
 Depuis la racine :
 
 ```bash
+./scripts/docker_local.sh doctor
+```
+
+```bash
 docker compose up --build
 ```
+
+Ou avec le script dédié :
+
+```bash
+./scripts/docker_local.sh up
+```
+
+Ne partage pas la sortie de `docker compose config` si ton `.env` contient de
+vraies clés API : Compose y développe les valeurs en clair. Pour une validation
+sans fuite de secrets, utilise `./scripts/docker_local.sh doctor`, qui lance
+`docker compose config --quiet`.
 
 URLs :
 
@@ -88,6 +102,12 @@ Ou avec le script smoke :
 ./scripts/smoke_self_hosting.sh
 ```
 
+Ou :
+
+```bash
+./scripts/docker_local.sh smoke
+```
+
 ## Logs
 
 ```bash
@@ -96,10 +116,32 @@ docker compose logs -f renderer
 docker compose logs -f web
 ```
 
+Ou :
+
+```bash
+./scripts/docker_local.sh logs
+```
+
+Statut des conteneurs :
+
+```bash
+./scripts/docker_local.sh status
+```
+
+En plus des flux `docker compose logs`, les services ecrivent dans les volumes locaux.
+Pour les services Python et Bun, la reference locale reste `.logs/` hors conteneur.
+Les erreurs API normalisees exposent un `X-Request-Id` pour recouper les traces.
+
 ## Arrêt
 
 ```bash
 docker compose down
+```
+
+Ou :
+
+```bash
+./scripts/docker_local.sh down
 ```
 
 ## Reset local
@@ -115,6 +157,24 @@ rm -rf storage logs
 ```
 
 Cette commande supprime les CV, drafts, rapports et fichiers locaux.
+
+## Backup / restore
+
+Sauvegarder avant reset ou migration locale :
+
+```bash
+mkdir -p /tmp/mindris-docker-backup
+cp -R storage /tmp/mindris-docker-backup/storage
+cp -R .logs /tmp/mindris-docker-backup/logs
+```
+
+Restaurer :
+
+```bash
+rm -rf storage .logs
+cp -R /tmp/mindris-docker-backup/storage ./storage
+cp -R /tmp/mindris-docker-backup/logs ./.logs
+```
 
 ## Vérifications hors Docker
 

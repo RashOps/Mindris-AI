@@ -5,7 +5,7 @@ import Link from "next/link";
 import { LoaderCircle, RefreshCw, Server } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { apiUrl, rendererUrl } from "@/lib/api";
+import { BROWSER_API_AUTH_MODE, apiUrl, rendererUrl } from "@/lib/api";
 import {
   buildRuntimeSummary,
   normalizeReadinessPayload,
@@ -48,7 +48,7 @@ async function fetchWithTimeout(url: string): Promise<unknown> {
 function stateTone(state: RuntimeProbe["state"]): string {
   if (state === "ready") return "border-emerald-200 bg-emerald-50 text-emerald-800";
   if (state === "degraded") return "border-amber-200 bg-amber-50 text-amber-800";
-  if (state === "checking") return "border-slate-200 bg-slate-50 text-slate-700";
+  if (state === "checking") return "border-border bg-muted/50 text-foreground";
   return "border-red-200 bg-red-50 text-red-800";
 }
 
@@ -123,19 +123,19 @@ export function RuntimeGate({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10 text-slate-950">
-      <div className="w-full max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:p-8">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10 text-foreground">
+      <div className="w-full max-w-3xl rounded-2xl border border-border bg-card p-6 shadow-sm lg:p-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-950 text-white">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground">
               <Server className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
                 Startup gate
               </p>
-              <h1 className="mt-1 text-2xl font-semibold text-slate-950">{summary.title}</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{summary.description}</p>
+              <h1 className="mt-1 text-2xl font-semibold text-foreground">{summary.title}</h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{summary.description}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -151,7 +151,7 @@ export function RuntimeGate({ children }: { children: ReactNode }) {
             </Button>
             <Link
               href="/"
-              className="inline-flex h-10 items-center rounded-lg px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950"
+              className="inline-flex h-10 items-center rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
             >
               Home
             </Link>
@@ -175,8 +175,10 @@ export function RuntimeGate({ children }: { children: ReactNode }) {
           ))}
         </div>
 
-        <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-          The frontend remains a client only. It waits for API-backed readiness before exposing the workspace.
+        <div className="mt-6 rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+          The frontend remains a client only. Runtime access follows the{" "}
+          <span className="font-medium text-foreground">{BROWSER_API_AUTH_MODE}</span>{" "}
+          contract and waits for API-backed readiness before exposing the workspace.
         </div>
       </div>
     </div>

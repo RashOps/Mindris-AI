@@ -2,10 +2,13 @@
 
 import asyncio
 import json
+from time import perf_counter
 from typing import Annotated, Literal
 
+from database.records import CoverLetterRecord
 from database.session import Session, get_session
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, UploadFile, status
+from llm_runs import save_llm_run
 from monitoring import monitor
 from persistence import (
     get_current_cv,
@@ -15,6 +18,7 @@ from persistence import (
 )
 from schemas import (
     CoverLetterRequest,
+    CoverLetterVersionRequest,
     CVDataModel,
     CVDocumentRequest,
     PatchRequest,
@@ -146,6 +150,7 @@ async def calculate_ats_score_route(request: ScoreRequest, session: SessionDep) 
     """Calculate and persist the ATS score for a CV against job insights."""
     from intelligence.ats_score import calculate_ats_score
 
+    started_at = perf_counter()
     try:
         report = await asyncio.wait_for(
             calculate_ats_score(
@@ -159,18 +164,72 @@ async def calculate_ats_score_route(request: ScoreRequest, session: SessionDep) 
         )
     except TimeoutError as exc:
         monitor.increment_pipeline_failure("ats_score")
+        save_llm_run(
+            session,
+            task_key="ats_score",
+            provider=request.provider,
+            model_name=request.model_name,
+            status="timeout",
+            input_payload={
+                "job_id": request.job_id,
+                "resume_id": request.resume_id,
+                "ats_mode": request.ats_mode,
+            },
+            error_message="ATS scoring timed out.",
+            duration_ms=int((perf_counter() - started_at) * 1000),
+        )
         raise HTTPException(status_code=504, detail="ATS scoring timed out.") from exc
     report_context = dict(report.get("context", {}))
+    report_context.setdefault("job_id", request.job_id)
     report_context.setdefault("resume_id", request.resume_id)
     report_context.setdefault(
         "resume_locale",
-        request.cv_data.get("global_settings", {})
+        request.resume_locale
+        or request.cv_data.get("global_settings", {})
         .get("locale", {})
         .get("label_language"),
     )
     report["context"] = report_context
-    save_ats_report(session, report, request.provider, request.model_name)
-    return {"status": "success", "report": report, "ats_report": report}
+    record = save_ats_report(
+        session,
+        report,
+        request.provider,
+        request.model_name,
+        job_id=request.job_id,
+    )
+    llm_run = save_llm_run(
+        session,
+        task_key="ats_score",
+        provider=request.provider,
+        model_name=request.model_name,
+        status="success",
+        input_payload={
+            "job_id": request.job_id,
+            "resume_id": request.resume_id,
+            "resume_locale": report_context.get("resume_locale"),
+            "ats_mode": request.ats_mode,
+        },
+        output_artifact_type="ats_report",
+        output_artifact_id=record.id,
+        duration_ms=int((perf_counter() - started_at) * 1000),
+        fallback_used=any(
+            deduction.get("code") == "llm_output_invalid"
+            for deduction in report.get("deductions", [])
+            if isinstance(deduction, dict)
+        ),
+        metadata={"job_id": record.job_id, "mode": report.get("mode")},
+    )
+    report["id"] = record.id
+    report["job_id"] = record.job_id
+    report["llm_run_id"] = llm_run.id
+    return {
+        "status": "success",
+        "id": record.id,
+        "job_id": record.job_id,
+        "llm_run_id": llm_run.id,
+        "report": report,
+        "ats_report": report,
+    }
 
 
 @router.post("/cover-letter")
@@ -180,6 +239,7 @@ async def generate_cover_letter_route(
     """Generate and persist a tailored cover letter in Markdown."""
     from intelligence.cover_letter import generate_cover_letter
 
+    started_at = perf_counter()
     try:
         markdown = await asyncio.wait_for(
             generate_cover_letter(
@@ -194,12 +254,82 @@ async def generate_cover_letter_route(
         )
     except TimeoutError as exc:
         monitor.increment_pipeline_failure("cover_letter")
+        save_llm_run(
+            session,
+            task_key="cover_letter",
+            provider=request.provider,
+            model_name=request.model_name,
+            status="timeout",
+            input_payload={
+                "job_id": request.job_id,
+                "resume_id": request.resume_id,
+                "opportunity_id": request.opportunity_id,
+            },
+            error_message="Cover letter generation timed out.",
+            duration_ms=int((perf_counter() - started_at) * 1000),
+        )
         raise HTTPException(
             status_code=504,
             detail="Cover letter generation timed out.",
         ) from exc
-    save_cover_letter(session, markdown, request.provider, request.model_name)
-    return {"status": "success", "markdown": markdown}
+    record = save_cover_letter(
+        session,
+        markdown,
+        request.provider,
+        request.model_name,
+        job_id=request.job_id,
+    )
+    llm_run = save_llm_run(
+        session,
+        task_key="cover_letter",
+        provider=request.provider,
+        model_name=request.model_name,
+        status="success",
+        input_payload={
+            "job_id": request.job_id,
+            "resume_id": request.resume_id,
+            "opportunity_id": request.opportunity_id,
+        },
+        output_artifact_type="cover_letter",
+        output_artifact_id=record.id,
+        duration_ms=int((perf_counter() - started_at) * 1000),
+        metadata={"job_id": record.job_id},
+    )
+    return {
+        "status": "success",
+        "id": record.id,
+        "job_id": record.job_id,
+        "llm_run_id": llm_run.id,
+        "markdown": markdown,
+        "generated_at": record.generated_at.isoformat(),
+    }
+
+
+@router.post("/cover-letter/{letter_id}/version")
+async def save_cover_letter_version(
+    letter_id: int,
+    request: CoverLetterVersionRequest,
+    session: SessionDep,
+) -> dict:
+    """Persist an edited cover letter as a new version linked to the same job."""
+    previous = session.get(CoverLetterRecord, letter_id)
+    if not previous:
+        raise HTTPException(status_code=404, detail="Cover letter not found.")
+    record = save_cover_letter(
+        session,
+        request.markdown,
+        request.provider if request.provider is not None else previous.provider,
+        request.model_name if request.model_name is not None else previous.model_name,
+        job_id=request.job_id if request.job_id is not None else previous.job_id,
+    )
+    return {
+        "status": "success",
+        "id": record.id,
+        "previous_id": previous.id,
+        "job_id": record.job_id,
+        "markdown": record.markdown_content,
+        "generated_at": record.generated_at.isoformat(),
+    }
 
 
 @router.post("/cv/patch-from-bullets")

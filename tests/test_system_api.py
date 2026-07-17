@@ -20,10 +20,18 @@ def _isolate_runtime_storage(monkeypatch, tmp_path: Path) -> None:
 
 
 def test_system_configuration_requires_api_key() -> None:
-    api = client()
+    api = client(client_host="198.51.100.25", base_url="http://mindris.example")
     response = api.get("/api/v1/system/configuration")
     assert response.status_code == 401
     assert response.json()["status"] == "error"
+
+
+def test_system_configuration_accepts_local_loopback_without_browser_key() -> None:
+    api = client()
+    response = api.get("/api/v1/system/configuration")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "success"
 
 
 def test_system_configuration_returns_masked_backend_owned_settings(
@@ -104,18 +112,19 @@ def test_runtime_api_key_slot_overrides_default_auth(
 ) -> None:
     _isolate_runtime_storage(monkeypatch, tmp_path)
 
-    api = client()
-    rotate = api.put(
+    local_api = client()
+    rotate = local_api.put(
         "/api/v1/system/secrets/api_key",
         headers=auth_headers(),
         json={"value": "rotated-api-key"},
     )
     assert rotate.status_code == 200
 
-    old_key_response = api.get("/api/v1/llm/catalogue", headers=auth_headers())
+    remote_api = client(client_host="198.51.100.25", base_url="http://mindris.example")
+    old_key_response = remote_api.get("/api/v1/llm/catalogue", headers=auth_headers())
     assert old_key_response.status_code == 401
 
-    new_key_response = api.get(
+    new_key_response = remote_api.get(
         "/api/v1/llm/catalogue",
         headers={"X-API-Key": "rotated-api-key"},
     )
@@ -123,7 +132,7 @@ def test_runtime_api_key_slot_overrides_default_auth(
 
 
 def test_system_diagnostics_requires_api_key() -> None:
-    api = client()
+    api = client(client_host="198.51.100.25", base_url="http://mindris.example")
     response = api.get("/api/v1/system/diagnostics")
     assert response.status_code == 401
     assert response.json()["status"] == "error"
@@ -168,3 +177,29 @@ def test_system_diagnostics_returns_aggregated_runtime_state(
     assert payload["item"]["renderer"]["checks"]["pdf"]["ok"] is True
     assert payload["item"]["ollama"]["model_count"] == 2
     assert payload["item"]["ollama"]["items"][0]["id"] == "llama3.2"
+
+
+def test_public_system_status_sets_request_id_and_security_headers() -> None:
+    api = client()
+    response = api.get("/api/v1/system/status")
+
+    assert response.status_code == 200
+    assert response.headers["x-request-id"]
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert response.headers["referrer-policy"] == "no-referrer"
+    assert response.headers["x-frame-options"] == "DENY"
+
+
+def test_unhandled_errors_do_not_leak_internal_details(monkeypatch) -> None:
+    async def boom() -> dict:
+        raise RuntimeError("sensitive stack detail")
+
+    monkeypatch.setattr("routers.system.readiness_checks", boom)
+    api = client()
+    response = api.get("/api/v1/system/status")
+
+    assert response.status_code == 500
+    payload = response.json()
+    assert payload["status"] == "error"
+    assert payload["message"] == "Internal server error"
+    assert "sensitive stack detail" not in json.dumps(payload)

@@ -79,6 +79,8 @@ docs/local-development.md
 Les logs locaux sont ecrits dans `.logs/`.
 Le renderer produit des lignes JSON structurees dans `.logs/renderer.log`.
 Les services Python ecrivent des fichiers dedies comme `.logs/api-gateway.log`, `.logs/intelligence.log` et `.logs/scraper.log`.
+Les reponses API incluent `X-Request-Id`, `X-Content-Type-Options`, `X-Frame-Options` et `Referrer-Policy`.
+En debug d'une erreur 500, conserve le `X-Request-Id` et cherche-le dans `.logs/api-gateway.log`.
 
 ### API Gateway FastAPI
 
@@ -346,7 +348,6 @@ API_KEY="dev-mindris-api-key"
 RENDERER_URL="http://localhost:4000"
 NEXT_PUBLIC_API_URL="http://localhost:8000"
 NEXT_PUBLIC_RENDERER_URL="http://localhost:4000"
-NEXT_PUBLIC_API_KEY="dev-mindris-api-key"
 OLLAMA_API_BASE="http://127.0.0.1:11434"
 OLLAMA_NUM_CTX="32768"
 SCRAPER_HEADLESS=true

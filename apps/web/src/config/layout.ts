@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  BookOpen,
   Briefcase,
   FileText,
   GitBranch,
@@ -17,12 +18,14 @@ export type AppNavItemId =
   | "workflow"
   | "tracker"
   | "history"
+  | "guide"
   | "markdown";
 
 export interface ToolDefinition {
   id: AppNavItemId;
   label: string;
   shortLabel: string;
+  badge?: string;
   icon: LucideIcon;
   href: string;
   accentColor: string;
@@ -73,11 +76,12 @@ export const APP_NAV_ITEMS: ToolDefinition[] = [
     id: "workflow",
     label: "Workflow",
     shortLabel: "Flow",
+    badge: "Beta",
     icon: GitBranch,
     href: "/tools/workflow",
     accentColor: "#1d4ed8",
     accentVar: "--tool-workflow",
-    description: "Guided opportunity workflow from scrape to application",
+    description: "Beta opportunity workflow from scrape to application",
   },
   {
     id: "tracker",
@@ -100,6 +104,17 @@ export const APP_NAV_ITEMS: ToolDefinition[] = [
     description: "Unified activity ledger and artifact lineage",
   },
   {
+    id: "guide",
+    label: "Guide",
+    shortLabel: "Guide",
+    icon: BookOpen,
+    href: "/tools/guide",
+    accentColor: "#334155",
+    accentVar: "--tool-guide",
+    description:
+      "Internal product guide, workflow documentation and operating rules",
+  },
+  {
     id: "markdown",
     label: "Markdown PDF",
     shortLabel: "PDF",
@@ -118,7 +133,8 @@ export const APP_SIDEBAR_SECTIONS: AppSidebarSectionDefinition[] = [
     id: "configuration",
     label: "Configuration",
     icon: Settings2,
-    description: "Configure providers, models, secrets and local runtime behavior.",
+    description:
+      "Configure providers, models, secrets and local runtime behavior.",
     collapseMode: "icon",
   },
   {
@@ -131,3 +147,37 @@ export const APP_SIDEBAR_SECTIONS: AppSidebarSectionDefinition[] = [
 ] as const;
 
 export const SIDEBAR_WIDTH_EXPANDED = 236;
+export const SIDEBAR_WIDTH_COMPACT = 72;
+
+export function resolveDesktopSidebarLayout(compact: boolean): {
+  asideWidth: number;
+  reserveWidth: number;
+  compact: boolean;
+} {
+  const asideWidth = compact ? SIDEBAR_WIDTH_COMPACT : SIDEBAR_WIDTH_EXPANDED;
+  return {
+    asideWidth,
+    reserveWidth: asideWidth,
+    compact,
+  };
+}
+
+export type DesktopSidebarTrigger =
+  "pointer-enter" | "pointer-leave" | "focus-enter" | "manual-toggle";
+
+export function nextDesktopSidebarCompactState(
+  compact: boolean,
+  trigger: DesktopSidebarTrigger,
+): boolean {
+  switch (trigger) {
+    case "pointer-enter":
+    case "focus-enter":
+      return false;
+    case "pointer-leave":
+      return true;
+    case "manual-toggle":
+      return !compact;
+    default:
+      return compact;
+  }
+}
