@@ -14,6 +14,7 @@ import {
   nextDesktopSidebarCompactState,
   resolveDesktopSidebarLayout,
 } from "@/config/layout";
+import { PRODUCT_COPY } from "@/lib/product-copy";
 import { cn } from "@/lib/utils";
 import { RuntimeGate } from "@/components/layout/RuntimeGate";
 import { useCVStore } from "@/store/useCVStore";
@@ -36,17 +37,17 @@ function Brand({ collapsed = false }: { collapsed?: boolean }) {
     <Link
       href="/"
       className="flex items-center gap-3 no-underline"
-      title="Back to home"
+      title={PRODUCT_COPY.app.backHome}
     >
       <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-sm font-black text-primary-foreground">
         M
       </div>
       <div className={cn("min-w-0", collapsed && "hidden")}>
         <p className="truncate text-sm font-semibold text-foreground">
-          Mindris AI
+          {PRODUCT_COPY.app.name}
         </p>
         <p className="truncate text-xs text-muted-foreground">
-          Open resume studio
+          {PRODUCT_COPY.app.tagline}
         </p>
       </div>
     </Link>
