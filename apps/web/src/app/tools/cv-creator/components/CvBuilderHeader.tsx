@@ -188,7 +188,7 @@ export function CvBuilderHeader(props: {
         <button
           type="button"
           onClick={onDeleteLocale}
-          className="inline-flex h-7 cursor-pointer items-center justify-center rounded-md border border-red-200 bg-red-50 px-2 text-[11px] font-semibold text-red-700 transition-colors hover:bg-red-100"
+          className="inline-flex h-7 cursor-pointer items-center justify-center rounded-md border border-destructive/30 bg-destructive/10 px-2 text-[11px] font-semibold text-destructive transition-colors hover:bg-destructive/15"
         >
           Retirer
         </button>
@@ -229,11 +229,11 @@ export function CvBuilderHeader(props: {
       <Button
         onClick={onOptimize}
         disabled={isOptimizing || !jobUrl.trim()}
-        className="h-9 shrink-0 cursor-pointer bg-slate-950 px-4 text-sm text-white hover:bg-slate-800 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90"
+        className="h-9 shrink-0 cursor-pointer bg-primary px-4 text-sm text-primary-foreground hover:bg-primary/90"
       >
         {isOptimizing ? (
           <span className="flex items-center gap-2">
-            <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            <span className="h-3 w-3 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
             Analyse…
           </span>
         ) : (
@@ -262,7 +262,7 @@ export function CvBuilderHeader(props: {
               color: saveStatusColor,
               cursor: resumeSaveStatus === "error" ? "pointer" : "default",
             }}
-            title={resumeSaveError ?? "Backend save status"}
+            title={resumeSaveError ?? "Statut de sauvegarde backend"}
           >
             {saveStatusText}
           </button>
@@ -291,7 +291,7 @@ export function CvBuilderHeader(props: {
             </button>
             <button
               onClick={onDeleteResume}
-              className="h-9 cursor-pointer rounded-lg border border-red-100 bg-red-50 px-3 text-xs font-medium text-red-700 hover:bg-red-100"
+              className="h-9 cursor-pointer rounded-lg border border-destructive/30 bg-destructive/10 px-3 text-xs font-medium text-destructive hover:bg-destructive/15"
             >
               Supprimer
             </button>

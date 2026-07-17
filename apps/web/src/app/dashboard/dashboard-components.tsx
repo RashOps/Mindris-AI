@@ -46,12 +46,12 @@ export function DashboardActions({
         onClick={() => {
           if (resumeSaveStatus === "error") {
             void retryResumeSave().catch((err: unknown) => {
-              showStatus(err instanceof Error ? err.message : "Save retry failed");
+              showStatus(err instanceof Error ? err.message : "Nouvelle sauvegarde impossible");
             });
           }
         }}
         className="hidden h-9 rounded-md border border-border bg-card px-3 text-xs font-medium text-muted-foreground shadow-sm sm:inline-flex sm:items-center"
-        title={resumeSaveError ?? "Backend save status"}
+        title={resumeSaveError ?? "Statut de sauvegarde backend"}
       >
         {saveStatusText}
       </button>
@@ -108,11 +108,11 @@ export function DashboardActions({
         disabled={isImportingPdf}
       >
         <FileText size={15} />
-        {isImportingPdf ? "Parsing..." : "PDF"}
+        {isImportingPdf ? "Analyse..." : "PDF"}
       </Button>
-      <Button onClick={() => void createFromTemplate("modern", "Untitled")}>
+      <Button onClick={() => void createFromTemplate("modern", "Nouveau")}>
         <Plus size={15} />
-        New CV
+        Nouveau CV
       </Button>
     </>
   );
@@ -128,7 +128,7 @@ export function TemplatePreview({ template, previewUrl }: TemplatePreviewProps) 
     return (
       <Image
         src={previewUrl}
-        alt={`${template.name} preview`}
+        alt={`Aperçu ${template.name}`}
         fill
         unoptimized
         className="rounded-md object-cover"
@@ -178,12 +178,12 @@ export function ResumeCard({
             className="w-full rounded border-none bg-transparent p-0 text-sm font-semibold outline-none"
           />
           <p className="mt-1 truncate text-xs text-muted-foreground">
-            {resume.cvData.profile.title || "No target title yet"}
+            {resume.cvData.profile.title || "Aucun titre cible"}
           </p>
         </div>
         {resume.id === activeResumeId && (
-          <span className="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-medium text-emerald-700">
-            Active
+          <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+            Actif
           </span>
         )}
       </div>
@@ -194,7 +194,7 @@ export function ResumeCard({
           <p className="mt-1 capitalize">{resume.templateId}</p>
         </div>
         <div className="rounded-md bg-muted/40 p-2">
-          <p className="font-medium text-foreground">Updated</p>
+          <p className="font-medium text-foreground">Mis à jour</p>
           <p className="mt-1">{formatDate(resume.updatedAt)}</p>
         </div>
       </div>
@@ -204,17 +204,17 @@ export function ResumeCard({
           onClick={() => openResume(resume.id)}
           className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-2.5 text-xs font-semibold text-primary-foreground"
         >
-          Open <ArrowRight size={13} />
+          Ouvrir <ArrowRight size={13} />
         </button>
         <button
           onClick={() => {
             void duplicateResume(resume.id).catch((err: unknown) => {
-              showStatus(err instanceof Error ? err.message : "Duplicate failed");
+              showStatus(err instanceof Error ? err.message : "Duplication impossible");
             });
           }}
           className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-2.5 text-xs font-medium text-foreground hover:bg-accent"
         >
-          <Copy size={13} /> Duplicate
+          <Copy size={13} /> Dupliquer
         </button>
         {(["json", "markdown", "html"] as const).map((format) => (
           <button
@@ -222,12 +222,12 @@ export function ResumeCard({
             onClick={() => {
               const exportConfig = RESUME_EXPORTS[format];
               void downloadResume(resume.id, resume.name, format)
-                .then(() => showStatus(`${exportConfig.label} resume exported`))
+                .then(() => showStatus(`CV exporté en ${exportConfig.label}`))
                 .catch((err: unknown) => {
                   showStatus(
                     err instanceof Error
                       ? err.message
-                      : `${exportConfig.label} export failed`,
+                      : `Export ${exportConfig.label} impossible`,
                   );
                 });
             }}
@@ -239,13 +239,13 @@ export function ResumeCard({
         <button
           onClick={() => {
             void deleteResume(resume.id).catch((err: unknown) => {
-              showStatus(err instanceof Error ? err.message : "Delete failed");
+              showStatus(err instanceof Error ? err.message : "Suppression impossible");
             });
           }}
           disabled={resumesLength <= 1}
-          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-red-100 px-2.5 text-xs font-medium text-red-600 disabled:opacity-40"
+          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-destructive/30 px-2.5 text-xs font-medium text-destructive disabled:opacity-40"
         >
-          <Trash2 size={13} /> Delete
+          <Trash2 size={13} /> Supprimer
         </button>
       </div>
     </article>

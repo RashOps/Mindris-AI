@@ -4,8 +4,8 @@ import type { ResumeTemplate } from "@/lib/templates";
 export const FALLBACK_TEMPLATES: ResumeTemplate[] = [
   {
     id: "modern",
-    name: "Modern",
-    description: "Balanced two-column layout for tech, product, and business profiles.",
+    name: "Moderne",
+    description: "Mise en page équilibrée en deux colonnes pour profils tech, produit et business.",
     status: "ready",
     category: "tech",
     accent: "#2563eb",
@@ -14,7 +14,7 @@ export const FALLBACK_TEMPLATES: ResumeTemplate[] = [
   {
     id: "compact",
     name: "Compact",
-    description: "Dense one-page format for experienced profiles and long histories.",
+    description: "Format dense sur une page pour profils expérimentés et parcours longs.",
     status: "ready",
     category: "senior",
     accent: "#0f766e",
@@ -22,8 +22,8 @@ export const FALLBACK_TEMPLATES: ResumeTemplate[] = [
   },
   {
     id: "ats",
-    name: "ATS Strict",
-    description: "Single-column, low-decoration template for ATS-friendly CVs.",
+    name: "ATS strict",
+    description: "Template une colonne, sobre, pensé pour les systèmes ATS.",
     status: "ready",
     category: "ats",
     accent: "#475569",
@@ -31,8 +31,8 @@ export const FALLBACK_TEMPLATES: ResumeTemplate[] = [
   },
   {
     id: "student",
-    name: "Student",
-    description: "Education-first template for internships and first roles.",
+    name: "Étudiant",
+    description: "Template centré formation pour stages, alternances et premiers postes.",
     status: "ready",
     category: "student",
     accent: "#7c3aed",
@@ -40,8 +40,8 @@ export const FALLBACK_TEMPLATES: ResumeTemplate[] = [
   },
   {
     id: "creative",
-    name: "Creative",
-    description: "Editorial template for marketing, design, and content roles.",
+    name: "Créatif",
+    description: "Template éditorial pour marketing, design et métiers de contenu.",
     status: "ready",
     category: "creative",
     accent: "#e11d48",
@@ -50,24 +50,24 @@ export const FALLBACK_TEMPLATES: ResumeTemplate[] = [
   {
     id: "opensource",
     name: "Open Source",
-    description: "Community-made template for developers, GitHub links, and OSS contributions.",
+    description: "Template communautaire pour développeurs, liens GitHub et contributions OSS.",
     status: "community",
     category: "developer",
     accent: "#0f766e",
     layout: "two-column",
     base_template_id: "modern",
-    author: "Mindris Community",
+    author: "Communauté Mindris",
   },
   {
     id: "bilingual",
-    name: "Bilingual FR/EN",
-    description: "Community template tuned for bilingual CVs and international applications.",
+    name: "Bilingue FR/EN",
+    description: "Template communautaire pour CV bilingues et candidatures internationales.",
     status: "community",
     category: "international",
     accent: "#7c3aed",
     layout: "two-column",
     base_template_id: "compact",
-    author: "Mindris Community",
+    author: "Communauté Mindris",
   },
 ];
 
@@ -119,7 +119,7 @@ export const RESUME_EXPORTS: Record<
 };
 
 export function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("en", {
+  return new Intl.DateTimeFormat("fr-FR", {
     month: "short",
     day: "2-digit",
     hour: "2-digit",
@@ -132,7 +132,7 @@ export async function downloadResume(id: string, name: string, format: ResumeExp
   const response = await fetch(apiUrl(`/api/v1/resumes/${id}/${exportConfig.endpoint}`), {
     headers: apiHeaders(),
   });
-  if (!response.ok) throw new Error(`${exportConfig.label} export failed`);
+  if (!response.ok) throw new Error(`Export ${exportConfig.label} impossible`);
   const blob = await response.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -143,5 +143,5 @@ export async function downloadResume(id: string, name: string, format: ResumeExp
 }
 
 export function fileNameToResumeName(file: File): string {
-  return file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim() || "Imported CV";
+  return file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim() || "CV importé";
 }

@@ -99,7 +99,7 @@ export default function AppPage() {
   };
   useEffect(() => {
     void loadResumes().catch((err: unknown) => {
-      showToast(errorMessage(err, "Failed to load resumes"), 6000);
+      showToast(errorMessage(err, "Chargement des CV impossible"), 6000);
     });
   }, [loadResumes]);
   const handleChangeUiMode = (mode: CvBuilderUiMode) => {
@@ -165,7 +165,7 @@ export default function AppPage() {
           updateSkillGroup(group.id, {
             skills: [...group.skills, dragData.skill],
           });
-          showToast(`"${dragData.skill}" added to ${group.category}`);
+          showToast(`"${dragData.skill}" ajouté à ${group.category}`);
         }
       }
 
@@ -178,7 +178,7 @@ export default function AppPage() {
             ? `${existing}\n- ${dragData.bullet}`
             : `- ${dragData.bullet}`;
           updateExperience(exp.id, { description_markdown: updated });
-          showToast("Bullet added to experience");
+          showToast("Bullet ajouté à l’expérience");
         }
       }
     },
@@ -213,7 +213,7 @@ export default function AppPage() {
         source_url:
           typeof data.source_url === "string" ? data.source_url : null,
         job_title:
-          typeof data.job_title === "string" ? data.job_title : "Unknown Role",
+          typeof data.job_title === "string" ? data.job_title : "Poste inconnu",
         company: typeof data.company === "string" ? data.company : "",
         hard_skills: stringArray(data.hard_skills),
         soft_skills: stringArray(data.soft_skills),
@@ -226,7 +226,7 @@ export default function AppPage() {
       };
       setJobInsights(insights);
       setShowInsights(true);
-      showToast("Job insights ready — see panel");
+      showToast("Analyse de l’offre prête — voir le panneau");
     },
     [setJobInsights],
   );
@@ -235,7 +235,7 @@ export default function AppPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     setIsUploading(true);
-    showToast("Parsing PDF (10-30s)...", 30000);
+    showToast("Analyse du PDF (10-30s)...", 30000);
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -249,13 +249,13 @@ export default function AppPage() {
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.detail ?? "Upload failed");
+        throw new Error(err.detail ?? "Upload impossible");
       }
       const data = await res.json();
       if (data.cv_data) replaceCVData(data.cv_data);
-      showToast("PDF indexed. Editor and RAG updated.");
+      showToast("PDF indexé. Éditeur et RAG mis à jour.");
     } catch (err: unknown) {
-      showToast(errorMessage(err, "Upload failed"), 6000);
+      showToast(errorMessage(err, "Upload impossible"), 6000);
     } finally {
       setIsUploading(false);
       if (pdfInputRef.current) pdfInputRef.current.value = "";
@@ -269,7 +269,7 @@ export default function AppPage() {
       const text = await file.text();
       const jsonData = JSON.parse(text);
       const importedCV = cvDataFromImport(jsonData);
-      if (!importedCV) throw new Error("Invalid CV JSON");
+      if (!importedCV) throw new Error("JSON CV invalide");
       replaceCVData(importedCV);
       const importedName = resumeNameFromImport(jsonData);
       if (importedName) renameResume(activeResumeId, importedName);
@@ -281,9 +281,9 @@ export default function AppPage() {
           source: "json",
         }),
       });
-      showToast("JSON CV indexed.");
+      showToast("CV JSON indexé.");
     } catch (err: unknown) {
-      showToast(errorMessage(err, "Failed to parse or upload JSON."), 5000);
+      showToast(errorMessage(err, "Parsing ou upload JSON impossible."), 5000);
     } finally {
       if (jsonInputRef.current) jsonInputRef.current.value = "";
     }
@@ -303,7 +303,7 @@ export default function AppPage() {
         headers: apiHeaders(),
       },
     );
-    if (!response.ok) throw new Error(`${exportConfig.label} export failed`);
+    if (!response.ok) throw new Error(`Export ${exportConfig.label} impossible`);
     const blob = await response.blob();
     const activeResume = resumes.find((resume) => resume.id === activeResumeId);
     const name = activeResume?.name || cvData.profile.full_name || "mindris_cv";
@@ -311,11 +311,11 @@ export default function AppPage() {
       blob,
       `${name.replace(/\s+/g, "_") || "mindris_cv"}.${exportConfig.extension}`,
     );
-    showToast(`Resume ${exportConfig.label} exported`);
+    showToast(`CV exporté en ${exportConfig.label}`);
   };
 
   const handleExportPDF = async () => {
-    showToast("Generating PDF...", 30000);
+    showToast("Génération du PDF...", 30000);
     try {
       await flushResumeSave();
       const resolved = await resolveTemplateRenderPayload(
@@ -331,15 +331,15 @@ export default function AppPage() {
           return_buffer: true,
         }),
       });
-      if (!res.ok) throw new Error("Render failed");
+      if (!res.ok) throw new Error("Rendu impossible");
       const blob = await res.blob();
       triggerBlobDownload(
         blob,
         `${cvData.profile.full_name.replace(/\s+/g, "_")}_CV.pdf`,
       );
-      showToast("PDF downloaded.");
+      showToast("PDF téléchargé.");
     } catch (err: unknown) {
-      showToast(errorMessage(err, "Render failed"), 5000);
+      showToast(errorMessage(err, "Rendu impossible"), 5000);
     }
   };
 
@@ -358,11 +358,11 @@ export default function AppPage() {
           model_name: appSettings.optimize_llm.model_name,
         }),
       });
-      if (!res.ok) throw new Error("Failed to start pipeline");
+      if (!res.ok) throw new Error("Démarrage du pipeline impossible");
       const data = await res.json();
       setJobId(data.job_id);
     } catch (err: unknown) {
-      showToast(errorMessage(err, "Failed to start pipeline"), 5000);
+      showToast(errorMessage(err, "Démarrage du pipeline impossible"), 5000);
       setIsOptimizing(false);
       setShowGhost(false);
     }
@@ -370,86 +370,86 @@ export default function AppPage() {
 
   const handleGhostDone = () => {
     setIsOptimizing(false);
-    showToast("CV optimized. Check the preview.");
+    showToast("CV optimisé. Vérifie la preview.");
   };
   const handleGhostError = () => {
     setIsOptimizing(false);
-    showToast("Pipeline failed.", 6000);
+    showToast("Pipeline en échec.", 6000);
   };
 
   const { isOptimizing } = useCVStore();
   const uploadActions: HeaderMenuAction[] = [
     {
       label: "PDF",
-      hint: isUploading ? "Parsing..." : "Import resume",
+      hint: isUploading ? "Analyse..." : "Importer un CV",
       disabled: isUploading,
       onSelect: () => pdfInputRef.current?.click(),
     },
     {
       label: "JSON",
-      hint: "Import structured data",
+      hint: "Importer les données structurées",
       onSelect: () => jsonInputRef.current?.click(),
     },
   ];
   const downloadActions: HeaderMenuAction[] = [
     {
       label: "PDF",
-      hint: "Print-ready export",
+      hint: "Export prêt à imprimer",
       onSelect: () => {
         void handleExportPDF();
       },
     },
     {
       label: "DOCX",
-      hint: "Recruiter format",
+      hint: "Format recruteur",
       onSelect: () => {
         void handleExportResume("docx").catch((err: unknown) => {
-          showToast(errorMessage(err, "DOCX export failed"), 6000);
+          showToast(errorMessage(err, "Export DOCX impossible"), 6000);
         });
       },
     },
     {
       label: "JSON",
-      hint: "Structured data",
+      hint: "Données structurées",
       onSelect: () => {
         void handleExportResume("json").catch((err: unknown) => {
-          showToast(errorMessage(err, "JSON export failed"), 6000);
+          showToast(errorMessage(err, "Export JSON impossible"), 6000);
         });
       },
     },
     {
       label: "Markdown",
-      hint: "GitHub-friendly",
+      hint: "Compatible GitHub",
       onSelect: () => {
         void handleExportResume("markdown").catch((err: unknown) => {
-          showToast(errorMessage(err, "Markdown export failed"), 6000);
+          showToast(errorMessage(err, "Export Markdown impossible"), 6000);
         });
       },
     },
     {
       label: "HTML",
-      hint: "Web profile",
+      hint: "Profil web",
       onSelect: () => {
         void handleExportResume("html").catch((err: unknown) => {
-          showToast(errorMessage(err, "HTML export failed"), 6000);
+          showToast(errorMessage(err, "Export HTML impossible"), 6000);
         });
       },
     },
     {
       label: "LaTeX",
-      hint: "Portable source",
+      hint: "Source portable",
       onSelect: () => {
         void handleExportResume("latex").catch((err: unknown) => {
-          showToast(errorMessage(err, "LaTeX export failed"), 6000);
+          showToast(errorMessage(err, "Export LaTeX impossible"), 6000);
         });
       },
     },
     {
       label: "Typst",
-      hint: "Portable source",
+      hint: "Source portable",
       onSelect: () => {
         void handleExportResume("typst").catch((err: unknown) => {
-          showToast(errorMessage(err, "Typst export failed"), 6000);
+          showToast(errorMessage(err, "Export Typst impossible"), 6000);
         });
       },
     },
@@ -459,7 +459,7 @@ export default function AppPage() {
       <main className="app-page flex h-[calc(100vh-4rem)] w-full flex-col overflow-hidden">
         {/* Toast */}
         {toast && (
-          <div className="fixed top-4 right-4 z-[100] px-4 py-2.5 rounded-lg bg-slate-900 text-white text-sm shadow-xl max-w-sm animate-in slide-in-from-top-2 duration-300">
+          <div className="fixed top-4 right-4 z-[100] max-w-sm animate-in rounded-lg border border-border bg-popover px-4 py-2.5 text-sm text-popover-foreground shadow-xl duration-300 slide-in-from-top-2">
             {toast}
           </div>
         )}
@@ -511,47 +511,47 @@ export default function AppPage() {
             isUploading ? (
               <span className="h-3.5 w-3.5 rounded-full border border-sky-500 border-t-transparent animate-spin" />
             ) : (
-              <Upload className="h-4 w-4 text-slate-600" />
+              <Upload className="h-4 w-4 text-muted-foreground" />
             )
           }
-          downloadIcon={<Download className="h-4 w-4 text-slate-600" />}
+          downloadIcon={<Download className="h-4 w-4 text-muted-foreground" />}
           insightsBadge={Boolean(jobInsights)}
           uiMode={uiMode}
           onSelectResume={setActiveResume}
           onRenameResume={(name) => renameResume(activeResumeId, name)}
           onCreateResume={() => {
-            void createResume("Untitled CV")
-              .then(() => showToast("New blank CV created"))
+            void createResume("Nouveau CV")
+              .then(() => showToast("Nouveau CV créé"))
               .catch((err: unknown) => {
-                showToast(errorMessage(err, "Create failed"), 6000);
+                showToast(errorMessage(err, "Création impossible"), 6000);
               });
           }}
           onDuplicateResume={() => {
             void duplicateResume()
-              .then(() => showToast("CV duplicated"))
+              .then(() => showToast("CV dupliqué"))
               .catch((err: unknown) => {
-                showToast(errorMessage(err, "Duplicate failed"), 6000);
+                showToast(errorMessage(err, "Duplication impossible"), 6000);
               });
           }}
           onDeleteResume={() => {
             void deleteResume(activeResumeId)
               .then(() =>
                 showToast(
-                  resumes.length > 1 ? "CV deleted" : "Keep at least one CV",
+                  resumes.length > 1 ? "CV supprimé" : "Garde au moins un CV",
                 ),
               )
               .catch((err: unknown) => {
-                showToast(errorMessage(err, "Delete failed"), 6000);
+                showToast(errorMessage(err, "Suppression impossible"), 6000);
               });
           }}
           onActivateLocale={(locale) => {
             if (locale === activeLocale) return;
             void activateResumeLocale(locale)
               .then(() => {
-                showToast(`${locale.toUpperCase()} variant active`);
+                showToast(`Variante ${locale.toUpperCase()} active`);
               })
               .catch((err: unknown) => {
-                showToast(errorMessage(err, "Locale switch failed"), 6000);
+                showToast(errorMessage(err, "Changement de langue impossible"), 6000);
               });
           }}
           onSetLocaleToCreate={setLocaleToCreate}
@@ -559,26 +559,26 @@ export default function AppPage() {
             if (!localeToCreate) return;
             void createResumeLocale(localeToCreate, activeLocale)
               .then(() => {
-                showToast(`${localeToCreate.toUpperCase()} variant created`);
+                showToast(`Variante ${localeToCreate.toUpperCase()} créée`);
                 setLocaleToCreate("");
               })
               .catch((err: unknown) => {
-                showToast(errorMessage(err, "Locale creation failed"), 6000);
+                showToast(errorMessage(err, "Création de langue impossible"), 6000);
               });
           }}
           onDeleteLocale={() => {
             void deleteResumeLocale(activeLocale)
               .then(() => {
-                showToast(`${activeLocale.toUpperCase()} variant deleted`);
+                showToast(`Variante ${activeLocale.toUpperCase()} supprimée`);
               })
               .catch((err: unknown) => {
-                showToast(errorMessage(err, "Locale delete failed"), 6000);
+                showToast(errorMessage(err, "Suppression de langue impossible"), 6000);
               });
           }}
           onRetrySave={() => {
             if (resumeSaveStatus === "error") {
               void retryResumeSave().catch((err: unknown) => {
-                showToast(errorMessage(err, "Save retry failed"), 6000);
+                showToast(errorMessage(err, "Nouvelle sauvegarde impossible"), 6000);
               });
             }
           }}

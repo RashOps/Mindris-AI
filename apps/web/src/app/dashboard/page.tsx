@@ -82,12 +82,12 @@ export default function DashboardPage() {
 
   const saveStatusText =
     resumeSaveStatus === "dirty"
-      ? "Unsaved changes"
+      ? "Modifications non sauvegardées"
       : resumeSaveStatus === "saving"
-        ? "Saving..."
+        ? "Sauvegarde..."
         : resumeSaveStatus === "error"
-          ? "Save failed"
-          : "Saved";
+          ? "Échec sauvegarde"
+          : "Sauvegardé";
   const activePersistedResumeId =
     activeResumeId && /^\d+$/.test(String(activeResumeId))
       ? String(activeResumeId)
@@ -95,7 +95,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     void loadResumes().catch((err: unknown) => {
-      showStatus(err instanceof Error ? err.message : "Resume loading failed");
+      showStatus(err instanceof Error ? err.message : "Chargement des CV impossible");
     });
   }, [loadResumes, showStatus]);
 
@@ -110,7 +110,7 @@ export default function DashboardPage() {
       })
       .catch((err: unknown) => {
         if (!cancelled) {
-          showStatus(err instanceof Error ? err.message : "Template loading failed");
+          showStatus(err instanceof Error ? err.message : "Chargement des templates impossible");
         }
       });
 
@@ -169,12 +169,12 @@ export default function DashboardPage() {
         const response = await fetch(apiUrl(`/api/v1/resumes/${activePersistedResumeId}/revisions`), {
           headers: apiHeaders(),
         });
-        if (!response.ok) throw new Error("Revision loading failed");
+        if (!response.ok) throw new Error("Chargement des révisions impossible");
         const payload = (await response.json()) as { items?: ResumeRevision[] };
         setRevisions(payload.items ?? []);
       } catch (err: unknown) {
         setRevisions([]);
-        showStatus(err instanceof Error ? err.message : "Revision loading failed");
+        showStatus(err instanceof Error ? err.message : "Chargement des révisions impossible");
       } finally {
         setRevisionsLoading(false);
       }
@@ -199,13 +199,13 @@ export default function DashboardPage() {
       method: "POST",
       headers: apiHeaders(),
     });
-    if (!response.ok) throw new Error("Snapshot failed");
+    if (!response.ok) throw new Error("Snapshot impossible");
     const payload = (await response.json()) as { item?: ResumeRevision };
     if (payload.item) {
       const snapshot = payload.item;
       setRevisions((current) => [snapshot, ...current]);
     }
-    showStatus("Version snapshot saved");
+    showStatus("Version sauvegardée");
   };
 
   const restoreRevision = async (revision: number) => {
@@ -217,11 +217,11 @@ export default function DashboardPage() {
         headers: apiHeaders(),
       }
     );
-    if (!response.ok) throw new Error("Restore failed");
+    if (!response.ok) throw new Error("Restauration impossible");
     const payload = (await response.json()) as { item?: ResumeRevision };
     await loadResumes();
     if (payload.item) {
-      showStatus(`Restored version ${revision}`);
+      showStatus(`Version ${revision} restaurée`);
     }
   };
 
@@ -237,15 +237,15 @@ export default function DashboardPage() {
           headers: apiHeaders(),
         }
       );
-      if (!response.ok) throw new Error("Compare failed");
+      if (!response.ok) throw new Error("Comparaison impossible");
       const payload = (await response.json()) as { item?: ResumeRevisionCompare };
       setCompareResult(payload.item ?? null);
       if (payload.item) {
-        showStatus(`Compared v${baseRevision} → v${targetRevision}`);
+        showStatus(`Comparaison v${baseRevision} → v${targetRevision}`);
       }
     } catch (err: unknown) {
       setCompareResult(null);
-      showStatus(err instanceof Error ? err.message : "Compare failed");
+      showStatus(err instanceof Error ? err.message : "Comparaison impossible");
     } finally {
       setCompareLoading(false);
     }
@@ -270,11 +270,11 @@ export default function DashboardPage() {
     try {
       const parsed = JSON.parse(await file.text()) as unknown;
       const cvData = cvDataFromImport(parsed);
-      if (!cvData) throw new Error("Invalid CV JSON");
+      if (!cvData) throw new Error("JSON CV invalide");
       await importCVData(cvData, resumeNameFromImport(parsed) ?? fileNameToResumeName(file));
-      showStatus("JSON resume imported");
+      showStatus("CV JSON importé");
     } catch (err: unknown) {
-      showStatus(err instanceof Error ? err.message : "JSON import failed");
+      showStatus(err instanceof Error ? err.message : "Import JSON impossible");
     }
   };
 
@@ -292,14 +292,14 @@ export default function DashboardPage() {
         headers: apiHeaders(),
         body: form,
       });
-      if (!res.ok) throw new Error("PDF import failed");
+      if (!res.ok) throw new Error("Import PDF impossible");
       const data = await res.json();
       const cvData = cvDataFromImport(data.cv_data);
-      if (!cvData) throw new Error("PDF parser returned invalid CV data");
+      if (!cvData) throw new Error("Le parser PDF a retourné un CV invalide");
       await importCVData(cvData, cvData.profile.full_name || fileNameToResumeName(file), false);
-      showStatus("PDF resume imported");
+      showStatus("CV PDF importé");
     } catch (err: unknown) {
-      showStatus(err instanceof Error ? err.message : "PDF import failed");
+      showStatus(err instanceof Error ? err.message : "Import PDF impossible");
     } finally {
       setIsImportingPdf(false);
     }
@@ -309,9 +309,9 @@ export default function DashboardPage() {
     try {
       const item = await importResumeTemplatePackage(file);
       await reloadTemplates();
-      showStatus(`Template imported: ${item.name}`);
+      showStatus(`Template importé : ${item.name}`);
     } catch (err: unknown) {
-      showStatus(err instanceof Error ? err.message : "Template import failed");
+      showStatus(err instanceof Error ? err.message : "Import du template impossible");
     }
   };
 
@@ -327,8 +327,8 @@ export default function DashboardPage() {
 
   return (
     <AppShell
-      title="Resume Library"
-      description="Create, import, duplicate and export backend-backed resumes."
+      title="Bibliothèque de CV"
+      description="Créer, importer, dupliquer et exporter des CV persistés par le backend."
       actions={
         <DashboardActions
           saveStatusText={saveStatusText}
@@ -357,25 +357,25 @@ export default function DashboardPage() {
             <section className="mb-8">
               <div className="mb-4 flex items-end justify-between gap-4">
                 <div>
-                  <h2 className="text-base font-semibold">Your resumes</h2>
-                  <p className="text-sm text-muted-foreground">Drafts persisted by the backend API.</p>
+                  <h2 className="text-base font-semibold">Tes CV</h2>
+                  <p className="text-sm text-muted-foreground">Brouillons persistés par l’API backend.</p>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {isResumeLibraryLoading ? "Loading..." : `${resumes.length} saved`}
+                  {isResumeLibraryLoading ? "Chargement..." : `${resumes.length} sauvegardé(s)`}
                 </p>
               </div>
 
               <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                 <button
-                  onClick={() => void createFromTemplate("modern", "Untitled")}
+                  onClick={() => void createFromTemplate("modern", "Nouveau")}
                   className="flex min-h-52 w-full min-w-0 flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card p-5 text-center transition-colors hover:bg-accent"
                 >
                   <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                     <Plus size={20} />
                   </div>
-                  <p className="text-sm font-semibold">Create blank CV</p>
+                  <p className="text-sm font-semibold">Créer un CV vide</p>
                   <p className="mt-1 max-w-48 text-xs leading-5 text-muted-foreground">
-                    Start from a clean structured resume and customize it section by section.
+                    Démarre depuis une structure propre puis personnalise le CV section par section.
                   </p>
                 </button>
 
@@ -399,14 +399,14 @@ export default function DashboardPage() {
               <div>
                 <div className="mb-4 flex items-center justify-between">
                   <div>
-                    <h2 className="text-base font-semibold">Start from a template</h2>
-                    <p className="text-sm text-muted-foreground">Backend-owned templates plus community presets.</p>
+                    <h2 className="text-base font-semibold">Démarrer depuis un template</h2>
+                    <p className="text-sm text-muted-foreground">Templates backend et presets communautaires.</p>
                   </div>
                   <LayoutTemplate className="text-muted-foreground" size={20} />
                 </div>
                 <div className="space-y-5">
                   <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Ready</p>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Prêts</p>
                     <div className="grid gap-3 md:grid-cols-2">
                       {templates.filter((template) => template.status === "ready").map((template) => (
                         <button
@@ -427,8 +427,8 @@ export default function DashboardPage() {
                           </div>
                           <div className="flex items-center justify-between gap-2">
                             <p className="text-sm font-semibold">{template.name}</p>
-                            <span className="rounded-full bg-muted px-2 py-1 text-[11px] font-medium capitalize text-muted-foreground">
-                              {template.status}
+                            <span className="rounded-full bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground">
+                              Prêt
                             </span>
                           </div>
                           <p className="mt-2 text-xs leading-5 text-muted-foreground">{template.description}</p>
@@ -438,7 +438,7 @@ export default function DashboardPage() {
                   </div>
 
                   <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Community</p>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Communauté</p>
                     <div className="grid gap-3 md:grid-cols-2">
                       {templates.filter((template) => template.status === "community").map((template) => (
                         <div
@@ -459,8 +459,8 @@ export default function DashboardPage() {
                           </div>
                           <div className="flex items-center justify-between gap-2">
                             <p className="text-sm font-semibold">{template.name}</p>
-                            <span className="rounded-full bg-violet-50 px-2 py-1 text-[11px] font-medium capitalize text-violet-700">
-                              community
+                            <span className="rounded-full border border-violet-500/30 bg-violet-500/10 px-2 py-1 text-[11px] font-medium text-violet-700 dark:text-violet-300">
+                              Communauté
                             </span>
                           </div>
                           <p className="mt-2 text-xs leading-5 text-muted-foreground">{template.description}</p>
@@ -471,26 +471,26 @@ export default function DashboardPage() {
                               className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-2.5 text-xs font-semibold text-primary-foreground"
                             >
                               <Plus size={13} />
-                              Use template
+                              Utiliser
                             </button>
                             {template.previewAvailable && (
                               <button
                                 onClick={() => {
                                   void downloadTemplatePackage(template).then(() => {
-                                    showStatus(`Template exported: ${template.name}`);
+                                    showStatus(`Template exporté : ${template.name}`);
                                   }).catch((err: unknown) => {
-                                    showStatus(err instanceof Error ? err.message : "Template export failed");
+                                    showStatus(err instanceof Error ? err.message : "Export du template impossible");
                                   });
                                 }}
                                 data-testid={`template-export-${templateHandle(template.id)}`}
                                 className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-2.5 text-xs font-medium text-foreground hover:bg-accent"
                               >
                                 <Download size={13} />
-                                Export package
+                              Exporter
                               </button>
                             )}
                             <span className="inline-flex h-8 items-center rounded-md bg-muted px-2.5 text-[11px] font-medium text-muted-foreground">
-                              {template.author ?? "Community"}
+                              {template.author ?? "Communauté"}
                             </span>
                           </div>
                         </div>
@@ -503,48 +503,48 @@ export default function DashboardPage() {
               <aside className="rounded-lg border border-border bg-card p-4 shadow-sm">
                 <div className="mb-4 flex items-center gap-2">
                   <FolderOpen size={18} className="text-muted-foreground" />
-                  <h2 className="text-base font-semibold">MVP1 status</h2>
+                  <h2 className="text-base font-semibold">État MVP1</h2>
                 </div>
                 <div className="space-y-3 text-sm">
                   <div className="flex items-start gap-3">
                     <FileJson size={16} className="mt-0.5 text-emerald-600" />
                     <div>
-                      <p className="font-medium">API-backed resume library</p>
-                      <p className="text-xs leading-5 text-muted-foreground">Create, duplicate, import, export, and keep multiple CV drafts via backend endpoints.</p>
+                      <p className="font-medium">Bibliothèque CV via API</p>
+                      <p className="text-xs leading-5 text-muted-foreground">Créer, dupliquer, importer, exporter et conserver plusieurs brouillons via les endpoints backend.</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
                     <LayoutTemplate size={16} className="mt-0.5 text-indigo-600" />
                     <div>
-                      <p className="font-medium">Template gallery</p>
-                      <p className="text-xs leading-5 text-muted-foreground">Five ready templates are exposed by the backend and reused by the renderer.</p>
+                      <p className="font-medium">Galerie de templates</p>
+                      <p className="text-xs leading-5 text-muted-foreground">Les templates sont exposés par le backend et réutilisés par le renderer.</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
                     <FileText size={16} className="mt-0.5 text-muted-foreground" />
                     <div>
-                      <p className="font-medium">Builder remains focused</p>
-                      <p className="text-xs leading-5 text-muted-foreground">Open any resume to edit structure, style, live preview, and export PDF.</p>
+                      <p className="font-medium">Builder concentré</p>
+                      <p className="text-xs leading-5 text-muted-foreground">Ouvre un CV pour éditer structure, style, preview live et export PDF.</p>
                     </div>
                   </div>
                 </div>
                 <div className="my-4 border-t border-border pt-4">
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <div>
-                      <p className="font-medium">Versioning</p>
+                      <p className="font-medium">Versions</p>
                       <p className="text-xs leading-5 text-muted-foreground">
-                        {revisionsLoading ? "Loading snapshots..." : `${revisions.length} snapshots available`}
+                        {revisionsLoading ? "Chargement des versions..." : `${revisions.length} version(s) disponible(s)`}
                       </p>
                     </div>
                     <button
                       onClick={() => {
                         void createSnapshot().catch((err: unknown) => {
-                          showStatus(err instanceof Error ? err.message : "Snapshot failed");
+                          showStatus(err instanceof Error ? err.message : "Snapshot impossible");
                         });
                       }}
                       className="inline-flex h-8 items-center rounded-md border border-border px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
                     >
-                      Save version
+                      Sauvegarder
                     </button>
                   </div>
                   <div className="space-y-2">
@@ -569,25 +569,25 @@ export default function DashboardPage() {
                               }}
                               className="rounded-md border border-border bg-background px-2 py-1 text-[11px] font-medium text-foreground hover:bg-accent"
                             >
-                              Compare
+                              Comparer
                             </button>
                           )}
                           <button
                             onClick={() => {
                               void restoreRevision(revision.revision).catch((err: unknown) => {
-                                showStatus(err instanceof Error ? err.message : "Restore failed");
+                                showStatus(err instanceof Error ? err.message : "Restauration impossible");
                               });
                             }}
                             className="rounded-md border border-border bg-background px-2 py-1 text-[11px] font-medium text-foreground hover:bg-accent"
                           >
-                            Restore
+                            Restaurer
                           </button>
                         </div>
                       </div>
                     ))}
                     {revisions.length === 0 && (
                       <p className="text-xs leading-5 text-muted-foreground">
-                        No snapshots yet. Save one to pin a baseline.
+                        Aucune version pour l’instant. Sauvegarde une baseline.
                       </p>
                     )}
                   </div>
@@ -595,13 +595,13 @@ export default function DashboardPage() {
                 <div className="border-t border-border pt-4">
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <div>
-                      <p className="font-medium">Comparison</p>
+                      <p className="font-medium">Comparaison</p>
                       <p className="text-xs leading-5 text-muted-foreground">
                         {compareLoading
-                          ? "Comparing snapshots..."
+                          ? "Comparaison des versions..."
                           : compareResult
                             ? `v${compareResult.baseRevision.revision} → v${compareResult.targetRevision.revision}`
-                            : "Compare two versions from the list"}
+                            : "Compare deux versions depuis la liste"}
                       </p>
                     </div>
                     {compareResult && (
@@ -609,7 +609,7 @@ export default function DashboardPage() {
                         onClick={() => setCompareResult(null)}
                         className="rounded-md border border-border bg-background px-2 py-1 text-[11px] font-medium text-foreground hover:bg-accent"
                       >
-                        Clear
+                        Effacer
                       </button>
                     )}
                   </div>
@@ -617,7 +617,7 @@ export default function DashboardPage() {
                     <div className="space-y-3 rounded-md border border-border bg-muted/40 p-3">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-xs font-medium text-foreground">
-                          {compareResult.changeCount} field changes
+                          {compareResult.changeCount} changement(s)
                         </p>
                         <p className="text-[11px] text-muted-foreground">
                           {compareResult.baseRevision.templateId} → {compareResult.targetRevision.templateId}
@@ -654,13 +654,13 @@ export default function DashboardPage() {
                           </div>
                         ))}
                         {compareResult.changes.length === 0 && (
-                          <p className="text-xs leading-5 text-muted-foreground">No structural changes detected.</p>
+                          <p className="text-xs leading-5 text-muted-foreground">Aucun changement structurel détecté.</p>
                         )}
                       </div>
                     </div>
                   ) : (
                     <p className="text-xs leading-5 text-muted-foreground">
-                      Open two snapshots to inspect changes between revisions.
+                      Ouvre deux versions pour inspecter les différences.
                     </p>
                   )}
                 </div>

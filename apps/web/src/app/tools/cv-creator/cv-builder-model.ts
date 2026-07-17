@@ -64,10 +64,10 @@ export function resumeSaveStatusText(
   status: ResumeSaveStatus,
   lastSavedAt: string | null,
 ): string {
-  if (status === "dirty") return "Unsaved changes";
-  if (status === "saving") return "Saving...";
-  if (status === "error") return "Save failed";
-  return lastSavedAt ? "Saved" : "Loaded";
+  if (status === "dirty") return "Modifications non sauvegardées";
+  if (status === "saving") return "Sauvegarde...";
+  if (status === "error") return "Échec sauvegarde";
+  return lastSavedAt ? "Sauvegardé" : "Chargé";
 }
 
 export function resumeSaveStatusColor(status: ResumeSaveStatus): string {
