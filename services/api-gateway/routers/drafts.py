@@ -41,6 +41,18 @@ async def put_draft(
     return {"status": "success", "item": serialize_draft(record)}
 
 
+@router.get("/maybe/{draft_key}")
+async def maybe_get_draft(draft_key: str, session: SessionDep) -> dict:
+    """Return a draft when present without treating absence as an error."""
+    record = session.exec(
+        select(WorkspaceDraftRecord).where(WorkspaceDraftRecord.draft_key == draft_key)
+    ).first()
+    return {
+        "status": "success",
+        "item": serialize_draft(record) if record else None,
+    }
+
+
 @router.get("/{draft_key}")
 async def get_draft(draft_key: str, session: SessionDep) -> dict:
     """Return a backend-owned cross-page draft."""

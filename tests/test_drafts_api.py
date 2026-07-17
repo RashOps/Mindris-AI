@@ -44,3 +44,7 @@ def test_draft_upsert_get_and_delete() -> None:
 
     missing = api.get("/api/v1/drafts/markdown", headers=headers)
     assert missing.status_code == 404
+
+    nullable = api.get("/api/v1/drafts/maybe/markdown", headers=headers)
+    assert nullable.status_code == 200
+    assert nullable.json()["item"] is None

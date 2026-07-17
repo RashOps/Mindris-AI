@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   CheckCircle2,
@@ -12,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ToolbarSelect } from "@/components/ToolbarSelect";
+import { openCoverLetterInMarkdown } from "@/lib/cover-letters";
 import { WorkflowHeader } from "./components/WorkflowHeader";
 import {
   STATE_LABELS,
@@ -29,6 +31,7 @@ import {
   type ResumeItem,
 } from "./workflow-model";
 export default function WorkflowPage() {
+  const router = useRouter();
   const [opportunities, setOpportunities] = useState<OpportunityItem[]>([]);
   const [jobs, setJobs] = useState<JobItem[]>([]);
   const [resumes, setResumes] = useState<ResumeItem[]>([]);
@@ -106,6 +109,9 @@ export default function WorkflowPage() {
   const filteredCoverLetters = selected?.job_id
     ? coverLetters.filter((item) => item.job_id === selected.job_id)
     : coverLetters;
+  const activeCoverLetterId = coverLetterId
+    ? Number(coverLetterId)
+    : selected?.cover_letter_id ?? null;
   const canCreate =
     createMode === "job"
       ? Boolean(selectedJobId)
@@ -124,6 +130,11 @@ export default function WorkflowPage() {
     } finally {
       setBusyAction(null);
     }
+  }
+  async function openActiveCoverLetter(): Promise<void> {
+    if (!activeCoverLetterId) return;
+    await openCoverLetterInMarkdown(activeCoverLetterId);
+    router.push("/tools/markdown");
   }
   const selectedResume = resumes.find((item) => item.id === Number(resumeId));
   const localeOptions = selectedResume?.multilingual?.availableLocales?.length
@@ -558,7 +569,26 @@ export default function WorkflowPage() {
                       </div>
 
                       <div className="min-w-0 rounded-xl border border-border bg-muted/40 p-3">
-                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cover letter</p>
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cover letter</p>
+                          {activeCoverLetterId ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                void openActiveCoverLetter().catch((openError: unknown) => {
+                                  setError(
+                                    openError instanceof Error
+                                      ? openError.message
+                                      : "Ouverture de la lettre impossible.",
+                                  );
+                                });
+                              }}
+                              className="text-xs font-medium text-primary hover:underline"
+                            >
+                              Ouvrir
+                            </button>
+                          ) : null}
+                        </div>
                         <ToolbarSelect
                           value={coverLetterId}
                           ariaLabel="Select cover letter"

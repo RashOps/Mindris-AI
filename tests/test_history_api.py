@@ -255,6 +255,13 @@ def test_score_and_cover_letter_routes_persist_job_aware_artifacts(monkeypatch) 
         item for item in letter_history.json()["items"] if item["job_id"] == job_id
     ]
     assert len(linked_letters) >= 2
+    letter_detail = api.get(
+        f"/api/v1/history/cover-letters/{letter_payload['id']}",
+        headers=headers,
+    )
+    assert letter_detail.status_code == 200
+    assert letter_detail.json()["item"]["id"] == letter_payload["id"]
+    assert letter_detail.json()["item"]["markdown_content"]
 
 
 def test_history_ledger_builds_lineage_links_for_related_artifacts() -> None:
