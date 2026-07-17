@@ -117,10 +117,10 @@ export function KeywordBarChart({ keywords }: { keywords: KeywordStatus[] }) {
   const found = keywords.filter((k) => k.found).length;
 
   const data = [
-    { name: "Found", value: found, fill: "#10b981" },
-    { name: "Low", value: low, fill: "#64748b" },
-    { name: "Medium", value: medium, fill: "#f59e0b" },
-    { name: "High", value: high, fill: "#ef4444" },
+    { name: "Trouvés", value: found, fill: "#10b981" },
+    { name: "Faible", value: low, fill: "#64748b" },
+    { name: "Moyen", value: medium, fill: "#f59e0b" },
+    { name: "Élevé", value: high, fill: "#ef4444" },
   ];
 
   return (
@@ -187,7 +187,7 @@ export function SkillsRadar({ keywords }: { keywords: KeywordStatus[] }) {
         />
         <PolarRadiusAxis tick={false} axisLine={false} domain={[0, 100]} />
         <Radar
-          name="Coverage"
+          name="Couverture"
           dataKey="score"
           stroke="#8b5cf6"
           fill="#8b5cf6"
@@ -224,20 +224,20 @@ export function KeywordTable({ keywords }: { keywords: KeywordStatus[] }) {
   });
 
   const filters: { id: Filter; label: string; count: number }[] = [
-    { id: "all", label: "All", count: keywords.length },
+    { id: "all", label: "Tous", count: keywords.length },
     {
       id: "found",
-      label: "Found",
+      label: "Trouvés",
       count: keywords.filter((k) => k.found).length,
     },
     {
       id: "missing",
-      label: "Missing",
+      label: "Manquants",
       count: keywords.filter((k) => !k.found).length,
     },
     {
       id: "high",
-      label: "Critical",
+      label: "Critiques",
       count: keywords.filter((k) => !k.found && k.severity === "high").length,
     },
   ];
@@ -252,7 +252,7 @@ export function KeywordTable({ keywords }: { keywords: KeywordStatus[] }) {
             onClick={() => setFilter(f.id)}
             className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
               filter === f.id
-                ? "border-violet-300 bg-violet-50 text-violet-700"
+                ? "border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300"
                 : "border-border bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground"
             }`}
           >
@@ -270,10 +270,10 @@ export function KeywordTable({ keywords }: { keywords: KeywordStatus[] }) {
           <thead>
             <tr className="border-b border-border bg-muted/40">
               {[
-                "Keyword / Skill",
-                "Status",
-                "Density",
-                "Impact if Missing",
+                "Mot-clé / compétence",
+                "Statut",
+                "Densité",
+                "Impact si absent",
               ].map((h) => (
                 <th
                   key={h}
@@ -298,27 +298,17 @@ export function KeywordTable({ keywords }: { keywords: KeywordStatus[] }) {
                   <td className="px-4 py-3">
                     {kw.found ? (
                       <span
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-                        style={{
-                          background: "#dcfce7",
-                          color: "#047857",
-                          border: "1px solid #bbf7d0",
-                        }}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300"
                       >
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                        Found
+                        Trouvé
                       </span>
                     ) : (
                       <span
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-                        style={{
-                          background: "#fee2e2",
-                          color: "#b91c1c",
-                          border: "1px solid #fecaca",
-                        }}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-destructive/30 bg-destructive/10 px-2.5 py-1 text-xs font-medium text-destructive"
                       >
                         <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-                        Missing
+                        Manquant
                       </span>
                     )}
                   </td>
@@ -348,7 +338,7 @@ export function KeywordTable({ keywords }: { keywords: KeywordStatus[] }) {
                   colSpan={4}
                   className="px-4 py-8 text-center text-sm text-muted-foreground"
                 >
-                  No keywords match this filter.
+                  Aucun mot-clé ne correspond à ce filtre.
                 </td>
               </tr>
             )}
@@ -367,10 +357,10 @@ export function Recommendations({ recs }: { recs: string[] }) {
       {recs.map((rec, i) => (
         <div
           key={i}
-          className="flex gap-4 rounded-lg border border-violet-200 bg-violet-50 p-4 dark:border-violet-900/60 dark:bg-violet-950/30"
+          className="flex gap-4 rounded-lg border border-violet-500/30 bg-violet-500/10 p-4"
         >
           <div
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-xs font-black text-violet-700"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-violet-500/10 text-xs font-black text-violet-700 dark:text-violet-300"
             style={{ fontFamily: "var(--font-space)" }}
           >
             {i + 1}
@@ -410,17 +400,17 @@ export function AtsHero({
       {/* Title */}
       <div>
         <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 dark:border-violet-900/60 dark:bg-violet-950/40 dark:text-violet-300">
-          Enterprise-Grade ATS Analysis
+          Analyse ATS
         </div>
         <h1
           className="mb-3 text-4xl font-black tracking-tight text-foreground"
           style={{ fontFamily: "var(--font-space)" }}
         >
-          ATS Score Analyzer
+          Score ATS
         </h1>
         <p className="text-base text-muted-foreground">
-          Deep keyword density analysis · Skill gap detection · Actionable
-          recommendations
+          Compare ton CV à une offre réelle, repère les écarts et priorise les
+          corrections utiles.
         </p>
       </div>
 
@@ -432,10 +422,10 @@ export function AtsHero({
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-100 text-[10px] font-black text-violet-700">
               1
             </span>
-            Your CV
+            CV
             {cvLoaded && (
               <span className="font-normal normal-case text-emerald-700">
-                loaded
+                chargé
               </span>
             )}
           </p>
@@ -451,7 +441,7 @@ export function AtsHero({
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-100 text-[10px] font-black text-violet-700">
               2
             </span>
-            Job Offer URL
+            URL de l’offre
           </p>
           <div className="flex gap-2">
             <input
@@ -468,14 +458,14 @@ export function AtsHero({
           </div>
         </div>
 
-        <LLMSelector taskKey="ats_llm" label="ATS Model" />
+        <LLMSelector taskKey="ats_llm" label="Modèle ATS" />
 
         <div>
           <p className="mb-2.5 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-violet-700">
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-100 text-[10px] font-black text-violet-700">
               3
             </span>
-            Evaluation Mode
+            Mode d’évaluation
           </p>
           <div className="grid grid-cols-2 gap-2">
             {(["standard", "strict"] as const).map((mode) => (
@@ -492,8 +482,8 @@ export function AtsHero({
                 <p className="font-semibold capitalize">{mode}</p>
                 <p className="mt-1 text-xs">
                   {mode === "strict"
-                    ? "Conservative penalties for rigid ATS environments."
-                    : "Balanced scoring for modern ATS workflows."}
+                    ? "Pénalités plus sévères pour environnements ATS rigides."
+                    : "Scoring équilibré pour candidatures modernes."}
                 </p>
               </button>
             ))}
@@ -510,10 +500,10 @@ export function AtsHero({
           {isAnalyzing ? (
             <>
               <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-              Analyzing… (30-60s)
+              Analyse… (30-60s)
             </>
           ) : (
-            <>Analyze ATS Score</>
+            <>Analyser le score ATS</>
           )}
         </button>
       </div>
@@ -537,9 +527,8 @@ export function SSEProgress({ messages }: SSEProgressProps) {
       ))}
       <div className="flex items-center gap-1 pt-1 text-violet-700">
         <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
-        <span>Processing…</span>
+        <span>Traitement…</span>
       </div>
     </div>
   );
 }
-

@@ -52,7 +52,7 @@ export function LLMSelector({ taskKey, label = "Model", variant = "default" }: L
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex min-w-0 flex-wrap items-center gap-2">
       <span className={`${isToolbar ? "text-xs" : "text-[10px] uppercase"} tracking-wider text-muted-foreground`}>{label}</span>
       <ToolbarSelect
         value={current.provider}
@@ -80,7 +80,7 @@ export function LLMSelector({ taskKey, label = "Model", variant = "default" }: L
       />
       {providerMeta && (
         <span
-          className={`text-[10px] ${
+          className={`shrink-0 text-[10px] ${
             providerMeta.configured ? "text-muted-foreground" : "text-amber-700 dark:text-amber-300"
           }`}
           title={providerMeta.reason || undefined}

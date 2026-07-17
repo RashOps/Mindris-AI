@@ -12,11 +12,11 @@ interface PdfIngestionModeSelectProps {
 const OPTIONS: Array<{ value: PdfIngestionMode; label: string }> = [
   { value: "auto", label: "Auto" },
   { value: "llama_parse", label: "LlamaParse" },
-  { value: "local_text", label: "Local text" },
+  { value: "local_text", label: "Texte local" },
 ];
 
 export function PdfIngestionModeSelect({
-  label = "PDF parse",
+  label = "Lecture PDF",
   compact = false,
   variant = "default",
 }: PdfIngestionModeSelectProps) {
