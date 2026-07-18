@@ -107,7 +107,9 @@ def _application_reminders_map(
     session: Session,
 ) -> dict[int, list[ApplicationReminderRecord]]:
     reminders = session.exec(
-        select(ApplicationReminderRecord).order_by(ApplicationReminderRecord.due_at.asc())
+        select(ApplicationReminderRecord).order_by(
+            ApplicationReminderRecord.due_at.asc()
+        )
     ).all()
     grouped: dict[int, list[ApplicationReminderRecord]] = {}
     for reminder in reminders:
@@ -336,9 +338,7 @@ async def update_application_reminder(
         row.notes = data["notes"]
     if "status" in data and data["status"] is not None:
         row.status = data["status"]
-        row.completed_at = (
-            datetime.now() if data["status"] == "completed" else None
-        )
+        row.completed_at = datetime.now() if data["status"] == "completed" else None
     row.updated_at = datetime.now()
     session.add(row)
     session.commit()

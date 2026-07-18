@@ -27,6 +27,7 @@ from .common import (
 
 logger = get_logger(__name__, service_name="api-gateway")
 
+
 def resume_to_docx(record: ResumeRecord) -> bytes:
     """Render a persisted resume as a text-based DOCX document."""
     logger.info("Rendering resume %s to DOCX", record.id)
@@ -123,6 +124,7 @@ def resume_to_docx(record: ResumeRecord) -> bytes:
     logger.debug("Rendered DOCX resume %s (%d bytes)", record.id, len(rendered))
     return rendered
 
+
 def markdown_to_docx(markdown: str, *, title: str = "Document") -> bytes:
     """Render freeform Markdown as a simple text-based DOCX document."""
     document_title = title.strip() or "Document"
@@ -142,6 +144,7 @@ def markdown_to_docx(markdown: str, *, title: str = "Document") -> bytes:
     logger.debug("Rendered Markdown DOCX (%d bytes)", len(rendered))
     return rendered
 
+
 def _docx_profile(
     blocks: list[dict[str, Any]], content: str, title: str = "Profile"
 ) -> None:
@@ -149,6 +152,7 @@ def _docx_profile(
         return
     blocks.append({"style": "Heading1", "text": title})
     _docx_markdownish(blocks, content)
+
 
 def _docx_experience(
     blocks: list[dict[str, Any]], value: Any, title: str = "Experience"
@@ -174,6 +178,7 @@ def _docx_experience(
         if keywords:
             blocks.append({"style": "Meta", "text": "Keywords: " + ", ".join(keywords)})
 
+
 def _docx_projects(
     blocks: list[dict[str, Any]], value: Any, title: str = "Projects"
 ) -> None:
@@ -192,6 +197,7 @@ def _docx_projects(
         if stack:
             blocks.append({"style": "Meta", "text": "Stack: " + ", ".join(stack)})
 
+
 def _docx_skills(
     blocks: list[dict[str, Any]], value: Any, title: str = "Skills"
 ) -> None:
@@ -206,6 +212,7 @@ def _docx_skills(
         blocks.append({"style": "Heading1", "text": title})
         for row in rows:
             blocks.append({"style": "Bullet", "text": row})
+
 
 def _docx_education(
     blocks: list[dict[str, Any]], value: Any, title: str = "Education"
@@ -232,6 +239,7 @@ def _docx_education(
             blocks.append({"style": "Meta", "text": meta})
         _docx_markdownish(blocks, _text(item.get("description_markdown")))
 
+
 def _docx_languages(
     blocks: list[dict[str, Any]], value: Any, title: str = "Languages"
 ) -> None:
@@ -248,6 +256,7 @@ def _docx_languages(
         for label in labels:
             blocks.append({"style": "Bullet", "text": label})
 
+
 def _docx_hobbies(
     blocks: list[dict[str, Any]], value: Any, title: str = "Interests"
 ) -> None:
@@ -255,6 +264,7 @@ def _docx_hobbies(
     if values:
         blocks.append({"style": "Heading1", "text": title})
         blocks.append({"style": "Normal", "text": ", ".join(values)})
+
 
 def _docx_certifications(
     blocks: list[dict[str, Any]], value: Any, title: str = "Certifications"
@@ -274,6 +284,7 @@ def _docx_certifications(
         if _text(item.get("url")):
             blocks.append({"style": "Meta", "text": _text(item.get("url"))})
         _docx_markdownish(blocks, _text(item.get("description_markdown")))
+
 
 def _docx_volunteering(
     blocks: list[dict[str, Any]], value: Any, title: str = "Volunteering"
@@ -300,6 +311,7 @@ def _docx_volunteering(
             blocks.append({"style": "Meta", "text": meta})
         _docx_markdownish(blocks, _text(item.get("description_markdown")))
 
+
 def _docx_publications(
     blocks: list[dict[str, Any]], value: Any, title: str = "Publications"
 ) -> None:
@@ -319,6 +331,7 @@ def _docx_publications(
         if _text(item.get("url")):
             blocks.append({"style": "Meta", "text": _text(item.get("url"))})
         _docx_markdownish(blocks, _text(item.get("description_markdown")))
+
 
 def _docx_references(
     blocks: list[dict[str, Any]], value: Any, title: str = "References"
@@ -343,6 +356,7 @@ def _docx_references(
             blocks.append({"style": "Meta", "text": _text(item.get("contact"))})
         _docx_markdownish(blocks, _text(item.get("description_markdown")))
 
+
 def _docx_custom_sections(blocks: list[dict[str, Any]], value: Any) -> None:
     items = [_mapping(item) for item in _items(value)]
     for item in items:
@@ -357,6 +371,7 @@ def _docx_custom_sections(blocks: list[dict[str, Any]], value: Any) -> None:
         for bullet in bullets:
             blocks.append({"style": "Bullet", "text": bullet})
 
+
 def _docx_markdownish(blocks: list[dict[str, Any]], content: str) -> None:
     for raw in content.splitlines():
         line = raw.strip()
@@ -366,6 +381,7 @@ def _docx_markdownish(blocks: list[dict[str, Any]], content: str) -> None:
             blocks.append({"style": "Bullet", "text": line[2:].strip()})
         else:
             blocks.append({"style": "Normal", "text": line})
+
 
 def _docx_document_xml(blocks: list[dict[str, Any]]) -> str:
     body = "".join(_docx_paragraph(block) for block in blocks if block.get("text"))
@@ -396,6 +412,7 @@ def _docx_document_xml(blocks: list[dict[str, Any]]) -> str:
   </w:body>
 </w:document>"""
 
+
 def _docx_paragraph(block: dict[str, Any]) -> str:
     style = str(block.get("style") or "Normal")
     text = xml_escape(str(block.get("text") or ""))
@@ -407,6 +424,7 @@ def _docx_paragraph(block: dict[str, Any]) -> str:
         f"<w:r><w:t>{xml_escape(prefix)}{text}</w:t></w:r>"
         "</w:p>"
     )
+
 
 def _docx_content_types() -> str:
     return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -424,6 +442,7 @@ def _docx_content_types() -> str:
     ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
 </Types>"""
 
+
 def _docx_root_rels() -> str:
     return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
@@ -438,6 +457,7 @@ def _docx_root_rels() -> str:
     Target="docProps/app.xml"/>
 </Relationships>"""
 
+
 def _docx_document_rels() -> str:
     return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
@@ -445,6 +465,7 @@ def _docx_document_rels() -> str:
     Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles"
     Target="styles.xml"/>
 </Relationships>"""
+
 
 def _docx_styles() -> str:
     return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -489,6 +510,7 @@ def _docx_styles() -> str:
   </w:style>
 </w:styles>"""
 
+
 def _docx_core_props(title: str) -> str:
     return f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties"
@@ -499,6 +521,7 @@ def _docx_core_props(title: str) -> str:
   <dc:title>{xml_escape(title)} - Resume</dc:title>
   <dc:creator>Mindris AI</dc:creator>
 </cp:coreProperties>"""
+
 
 def _docx_app_props() -> str:
     return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>

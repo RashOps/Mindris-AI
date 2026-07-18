@@ -52,6 +52,7 @@ def serialize_opportunity_transition(record: OpportunityTransitionRecord) -> dic
         "created_at": record.created_at.isoformat(),
     }
 
+
 def _opportunity_next_actions(record: OpportunityRecord) -> list[str]:
     actions: list[str] = []
     if record.resume_id is None:
@@ -71,6 +72,7 @@ def _opportunity_next_actions(record: OpportunityRecord) -> list[str]:
     ):
         actions.append("mark_ready_to_apply")
     return actions
+
 
 def _opportunity_integrity(
     session: Session,
@@ -281,6 +283,7 @@ def _opportunity_integrity(
         "repair_actions": list(dict.fromkeys(repair_actions)),
     }
 
+
 def serialize_opportunity(session: Session, record: OpportunityRecord) -> dict:
     """Convert an opportunity workflow aggregate to JSON-safe output."""
     transitions = [
@@ -344,6 +347,7 @@ def serialize_opportunity(session: Session, record: OpportunityRecord) -> dict:
         "integrity": _opportunity_integrity(session, record),
     }
 
+
 def append_opportunity_transition(
     session: Session,
     record: OpportunityRecord,
@@ -371,6 +375,7 @@ def append_opportunity_transition(
     session.refresh(transition)
     return transition
 
+
 def _recompute_opportunity_state(record: OpportunityRecord) -> str:
     """Return the most advanced valid workflow state for current links."""
     if (
@@ -391,6 +396,7 @@ def _recompute_opportunity_state(record: OpportunityRecord) -> str:
     if record.job_id is not None:
         return "scrape_completed"
     return "opportunity_created"
+
 
 def create_opportunity(
     session: Session,
@@ -435,6 +441,7 @@ def create_opportunity(
     )
     return record
 
+
 def link_opportunity_resume(
     session: Session,
     record: OpportunityRecord,
@@ -460,6 +467,7 @@ def link_opportunity_resume(
     )
     return record
 
+
 def link_opportunity_ats_report(
     session: Session,
     record: OpportunityRecord,
@@ -484,6 +492,7 @@ def link_opportunity_ats_report(
     )
     return record
 
+
 def link_opportunity_cover_letter(
     session: Session,
     record: OpportunityRecord,
@@ -492,8 +501,7 @@ def link_opportunity_cover_letter(
 ) -> OpportunityRecord:
     """Link a cover letter to an opportunity."""
     replaced = (
-        record.cover_letter_id is not None
-        and record.cover_letter_id != cover_letter.id
+        record.cover_letter_id is not None and record.cover_letter_id != cover_letter.id
     )
     record.cover_letter_id = cover_letter.id
     append_opportunity_transition(
@@ -508,6 +516,7 @@ def link_opportunity_cover_letter(
         },
     )
     return record
+
 
 def create_or_attach_opportunity_application(
     session: Session,
@@ -572,6 +581,7 @@ def create_or_attach_opportunity_application(
     )
     return record, application
 
+
 def mark_opportunity_ready_to_apply(
     session: Session,
     record: OpportunityRecord,
@@ -598,6 +608,7 @@ def mark_opportunity_ready_to_apply(
         metadata={"application_id": record.application_id},
     )
     return record
+
 
 def repair_opportunity_integrity(
     session: Session,

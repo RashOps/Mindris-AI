@@ -2,8 +2,10 @@
 
 from uuid import uuid4
 
+import pytest
 from database.records import ApplicationRecord, ResumeRecord, ScrapedJobRecord
 from database.session import SessionLocal
+from fastapi import HTTPException
 from persistence import (
     delete_resume_locale_variant,
     save_ats_report,
@@ -16,6 +18,7 @@ from routers.workflows import (
     link_cover_letter_route,
     link_resume_route,
     link_tracker_route,
+    list_opportunities,
     mark_ready_route,
     repair_opportunity_route,
 )
@@ -97,6 +100,66 @@ def test_workflow_opportunity_creation_and_linking() -> None:
     assert linked_item["resume_id"] == resume.id
     assert linked_item["resume_locale"] == "fr"
     assert linked_item["current_state"] == "resume_linked"
+
+
+def test_workflow_listing_filters_by_job_and_state() -> None:
+    job_a = _seed_job("workflow-list-a")
+    job_b = _seed_job("workflow-list-b")
+    resume = _seed_resume("Workflow List Filter")
+
+    with SessionLocal() as session:
+        created_a = create_opportunity_route(
+            OpportunityCreateRequest(job_id=job_a.id),
+            session,
+        )
+        opportunity_a = created_a["item"]
+        create_opportunity_route(
+            OpportunityCreateRequest(job_id=job_b.id),
+            session,
+        )
+        link_resume_route(
+            opportunity_a["id"],
+            OpportunityResumeLinkRequest(resume_id=resume.id, locale="fr"),
+            session,
+        )
+
+        by_job = list_opportunities(session, job_id=job_a.id)
+        by_state = list_opportunities(session, state="resume_linked")
+
+    assert [item["job_id"] for item in by_job["items"]] == [job_a.id]
+    assert any(item["id"] == opportunity_a["id"] for item in by_state["items"])
+    assert all(item["current_state"] == "resume_linked" for item in by_state["items"])
+
+
+def test_workflow_ready_route_rejects_incomplete_opportunity() -> None:
+    job = _seed_job("workflow-ready-missing")
+
+    with SessionLocal() as session:
+        created = create_opportunity_route(
+            OpportunityCreateRequest(job_id=job.id),
+            session,
+        )
+        opportunity_id = created["item"]["id"]
+
+        with pytest.raises(HTTPException) as exc_info:
+            mark_ready_route(opportunity_id, session)
+
+        fetched = get_opportunity_route(opportunity_id, session)
+
+    assert exc_info.value.status_code == 422
+    detail = str(exc_info.value.detail)
+    assert "resume" in detail
+    assert "ats_report" in detail
+    assert "cover_letter" in detail
+    assert "application" in detail
+    item = fetched["item"]
+    assert item["current_state"] == "opportunity_created"
+    assert item["next_actions"] == [
+        "link_resume",
+        "link_ats_report",
+        "link_cover_letter",
+        "create_or_attach_tracker_entry",
+    ]
 
 
 def test_workflow_relinking_artifacts_replaces_links_and_appends_log() -> None:

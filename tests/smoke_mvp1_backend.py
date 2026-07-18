@@ -76,9 +76,7 @@ def _community_template_package() -> bytes:
             json.dumps(
                 {
                     "base_template_id": "modern",
-                    "preset_settings": {
-                        "global_settings": {"template_id": "modern"}
-                    },
+                    "preset_settings": {"global_settings": {"template_id": "modern"}},
                 }
             ),
         )

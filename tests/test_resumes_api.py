@@ -574,7 +574,7 @@ def test_resume_exports_resolve_selected_locale_variant() -> None:
         assert "# Ada Lovelace EN" in markdown_en
         assert "Platform Engineer EN" in markdown_en
         assert "Ada Lovelace EN" in html_en
-        assert "<html lang=\"en\">" in html_en
+        assert '<html lang="en">' in html_en
 
 
 def test_resume_revision_compare_can_target_locale_variant() -> None:
@@ -615,9 +615,7 @@ def test_resume_revision_compare_can_target_locale_variant() -> None:
         revisions = list_resume_revisions_route(int(created["id"]), session)["items"]
         newest = revisions[0]["revision"]
         older = next(
-            item["revision"]
-            for item in reversed(revisions)
-            if item["locale"] == "en"
+            item["revision"] for item in reversed(revisions) if item["locale"] == "en"
         )
         compare = compare_resume_revisions_route(
             int(created["id"]),

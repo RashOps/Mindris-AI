@@ -94,23 +94,17 @@ def provider_configuration_status() -> dict[str, dict[str, str | bool]]:
         "gemini": {
             "configured": bool(gemini_api_key),
             "mode": "cloud",
-            "reason": ""
-            if gemini_api_key
-            else cloud_secret_reason,
+            "reason": "" if gemini_api_key else cloud_secret_reason,
         },
         "openai": {
             "configured": bool(openai_api_key),
             "mode": "cloud",
-            "reason": ""
-            if openai_api_key
-            else cloud_secret_reason,
+            "reason": "" if openai_api_key else cloud_secret_reason,
         },
         "mistral": {
             "configured": bool(mistral_api_key),
             "mode": "cloud",
-            "reason": ""
-            if mistral_api_key
-            else cloud_secret_reason,
+            "reason": "" if mistral_api_key else cloud_secret_reason,
         },
         "ollama": {
             "configured": bool(settings.ollama_api_base.strip()),

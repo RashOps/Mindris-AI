@@ -29,12 +29,14 @@ MODEL_CATALOGUE: dict[str, set[str]] = {
     "ollama": {"gemma4:32k", "llama3.2", "phi4"},
 }
 
+
 def validate_llm_selection(provider: str, model_name: str) -> None:
     """Validate a provider/model pair supplied outside a Pydantic body."""
     if provider not in MODEL_CATALOGUE:
         raise ValueError(f"Unsupported LLM provider: '{provider}'.")
     if model_name not in MODEL_CATALOGUE[provider]:
         raise ValueError(f"Unsupported model '{model_name}' for provider '{provider}'.")
+
 
 class LLMRequest(BaseModel):
     """Base request carrying an allowed LLM provider/model pair."""

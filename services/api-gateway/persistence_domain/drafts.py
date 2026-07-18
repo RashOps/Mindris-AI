@@ -11,6 +11,8 @@ from sqlalchemy import select
 from utils.logger import get_logger
 
 logger = get_logger(__name__, service_name="api-gateway")
+
+
 def serialize_draft(record: WorkspaceDraftRecord) -> dict:
     """Convert a workspace draft to its API representation."""
     return {
@@ -19,6 +21,7 @@ def serialize_draft(record: WorkspaceDraftRecord) -> dict:
         "createdAt": record.created_at.isoformat(),
         "updatedAt": record.updated_at.isoformat(),
     }
+
 
 def upsert_workspace_draft(
     session: Session,

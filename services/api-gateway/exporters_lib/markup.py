@@ -7,6 +7,7 @@ from .markdown import resume_to_markdown
 
 logger = get_logger(__name__, service_name="api-gateway")
 
+
 def resume_to_latex(record: ResumeRecord) -> str:
     """Render a persisted resume as a compile-ready LaTeX document."""
     logger.info("Rendering resume %s to LaTeX", record.id)
@@ -14,12 +15,14 @@ def resume_to_latex(record: ResumeRecord) -> str:
     logger.debug("Rendered LaTeX resume %s (%d chars)", record.id, len(rendered))
     return rendered
 
+
 def resume_to_typst(record: ResumeRecord) -> str:
     """Render a persisted resume as a compile-ready Typst document."""
     logger.info("Rendering resume %s to Typst", record.id)
     rendered = _markdown_to_typst(resume_to_markdown(record))
     logger.debug("Rendered Typst resume %s (%d chars)", record.id, len(rendered))
     return rendered
+
 
 def _markdown_to_latex(markdown: str) -> str:
     lines = [
@@ -95,6 +98,7 @@ def _markdown_to_latex(markdown: str) -> str:
     lines.append(r"\end{document}")
     return "\n".join(lines).strip() + "\n"
 
+
 def _markdown_to_typst(markdown: str) -> str:
     lines = [
         "#set page(margin: 1in)",
@@ -120,8 +124,10 @@ def _markdown_to_typst(markdown: str) -> str:
         lines.append(_typst_escape(_strip_markdown_formatting(line)))
     return "\n".join(lines).strip() + "\n"
 
+
 def _strip_markdown_formatting(value: str) -> str:
     return value.replace("**", "").replace("*", "")
+
 
 def _latex_escape(value: str) -> str:
     token = "__MINDRIS_LATEX_BACKSLASH__"
@@ -140,6 +146,7 @@ def _latex_escape(value: str) -> str:
     for source, target in replacements.items():
         escaped = escaped.replace(source, target)
     return escaped.replace(token, r"\textbackslash{}")
+
 
 def _typst_escape(value: str) -> str:
     return value.replace("\\", "\\\\").replace("#", r"\#")

@@ -12,6 +12,7 @@ class OptimizeRequest(LLMRequest):
 
     job_url: AnyHttpUrl
 
+
 class OptimizationResponse(BaseModel):
     """Response body for POST /api/v1/optimize."""
 
@@ -19,11 +20,13 @@ class OptimizationResponse(BaseModel):
     message: str
     job_id: str
 
+
 class PatchRequest(LLMRequest):
     """Request body for /api/v1/cv/patch-from-bullets."""
 
     drafted_bullets: list[str]
     cv_data: dict[str, Any]
+
 
 class CoverLetterRequest(LLMRequest):
     """Request body for /api/v1/cover-letter."""
@@ -36,6 +39,7 @@ class CoverLetterRequest(LLMRequest):
     resume_id: int | None = None
     opportunity_id: int | None = None
 
+
 class CoverLetterVersionRequest(BaseModel):
     """Request body for saving an edited cover letter version."""
 
@@ -43,6 +47,7 @@ class CoverLetterVersionRequest(BaseModel):
     provider: Provider | None = None
     model_name: str | None = None
     job_id: int | None = None
+
 
 class ScoreRequest(LLMRequest):
     """Request body for /api/v1/cv/score."""
@@ -55,6 +60,7 @@ class ScoreRequest(LLMRequest):
     resume_id: int | None = None
     resume_locale: str | None = None
     opportunity_id: int | None = None
+
 
 class CompanyAnalyzeRequest(LLMRequest):
     """Request body for company intelligence."""

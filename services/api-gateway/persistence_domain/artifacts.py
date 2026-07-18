@@ -13,6 +13,8 @@ from sqlalchemy import select
 from utils.logger import get_logger
 
 logger = get_logger(__name__, service_name="api-gateway")
+
+
 def save_job_offer(session: Session, job_offer: Any) -> ScrapedJobRecord:
     """Persist a JobOffer-like object."""
     existing = session.exec(
@@ -37,6 +39,7 @@ def save_job_offer(session: Session, job_offer: Any) -> ScrapedJobRecord:
     session.commit()
     session.refresh(record)
     return record
+
 
 def save_ats_report(
     session: Session,
@@ -65,6 +68,7 @@ def save_ats_report(
     session.refresh(record)
     return record
 
+
 def save_cover_letter(
     session: Session,
     markdown: str,
@@ -84,6 +88,7 @@ def save_cover_letter(
     session.refresh(record)
     return record
 
+
 def serialize_job(record: ScrapedJobRecord) -> dict:
     """Convert a job record to JSON-safe output."""
     return {
@@ -98,6 +103,7 @@ def serialize_job(record: ScrapedJobRecord) -> dict:
         "company_insight": load_json(record.company_insight_json, None),
         "scraped_at": record.scraped_at.isoformat(),
     }
+
 
 def serialize_ats(record: AtsReportRecord) -> dict:
     """Convert an ATS record to JSON-safe output."""
@@ -117,6 +123,7 @@ def serialize_ats(record: AtsReportRecord) -> dict:
         "model_name": record.model_name,
         "generated_at": record.generated_at.isoformat(),
     }
+
 
 def serialize_cover_letter(record: CoverLetterRecord) -> dict:
     """Convert a cover letter record to JSON-safe output."""

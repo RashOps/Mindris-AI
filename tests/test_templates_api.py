@@ -212,9 +212,7 @@ def test_template_package_inspection_rejects_unsafe_archive_entries() -> None:
 
 def test_template_package_inspection_rejects_oversized_stylesheet() -> None:
     with pytest.raises(HTTPException) as exc_info:
-        inspect_template_package(
-            _template_package_bytes(stylesheet="a" * 9001)
-        )
+        inspect_template_package(_template_package_bytes(stylesheet="a" * 9001))
     assert exc_info.value.status_code == 422
     assert "styles.css" in str(exc_info.value.detail).lower()
 

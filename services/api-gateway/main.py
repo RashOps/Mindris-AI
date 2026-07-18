@@ -119,17 +119,19 @@ async def record_runtime_metrics(request: Request, call_next):
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Return normalized JSON errors for unexpected failures."""
     request_id = getattr(request.state, "request_id", _request_id(request))
-    logger.exception("Unhandled API error on %s [request_id=%s]", request.url.path, request_id)
+    logger.exception(
+        "Unhandled API error on %s [request_id=%s]", request.url.path, request_id
+    )
     return _apply_response_hardening(
         JSONResponse(
-        status_code=500,
-        content={
-            "status": "error",
-            "message": "Internal server error",
-            "detail": "internal_server_error",
-            "request_id": request_id,
-        },
-    ),
+            status_code=500,
+            content={
+                "status": "error",
+                "message": "Internal server error",
+                "detail": "internal_server_error",
+                "request_id": request_id,
+            },
+        ),
         request_id,
     )
 
@@ -141,16 +143,16 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
     request_id = getattr(request.state, "request_id", _request_id(request))
     return _apply_response_hardening(
         JSONResponse(
-        status_code=exc.status_code,
-        content={
-            "status": "error",
-            "message": detail,
-            "detail": exc.detail,
-            "path": request.url.path,
-            "request_id": request_id,
-        },
-        headers=exc.headers,
-    ),
+            status_code=exc.status_code,
+            content={
+                "status": "error",
+                "message": detail,
+                "detail": exc.detail,
+                "path": request.url.path,
+                "request_id": request_id,
+            },
+            headers=exc.headers,
+        ),
         request_id,
     )
 
@@ -164,15 +166,15 @@ async def validation_exception_handler(
     request_id = getattr(request.state, "request_id", _request_id(request))
     return _apply_response_hardening(
         JSONResponse(
-        status_code=422,
-        content={
-            "status": "error",
-            "message": "Validation failed.",
-            "detail": jsonable_encoder(exc.errors()),
-            "path": request.url.path,
-            "request_id": request_id,
-        },
-    ),
+            status_code=422,
+            content={
+                "status": "error",
+                "message": "Validation failed.",
+                "detail": jsonable_encoder(exc.errors()),
+                "path": request.url.path,
+                "request_id": request_id,
+            },
+        ),
         request_id,
     )
 

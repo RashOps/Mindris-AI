@@ -142,16 +142,12 @@ def _flatten_cv_signals(cv_data: dict | None) -> dict[str, list[str]]:
     ]
     experience_keywords: list[str] = []
     for item in cv_data.get("experience", []):
-        if isinstance(item, dict) and isinstance(
-            item.get("description_markdown"), str
-        ):
+        if isinstance(item, dict) and isinstance(item.get("description_markdown"), str):
             experience_keywords.append(item["description_markdown"])
     for item in cv_data.get("projects", []):
         if isinstance(item, dict):
             experience_keywords.extend(
-                value
-                for value in item.get("tech_stack", [])
-                if isinstance(value, str)
+                value for value in item.get("tech_stack", []) if isinstance(value, str)
             )
     return {
         "skills": _dedupe(skill_values),

@@ -14,11 +14,13 @@ class APIMessage(BaseModel):
     message: str
     detail: Any | None = None
 
+
 class SystemConfigurationTaskDefault(BaseModel):
     """Resolved provider/model pair for a Mindris task."""
 
     provider: Provider
     model_name: str
+
 
 class SystemConfigurationProviderStatus(BaseModel):
     """Safe provider configuration metadata exposed to clients."""
@@ -27,11 +29,13 @@ class SystemConfigurationProviderStatus(BaseModel):
     mode: Literal["local", "cloud"]
     reason: str
 
+
 class SystemConfigurationSecretSlot(BaseModel):
     """Redacted secret-slot status for backend-managed credentials."""
 
     configured: bool
     masked: bool = True
+
 
 class SystemConfigurationRuntime(BaseModel):
     """Effective runtime knobs owned by the backend."""
@@ -48,6 +52,7 @@ class SystemConfigurationRuntime(BaseModel):
     scraper_proxy_fallback: bool
     log_level: str
 
+
 class SystemConfigurationStorage(BaseModel):
     """Effective storage locations owned by the backend."""
 
@@ -55,11 +60,13 @@ class SystemConfigurationStorage(BaseModel):
     storage_dir: str
     chroma_db_dir: str
 
+
 class SystemConfigurationLLM(BaseModel):
     """Resolved LLM defaults and provider availability."""
 
     defaults: dict[str, SystemConfigurationTaskDefault]
     providers: dict[str, SystemConfigurationProviderStatus]
+
 
 class SystemConfigurationSecrets(BaseModel):
     """Backend secret slots without leaking raw values."""
@@ -73,6 +80,7 @@ class SystemConfigurationSecrets(BaseModel):
     scrape_do_api_key: SystemConfigurationSecretSlot
     scrapingbee_api_key: SystemConfigurationSecretSlot
 
+
 class SystemConfigurationItem(BaseModel):
     """Safe backend-owned configuration payload."""
 
@@ -82,6 +90,7 @@ class SystemConfigurationItem(BaseModel):
     app: dict[str, Any]
     secrets: SystemConfigurationSecrets
 
+
 class SystemDiagnosticsService(BaseModel):
     """Read-only runtime diagnostics for a service dependency."""
 
@@ -90,6 +99,7 @@ class SystemDiagnosticsService(BaseModel):
     url: str | None = None
     checks: dict[str, Any] = Field(default_factory=dict)
     error: str | None = None
+
 
 class SystemDiagnosticsOllama(BaseModel):
     """Read-only local Ollama diagnostics."""
@@ -101,6 +111,7 @@ class SystemDiagnosticsOllama(BaseModel):
     items: list[dict[str, str]] = Field(default_factory=list)
     error: str | None = None
 
+
 class SystemDiagnosticsItem(BaseModel):
     """Aggregated backend-owned diagnostics for local runtime control."""
 
@@ -110,11 +121,13 @@ class SystemDiagnosticsItem(BaseModel):
     storage: SystemConfigurationStorage
     runtime: SystemConfigurationRuntime
 
+
 class SystemConfigurationUpdateRequest(BaseModel):
     """Patch backend-owned app configuration."""
 
     defaults: dict[str, SystemConfigurationTaskDefault] | None = None
     pdf_ingestion_mode: Literal["auto", "llama_parse", "local_text"] | None = None
+
 
 class SystemSecretUpdateRequest(BaseModel):
     """Write-only secret slot update from the browser."""
