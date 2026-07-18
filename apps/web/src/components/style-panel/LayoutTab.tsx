@@ -7,6 +7,11 @@ import {
   PANEL_TOGGLE_CLASS,
 } from "./constants";
 import { SectionLabel, Slider } from "./controls";
+import {
+  AlignmentPreview,
+  LayoutPreview,
+  VisualOptionGroup,
+} from "./visual-controls";
 
 type StyleOptions = ReturnType<typeof resolveCustomizationOptionLists>;
 
@@ -55,7 +60,7 @@ export function LayoutTab({
                     ariaLabel="Page break mode"
                     options={options.pageBreakModes.map((mode) => ({
                       value: mode,
-                      label: mode,
+                      label: mode === "auto" ? "Automatique" : "Manuel",
                     }))}
                     onChange={(value) =>
                       update({
@@ -70,10 +75,10 @@ export function LayoutTab({
                   <label className={PANEL_TOGGLE_CLASS}>
                     <div>
                       <span className="block text-xs font-medium text-foreground">
-                        1 page challenge
+                        Objectif une page
                       </span>
                       <span className="block text-[11px] text-muted-foreground">
-                        Tightens spacing and typography without deleting data.
+                        Ajuste la densité sans supprimer de contenu.
                       </span>
                     </div>
                     <input
@@ -157,30 +162,46 @@ export function LayoutTab({
       {(scope === "all" || scope === "layout") && (
               <section>
                 <SectionLabel>Colonnes</SectionLabel>
-                <div className="grid gap-2">
-                  <ToolbarSelect
-                    value={String(layoutSettings.columns ?? 2)}
-                    ariaLabel="Layout columns"
+                <div className="grid gap-4">
+                  <VisualOptionGroup
+                    label="Structure"
+                    value={layoutSettings.columns ?? 2}
                     options={options.columns.map((value) => ({
-                      value: String(value),
-                      label: `${value} column${value > 1 ? "s" : ""}`,
+                      value,
+                      label: value === 1 ? "Une colonne" : "Deux colonnes",
+                      preview: (
+                        <LayoutPreview
+                          columns={value as 1 | 2}
+                          sidebar={layoutSettings.sidebar_position ?? "right"}
+                        />
+                      ),
                     }))}
                     onChange={(value) =>
                       update({
                         layout: {
                           ...layoutSettings,
-                          columns: Number(value) as 1 | 2,
+                          columns: value as 1 | 2,
                         },
                       })
                     }
-                    triggerClassName={PANEL_INPUT_CLASS}
                   />
-                  <ToolbarSelect
+                  <VisualOptionGroup
+                    label="Position de la colonne secondaire"
                     value={layoutSettings.sidebar_position ?? "right"}
-                    ariaLabel="Sidebar position"
                     options={options.sidebarPositions.map((position) => ({
                       value: position,
-                      label: position,
+                      label:
+                        position === "left"
+                          ? "À gauche"
+                          : position === "right"
+                            ? "À droite"
+                            : "Aucune",
+                      preview: (
+                        <LayoutPreview
+                          columns={position === "none" ? 1 : 2}
+                          sidebar={position as "none" | "left" | "right"}
+                        />
+                      ),
                     }))}
                     onChange={(value) =>
                       update({
@@ -190,14 +211,20 @@ export function LayoutTab({
                         },
                       })
                     }
-                    triggerClassName={PANEL_INPUT_CLASS}
                   />
                   <ToolbarSelect
                     value={layoutSettings.density ?? "normal"}
                     ariaLabel="Layout density"
                     options={options.densities.map((density) => ({
                       value: density,
-                      label: density,
+                      label:
+                        density === "student"
+                          ? "Débutant"
+                          : density === "compact"
+                            ? "Compact"
+                            : density === "senior"
+                              ? "Expérimenté"
+                              : "Normal",
                     }))}
                     onChange={(value) =>
                       update({
@@ -240,12 +267,22 @@ export function LayoutTab({
               <section>
                 <SectionLabel>En-tête</SectionLabel>
                 <div className="grid gap-2">
-                  <ToolbarSelect
+                  <VisualOptionGroup
+                    label="Alignement"
                     value={layoutSettings.header_alignment ?? "left"}
-                    ariaLabel="Header alignment"
                     options={options.headerAlignments.map((alignment) => ({
                       value: alignment,
-                      label: alignment,
+                      label:
+                        alignment === "left"
+                          ? "Gauche"
+                          : alignment === "right"
+                            ? "Droite"
+                            : "Centré",
+                      preview: (
+                        <AlignmentPreview
+                          value={alignment as "left" | "center" | "right"}
+                        />
+                      ),
                     }))}
                     onChange={(value) =>
                       update({
@@ -257,7 +294,6 @@ export function LayoutTab({
                         },
                       })
                     }
-                    triggerClassName={PANEL_INPUT_CLASS}
                   />
                 </div>
               </section>

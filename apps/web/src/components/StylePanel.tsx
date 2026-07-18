@@ -13,7 +13,12 @@ import {
 import { AdvancedCssPanel } from "@/components/style-panel/AdvancedCssPanel";
 import { LayoutTab } from "@/components/style-panel/LayoutTab";
 import { SectionsTab } from "@/components/style-panel/SectionsTab";
-import { SectionLabel, Slider } from "@/components/style-panel/controls";
+import { SectionLabel } from "@/components/style-panel/controls";
+import {
+  ColorSwatchPicker,
+  SteppedSlider,
+  ToggleGrid,
+} from "@/components/style-panel/visual-controls";
 import { resolveSettings } from "@/components/style-panel/settings";
 import {
   buildTemplateCards,
@@ -142,8 +147,8 @@ export function StylePanel({
 
   const TABS: { key: Tab; label: string; icon: string }[] = [
     { key: "document", label: "Document", icon: "□" },
-    { key: "template", label: "Template", icon: "" },
-    { key: "layout", label: "Layout", icon: "◫" },
+    { key: "template", label: "Modèles", icon: "" },
+    { key: "layout", label: "Mise en page", icon: "◫" },
     { key: "typography", label: "Texte", icon: "Aa" },
     { key: "spacing", label: "Espacement", icon: "↕" },
     { key: "colors", label: "Couleurs", icon: "●" },
@@ -238,10 +243,20 @@ export function StylePanel({
         </div>
 
         {visibleTabs.length > 1 ? (
-          <div className="flex shrink-0 overflow-x-auto border-b border-border">
+          <div
+            className="flex shrink-0 overflow-x-auto border-b border-border"
+            role="tablist"
+            aria-label="Réglages de style"
+          >
             {visibleTabs.map((t) => (
               <button
                 key={t.key}
+                type="button"
+                id={`cv-style-tab-${t.key}`}
+                role="tab"
+                aria-selected={activeTab === t.key}
+                aria-controls={`cv-style-panel-${t.key}`}
+                tabIndex={activeTab === t.key ? 0 : -1}
                 onClick={() => setTab(t.key)}
                 className={`flex min-w-20 flex-1 cursor-pointer flex-col items-center gap-0.5 whitespace-nowrap border-b-2 py-2.5 text-[11px] font-semibold transition-colors ${
                   activeTab === t.key
@@ -258,7 +273,12 @@ export function StylePanel({
           </div>
         ) : null}
 
-        <div className="flex-1 space-y-5 overflow-y-auto px-5 pt-4 pb-24">
+        <div
+          id={`cv-style-panel-${activeTab}`}
+          role="tabpanel"
+          aria-labelledby={`cv-style-tab-${activeTab}`}
+          className="flex-1 space-y-5 overflow-y-auto px-5 pt-4 pb-24"
+        >
           {activeTab === "document" && (
             <>
               <LayoutTab
@@ -405,7 +425,7 @@ export function StylePanel({
 
               <section>
                 <SectionLabel>Tailles</SectionLabel>
-                <Slider
+                <SteppedSlider
                   label="Taille du texte"
                   min={options.baseSize.min}
                   max={options.baseSize.max}
@@ -424,7 +444,7 @@ export function StylePanel({
                     })
                   }
                 />
-                <Slider
+                <SteppedSlider
                   label="Échelle des titres"
                   min={options.headingScale.min}
                   max={options.headingScale.max}
@@ -598,33 +618,32 @@ export function StylePanel({
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   {options.editableColors
                     .filter((token) => !isSimpleMode || token === "primary")
-                    .map((token) => (
-                      <label key={token} className="space-y-1">
-                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                          {token.replace("_", " ")}
-                        </span>
-                        <input
-                          type="color"
+                    .map((token) => {
+                      const labels: Record<string, string> = {
+                        primary: "Couleur principale",
+                        secondary: "Couleur secondaire",
+                        text: "Texte",
+                        heading: "Titres",
+                        sidebar_background: "Fond de colonne",
+                        separators: "Séparateurs",
+                      };
+                      return (
+                        <ColorSwatchPicker
+                          key={token}
+                          label={labels[token] ?? token.replace("_", " ")}
                           value={
                             (
-                              colorSettings as Record<
-                                string,
-                                string | undefined
-                              >
+                              colorSettings as Record<string, string | undefined>
                             )?.[token] ?? "#2563eb"
                           }
-                          onChange={(event) =>
+                          onChange={(value) =>
                             update({
-                              colors: {
-                                ...colorSettings,
-                                [token]: event.target.value,
-                              },
+                              colors: { ...colorSettings, [token]: value },
                             })
                           }
-                          className="h-9 w-full cursor-pointer rounded-md border border-input bg-background"
                         />
-                      </label>
-                    ))}
+                      );
+                    })}
                 </div>
                 {!isSimpleMode ? (
                   <label className={PANEL_TOGGLE_CLASS + " mt-3"}>
@@ -649,23 +668,15 @@ export function StylePanel({
 
               {!isSimpleMode ? (
                 <section>
-                  <SectionLabel>Accent appliqué à</SectionLabel>
-                  <div className="grid grid-cols-2 gap-2">
-                    {accentTargetOptions.map((target) => (
-                      <label key={target} className={PANEL_TOGGLE_CLASS}>
-                        <span className="text-xs font-medium capitalize text-foreground">
-                          {ACCENT_TARGET_LABELS[target]}
-                        </span>
-                        <input
-                          type="checkbox"
-                          checked={accentTargets.includes(target)}
-                          onChange={(event) =>
-                            toggleAccentTarget(target, event.target.checked)
-                          }
-                        />
-                      </label>
-                    ))}
-                  </div>
+                  <ToggleGrid
+                    label="Accent appliqué à"
+                    values={accentTargets}
+                    options={accentTargetOptions.map((target) => ({
+                      value: target,
+                      label: ACCENT_TARGET_LABELS[target],
+                    }))}
+                    onChange={toggleAccentTarget}
+                  />
                 </section>
               ) : null}
             </>
