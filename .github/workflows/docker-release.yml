@@ -122,12 +122,14 @@ jobs:
 
       - name: Install release stack
         run: |
-          image_version=latest
+          image_version="sha-${GITHUB_SHA::7}"
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
             image_version="${GITHUB_REF_NAME}"
+          elif [ "${GITHUB_REF_NAME}" = "${{ github.event.repository.default_branch }}" ]; then
+            image_version=latest
           fi
           MINDRIS_HOME=/tmp/mindris-ai-release-smoke \
-          MINDRIS_RELEASE_REF="${GITHUB_REF_NAME}" \
+          MINDRIS_RELEASE_REF="${GITHUB_SHA}" \
           MINDRIS_VERSION="$image_version" \
           MINDRIS_WEB_PORT=3100 \
           scripts/install_self_hosted.sh
