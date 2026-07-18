@@ -567,6 +567,7 @@ CUSTOMIZATION_CATALOGUE = {
     "locale": {
         "languages": ["fr", "en", "de", "es"],
         "directions": ["ltr", "rtl"],
+        "dateFormats": ["MM/YYYY", "YYYY-MM", "MMM YYYY", "MMMM YYYY"],
     },
     "advancedCss": {
         "enabled": True,

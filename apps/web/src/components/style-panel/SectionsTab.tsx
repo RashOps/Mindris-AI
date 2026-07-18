@@ -303,7 +303,7 @@ function SortableSectionCard({
 
           {supportsDates && (
             <>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid gap-3">
                 <ToolbarSelect
                   value={section.title_subtitle_order ?? "title_first"}
                   ariaLabel={`Ordre titre sous-titre ${section.type}`}
@@ -322,9 +322,9 @@ function SortableSectionCard({
                   }
                   triggerClassName={PANEL_INPUT_CLASS}
                 />
-                <ToolbarSelect
+                <VisualOptionGroup
+                  label="Position des dates et lieux"
                   value={section.date_location_position ?? "inline"}
-                  ariaLabel={`Position dates lieux ${section.type}`}
                   options={dateLocationPositions.map((position) => ({
                     value: position,
                     label: DATE_LOCATION_POSITION_LABELS[position] ?? position,
@@ -335,7 +335,6 @@ function SortableSectionCard({
                         value as SectionSettings["date_location_position"],
                     })
                   }
-                  triggerClassName={PANEL_INPUT_CLASS}
                 />
               </div>
               <div className="grid grid-cols-2 gap-2">

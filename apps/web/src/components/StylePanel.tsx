@@ -18,6 +18,7 @@ import { SectionsTab } from "@/components/style-panel/SectionsTab";
 import { SectionLabel } from "@/components/style-panel/controls";
 import {
   ColorSwatchPicker,
+  LayoutPreview,
   ToggleGrid,
   VisualOptionGroup,
 } from "@/components/style-panel/visual-controls";
@@ -357,6 +358,25 @@ export function StylePanel({
                       triggerClassName={PANEL_INPUT_CLASS}
                     />
                     <ToolbarSelect
+                      value={localeSettings.date_format ?? "MM/YYYY"}
+                      ariaLabel="Format des dates"
+                      options={options.dateFormats.map((format) => ({
+                        value: format,
+                        label: format,
+                      }))}
+                      onChange={(date_format) =>
+                        update({
+                          locale: {
+                            ...localeSettings,
+                            date_format: date_format as NonNullable<
+                              GlobalSettings["locale"]
+                            >["date_format"],
+                          },
+                        })
+                      }
+                      triggerClassName={PANEL_INPUT_CLASS}
+                    />
+                    <ToolbarSelect
                       value={localeSettings.text_direction ?? "ltr"}
                       ariaLabel="Locale text direction"
                       options={options.localeDirections.map((direction) => ({
@@ -399,6 +419,18 @@ export function StylePanel({
                     >
                       <span className="text-sm font-semibold text-foreground">
                         {template.label}
+                      </span>
+                      <span className="flex h-14 w-full items-center justify-center rounded-md bg-muted/50">
+                        <LayoutPreview
+                          columns={
+                            template.compatibleLayouts.includes(2) ? 2 : 1
+                          }
+                          sidebar={
+                            template.compatibleLayouts.includes(2)
+                              ? "right"
+                              : "none"
+                          }
+                        />
                       </span>
                       <span className="text-[10px] text-muted-foreground">
                         {template.compatibleLayouts.join("/")}-col
@@ -459,12 +491,21 @@ export function StylePanel({
                   {isSimpleMode ? "Couleur principale" : "Palette"}
                 </SectionLabel>
                 {!isSimpleMode ? (
-                  <ToolbarSelect
+                  <VisualOptionGroup
+                    label="Ambiance"
                     value={colorSettings.palette_preset ?? "tech"}
-                    ariaLabel="Palette preset"
                     options={options.palettePresets.map((preset) => ({
                       value: preset,
-                      label: preset,
+                      label:
+                        preset === "corporate"
+                          ? "Professionnel"
+                          : preset === "minimal"
+                            ? "Minimal"
+                            : preset === "creative"
+                              ? "Créatif"
+                              : preset === "custom"
+                                ? "Personnalisé"
+                                : "Tech",
                     }))}
                     onChange={(value) =>
                       update({
@@ -476,7 +517,7 @@ export function StylePanel({
                         },
                       })
                     }
-                    triggerClassName={PANEL_INPUT_CLASS + " w-full"}
+                    columns={2}
                   />
                 ) : null}
                 {isSimpleMode ? (

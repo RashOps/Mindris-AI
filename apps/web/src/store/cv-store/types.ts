@@ -89,6 +89,7 @@ export interface GlobalSettings {
   locale?: {
     label_language?: "fr" | "en" | "de" | "es";
     text_direction?: "ltr" | "rtl";
+    date_format?: "MM/YYYY" | "YYYY-MM" | "MMM YYYY" | "MMMM YYYY";
   };
   advanced_css?: {
     enabled?: boolean;

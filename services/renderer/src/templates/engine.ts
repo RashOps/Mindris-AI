@@ -106,6 +106,34 @@ function items(value: unknown): any[] {
     return Array.isArray(value) ? value : [];
 }
 
+const MONTH_NAMES: Record<string, { short: string[]; long: string[] }> = {
+    fr: {
+        short: ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."],
+        long: ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"],
+    },
+    en: {
+        short: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+        long: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+    },
+};
+
+function formatDateText(value: unknown, locale: any): string {
+    const source = String(value ?? "");
+    const format = locale?.date_format ?? "MM/YYYY";
+    const language = locale?.label_language === "fr" ? "fr" : "en";
+    const names = MONTH_NAMES[language] ?? MONTH_NAMES.en!;
+    return source.replace(/\b(\d{4})[-/](0?[1-9]|1[0-2])\b|\b(0?[1-9]|1[0-2])\/(\d{4})\b/g, (match, yearFirst, monthFirst, monthSecond, yearSecond) => {
+        const year = yearFirst || yearSecond;
+        const month = Number(monthFirst || monthSecond);
+        if (!year || !month) return match;
+        const padded = String(month).padStart(2, "0");
+        if (format === "YYYY-MM") return `${year}-${padded}`;
+        if (format === "MMM YYYY") return `${names.short[month - 1]} ${year}`;
+        if (format === "MMMM YYYY") return `${names.long[month - 1]} ${year}`;
+        return `${padded}/${year}`;
+    });
+}
+
 function configuredSections(cvData: any): SectionConfig[] {
     const configured = cvData?.global_settings?.sections;
     return Array.isArray(configured) && configured.length > 0
@@ -496,7 +524,7 @@ function renderExperience(cvData: any, section: SectionConfig): string {
         section,
         rows.map((entry) => {
             const meta = [
-                showDates ? entry.period : "",
+                showDates ? formatDateText(entry.period, cvData?.global_settings?.locale) : "",
                 showLocations ? entry.location?.city : "",
             ].filter(Boolean).map(html).join(" · ");
             const keywords = items(entry.keywords).length
@@ -541,7 +569,10 @@ function renderCertifications(cvData: any, section: SectionConfig): string {
     return sectionShell(
         section,
         rows.map((item) => {
-            const meta = [item.date, item.url].filter(Boolean).map(html).join(" · ");
+            const meta = [
+                formatDateText(item.date, cvData?.global_settings?.locale),
+                item.url,
+            ].filter(Boolean).map(html).join(" · ");
             return `<div class="item item--compact">
           <div class="item-header"><h3>${html(item.name)}</h3><span class="company">${html(item.issuer)}</span>${meta ? `<span class="meta">${meta}</span>` : ""}</div>
           ${item.description_markdown ? `<p class="description description--sm">${html(item.description_markdown)}</p>` : ""}
@@ -556,7 +587,10 @@ function renderVolunteering(cvData: any, section: SectionConfig): string {
     return sectionShell(
         section,
         rows.map((item) => {
-            const meta = [item.period, item.location].filter(Boolean).map(html).join(" · ");
+            const meta = [
+                formatDateText(item.period, cvData?.global_settings?.locale),
+                item.location,
+            ].filter(Boolean).map(html).join(" · ");
             return `<div class="item item--compact">
           <div class="item-header"><h3>${html(item.role)}</h3><span class="company">${html(item.organization)}</span>${meta ? `<span class="meta">${meta}</span>` : ""}</div>
           ${item.description_markdown ? `<p class="description description--sm">${html(item.description_markdown)}</p>` : ""}
@@ -571,7 +605,10 @@ function renderPublications(cvData: any, section: SectionConfig): string {
     return sectionShell(
         section,
         rows.map((item) => {
-            const meta = [item.publisher, item.date].filter(Boolean).map(html).join(" · ");
+            const meta = [
+                item.publisher,
+                formatDateText(item.date, cvData?.global_settings?.locale),
+            ].filter(Boolean).map(html).join(" · ");
             const url = item.url ? `<span class="meta">${html(item.url)}</span>` : "";
             return `<div class="item item--compact">
           <div class="item-header"><h3>${html(item.title)}</h3>${meta ? `<span class="company">${meta}</span>` : ""}${url}</div>
@@ -653,7 +690,7 @@ function renderEducation(cvData: any, section: SectionConfig): string {
         section,
         rows.map((entry) => {
             const meta = [
-                showDates ? entry.period : "",
+                showDates ? formatDateText(entry.period, cvData?.global_settings?.locale) : "",
                 showLocations ? entry.location : "",
             ].filter(Boolean).map(html).join(" · ");
             return `<div class="item item--compact">

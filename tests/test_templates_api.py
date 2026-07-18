@@ -123,6 +123,12 @@ def test_customization_catalogue_exposes_backend_owned_options() -> None:
     assert options["sections"]["iconStyles"] == ["none", "outline", "filled"]
     assert options["locale"]["languages"] == ["fr", "en", "de", "es"]
     assert options["locale"]["directions"] == ["ltr", "rtl"]
+    assert options["locale"]["dateFormats"] == [
+        "MM/YYYY",
+        "YYYY-MM",
+        "MMM YYYY",
+        "MMMM YYYY",
+    ]
     assert options["templates"]["ats"]["enforced"]["layout"]["columns"] == 1
 
 

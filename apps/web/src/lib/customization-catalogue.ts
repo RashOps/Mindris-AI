@@ -85,6 +85,7 @@ export type CustomizationCatalogue = {
   locale: {
     languages: string[];
     directions: string[];
+    dateFormats: string[];
   };
   advancedCss: {
     enabled: boolean;
@@ -224,6 +225,7 @@ export const FALLBACK_CUSTOMIZATION_CATALOGUE: CustomizationCatalogue = {
   locale: {
     languages: ["fr", "en", "de", "es"],
     directions: ["ltr", "rtl"],
+    dateFormats: ["MM/YYYY", "YYYY-MM", "MMM YYYY", "MMMM YYYY"],
   },
   advancedCss: {
     enabled: true,
@@ -500,6 +502,10 @@ export function normalizeCustomizationCatalogue(
         value.locale?.directions,
         FALLBACK_CUSTOMIZATION_CATALOGUE.locale.directions,
       ),
+      dateFormats: copyArray(
+        value.locale?.dateFormats,
+        FALLBACK_CUSTOMIZATION_CATALOGUE.locale.dateFormats,
+      ),
     },
     advancedCss: {
       enabled:
@@ -582,6 +588,7 @@ export function resolveCustomizationOptionLists(catalogue: CustomizationCatalogu
     sectionPlacements: catalogue.sections.placements,
     localeLanguages: catalogue.locale.languages,
     localeDirections: catalogue.locale.directions,
+    dateFormats: catalogue.locale.dateFormats,
   };
 }
 

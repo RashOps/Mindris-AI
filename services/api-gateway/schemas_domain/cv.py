@@ -207,6 +207,9 @@ class CVLocaleSettings(CVBaseModel):
 
     label_language: Literal["fr", "en", "de", "es"] = "fr"
     text_direction: Literal["ltr", "rtl"] = "ltr"
+    date_format: Literal["MM/YYYY", "YYYY-MM", "MMM YYYY", "MMMM YYYY"] = (
+        "MM/YYYY"
+    )
 
 
 def _contains_unsafe_css_fragment(value: str) -> str | None:

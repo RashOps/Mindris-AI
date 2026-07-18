@@ -163,6 +163,7 @@ export function resolveSettings(
     locale: {
       label_language: current?.locale?.label_language ?? "fr",
       text_direction: current?.locale?.text_direction ?? "ltr",
+      date_format: current?.locale?.date_format ?? "MM/YYYY",
     },
     advanced_css: {
       enabled: current?.advanced_css?.enabled ?? false,

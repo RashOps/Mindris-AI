@@ -280,6 +280,27 @@ describe("generateHtml semantic sections", () => {
     expect(html).toContain('content: " ↗"');
   });
 
+  test("formats structured dates according to the backend locale contract", () => {
+    const html = generateHtml(
+      {
+        ...baseCv,
+        global_settings: {
+          ...baseCv.global_settings,
+          locale: { label_language: "fr", date_format: "MMMM YYYY" },
+        },
+        experience: [
+          {
+            ...baseCv.experience[0],
+            period: "2025-09 - 2026-07",
+          },
+        ],
+      },
+      "modern",
+    );
+
+    expect(html).toContain("septembre 2025 - juillet 2026");
+  });
+
   test("renders manual page breaks as renderer-owned section metadata", () => {
     const html = generateHtml(
       {
