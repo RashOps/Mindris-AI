@@ -370,6 +370,10 @@ Actions :
 - teste API `/api/v1/system/ready` ;
 - teste renderer `/ready`.
 
+Les endpoints sont retentés pendant le démarrage des conteneurs. Le nombre de
+tentatives et l’intervalle sont configurables avec `SMOKE_ATTEMPTS` et
+`SMOKE_RETRY_DELAY` (30 tentatives espacées de 2 secondes par défaut).
+
 Commande :
 
 ```bash
