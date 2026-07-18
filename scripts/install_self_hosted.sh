@@ -5,6 +5,8 @@ MINDRIS_HOME="${MINDRIS_HOME:-$HOME/.mindris-ai}"
 MINDRIS_RELEASE_REF="${MINDRIS_RELEASE_REF:-main}"
 MINDRIS_RAW_BASE="${MINDRIS_RAW_BASE:-https://raw.githubusercontent.com/RashOps/Mindris-AI/$MINDRIS_RELEASE_REF}"
 MINDRIS_INSTALL_DRY_RUN="${MINDRIS_INSTALL_DRY_RUN:-false}"
+MINDRIS_PULL_ATTEMPTS="${MINDRIS_PULL_ATTEMPTS:-3}"
+MINDRIS_PULL_PARALLEL_LIMIT="${MINDRIS_PULL_PARALLEL_LIMIT:-1}"
 
 need() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -34,6 +36,26 @@ generate_api_key() {
   fi
 }
 
+pull_images() {
+  attempt=1
+  while [ "$attempt" -le "$MINDRIS_PULL_ATTEMPTS" ]; do
+    echo "Pulling Mindris images (attempt $attempt/$MINDRIS_PULL_ATTEMPTS)..."
+    if COMPOSE_PARALLEL_LIMIT="$MINDRIS_PULL_PARALLEL_LIMIT" docker compose pull; then
+      return 0
+    fi
+    if [ "$attempt" -lt "$MINDRIS_PULL_ATTEMPTS" ]; then
+      delay=$((attempt * 3))
+      echo "Image pull interrupted; retrying in ${delay}s..." >&2
+      sleep "$delay"
+    fi
+    attempt=$((attempt + 1))
+  done
+
+  echo "Unable to download Mindris images after $MINDRIS_PULL_ATTEMPTS attempts." >&2
+  echo "Retry later or restart Docker/WSL if TLS transfer errors persist." >&2
+  return 1
+}
+
 need docker
 docker compose version >/dev/null
 
@@ -59,7 +81,7 @@ if [ "$MINDRIS_INSTALL_DRY_RUN" = "true" ]; then
   exit 0
 fi
 
-docker compose pull
+pull_images
 docker compose up -d
 
 echo "Mindris AI is starting."
