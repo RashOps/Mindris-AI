@@ -30,6 +30,7 @@ export type CustomizationCatalogue = {
     };
     densities: string[];
     headerAlignments: string[];
+    headerPositions: string[];
     headerDetailsArrangements: string[];
     headerIconStyles: string[];
     photo: {
@@ -135,6 +136,7 @@ export const FALLBACK_CUSTOMIZATION_CATALOGUE: CustomizationCatalogue = {
     },
     densities: ["student", "compact", "normal", "senior"],
     headerAlignments: ["left", "center", "right"],
+    headerPositions: ["top", "left", "right"],
     headerDetailsArrangements: ["inline", "grid", "bullet", "bar", "icons"],
     headerIconStyles: ["none", "outline", "filled"],
     photo: {
@@ -326,6 +328,10 @@ export function normalizeCustomizationCatalogue(
       headerAlignments: copyArray(
         value.layout?.headerAlignments,
         FALLBACK_CUSTOMIZATION_CATALOGUE.layout.headerAlignments,
+      ),
+      headerPositions: copyArray(
+        value.layout?.headerPositions,
+        FALLBACK_CUSTOMIZATION_CATALOGUE.layout.headerPositions,
       ),
       headerDetailsArrangements: copyArray(
         value.layout?.headerDetailsArrangements,
@@ -550,6 +556,7 @@ export function resolveCustomizationOptionLists(catalogue: CustomizationCatalogu
     sidebarWidthRange: catalogue.layout.sidebarWidth.range,
     densities: catalogue.layout.densities,
     headerAlignments: catalogue.layout.headerAlignments,
+    headerPositions: catalogue.layout.headerPositions,
     headerDetailsArrangements: catalogue.layout.headerDetailsArrangements,
     headerIconStyles: catalogue.layout.headerIconStyles,
     photoShapes: catalogue.layout.photo.shapes,

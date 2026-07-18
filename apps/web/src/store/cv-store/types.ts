@@ -12,6 +12,7 @@ export interface GlobalSettings {
     sidebar_width?: string;
     density?: "student" | "compact" | "normal" | "senior";
     header_alignment?: "left" | "center" | "right";
+    header_position?: "top" | "left" | "right";
     header_details_arrangement?: "inline" | "grid" | "bullet" | "bar" | "icons";
     header_icon_style?: "none" | "outline" | "filled";
     photo?: {

@@ -103,6 +103,7 @@ export function resolveSettings(
         current?.layout?.sidebar_width ?? `${current?.col_left_width ?? "35"}%`,
       density: current?.layout?.density ?? "normal",
       header_alignment: current?.layout?.header_alignment ?? "left",
+      header_position: current?.layout?.header_position ?? "top",
       header_details_arrangement:
         current?.layout?.header_details_arrangement ?? "inline",
       header_icon_style: current?.layout?.header_icon_style ?? "outline",

@@ -638,6 +638,7 @@ export function StylePanel({
             <HeaderTab
               settings={layoutSettings}
               alignments={options.headerAlignments}
+              positions={options.headerPositions}
               arrangements={options.headerDetailsArrangements}
               iconStyles={options.headerIconStyles}
               update={(patch) =>

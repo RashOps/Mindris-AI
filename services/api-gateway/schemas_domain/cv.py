@@ -98,6 +98,7 @@ class CVLayoutSettings(CVBaseModel):
     sidebar_width: str = "35%"
     density: Literal["student", "compact", "normal", "senior"] = "normal"
     header_alignment: Literal["left", "center", "right"] = "left"
+    header_position: Literal["top", "left", "right"] = "top"
     header_details_arrangement: Literal[
         "inline", "grid", "bullet", "bar", "icons"
     ] = "inline"

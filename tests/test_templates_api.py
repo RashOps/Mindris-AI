@@ -96,6 +96,7 @@ def test_customization_catalogue_exposes_backend_owned_options() -> None:
     assert options["page"]["formats"] == ["A4", "Letter"]
     assert options["layout"]["columns"] == [1, 2]
     assert options["layout"]["sidebarPositions"] == ["none", "left", "right"]
+    assert options["layout"]["headerPositions"] == ["top", "left", "right"]
     assert options["layout"]["sidebarWidth"]["presets"] == ["25%", "30%", "35%"]
     assert "grid" in options["layout"]["headerDetailsArrangements"]
     assert options["links"]["colors"] == ["accent", "blue", "inherit"]

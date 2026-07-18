@@ -477,6 +477,7 @@ CUSTOMIZATION_CATALOGUE = {
         },
         "densities": ["student", "compact", "normal", "senior"],
         "headerAlignments": ["left", "center", "right"],
+        "headerPositions": ["top", "left", "right"],
         "headerDetailsArrangements": ["inline", "grid", "bullet", "bar", "icons"],
         "headerIconStyles": ["none", "outline", "filled"],
         "photo": {

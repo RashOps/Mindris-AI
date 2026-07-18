@@ -267,6 +267,7 @@ describe("generateHtml semantic sections", () => {
           layout: {
             header_details_arrangement: "grid",
             header_icon_style: "filled",
+            header_position: "right",
           },
           links: { underline: true, color: "blue", show_icon: true },
         },
@@ -275,6 +276,7 @@ describe("generateHtml semantic sections", () => {
     );
 
     expect(html).toContain("contact-layout-grid contact-icon-filled");
+    expect(html).toContain("cv-wrapper header-position-right");
     expect(html).toContain("text-decoration: underline");
     expect(html).toContain("color: #2563eb");
     expect(html).toContain('content: " ↗"');

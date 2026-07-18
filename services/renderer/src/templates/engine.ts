@@ -142,6 +142,46 @@ function configuredSections(cvData: any): SectionConfig[] {
 }
 
 const dynamicSectionCss = `
+.cv-wrapper.header-position-left,
+.cv-wrapper.header-position-right {
+    display: grid;
+    grid-template-columns: minmax(150px, 28%) minmax(0, 1fr);
+    gap: 28px;
+}
+
+.cv-wrapper.header-position-left > .header {
+    grid-column: 1;
+}
+
+.cv-wrapper.header-position-left > .cv-content {
+    grid-column: 2;
+}
+
+.cv-wrapper.header-position-right > .header {
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.cv-wrapper.header-position-right > .cv-content {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.cv-wrapper.header-position-left > .header,
+.cv-wrapper.header-position-right > .header {
+    margin-bottom: 0;
+    border-bottom: 0;
+    border-right: 1px solid var(--separator-color, #e2e8f0);
+    padding-right: 18px;
+}
+
+.cv-wrapper.header-position-right > .header {
+    border-right: 0;
+    border-left: 1px solid var(--separator-color, #e2e8f0);
+    padding-right: 0;
+    padding-left: 18px;
+}
+
 :host {
     font-size: var(--font-size-body, var(--font-size-base, 13px));
 }
@@ -765,11 +805,18 @@ function renderCvContent(cvData: any): string {
         .concat(renderFallbackSections(cvData, usedTypes))
         .filter(Boolean)
         .join("");
-    return `<div class="cv-wrapper">
+    const headerPosition = ["top", "left", "right"].includes(
+        cvData?.global_settings?.layout?.header_position,
+    )
+        ? cvData.global_settings.layout.header_position
+        : "top";
+    return `<div class="cv-wrapper header-position-${headerPosition}">
       ${renderHeader(cvData)}
+      <div class="cv-content">
       ${warning}
       ${cssWarning}
       <div class="main-grid">${sections}</div>
+      </div>
     </div>`;
 }
 

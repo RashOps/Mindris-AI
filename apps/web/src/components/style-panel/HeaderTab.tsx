@@ -24,12 +24,14 @@ const ICON_LABELS: Record<string, string> = {
 export function HeaderTab({
   settings,
   alignments,
+  positions,
   arrangements,
   iconStyles,
   update,
 }: {
   settings: LayoutSettings;
   alignments: string[];
+  positions: string[];
   arrangements: string[];
   iconStyles: string[];
   update: (patch: Partial<LayoutSettings>) => void;
@@ -38,6 +40,26 @@ export function HeaderTab({
     <>
       <section>
         <SectionLabel>Texte de l’en-tête</SectionLabel>
+        <VisualOptionGroup
+          label="Position"
+          value={settings.header_position ?? "top"}
+          options={positions.map((position) => ({
+            value: position,
+            label:
+              position === "top"
+                ? "En haut"
+                : position === "left"
+                  ? "À gauche"
+                  : "À droite",
+          }))}
+          onChange={(header_position) =>
+            update({
+              header_position:
+                header_position as LayoutSettings["header_position"],
+            })
+          }
+        />
+        <div className="mt-4">
         <VisualOptionGroup
           label="Alignement"
           value={settings.header_alignment ?? "left"}
@@ -61,6 +83,7 @@ export function HeaderTab({
             })
           }
         />
+        </div>
       </section>
       <section>
         <SectionLabel>Coordonnées</SectionLabel>
