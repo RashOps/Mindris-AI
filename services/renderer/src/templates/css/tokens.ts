@@ -17,6 +17,7 @@ export function buildTokenOverrides(settings?: any): string {
     const colors = settings.colors ?? {};
     const page = settings.page ?? {};
     const layout = settings.layout ?? {};
+    const links = settings.links ?? {};
     const onePageChallenge = page.one_page_challenge === true;
 
     const primaryColor = colors.primary ?? settings.primary_color;
@@ -176,6 +177,17 @@ export function buildTokenOverrides(settings?: any): string {
     if (accentCss) {
         blocks.push(accentCss);
     }
+    blocks.push(`
+.contact-link,
+.proj-link {
+  text-decoration: ${links.underline === true ? "underline" : "none"};
+  color: ${links.color === "blue" ? "#2563eb" : links.color === "inherit" ? "inherit" : "var(--primary-color, #2563eb)"};
+}
+.contact-link::after,
+.proj-link::after {
+  content: ${links.show_icon === true ? '" ↗"' : '""'};
+}
+`);
     return blocks.join("\n\n");
 }
 

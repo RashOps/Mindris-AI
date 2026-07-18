@@ -98,6 +98,10 @@ class CVLayoutSettings(CVBaseModel):
     sidebar_width: str = "35%"
     density: Literal["student", "compact", "normal", "senior"] = "normal"
     header_alignment: Literal["left", "center", "right"] = "left"
+    header_details_arrangement: Literal[
+        "inline", "grid", "bullet", "bar", "icons"
+    ] = "inline"
+    header_icon_style: Literal["none", "outline", "filled"] = "outline"
     photo: CVPhotoSettings = Field(default_factory=CVPhotoSettings)
     section_placement: dict[str, Literal["main", "sidebar"]] = Field(
         default_factory=dict
@@ -151,6 +155,14 @@ class CVColorSettings(CVBaseModel):
         return self
 
 
+class CVLinkSettings(CVBaseModel):
+    """Renderer-owned styling for contact and project links."""
+
+    underline: bool = False
+    color: Literal["accent", "blue", "inherit"] = "accent"
+    show_icon: bool = False
+
+
 class CVSectionSettings(CVBaseModel):
     """Per-section rendering settings."""
 
@@ -182,7 +194,11 @@ class CVSectionSettings(CVBaseModel):
     heading_capitalization: Literal["normal", "uppercase"] = "uppercase"
     title_subtitle_order: Literal["title_first", "subtitle_first"] = "title_first"
     date_location_position: Literal["inline", "right", "below"] = "inline"
-    skill_style: Literal["tags", "plain", "bars"] = "tags"
+    skill_style: Literal[
+        "tags", "plain", "bars", "grid", "rows", "compact", "bubble", "level", "dots"
+    ] = "tags"
+    heading_line: bool = True
+    icon_style: Literal["none", "outline", "filled"] = "none"
     icon: str | None = None
 
 
@@ -304,6 +320,7 @@ class CVGlobalSettings(CVBaseModel):
     layout: CVLayoutSettings = Field(default_factory=CVLayoutSettings)
     typography: CVTypographySettings = Field(default_factory=CVTypographySettings)
     colors: CVColorSettings = Field(default_factory=CVColorSettings)
+    links: CVLinkSettings = Field(default_factory=CVLinkSettings)
     sections: list[CVSectionSettings] = Field(default_factory=default_cv_sections)
     locale: CVLocaleSettings = Field(default_factory=CVLocaleSettings)
     advanced_css: CVAdvancedCssSettings = Field(default_factory=CVAdvancedCssSettings)

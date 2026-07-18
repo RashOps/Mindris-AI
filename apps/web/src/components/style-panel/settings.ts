@@ -29,11 +29,13 @@ function defaultSections(
     show_locations: true,
     detail_level: "normal",
     page_break_before: false,
+    heading_line: true,
     heading_style: "line",
     heading_capitalization: "uppercase",
     title_subtitle_order: "title_first",
     date_location_position: "inline",
     skill_style: "tags",
+    icon_style: "none",
     icon: null,
   }));
 }
@@ -101,6 +103,9 @@ export function resolveSettings(
         current?.layout?.sidebar_width ?? `${current?.col_left_width ?? "35"}%`,
       density: current?.layout?.density ?? "normal",
       header_alignment: current?.layout?.header_alignment ?? "left",
+      header_details_arrangement:
+        current?.layout?.header_details_arrangement ?? "inline",
+      header_icon_style: current?.layout?.header_icon_style ?? "outline",
       photo: {
         enabled: current?.layout?.photo?.enabled ?? false,
         grayscale: current?.layout?.photo?.grayscale ?? false,
@@ -148,6 +153,11 @@ export function resolveSettings(
         "links",
         "skills",
       ],
+    },
+    links: {
+      underline: current?.links?.underline ?? false,
+      color: current?.links?.color ?? "accent",
+      show_icon: current?.links?.show_icon ?? false,
     },
     sections: mergeSections(current, catalogue),
     locale: {

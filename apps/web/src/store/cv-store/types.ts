@@ -12,6 +12,8 @@ export interface GlobalSettings {
     sidebar_width?: string;
     density?: "student" | "compact" | "normal" | "senior";
     header_alignment?: "left" | "center" | "right";
+    header_details_arrangement?: "inline" | "grid" | "bullet" | "bar" | "icons";
+    header_icon_style?: "none" | "outline" | "filled";
     photo?: {
       enabled?: boolean;
       grayscale?: boolean;
@@ -50,6 +52,11 @@ export interface GlobalSettings {
       "name" | "title" | "headings" | "dates" | "links" | "skills"
     >;
   };
+  links?: {
+    underline?: boolean;
+    color?: "accent" | "blue" | "inherit";
+    show_icon?: boolean;
+  };
   sections?: Array<{
     id: string;
     type: string;
@@ -65,7 +72,18 @@ export interface GlobalSettings {
     heading_capitalization?: "normal" | "uppercase";
     title_subtitle_order?: "title_first" | "subtitle_first";
     date_location_position?: "inline" | "right" | "below";
-    skill_style?: "tags" | "plain" | "bars";
+    skill_style?:
+      | "tags"
+      | "plain"
+      | "bars"
+      | "grid"
+      | "rows"
+      | "compact"
+      | "bubble"
+      | "level"
+      | "dots";
+    heading_line?: boolean;
+    icon_style?: "none" | "outline" | "filled";
     icon?: string | null;
   }>;
   locale?: {

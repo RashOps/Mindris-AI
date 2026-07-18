@@ -75,7 +75,18 @@ type SectionConfig = {
     heading_capitalization?: "normal" | "uppercase";
     title_subtitle_order?: "title_first" | "subtitle_first";
     date_location_position?: "inline" | "right" | "below";
-    skill_style?: "tags" | "plain" | "bars";
+    skill_style?:
+        | "tags"
+        | "plain"
+        | "bars"
+        | "grid"
+        | "rows"
+        | "compact"
+        | "bubble"
+        | "level"
+        | "dots";
+    heading_line?: boolean;
+    icon_style?: "none" | "outline" | "filled";
 };
 
 const DEFAULT_SECTIONS: SectionConfig[] = [
@@ -161,6 +172,71 @@ const dynamicSectionCss = `
 .profile-photo-rounded { border-radius: 14px; }
 .profile-photo-portrait { height: calc(var(--profile-photo-width, 76px) * 1.25); border-radius: 10px; }
 .profile-photo-grayscale { filter: grayscale(1); }
+
+.contact-bar.contact-layout-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.contact-bar.contact-layout-bullet .contact-item:not(:last-child)::after {
+    content: "•";
+    margin-left: 12px;
+    color: var(--separator-color, #cbd5e1);
+}
+
+.contact-bar.contact-layout-bar .contact-item:not(:last-child)::after {
+    content: "|";
+    margin-left: 12px;
+    color: var(--separator-color, #cbd5e1);
+}
+
+.contact-icon-none .contact-icon { display: none; }
+.contact-icon-filled .contact-icon {
+    display: inline-flex;
+    width: 1.4em;
+    height: 1.4em;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: var(--primary-color, #2563eb);
+    color: white;
+    font-size: 0.75em;
+}
+
+.section-heading-no-line .section-title { border-bottom: 0; }
+.section-heading-icon {
+    display: inline-flex;
+    width: 1.4em;
+    height: 1.4em;
+    margin-right: 0.45em;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    font-size: 0.75em;
+}
+.section-icon-none .section-heading-icon { display: none; }
+.section-icon-filled .section-heading-icon {
+    background: var(--primary-color, #2563eb);
+    color: white;
+}
+
+.section-skill-style-grid .skill-tags {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.section-skill-style-rows .tag { display: block; margin-bottom: 5px; }
+.section-skill-style-compact .skill-tags { gap: 2px; }
+.section-skill-style-compact .tag { padding: 1px 5px; font-size: 0.78em; }
+.section-skill-style-bubble .tag { border-radius: 999px; }
+.section-skill-style-level .tag::after,
+.section-skill-style-dots .tag::after {
+    content: "••••";
+    float: right;
+    margin-left: 8px;
+    letter-spacing: 1px;
+    color: var(--primary-color, #2563eb);
+}
 
 .main-grid {
     display: grid;
@@ -311,19 +387,31 @@ const dynamicSectionCss = `
 }
 `;
 
-function renderContact(profile: any): string {
+function renderContact(profile: any, settings: any): string {
+    const arrangement = ["inline", "grid", "bullet", "bar", "icons"].includes(
+        settings?.header_details_arrangement,
+    )
+        ? settings.header_details_arrangement
+        : "inline";
+    const iconStyle = ["none", "outline", "filled"].includes(settings?.header_icon_style)
+        ? settings.header_icon_style
+        : "outline";
+    const contact = (icon: string, content: string) =>
+        `<span class="contact-item"><span class="contact-icon" aria-hidden="true">${icon}</span>${content}</span>`;
     const contacts = [
-        profile?.email ? `<span class="contact-item">✉ ${html(profile.email)}</span>` : "",
-        profile?.phone ? `<span class="contact-item">☎ ${html(profile.phone)}</span>` : "",
+        profile?.email ? contact("✉", html(profile.email)) : "",
+        profile?.phone ? contact("☎", html(profile.phone)) : "",
         profile?.location?.city
-            ? `<span class="contact-item">📍 ${html(profile.location.city)}, ${html(profile.location.country)}</span>`
+            ? contact("⌖", `${html(profile.location.city)}, ${html(profile.location.country)}`)
             : "",
         ...items(profile?.socials).map((social) => {
             const label = social.label || social.type || social.url;
-            return `<span class="contact-item"><a href="${html(social.url)}" class="contact-link">${html(label)}</a></span>`;
+            return contact("↗", `<a href="${html(social.url)}" class="contact-link">${html(label)}</a>`);
         }),
     ].filter(Boolean);
-    return contacts.length ? `<div class="contact-bar">${contacts.join("")}</div>` : "";
+    return contacts.length
+        ? `<div class="contact-bar contact-layout-${arrangement} contact-icon-${iconStyle}">${contacts.join("")}</div>`
+        : "";
 }
 
 function renderHeader(cvData: any): string {
@@ -343,7 +431,7 @@ function renderHeader(cvData: any): string {
     <div class="header-body">
       <h1>${html(profile.full_name)}</h1>
       <p class="tagline">${html(profile.title)}</p>
-      ${renderContact(profile)}
+      ${renderContact(profile, cvData?.global_settings?.layout)}
       ${summary}
     </div>
   </header>`;
@@ -375,12 +463,14 @@ function sectionShell(section: SectionConfig, content: string): string {
     const headingCapitalization = section.heading_capitalization || "uppercase";
     const dateLocationPosition = section.date_location_position || "inline";
     const skillStyle = section.skill_style || "tags";
+    const headingLine = section.heading_line === false ? "no-line" : "line";
+    const iconStyle = section.icon_style || "none";
     const pageBreakClass = section.page_break_before ? " section-page-break-before" : "";
     const pageBreakAttribute = section.page_break_before
         ? ' data-section-page-break-before="true"'
         : "";
-    return `<section class="section section-placement-${placement} section-display-${html(displayMode)} section-detail-${html(detailLevel)} section-heading-${html(headingStyle)} section-heading-${html(headingCapitalization)} section-meta-${html(dateLocationPosition)} section-skill-style-${html(skillStyle)}${pageBreakClass}" data-section-type="${html(section.type)}" data-section-placement="${html(placement)}" data-section-display-mode="${html(displayMode)}" data-section-detail-level="${html(detailLevel)}" data-section-heading-style="${html(headingStyle)}" data-section-heading-capitalization="${html(headingCapitalization)}" data-section-date-location-position="${html(dateLocationPosition)}" data-section-skill-style="${html(skillStyle)}"${pageBreakAttribute}>
-      <h2 class="section-title">${html(section.label)}</h2>
+    return `<section class="section section-placement-${placement} section-display-${html(displayMode)} section-detail-${html(detailLevel)} section-heading-${html(headingStyle)} section-heading-${html(headingCapitalization)} section-heading-${headingLine} section-icon-${html(iconStyle)} section-meta-${html(dateLocationPosition)} section-skill-style-${html(skillStyle)}${pageBreakClass}" data-section-type="${html(section.type)}" data-section-placement="${html(placement)}" data-section-display-mode="${html(displayMode)}" data-section-detail-level="${html(detailLevel)}" data-section-heading-style="${html(headingStyle)}" data-section-heading-capitalization="${html(headingCapitalization)}" data-section-date-location-position="${html(dateLocationPosition)}" data-section-skill-style="${html(skillStyle)}"${pageBreakAttribute}>
+      <h2 class="section-title"><span class="section-heading-icon" aria-hidden="true">•</span>${html(section.label)}</h2>
       ${content}
     </section>`;
 }

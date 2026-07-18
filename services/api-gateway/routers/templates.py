@@ -477,6 +477,8 @@ CUSTOMIZATION_CATALOGUE = {
         },
         "densities": ["student", "compact", "normal", "senior"],
         "headerAlignments": ["left", "center", "right"],
+        "headerDetailsArrangements": ["inline", "grid", "bullet", "bar", "icons"],
+        "headerIconStyles": ["none", "outline", "filled"],
         "photo": {
             "enabled": [True, False],
             "grayscale": [True, False],
@@ -516,6 +518,11 @@ CUSTOMIZATION_CATALOGUE = {
         "monochrome": [True, False],
         "minimumContrast": 4.5,
     },
+    "links": {
+        "underline": [True, False],
+        "colors": ["accent", "blue", "inherit"],
+        "showIcon": [True, False],
+    },
     "sections": {
         "types": [
             "experience",
@@ -536,8 +543,25 @@ CUSTOMIZATION_CATALOGUE = {
         "headingCapitalization": ["normal", "uppercase"],
         "titleSubtitleOrders": ["title_first", "subtitle_first"],
         "dateLocationPositions": ["inline", "right", "below"],
-        "skillStyles": ["tags", "plain", "bars"],
-        "toggles": ["visible", "show_dates", "show_locations", "page_break_before"],
+        "skillStyles": [
+            "tags",
+            "plain",
+            "bars",
+            "grid",
+            "rows",
+            "compact",
+            "bubble",
+            "level",
+            "dots",
+        ],
+        "iconStyles": ["none", "outline", "filled"],
+        "toggles": [
+            "visible",
+            "show_dates",
+            "show_locations",
+            "page_break_before",
+            "heading_line",
+        ],
         "placements": ["main", "sidebar"],
     },
     "locale": {

@@ -25,6 +25,7 @@ import {
   PANEL_TOGGLE_CLASS,
 } from "./constants";
 import { SectionLabel } from "./controls";
+import { VisualOptionGroup } from "./visual-controls";
 
 type SectionSettings = NonNullable<GlobalSettings["sections"]>[number];
 
@@ -49,6 +50,17 @@ const SKILL_STYLE_LABELS: Record<string, string> = {
   tags: "Tags",
   plain: "Texte simple",
   bars: "Barres",
+  grid: "Grille",
+  rows: "Lignes",
+  compact: "Compact",
+  bubble: "Bulles",
+  level: "Niveaux",
+  dots: "Points",
+};
+const ICON_STYLE_LABELS: Record<string, string> = {
+  none: "Sans icône",
+  outline: "Contour",
+  filled: "Pleine",
 };
 
 interface SectionsTabProps {
@@ -61,6 +73,7 @@ interface SectionsTabProps {
   titleSubtitleOrders: string[];
   dateLocationPositions: string[];
   skillStyles: string[];
+  iconStyles: string[];
   updateSection: (index: number, patch: Partial<SectionSettings>) => void;
   moveSection: (index: number, delta: -1 | 1) => void;
   reorderSections: (activeId: string, overId: string) => void;
@@ -88,6 +101,7 @@ function SortableSectionCard({
   titleSubtitleOrders,
   dateLocationPositions,
   skillStyles,
+  iconStyles,
   updateSection,
   moveSection,
 }: {
@@ -102,6 +116,7 @@ function SortableSectionCard({
   titleSubtitleOrders: string[];
   dateLocationPositions: string[];
   skillStyles: string[];
+  iconStyles: string[];
   updateSection: (index: number, patch: Partial<SectionSettings>) => void;
   moveSection: (index: number, delta: -1 | 1) => void;
 }) {
@@ -231,10 +246,10 @@ function SortableSectionCard({
             </label>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <ToolbarSelect
+          <div className="grid gap-3">
+            <VisualOptionGroup
+              label="Style du titre"
               value={section.heading_style ?? "line"}
-              ariaLabel={`Style de titre ${section.type}`}
               options={headingStyles.map((style) => ({
                 value: style,
                 label: HEADING_STYLE_LABELS[style] ?? style,
@@ -244,11 +259,10 @@ function SortableSectionCard({
                   heading_style: value as SectionSettings["heading_style"],
                 })
               }
-              triggerClassName={PANEL_INPUT_CLASS}
             />
-            <ToolbarSelect
+            <VisualOptionGroup
+              label="Capitalisation"
               value={section.heading_capitalization ?? "uppercase"}
-              ariaLabel={`Capitalisation titre ${section.type}`}
               options={headingCapitalization.map((style) => ({
                 value: style,
                 label: CAPITALIZATION_LABELS[style] ?? style,
@@ -259,8 +273,32 @@ function SortableSectionCard({
                     value as SectionSettings["heading_capitalization"],
                 })
               }
-              triggerClassName={PANEL_INPUT_CLASS}
             />
+            <VisualOptionGroup
+              label="Icône du titre"
+              value={section.icon_style ?? "none"}
+              options={iconStyles.map((style) => ({
+                value: style,
+                label: ICON_STYLE_LABELS[style] ?? style,
+              }))}
+              onChange={(value) =>
+                updateSection(index, {
+                  icon_style: value as SectionSettings["icon_style"],
+                })
+              }
+            />
+            <label className={PANEL_TOGGLE_CLASS}>
+              <span className="text-xs font-medium text-foreground">
+                Ligne sous le titre
+              </span>
+              <input
+                type="checkbox"
+                checked={section.heading_line ?? true}
+                onChange={(event) =>
+                  updateSection(index, { heading_line: event.target.checked })
+                }
+              />
+            </label>
           </div>
 
           {supportsDates && (
@@ -336,9 +374,9 @@ function SortableSectionCard({
           )}
 
           {SKILL_LIKE_SECTION_TYPES.has(section.type) && (
-            <ToolbarSelect
+            <VisualOptionGroup
+              label="Présentation"
               value={section.skill_style ?? "tags"}
-              ariaLabel={`Style compétences ${section.type}`}
               options={skillStyles.map((style) => ({
                 value: style,
                 label: SKILL_STYLE_LABELS[style] ?? style,
@@ -348,7 +386,7 @@ function SortableSectionCard({
                   skill_style: value as SectionSettings["skill_style"],
                 })
               }
-              triggerClassName={PANEL_INPUT_CLASS}
+              columns={3}
             />
           )}
 
@@ -386,6 +424,7 @@ export function SectionsTab({
   titleSubtitleOrders,
   dateLocationPositions,
   skillStyles,
+  iconStyles,
   updateSection,
   moveSection,
   reorderSections,
@@ -428,7 +467,8 @@ export function SectionsTab({
                   headingCapitalization={headingCapitalization}
                   titleSubtitleOrders={titleSubtitleOrders}
                   dateLocationPositions={dateLocationPositions}
-                  skillStyles={skillStyles}
+              skillStyles={skillStyles}
+              iconStyles={iconStyles}
                   updateSection={updateSection}
                 moveSection={moveSection}
               />

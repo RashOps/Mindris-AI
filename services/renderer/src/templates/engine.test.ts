@@ -221,6 +221,8 @@ describe("generateHtml semantic sections", () => {
               detail_level: "normal",
               heading_style: "accent",
               heading_capitalization: "normal",
+              heading_line: false,
+              icon_style: "filled",
               title_subtitle_order: "subtitle_first",
               date_location_position: "right",
             },
@@ -242,12 +244,40 @@ describe("generateHtml semantic sections", () => {
     expect(html).toContain('data-section-heading-capitalization="normal"');
     expect(html).toContain('data-section-date-location-position="right"');
     expect(html).toContain('data-section-skill-style="bars"');
+    expect(html).toContain("section-heading-no-line");
+    expect(html).toContain("section-icon-filled");
     expect(html).toContain(
       '<span class="company">Analytical Engines</span><h3>Engineer</h3>',
     );
     expect(html).toContain(".section-heading-accent .section-title");
     expect(html).toContain(".section-meta-right .item-header");
     expect(html).toContain(".section-skill-style-bars .tag::after");
+  });
+
+  test("applies header detail and link presentation settings", () => {
+    const html = generateHtml(
+      {
+        ...baseCv,
+        profile: {
+          ...baseCv.profile,
+          socials: [{ type: "website", url: "https://example.com", label: "Site" }],
+        },
+        global_settings: {
+          ...baseCv.global_settings,
+          layout: {
+            header_details_arrangement: "grid",
+            header_icon_style: "filled",
+          },
+          links: { underline: true, color: "blue", show_icon: true },
+        },
+      },
+      "modern",
+    );
+
+    expect(html).toContain("contact-layout-grid contact-icon-filled");
+    expect(html).toContain("text-decoration: underline");
+    expect(html).toContain("color: #2563eb");
+    expect(html).toContain('content: " ↗"');
   });
 
   test("renders manual page breaks as renderer-owned section metadata", () => {

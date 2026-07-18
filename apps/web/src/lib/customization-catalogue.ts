@@ -30,6 +30,8 @@ export type CustomizationCatalogue = {
     };
     densities: string[];
     headerAlignments: string[];
+    headerDetailsArrangements: string[];
+    headerIconStyles: string[];
     photo: {
       enabled: boolean[];
       grayscale: boolean[];
@@ -62,6 +64,11 @@ export type CustomizationCatalogue = {
     monochrome: boolean[];
     minimumContrast: number;
   };
+  links: {
+    underline: boolean[];
+    colors: string[];
+    showIcon: boolean[];
+  };
   sections: {
     types: string[];
     displayModes: string[];
@@ -71,6 +78,7 @@ export type CustomizationCatalogue = {
     titleSubtitleOrders: string[];
     dateLocationPositions: string[];
     skillStyles: string[];
+    iconStyles: string[];
     toggles: string[];
     placements: string[];
   };
@@ -126,6 +134,8 @@ export const FALLBACK_CUSTOMIZATION_CATALOGUE: CustomizationCatalogue = {
     },
     densities: ["student", "compact", "normal", "senior"],
     headerAlignments: ["left", "center", "right"],
+    headerDetailsArrangements: ["inline", "grid", "bullet", "bar", "icons"],
+    headerIconStyles: ["none", "outline", "filled"],
     photo: {
       enabled: [true, false],
       grayscale: [true, false],
@@ -165,6 +175,11 @@ export const FALLBACK_CUSTOMIZATION_CATALOGUE: CustomizationCatalogue = {
     monochrome: [true, false],
     minimumContrast: 4.5,
   },
+  links: {
+    underline: [true, false],
+    colors: ["accent", "blue", "inherit"],
+    showIcon: [true, false],
+  },
   sections: {
     types: [
       "experience",
@@ -185,8 +200,25 @@ export const FALLBACK_CUSTOMIZATION_CATALOGUE: CustomizationCatalogue = {
     headingCapitalization: ["normal", "uppercase"],
     titleSubtitleOrders: ["title_first", "subtitle_first"],
     dateLocationPositions: ["inline", "right", "below"],
-    skillStyles: ["tags", "plain", "bars"],
-    toggles: ["visible", "show_dates", "show_locations", "page_break_before"],
+    skillStyles: [
+      "tags",
+      "plain",
+      "bars",
+      "grid",
+      "rows",
+      "compact",
+      "bubble",
+      "level",
+      "dots",
+    ],
+    iconStyles: ["none", "outline", "filled"],
+    toggles: [
+      "visible",
+      "show_dates",
+      "show_locations",
+      "page_break_before",
+      "heading_line",
+    ],
     placements: ["main", "sidebar"],
   },
   locale: {
@@ -293,6 +325,14 @@ export function normalizeCustomizationCatalogue(
         value.layout?.headerAlignments,
         FALLBACK_CUSTOMIZATION_CATALOGUE.layout.headerAlignments,
       ),
+      headerDetailsArrangements: copyArray(
+        value.layout?.headerDetailsArrangements,
+        FALLBACK_CUSTOMIZATION_CATALOGUE.layout.headerDetailsArrangements,
+      ),
+      headerIconStyles: copyArray(
+        value.layout?.headerIconStyles,
+        FALLBACK_CUSTOMIZATION_CATALOGUE.layout.headerIconStyles,
+      ),
       photo: {
         enabled: copyArray(
           value.layout?.photo?.enabled,
@@ -397,6 +437,20 @@ export function normalizeCustomizationCatalogue(
       ),
       minimumContrast: value.colors?.minimumContrast ?? FALLBACK_CUSTOMIZATION_CATALOGUE.colors.minimumContrast,
     },
+    links: {
+      underline: copyArray(
+        value.links?.underline,
+        FALLBACK_CUSTOMIZATION_CATALOGUE.links.underline,
+      ),
+      colors: copyArray(
+        value.links?.colors,
+        FALLBACK_CUSTOMIZATION_CATALOGUE.links.colors,
+      ),
+      showIcon: copyArray(
+        value.links?.showIcon,
+        FALLBACK_CUSTOMIZATION_CATALOGUE.links.showIcon,
+      ),
+    },
     sections: {
       types: copyArray(value.sections?.types, FALLBACK_CUSTOMIZATION_CATALOGUE.sections.types),
       displayModes: copyArray(
@@ -426,6 +480,10 @@ export function normalizeCustomizationCatalogue(
       skillStyles: copyArray(
         value.sections?.skillStyles,
         FALLBACK_CUSTOMIZATION_CATALOGUE.sections.skillStyles,
+      ),
+      iconStyles: copyArray(
+        value.sections?.iconStyles,
+        FALLBACK_CUSTOMIZATION_CATALOGUE.sections.iconStyles,
       ),
       toggles: copyArray(value.sections?.toggles, FALLBACK_CUSTOMIZATION_CATALOGUE.sections.toggles),
       placements: copyArray(
@@ -486,6 +544,8 @@ export function resolveCustomizationOptionLists(catalogue: CustomizationCatalogu
     sidebarWidthRange: catalogue.layout.sidebarWidth.range,
     densities: catalogue.layout.densities,
     headerAlignments: catalogue.layout.headerAlignments,
+    headerDetailsArrangements: catalogue.layout.headerDetailsArrangements,
+    headerIconStyles: catalogue.layout.headerIconStyles,
     photoShapes: catalogue.layout.photo.shapes,
     photoEnabled: catalogue.layout.photo.enabled,
     fonts: catalogue.typography.bodyFonts,
@@ -506,6 +566,9 @@ export function resolveCustomizationOptionLists(catalogue: CustomizationCatalogu
     editableColors: catalogue.colors.editable,
     accentTargets: catalogue.colors.accentTargets,
     monochrome: catalogue.colors.monochrome,
+    linkUnderlines: catalogue.links.underline,
+    linkColors: catalogue.links.colors,
+    linkIcons: catalogue.links.showIcon,
     sectionTypes: catalogue.sections.types,
     displayModes: catalogue.sections.displayModes,
     detailLevels: catalogue.sections.detailLevels,
@@ -514,6 +577,7 @@ export function resolveCustomizationOptionLists(catalogue: CustomizationCatalogu
     titleSubtitleOrders: catalogue.sections.titleSubtitleOrders,
     dateLocationPositions: catalogue.sections.dateLocationPositions,
     skillStyles: catalogue.sections.skillStyles,
+    sectionIconStyles: catalogue.sections.iconStyles,
     sectionToggles: catalogue.sections.toggles,
     sectionPlacements: catalogue.sections.placements,
     localeLanguages: catalogue.locale.languages,

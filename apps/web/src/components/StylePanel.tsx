@@ -13,12 +13,14 @@ import {
 import { AdvancedCssPanel } from "@/components/style-panel/AdvancedCssPanel";
 import { LayoutTab } from "@/components/style-panel/LayoutTab";
 import { PhotoTab } from "@/components/style-panel/PhotoTab";
+import { HeaderTab, LinksTab } from "@/components/style-panel/HeaderTab";
 import { SectionsTab } from "@/components/style-panel/SectionsTab";
 import { SectionLabel } from "@/components/style-panel/controls";
 import {
   ColorSwatchPicker,
   SteppedSlider,
   ToggleGrid,
+  VisualOptionGroup,
 } from "@/components/style-panel/visual-controls";
 import { resolveSettings } from "@/components/style-panel/settings";
 import {
@@ -40,6 +42,8 @@ type Tab =
   | "spacing"
   | "colors"
   | "photo"
+  | "header"
+  | "links"
   | "sections"
   | "advanced";
 type AccentTarget = NonNullable<
@@ -53,6 +57,19 @@ const ACCENT_TARGET_LABELS: Record<AccentTarget, string> = {
   dates: "Dates",
   links: "Liens",
   skills: "Compétences",
+};
+const TAB_DESCRIPTIONS: Record<Tab, string> = {
+  document: "Format, langue et comportement des pages.",
+  template: "Choisis une base visuelle adaptée à ton CV.",
+  layout: "Organise les colonnes et la densité générale.",
+  typography: "Ajuste les polices et la hiérarchie du texte.",
+  spacing: "Règle les marges et le rythme vertical.",
+  colors: "Personnalise la palette et les accents.",
+  photo: "Ajoute une photo validée par le backend.",
+  header: "Organise le nom et les coordonnées.",
+  links: "Harmonise l’apparence des liens.",
+  sections: "Ordonne et présente chaque section.",
+  advanced: "Réglages experts et CSS encadré.",
 };
 
 interface StylePanelProps {
@@ -95,6 +112,7 @@ export function StylePanel({
   const colorSettings = settings.colors ?? {};
   const typographySettings = settings.typography ?? {};
   const layoutSettings = settings.layout ?? {};
+  const linkSettings = settings.links ?? {};
   const pageSettings = settings.page ?? {};
   const localeSettings = settings.locale ?? {};
   const advancedCssSettings = settings.advanced_css ?? {
@@ -155,6 +173,8 @@ export function StylePanel({
     { key: "spacing", label: "Espacement", icon: "↕" },
     { key: "colors", label: "Couleurs", icon: "●" },
     { key: "photo", label: "Photo", icon: "◉" },
+    { key: "header", label: "En-tête", icon: "▤" },
+    { key: "links", label: "Liens", icon: "↗" },
     { key: "sections", label: "Sections", icon: "≡" },
     { key: "advanced", label: "Expert", icon: "{}" },
   ];
@@ -169,7 +189,8 @@ export function StylePanel({
         item.key === "layout" ||
         item.key === "typography" ||
         item.key === "spacing" ||
-        item.key === "colors"
+          item.key === "colors" ||
+          item.key === "sections"
       );
     }
     return true;
@@ -229,7 +250,7 @@ export function StylePanel({
         <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-3.5">
           <div className="min-w-0">
             <h2 className="truncate text-sm font-semibold text-foreground">
-              Design Studio
+              Studio de design
             </h2>
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
               Réglages fournis par le moteur
@@ -247,9 +268,26 @@ export function StylePanel({
 
         {visibleTabs.length > 1 ? (
           <div
-            className="flex shrink-0 overflow-x-auto border-b border-border"
+            className={`grid shrink-0 border-b border-border ${isAdvancedMode ? "grid-cols-4" : "grid-cols-3"}`}
             role="tablist"
             aria-label="Réglages de style"
+            onKeyDown={(event) => {
+              const tabs = Array.from(
+                event.currentTarget.querySelectorAll<HTMLElement>('[role="tab"]'),
+              );
+              const current = tabs.indexOf(document.activeElement as HTMLElement);
+              if (current < 0) return;
+              let next = current;
+              if (event.key === "ArrowRight") next = (current + 1) % tabs.length;
+              else if (event.key === "ArrowLeft")
+                next = (current - 1 + tabs.length) % tabs.length;
+              else if (event.key === "Home") next = 0;
+              else if (event.key === "End") next = tabs.length - 1;
+              else return;
+              event.preventDefault();
+              tabs[next]?.focus();
+              tabs[next]?.click();
+            }}
           >
             {visibleTabs.map((t) => (
               <button
@@ -261,7 +299,7 @@ export function StylePanel({
                 aria-controls={`cv-style-panel-${t.key}`}
                 tabIndex={activeTab === t.key ? 0 : -1}
                 onClick={() => setTab(t.key)}
-                className={`flex min-w-20 flex-1 cursor-pointer flex-col items-center gap-0.5 whitespace-nowrap border-b-2 py-2.5 text-[11px] font-semibold transition-colors ${
+                className={`flex min-w-0 cursor-pointer flex-col items-center gap-0.5 border-b-2 px-1 py-2 text-center text-[10px] font-semibold leading-tight transition-colors ${
                   activeTab === t.key
                     ? "border-violet-600 bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300"
                     : "border-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
@@ -282,6 +320,9 @@ export function StylePanel({
           aria-labelledby={`cv-style-tab-${activeTab}`}
           className="flex-1 space-y-5 overflow-y-auto px-5 pt-4 pb-24"
         >
+          <p className="rounded-lg bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground">
+            {TAB_DESCRIPTIONS[activeTab]}
+          </p>
           {activeTab === "document" && (
             <>
               <LayoutTab
@@ -669,6 +710,36 @@ export function StylePanel({
                     triggerClassName={PANEL_INPUT_CLASS + " w-full"}
                   />
                 ) : null}
+                {isSimpleMode ? (
+                  <div className="mt-4">
+                    <VisualOptionGroup
+                      label="Densité"
+                      value={layoutSettings.density ?? "normal"}
+                      options={options.densities.map((density) => ({
+                        value: density,
+                        label:
+                          density === "compact"
+                            ? "Compact"
+                            : density === "student"
+                              ? "Aéré"
+                              : density === "senior"
+                                ? "Détaillé"
+                                : "Normal",
+                      }))}
+                      onChange={(density) =>
+                        update({
+                          layout: {
+                            ...layoutSettings,
+                            density: density as NonNullable<
+                              GlobalSettings["layout"]
+                            >["density"],
+                          },
+                        })
+                      }
+                      columns={2}
+                    />
+                  </div>
+                ) : null}
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   {options.editableColors
                     .filter((token) => !isSimpleMode || token === "primary")
@@ -753,6 +824,28 @@ export function StylePanel({
             />
           )}
 
+          {activeTab === "header" && (
+            <HeaderTab
+              settings={layoutSettings}
+              alignments={options.headerAlignments}
+              arrangements={options.headerDetailsArrangements}
+              iconStyles={options.headerIconStyles}
+              update={(patch) =>
+                update({ layout: { ...layoutSettings, ...patch } })
+              }
+            />
+          )}
+
+          {activeTab === "links" && (
+            <LinksTab
+              settings={linkSettings}
+              colors={options.linkColors}
+              update={(patch) =>
+                update({ links: { ...linkSettings, ...patch } })
+              }
+            />
+          )}
+
           {activeTab === "sections" && (
             <SectionsTab
               settings={settings}
@@ -764,6 +857,7 @@ export function StylePanel({
               titleSubtitleOrders={options.titleSubtitleOrders}
               dateLocationPositions={options.dateLocationPositions}
               skillStyles={options.skillStyles}
+              iconStyles={options.sectionIconStyles}
               updateSection={updateSection}
               moveSection={moveSection}
               reorderSections={reorderSections}
@@ -779,6 +873,7 @@ export function StylePanel({
           )}
         </div>
 
+        {isAdvancedMode && activeTab === "advanced" ? (
         <div className="shrink-0 border-t border-border px-5 py-3">
           <button
             onClick={() =>
@@ -789,6 +884,7 @@ export function StylePanel({
             Réinitialiser les réglages
           </button>
         </div>
+        ) : null}
       </aside>
     </>
   );
