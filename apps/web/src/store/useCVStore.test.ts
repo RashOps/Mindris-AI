@@ -65,9 +65,9 @@ describe("useCVStore normalization", () => {
       FALLBACK_CUSTOMIZATION_CATALOGUE,
     );
 
-    expect(merged[0]?.type).toBe("profile");
-    expect(merged[1]?.type).toBe("projects");
-    expect(merged[2]?.type).toBe("experience");
+    expect(merged[0]?.type).toBe("projects");
+    expect(merged[1]?.type).toBe("experience");
+    expect(merged.some((section) => section.type === "profile")).toBe(false);
   });
 
   test("maps backend system configuration into frontend app settings", () => {

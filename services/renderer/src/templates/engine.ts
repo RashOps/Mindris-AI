@@ -70,6 +70,7 @@ type SectionConfig = {
     detail_level?: string;
     show_dates?: boolean;
     show_locations?: boolean;
+    page_break_before?: boolean;
 };
 
 const DEFAULT_SECTIONS: SectionConfig[] = [
@@ -153,6 +154,11 @@ const dynamicSectionCss = `
     white-space: pre-line;
 }
 
+.section-page-break-before {
+    break-before: page;
+    page-break-before: always;
+}
+
 @media print {
     .main-grid {
         display: grid;
@@ -198,7 +204,11 @@ function sectionShell(section: SectionConfig, content: string): string {
     const placement = section.placement || "main";
     const displayMode = section.display_mode || "list";
     const detailLevel = section.detail_level || "normal";
-    return `<section class="section section-placement-${placement} section-display-${html(displayMode)} section-detail-${html(detailLevel)}" data-section-type="${html(section.type)}" data-section-placement="${html(placement)}" data-section-display-mode="${html(displayMode)}" data-section-detail-level="${html(detailLevel)}">
+    const pageBreakClass = section.page_break_before ? " section-page-break-before" : "";
+    const pageBreakAttribute = section.page_break_before
+        ? ' data-section-page-break-before="true"'
+        : "";
+    return `<section class="section section-placement-${placement} section-display-${html(displayMode)} section-detail-${html(detailLevel)}${pageBreakClass}" data-section-type="${html(section.type)}" data-section-placement="${html(placement)}" data-section-display-mode="${html(displayMode)}" data-section-detail-level="${html(detailLevel)}"${pageBreakAttribute}>
       <h2 class="section-title">${html(section.label)}</h2>
       ${content}
     </section>`;

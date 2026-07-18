@@ -166,6 +166,7 @@ class CVSectionSettings(CVBaseModel):
     show_dates: bool = True
     show_locations: bool = True
     detail_level: Literal["short", "normal", "detailed"] = "normal"
+    page_break_before: bool = False
     icon: str | None = None
 
 

@@ -473,7 +473,7 @@ CUSTOMIZATION_CATALOGUE = {
         "sidebarPositions": ["none", "left", "right"],
         "sidebarWidth": {
             "presets": ["25%", "30%", "35%"],
-            "range": {"min": 20, "max": 40, "unit": "%"},
+            "range": {"min": 20, "max": 70, "unit": "%"},
         },
         "densities": ["student", "compact", "normal", "senior"],
         "headerAlignments": ["left", "center", "right"],
@@ -483,11 +483,11 @@ CUSTOMIZATION_CATALOGUE = {
     "typography": {
         "bodyFonts": ["Inter", "Roboto", "Lato", "Merriweather", "DM Sans"],
         "headingFonts": ["Inter", "Roboto", "Lato", "Merriweather", "DM Sans"],
-        "baseSize": {"min": 9, "max": 12, "unit": "pt"},
+        "baseSize": {"min": 9, "max": 14, "unit": "px"},
         "headingScale": {"min": 1.0, "max": 1.6, "step": 0.05},
         "weights": ["regular", "medium", "bold"],
         "capitalization": ["normal", "uppercase"],
-        "lineHeights": ["compact", "normal", "large"],
+        "lineHeights": ["1.25", "1.35", "1.5", "1.65"],
         "dateStyles": ["normal", "italic", "small", "right"],
         "bulletStyles": ["bullets", "dash", "dots", "icons"],
     },
@@ -506,8 +506,6 @@ CUSTOMIZATION_CATALOGUE = {
     },
     "sections": {
         "types": [
-            "profile",
-            "contact",
             "experience",
             "education",
             "projects",
@@ -522,7 +520,7 @@ CUSTOMIZATION_CATALOGUE = {
         ],
         "displayModes": ["list", "timeline", "cards", "compact"],
         "detailLevels": ["short", "normal", "detailed"],
-        "toggles": ["visible", "show_dates", "show_locations"],
+        "toggles": ["visible", "show_dates", "show_locations", "page_break_before"],
         "placements": ["main", "sidebar"],
     },
     "locale": {

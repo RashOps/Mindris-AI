@@ -204,6 +204,36 @@ describe("generateHtml semantic sections", () => {
     }
   });
 
+  test("renders manual page breaks as renderer-owned section metadata", () => {
+    const html = generateHtml(
+      {
+        ...baseCv,
+        global_settings: {
+          ...baseCv.global_settings,
+          page: {
+            page_break_mode: "manual",
+          },
+          sections: [
+            {
+              id: "experience",
+              type: "experience",
+              label: "Experience",
+              visible: true,
+              placement: "main",
+              page_break_before: true,
+            },
+          ],
+        },
+      },
+      "modern",
+    );
+
+    expect(html).toContain("section-page-break-before");
+    expect(html).toContain('data-section-page-break-before="true"');
+    expect(html).toContain("break-before: page;");
+    expect(html).toContain("page-break-before: always;");
+  });
+
   test("applies nested customization tokens for page, layout, typography, and colors", () => {
     const html = generateHtml(
       {

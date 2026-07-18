@@ -229,7 +229,7 @@ export function LayoutTab({
               </section>
 
               <section>
-                <SectionLabel>Header & Photo</SectionLabel>
+                <SectionLabel>Header</SectionLabel>
                 <div className="grid gap-2">
                   <ToolbarSelect
                     value={layoutSettings.header_alignment ?? "left"}
@@ -245,46 +245,6 @@ export function LayoutTab({
                           header_alignment: value as NonNullable<
                             GlobalSettings["layout"]
                           >["header_alignment"],
-                        },
-                      })
-                    }
-                    triggerClassName={PANEL_INPUT_CLASS}
-                  />
-                  <label className={PANEL_TOGGLE_CLASS}>
-                    <span className="text-xs font-medium text-foreground">
-                      Photo enabled
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={layoutSettings.photo?.enabled ?? false}
-                      onChange={(e) =>
-                        update({
-                          layout: {
-                            ...layoutSettings,
-                            photo: {
-                              ...layoutSettings.photo,
-                              enabled: e.target.checked,
-                            },
-                          },
-                        })
-                      }
-                    />
-                  </label>
-                  <ToolbarSelect
-                    value={layoutSettings.photo?.shape ?? "round"}
-                    ariaLabel="Photo shape"
-                    options={options.photoShapes.map((shape) => ({
-                      value: shape,
-                      label: shape,
-                    }))}
-                    onChange={(value) =>
-                      update({
-                        layout: {
-                          ...layoutSettings,
-                          photo: {
-                            ...layoutSettings.photo,
-                            shape: value as "round" | "square",
-                          },
                         },
                       })
                     }

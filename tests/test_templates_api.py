@@ -97,9 +97,15 @@ def test_customization_catalogue_exposes_backend_owned_options() -> None:
     assert options["layout"]["columns"] == [1, 2]
     assert options["layout"]["sidebarPositions"] == ["none", "left", "right"]
     assert options["layout"]["sidebarWidth"]["presets"] == ["25%", "30%", "35%"]
+    assert options["typography"]["baseSize"]["unit"] == "px"
+    assert options["typography"]["baseSize"]["max"] >= 13
     assert options["typography"]["bodyFonts"][:3] == ["Inter", "Roboto", "Lato"]
+    assert "1.5" in options["typography"]["lineHeights"]
     assert "corporate" in options["colors"]["palettePresets"]
     assert "certifications" in options["sections"]["types"]
+    assert "profile" not in options["sections"]["types"]
+    assert "contact" not in options["sections"]["types"]
+    assert "page_break_before" in options["sections"]["toggles"]
     assert options["locale"]["languages"] == ["fr", "en", "de", "es"]
     assert options["locale"]["directions"] == ["ltr", "rtl"]
     assert options["templates"]["ats"]["enforced"]["layout"]["columns"] == 1

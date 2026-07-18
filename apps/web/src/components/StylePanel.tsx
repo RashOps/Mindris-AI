@@ -109,6 +109,17 @@ export function StylePanel({
     update({ sections });
   };
 
+  const reorderSections = (activeId: string, overId: string) => {
+    if (activeId === overId) return;
+    const sections = [...(settings.sections ?? [])];
+    const fromIndex = sections.findIndex((section) => section.id === activeId);
+    const toIndex = sections.findIndex((section) => section.id === overId);
+    if (fromIndex < 0 || toIndex < 0) return;
+    const [item] = sections.splice(fromIndex, 1);
+    sections.splice(toIndex, 0, item);
+    update({ sections });
+  };
+
   const TABS: { key: Tab; label: string; icon: string }[] = [
     { key: "design", label: "Design", icon: "" },
     { key: "typography", label: "Texte", icon: "Aa" },
@@ -202,7 +213,7 @@ export function StylePanel({
           </div>
         ) : null}
 
-        <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
+        <div className="flex-1 space-y-5 overflow-y-auto px-5 pt-4 pb-24">
           {activeTab === "design" && (
             <>
               <section>
@@ -571,6 +582,7 @@ export function StylePanel({
               sectionDetails={sectionDetails}
               updateSection={updateSection}
               moveSection={moveSection}
+              reorderSections={reorderSections}
             />
           )}
 

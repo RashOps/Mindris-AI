@@ -28,6 +28,7 @@ function defaultSections(
     show_dates: true,
     show_locations: true,
     detail_level: "normal",
+    page_break_before: false,
     icon: null,
   }));
 }

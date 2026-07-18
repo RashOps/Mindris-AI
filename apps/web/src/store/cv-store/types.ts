@@ -46,6 +46,7 @@ export interface GlobalSettings {
     show_dates?: boolean;
     show_locations?: boolean;
     detail_level?: "short" | "normal" | "detailed";
+    page_break_before?: boolean;
     icon?: string | null;
   }>;
   locale?: {
