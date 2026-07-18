@@ -33,14 +33,14 @@ export function TrackerHeader({
     <header className="mb-4 rounded-2xl border border-border bg-card px-5 py-4 shadow-sm">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div className="space-y-1">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Applications</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Candidatures</p>
           <div className="flex items-center gap-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
               <Briefcase size={18} />
             </div>
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight">Job Tracker</h1>
-              <p className="text-sm text-muted-foreground">Backend-owned pipeline for applications, interviews, and offers.</p>
+              <h1 className="text-2xl font-semibold tracking-tight">Tracker</h1>
+              <p className="text-sm text-muted-foreground">Suivi backend-owned des candidatures, relances, entretiens et offres.</p>
             </div>
           </div>
         </div>
@@ -48,9 +48,9 @@ export function TrackerHeader({
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           {[
             { label: "Total", value: metrics.totalCount, icon: CircleDot },
-            { label: "Applied", value: metrics.appliedCount, icon: Clock3 },
-            { label: "Interview", value: metrics.interviewCount, icon: Search },
-            { label: "Offers", value: metrics.offerCount, icon: CheckCircle2 },
+            { label: "Envoyées", value: metrics.appliedCount, icon: Clock3 },
+            { label: "Entretiens", value: metrics.interviewCount, icon: Search },
+            { label: "Offres", value: metrics.offerCount, icon: CheckCircle2 },
           ].map((metric) => {
             const Icon = metric.icon;
             return (
@@ -71,21 +71,21 @@ export function TrackerHeader({
           <Input
             value={draft.company}
             onChange={(e) => onDraftChange({ company: e.target.value })}
-            placeholder="Company"
+            placeholder="Entreprise"
             data-testid="tracker-company-input"
             className="app-input h-10"
           />
           <Input
             value={draft.role}
             onChange={(e) => onDraftChange({ role: e.target.value })}
-            placeholder="Role"
+            placeholder="Poste"
             data-testid="tracker-role-input"
             className="app-input h-10"
           />
           <Input
             value={draft.url}
             onChange={(e) => onDraftChange({ url: e.target.value })}
-            placeholder="Job URL"
+            placeholder="URL de l’offre"
             data-testid="tracker-url-input"
             className="app-input h-10"
           />
@@ -94,7 +94,7 @@ export function TrackerHeader({
           <Input
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
-            placeholder="Search applications"
+            placeholder="Rechercher"
             className="app-input h-10 w-full sm:min-w-[260px]"
           />
           <Button
@@ -102,10 +102,10 @@ export function TrackerHeader({
             disabled={isSubmitting || !canCreate}
             data-testid="tracker-add-button"
             className="h-10 w-full cursor-pointer px-4 disabled:cursor-not-allowed sm:w-auto"
-            title={!canCreate ? "Company and role are required" : "Add application"}
+            title={!canCreate ? "Entreprise et poste obligatoires" : "Ajouter une candidature"}
           >
             <Plus size={16} />
-            {isSubmitting ? "Adding..." : "Add application"}
+            {isSubmitting ? "Ajout..." : "Ajouter"}
           </Button>
         </div>
       </div>

@@ -71,7 +71,7 @@ export default function AtsScorePage() {
           model_name: appSettings.optimize_llm.model_name,
         }),
       });
-      if (!startRes.ok) throw new Error("Failed to start analysis pipeline");
+      if (!startRes.ok) throw new Error("Démarrage de l’analyse impossible");
       const { job_id } = await startRes.json();
       jobIdRef.current = job_id;
 
@@ -93,7 +93,7 @@ export default function AtsScorePage() {
                 return;
               }
               if (eventName === "error") {
-                setError(data.message ?? "Pipeline error");
+                setError(data.message ?? "Erreur du pipeline");
                 setIsAnalyzing(false);
                 controller.abort();
                 return;
@@ -103,7 +103,7 @@ export default function AtsScorePage() {
               const insights = data;
               setSseMessages((prev) => [
                 ...prev,
-                `✓ Job analyzed: ${insights.job_title}`,
+                `✓ Offre analysée : ${insights.job_title}`,
               ]);
 
               const scoreRes = await fetch(apiUrl("/api/v1/cv/score"), {
@@ -145,7 +145,7 @@ export default function AtsScorePage() {
         controller.signal,
       );
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      setError(err instanceof Error ? err.message : "Erreur inconnue");
       setIsAnalyzing(false);
     }
   }, [cvLoaded, jobUrl, cvData, appSettings, atsMode]);
@@ -184,7 +184,7 @@ export default function AtsScorePage() {
       {/* Error */}
       {error && (
         <div className="max-w-2xl mx-auto px-6 mt-4">
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200">
+          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
             {error}
           </div>
         </div>
@@ -210,7 +210,7 @@ export default function AtsScorePage() {
                     {foundCount}
                   </p>
                   <p className="mt-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
-                    Found
+                    Trouvés
                   </p>
                 </div>
                 <div>
@@ -224,7 +224,7 @@ export default function AtsScorePage() {
                     {missingHigh}
                   </p>
                   <p className="mt-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
-                    Critical
+                    Critiques
                   </p>
                 </div>
                 <div>
@@ -249,10 +249,10 @@ export default function AtsScorePage() {
               <div>
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                    Executive Summary
+                    Résumé
                   </p>
                   <span className="rounded-full bg-muted px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    {report.mode} mode
+                    mode {report.mode}
                   </span>
                 </div>
                 <p className="text-sm leading-relaxed text-foreground">
@@ -261,7 +261,7 @@ export default function AtsScorePage() {
               </div>
               <div>
                 <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                  Keyword Breakdown
+                  Mots-clés
                 </p>
                 <KeywordBarChart keywords={report.keyword_analysis} />
               </div>
@@ -273,7 +273,7 @@ export default function AtsScorePage() {
             {/* Radar */}
             <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
               <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Skill Coverage Radar
+                Couverture des compétences
               </p>
               <SkillsRadar keywords={report.keyword_analysis} />
             </div>
@@ -281,13 +281,13 @@ export default function AtsScorePage() {
             {/* Recommendations */}
             <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
               <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Actionable Recommendations
+                Recommandations
               </p>
               {report.recommendations.length > 0 ? (
                 <Recommendations recs={report.recommendations} />
               ) : (
                 <p className="text-sm italic text-muted-foreground">
-                  No critical improvements needed.
+                  Aucune amélioration critique détectée.
                 </p>
               )}
             </div>
@@ -297,7 +297,7 @@ export default function AtsScorePage() {
           {report.scoring_breakdown?.length > 0 && (
             <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
               <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Scoring Method
+                Méthode de scoring
               </p>
               <div className="grid gap-3 md:grid-cols-5">
                 {report.scoring_breakdown.map((criterion) => (
@@ -322,7 +322,7 @@ export default function AtsScorePage() {
                       {criterion.score}/{criterion.max_score}
                     </p>
                     <p className="mt-1 text-[10px] text-muted-foreground">
-                      Weight {criterion.weight}%
+                      Poids {criterion.weight}%
                     </p>
                     <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
                       {criterion.explanation}
@@ -337,7 +337,7 @@ export default function AtsScorePage() {
             <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                  Published Rubric
+                  Rubrique publiée
                 </p>
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                   {report.rubric.version}
@@ -369,7 +369,7 @@ export default function AtsScorePage() {
           {report.deductions?.length > 0 && (
             <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
               <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Score Deductions
+                Déductions du score
               </p>
               <div className="space-y-3">
                 {report.deductions.map((deduction) => {
@@ -417,21 +417,21 @@ export default function AtsScorePage() {
               </p>
               <div className="space-y-2 text-sm text-muted-foreground">
                 <p>
-                  <span className="font-semibold text-foreground">Job</span>{" "}
-                  {report.context.job_title || "Unknown"}
+                  <span className="font-semibold text-foreground">Offre</span>{" "}
+                  {report.context.job_title || "Inconnue"}
                   {report.context.job_company
                     ? ` · ${report.context.job_company}`
                     : ""}
                 </p>
                 <p>
-                  <span className="font-semibold text-foreground">Resume</span>{" "}
+                  <span className="font-semibold text-foreground">CV</span>{" "}
                   {report.context.resume_id
                     ? `#${report.context.resume_id}`
-                    : "Current workspace CV"}
+                    : "CV courant"}
                 </p>
                 <p>
                   <span className="font-semibold text-foreground">Locale</span>{" "}
-                  {report.context.resume_locale || "default"}
+                  {report.context.resume_locale || "défaut"}
                 </p>
               </div>
             </div>
@@ -447,7 +447,7 @@ export default function AtsScorePage() {
                   {report.context.provider || appSettings.ats_llm.provider}
                 </p>
                 <p>
-                  <span className="font-semibold text-foreground">Model</span>{" "}
+                  <span className="font-semibold text-foreground">Modèle</span>{" "}
                   {report.context.model_name || appSettings.ats_llm.model_name}
                 </p>
                 <p>
@@ -460,7 +460,7 @@ export default function AtsScorePage() {
           {/* ── Row 3: Full keyword table ── */}
           <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
             <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Keyword Density & Semantic Analysis
+              Analyse des mots-clés
             </p>
             <KeywordTable keywords={report.keyword_analysis} />
           </div>
@@ -469,14 +469,9 @@ export default function AtsScorePage() {
           <div className="text-center pt-2">
             <Link
               href="/tools/cv-creator"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm no-underline transition-all"
-              style={{
-                background: "linear-gradient(135deg, #1d4ed8, #2563eb)",
-                color: "#dbeafe",
-                boxShadow: "0 0 20px rgba(37,99,235,0.25)",
-              }}
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground no-underline transition-all hover:bg-primary/90"
             >
-              Apply fixes in CV Creator →
+              Corriger dans le CV Builder →
             </Link>
           </div>
         </div>

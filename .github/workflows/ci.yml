@@ -38,6 +38,18 @@ jobs:
       - working-directory: services/renderer
         run: bun run build
 
+  docker-self-hosted-dry-run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose -f docker-compose.release.yml config --quiet
+      - run: sh -n scripts/install_self_hosted.sh scripts/update_self_hosted.sh scripts/uninstall_self_hosted.sh scripts/smoke_release.sh scripts/clean_self_hosted_test.sh
+      - run: |
+          MINDRIS_HOME=/tmp/mindris-ai-ci-dry-run \
+          MINDRIS_INSTALL_DRY_RUN=true \
+          MINDRIS_RAW_BASE="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}" \
+          scripts/install_self_hosted.sh
+
   browser-e2e:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest

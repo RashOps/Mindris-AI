@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   CheckCircle2,
@@ -12,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ToolbarSelect } from "@/components/ToolbarSelect";
+import { openCoverLetterInMarkdown } from "@/lib/cover-letters";
 import { WorkflowHeader } from "./components/WorkflowHeader";
 import {
   STATE_LABELS,
@@ -29,6 +31,7 @@ import {
   type ResumeItem,
 } from "./workflow-model";
 export default function WorkflowPage() {
+  const router = useRouter();
   const [opportunities, setOpportunities] = useState<OpportunityItem[]>([]);
   const [jobs, setJobs] = useState<JobItem[]>([]);
   const [resumes, setResumes] = useState<ResumeItem[]>([]);
@@ -106,6 +109,12 @@ export default function WorkflowPage() {
   const filteredCoverLetters = selected?.job_id
     ? coverLetters.filter((item) => item.job_id === selected.job_id)
     : coverLetters;
+  const filteredApplications = selected?.job_id
+    ? applications.filter((item) => item.job_id === selected.job_id)
+    : applications;
+  const activeCoverLetterId = coverLetterId
+    ? Number(coverLetterId)
+    : selected?.cover_letter_id ?? null;
   const canCreate =
     createMode === "job"
       ? Boolean(selectedJobId)
@@ -120,10 +129,15 @@ export default function WorkflowPage() {
       await callback();
       await load();
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "Workflow action failed.");
+      setError(actionError instanceof Error ? actionError.message : "Action workflow impossible.");
     } finally {
       setBusyAction(null);
     }
+  }
+  async function openActiveCoverLetter(): Promise<void> {
+    if (!activeCoverLetterId) return;
+    await openCoverLetterInMarkdown(activeCoverLetterId);
+    router.push("/tools/markdown");
   }
   const selectedResume = resumes.find((item) => item.id === Number(resumeId));
   const localeOptions = selectedResume?.multilingual?.availableLocales?.length
@@ -134,6 +148,35 @@ export default function WorkflowPage() {
     issues: [],
     repair_actions: [],
   };
+  const readinessItems = selected
+    ? [
+        {
+          label: "CV adapté",
+          done: Boolean(selected.resume_id),
+          detail: selected.resume_id ? `CV #${selected.resume_id}${selected.resume_locale ? ` · ${selected.resume_locale.toUpperCase()}` : ""}` : "Lier un CV avant de candidater.",
+          icon: FileText,
+        },
+        {
+          label: "Score ATS",
+          done: Boolean(selected.ats_report_id),
+          detail: selected.ats_report_id ? `Rapport #${selected.ats_report_id}` : "Analyser le CV contre l’offre.",
+          icon: FileBadge2,
+        },
+        {
+          label: "Lettre",
+          done: Boolean(selected.cover_letter_id),
+          detail: selected.cover_letter_id ? `Lettre #${selected.cover_letter_id}` : "Générer ou lier une lettre.",
+          icon: FileText,
+        },
+        {
+          label: "Suivi",
+          done: Boolean(selected.application_id),
+          detail: selected.application_id ? `Tracker #${selected.application_id}` : "Créer une entrée tracker.",
+          icon: ListTodo,
+        },
+      ]
+    : [];
+  const readyCount = readinessItems.filter((item) => item.done).length;
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-background text-foreground">
       <div className="mx-auto max-w-[1600px] px-4 py-4 lg:px-6">
@@ -143,7 +186,7 @@ export default function WorkflowPage() {
           resumes={resumes.length}
         />
         {error && (
-          <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             {error}
           </div>
         )}
@@ -151,7 +194,7 @@ export default function WorkflowPage() {
           <aside className="min-w-0 space-y-4">
             <section className="min-w-0 rounded-2xl border border-border bg-card p-4 shadow-sm">
               <div className="mb-3 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm font-semibold text-foreground">Create opportunity</p>
+                <p className="text-sm font-semibold text-foreground">Créer une opportunité</p>
                 <div className="flex w-fit rounded-lg border border-border bg-muted/40 p-1">
                   <button
                     type="button"
@@ -160,7 +203,7 @@ export default function WorkflowPage() {
                       createMode === "job" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
                     }`}
                   >
-                    From job
+                    Depuis une offre
                   </button>
                   <button
                     type="button"
@@ -169,7 +212,7 @@ export default function WorkflowPage() {
                       createMode === "manual" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
                     }`}
                   >
-                    Manual
+                    Manuel
                   </button>
                 </div>
               </div>
@@ -177,10 +220,10 @@ export default function WorkflowPage() {
                 {createMode === "job" ? (
                   <ToolbarSelect
                     value={selectedJobId}
-                    ariaLabel="Select scraped job"
-                    placeholder="Select scraped job"
+                    ariaLabel="Sélectionner une offre importée"
+                    placeholder="Sélectionner une offre"
                     options={[
-                      { value: "", label: "Select scraped job" },
+                      { value: "", label: "Sélectionner une offre" },
                       ...jobs.map((job) => ({
                         value: String(job.id),
                         label: `${job.company} - ${job.title}`,
@@ -195,19 +238,19 @@ export default function WorkflowPage() {
                     <Input
                       value={manualCompany}
                       onChange={(event) => setManualCompany(event.target.value)}
-                      placeholder="Company"
+                      placeholder="Entreprise"
                       className="app-input h-10"
                     />
                     <Input
                       value={manualRole}
                       onChange={(event) => setManualRole(event.target.value)}
-                      placeholder="Role"
+                      placeholder="Poste"
                       className="app-input h-10"
                     />
                     <Input
                       value={manualUrl}
                       onChange={(event) => setManualUrl(event.target.value)}
-                      placeholder="Source URL (optional)"
+                      placeholder="URL source (optionnel)"
                       className="app-input h-10"
                     />
                   </>
@@ -215,7 +258,7 @@ export default function WorkflowPage() {
                 <textarea
                   value={notes}
                   onChange={(event) => setNotes(event.target.value)}
-                  placeholder="Operator notes"
+                  placeholder="Notes internes"
                   className="app-textarea min-h-24 w-full px-3 py-2 text-sm"
                 />
                 <Button
@@ -245,22 +288,22 @@ export default function WorkflowPage() {
                   className="h-10 w-full"
                 >
                   {busyAction === "create" ? <Loader2 className="animate-spin" /> : <Sparkles size={16} />}
-                  Create workflow
+                  Créer le workflow
                 </Button>
               </div>
             </section>
             <section className="rounded-2xl border border-border bg-card shadow-sm">
               <div className="border-b border-border px-4 py-3">
-                <p className="text-sm font-semibold text-foreground">Active opportunities</p>
+                <p className="text-sm font-semibold text-foreground">Opportunités actives</p>
               </div>
               {loading ? (
                 <div className="flex items-center gap-2 px-4 py-6 text-sm text-muted-foreground">
                   <Loader2 size={16} className="animate-spin" />
-                  Loading workflows...
+                  Chargement des workflows...
                 </div>
               ) : opportunities.length === 0 ? (
                 <div className="px-4 py-6 text-sm text-muted-foreground">
-                  No opportunities yet. Start from a scraped job or create one manually.
+                  Aucune opportunité. Démarrez depuis une offre importée ou créez une fiche manuelle.
                 </div>
               ) : (
                 <div className="divide-y divide-border">
@@ -293,7 +336,7 @@ export default function WorkflowPage() {
                             integrityTone(item.integrity?.status)
                           }`}
                         >
-                          {item.integrity?.status === "degraded" ? "Needs repair" : "Healthy"}
+                          {item.integrity?.status === "degraded" ? "À réparer" : "Sain"}
                         </span>
                       </div>
                     </button>
@@ -305,7 +348,7 @@ export default function WorkflowPage() {
           <section className="min-w-0 space-y-4">
             {!selected ? (
               <div className="rounded-2xl border border-border bg-card px-5 py-8 text-sm text-muted-foreground shadow-sm">
-                Select an opportunity to drive the next workflow step.
+                Sélectionnez une opportunité pour piloter les prochaines étapes.
               </div>
             ) : (
               <>
@@ -327,10 +370,10 @@ export default function WorkflowPage() {
                             integrityTone(integrity.status)
                           }`}
                         >
-                          {integrity.status === "degraded" ? "Integrity degraded" : "Integrity healthy"}
+                          {integrity.status === "degraded" ? "Intégrité dégradée" : "Intégrité saine"}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          Updated {formatTimestamp(selected.last_transition_at)}
+                          Mis à jour {formatTimestamp(selected.last_transition_at)}
                         </span>
                       </div>
                       <h2 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
@@ -344,17 +387,17 @@ export default function WorkflowPage() {
                           rel="noreferrer"
                           className="mt-2 inline-flex items-center gap-1 text-sm text-blue-700 underline-offset-4 hover:underline"
                         >
-                          Source job
+                          Offre source
                           <ArrowRight size={14} />
                         </a>
                       )}
                     </div>
                     <div className="grid gap-2 sm:grid-cols-2 xl:w-[360px]">
                       {[
-                        { label: "Resume", value: selected.resume_id ? `#${selected.resume_id}` : "Missing", icon: FileText },
-                        { label: "ATS", value: selected.ats_report_id ? `#${selected.ats_report_id}` : "Missing", icon: FileBadge2 },
-                        { label: "Letter", value: selected.cover_letter_id ? `#${selected.cover_letter_id}` : "Missing", icon: FileText },
-                        { label: "Tracker", value: selected.application_id ? `#${selected.application_id}` : "Missing", icon: ListTodo },
+                        { label: "CV", value: selected.resume_id ? `#${selected.resume_id}` : "Manquant", icon: FileText },
+                        { label: "ATS", value: selected.ats_report_id ? `#${selected.ats_report_id}` : "Manquant", icon: FileBadge2 },
+                        { label: "Lettre", value: selected.cover_letter_id ? `#${selected.cover_letter_id}` : "Manquant", icon: FileText },
+                        { label: "Tracker", value: selected.application_id ? `#${selected.application_id}` : "Manquant", icon: ListTodo },
                       ].map((stat) => {
                         const Icon = stat.icon;
                         return (
@@ -373,7 +416,47 @@ export default function WorkflowPage() {
                   </div>
                 </section>
                 <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-                  <p className="mb-3 text-sm font-semibold text-foreground">Workflow state</p>
+                  <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Prêt à candidater ?</p>
+                      <p className="text-xs text-muted-foreground">
+                        {readyCount}/4 éléments nécessaires sont liés à cette opportunité.
+                      </p>
+                    </div>
+                    <span className="rounded-full border border-border bg-muted/40 px-3 py-1 text-xs font-medium text-muted-foreground">
+                      {selected.job_id ? `Filtré par offre #${selected.job_id}` : "Opportunité manuelle"}
+                    </span>
+                  </div>
+                  <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+                    {readinessItems.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <div
+                          key={item.label}
+                          className={`rounded-xl border px-3 py-3 ${
+                            item.done
+                              ? "border-emerald-500/30 bg-emerald-500/10"
+                              : "border-border bg-muted/40"
+                          }`}
+                        >
+                          <div className="flex items-start gap-2">
+                            <Icon
+                              size={16}
+                              className={item.done ? "mt-0.5 text-emerald-600 dark:text-emerald-300" : "mt-0.5 text-muted-foreground"}
+                            />
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-foreground">{item.label}</p>
+                              <p className="mt-1 text-xs text-muted-foreground">{item.detail}</p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+
+                <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+                  <p className="mb-3 text-sm font-semibold text-foreground">État du workflow</p>
                   <div className="grid gap-2 xl:grid-cols-7">
                     {STATE_ORDER.map((state) => {
                       const active = selected.current_state === state;
@@ -394,9 +477,9 @@ export default function WorkflowPage() {
                 <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-foreground">Integrity</p>
+                      <p className="text-sm font-semibold text-foreground">Intégrité</p>
                       <p className="text-xs text-muted-foreground">
-                        Backend-owned workflow health and bounded recovery actions.
+                        Contrôle backend des liens et actions de réparation limitées.
                       </p>
                     </div>
                     <span
@@ -404,13 +487,13 @@ export default function WorkflowPage() {
                         integrityTone(integrity.status)
                       }`}
                     >
-                      {integrity.status}
+                      {integrity.status === "degraded" ? "dégradé" : "sain"}
                     </span>
                   </div>
 
                   {integrity.issues.length === 0 ? (
-                    <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm text-emerald-700">
-                      No degraded workflow links detected for this opportunity.
+                    <div className="mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-3 text-sm text-emerald-700 dark:text-emerald-300">
+                      Aucun lien dégradé détecté pour cette opportunité.
                     </div>
                   ) : (
                     <div className="mt-3 space-y-3">
@@ -473,17 +556,17 @@ export default function WorkflowPage() {
 
                 <section className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-2">
                   <div className="min-w-0 rounded-2xl border border-border bg-card p-4 shadow-sm">
-                    <p className="mb-3 text-sm font-semibold text-foreground">Next actions</p>
+                    <p className="mb-3 text-sm font-semibold text-foreground">Actions à faire</p>
                     <div className="min-w-0 space-y-3">
                       <div className="min-w-0 rounded-xl border border-border bg-muted/40 p-3">
-                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Resume</p>
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">CV</p>
                         <div className="flex min-w-0 flex-col gap-2 xl:flex-row">
                           <ToolbarSelect
                             value={resumeId}
-                            ariaLabel="Select resume"
-                            placeholder="Select resume"
+                            ariaLabel="Sélectionner un CV"
+                            placeholder="Sélectionner un CV"
                             options={[
-                              { value: "", label: "Select resume" },
+                              { value: "", label: "Sélectionner un CV" },
                               ...resumes.map((resume) => ({
                                 value: String(resume.id),
                                 label: resume.name,
@@ -494,7 +577,7 @@ export default function WorkflowPage() {
                           />
                           <ToolbarSelect
                             value={resumeLocale}
-                            ariaLabel="Select resume locale"
+                            ariaLabel="Sélectionner la langue du CV"
                             options={localeOptions.map((locale) => ({
                               value: locale,
                               label: locale.toUpperCase(),
@@ -520,21 +603,26 @@ export default function WorkflowPage() {
                           }
                         >
                           {busyAction === "resume" ? <Loader2 className="animate-spin" /> : <FileText size={16} />}
-                          Link resume
+                          Lier le CV
                         </Button>
                       </div>
 
                       <div className="min-w-0 rounded-xl border border-border bg-muted/40 p-3">
-                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">ATS report</p>
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Score ATS</p>
+                          <span className="text-[11px] text-muted-foreground">
+                            {filteredAtsReports.length} rapport{filteredAtsReports.length > 1 ? "s" : ""}
+                          </span>
+                        </div>
                         <ToolbarSelect
                           value={atsReportId}
-                          ariaLabel="Select ATS report"
-                          placeholder="Select ATS report"
+                          ariaLabel="Sélectionner un rapport ATS"
+                          placeholder="Sélectionner un rapport ATS"
                           options={[
-                            { value: "", label: "Select ATS report" },
+                            { value: "", label: "Sélectionner un rapport ATS" },
                             ...filteredAtsReports.map((report) => ({
                               value: String(report.id),
-                              label: `#${report.id} - ${report.mode} - ${report.score}`,
+                              label: `#${report.id} · ${report.mode} · ${report.score}/100`,
                             })),
                           ]}
                           onChange={setAtsReportId}
@@ -553,18 +641,40 @@ export default function WorkflowPage() {
                           }
                         >
                           {busyAction === "ats" ? <Loader2 className="animate-spin" /> : <FileBadge2 size={16} />}
-                          Link ATS report
+                          Lier le rapport ATS
                         </Button>
                       </div>
 
                       <div className="min-w-0 rounded-xl border border-border bg-muted/40 p-3">
-                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cover letter</p>
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Lettre</p>
+                          <span className="ml-auto text-[11px] text-muted-foreground">
+                            {filteredCoverLetters.length} lettre{filteredCoverLetters.length > 1 ? "s" : ""}
+                          </span>
+                          {activeCoverLetterId ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                void openActiveCoverLetter().catch((openError: unknown) => {
+                                  setError(
+                                    openError instanceof Error
+                                      ? openError.message
+                                      : "Ouverture de la lettre impossible.",
+                                  );
+                                });
+                              }}
+                              className="text-xs font-medium text-primary hover:underline"
+                            >
+                              Ouvrir
+                            </button>
+                          ) : null}
+                        </div>
                         <ToolbarSelect
                           value={coverLetterId}
-                          ariaLabel="Select cover letter"
-                          placeholder="Select cover letter"
+                          ariaLabel="Sélectionner une lettre"
+                          placeholder="Sélectionner une lettre"
                           options={[
-                            { value: "", label: "Select cover letter" },
+                            { value: "", label: "Sélectionner une lettre" },
                             ...filteredCoverLetters.map((letter) => ({
                               value: String(letter.id),
                               label: `#${letter.id} - ${formatTimestamp(letter.generated_at)}`,
@@ -586,19 +696,24 @@ export default function WorkflowPage() {
                           }
                         >
                           {busyAction === "letter" ? <Loader2 className="animate-spin" /> : <FileText size={16} />}
-                          Link cover letter
+                          Lier la lettre
                         </Button>
                       </div>
 
                       <div className="min-w-0 rounded-xl border border-border bg-muted/40 p-3">
-                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tracker</p>
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tracker</p>
+                          <span className="text-[11px] text-muted-foreground">
+                            {filteredApplications.length} entrée{filteredApplications.length > 1 ? "s" : ""}
+                          </span>
+                        </div>
                         <ToolbarSelect
                           value={applicationId}
-                          ariaLabel="Select tracker entry"
-                          placeholder="Create new tracker entry"
+                          ariaLabel="Sélectionner une candidature"
+                          placeholder="Créer une entrée tracker"
                           options={[
-                            { value: "", label: "Create new tracker entry" },
-                            ...applications.map((application) => ({
+                            { value: "", label: "Créer une entrée tracker" },
+                            ...filteredApplications.map((application) => ({
                               value: String(application.id),
                               label: `#${application.id} - ${application.company} - ${application.role}`,
                             })),
@@ -620,7 +735,7 @@ export default function WorkflowPage() {
                             }
                           >
                             {busyAction === "tracker-create" ? <Loader2 className="animate-spin" /> : <ListTodo size={16} />}
-                            Create tracker
+                            Créer le tracker
                           </Button>
                           <Button
                             variant="outline"
@@ -636,7 +751,7 @@ export default function WorkflowPage() {
                             }
                           >
                             {busyAction === "tracker-attach" ? <Loader2 className="animate-spin" /> : <ArrowRight size={16} />}
-                            Attach existing
+                            Lier l’existant
                           </Button>
                         </div>
                       </div>
@@ -645,7 +760,7 @@ export default function WorkflowPage() {
 
                   <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-semibold text-foreground">Transition log</p>
+                      <p className="text-sm font-semibold text-foreground">Journal</p>
                       <Button
                         className="h-9"
                         disabled={busyAction === "ready"}
@@ -658,7 +773,7 @@ export default function WorkflowPage() {
                         }
                       >
                         {busyAction === "ready" ? <Loader2 className="animate-spin" /> : <CheckCircle2 size={16} />}
-                        Mark ready
+                        Marquer prêt
                       </Button>
                     </div>
 

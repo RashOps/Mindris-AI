@@ -338,6 +338,16 @@ async def list_cover_letters(session: SessionDep) -> dict:
     return {"status": "success", "items": [serialize_cover_letter(row) for row in rows]}
 
 
+@router.get("/cover-letters/{letter_id}")
+async def get_cover_letter(letter_id: int, session: SessionDep) -> dict:
+    """Return one generated cover letter."""
+    row = session.get(CoverLetterRecord, letter_id)
+    if not row:
+        logger.warning("Cover letter %s not found", letter_id)
+        raise HTTPException(status_code=404, detail="Cover letter not found.")
+    return {"status": "success", "item": serialize_cover_letter(row)}
+
+
 @router.get("/ats-reports")
 async def list_ats_reports(session: SessionDep) -> dict:
     """List ATS reports."""

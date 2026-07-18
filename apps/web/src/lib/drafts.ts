@@ -13,10 +13,9 @@ export async function saveDraft<T extends Record<string, unknown>>(
 }
 
 export async function loadDraft<T>(key: string): Promise<T | null> {
-  const response = await fetch(apiUrl(`/api/v1/drafts/${key}`), {
+  const response = await fetch(apiUrl(`/api/v1/drafts/maybe/${key}`), {
     headers: jsonHeaders(),
   });
-  if (response.status === 404) return null;
   if (!response.ok) throw new Error(`Draft load failed: ${response.status}`);
   const payload = (await response.json()) as { item?: { data?: T } };
   return payload.item?.data ?? null;

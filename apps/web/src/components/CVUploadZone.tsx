@@ -46,7 +46,7 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
       const text = await file.text();
       const data = JSON.parse(text);
       const importedCV = cvDataFromImport(data);
-      if (!importedCV) throw new Error('Invalid CV JSON');
+      if (!importedCV) throw new Error('CV JSON invalide');
       replaceCVData(importedCV);
       await fetch(apiUrl("/api/v1/cv/current"), {
         method: 'PUT',
@@ -57,16 +57,16 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
         }),
       });
       onCvLoaded?.(importedCV);
-      showStatus('✅ JSON CV loaded!');
+      showStatus('✅ CV JSON chargé.');
     } catch (err: unknown) {
-      showStatus(`❌ ${err instanceof Error ? err.message : 'Invalid JSON file.'}`, 5000);
+      showStatus(`❌ ${err instanceof Error ? err.message : 'Fichier JSON invalide.'}`, 5000);
     }
   };
 
   // ── PDF handler ──────────────────────────────────────────────────────────────
   const handlePdf = async (file: File) => {
     setIsUploading(true);
-    showStatus('📄 Parsing PDF (10-30s)…', 30000);
+    showStatus('📄 Lecture du PDF (10-30s)…', 30000);
     try {
       const form = new FormData();
       form.append('file', file);
@@ -74,7 +74,7 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
       form.append('model_name', appSettings.optimize_llm.model_name);
       form.append('ingestion_mode', appSettings.pdf_ingestion_mode);
       const res = await fetch(apiUrl("/api/v1/cv/upload-pdf"), { method: 'POST', headers: apiHeaders(), body: form });
-      if (!res.ok) throw new Error('Upload failed');
+      if (!res.ok) throw new Error('Import impossible');
       const data = await res.json();
       if (data.cv_data) {
         replaceCVData(data.cv_data);
@@ -88,9 +88,9 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
         }).catch(() => undefined);
         onCvLoaded?.(data.cv_data);
       }
-      showStatus('✅ PDF parsed & indexed!');
+      showStatus('✅ PDF lu et indexé.');
     } catch (err: unknown) {
-      showStatus(`❌ ${err instanceof Error ? err.message : 'Upload failed'}`, 6000);
+      showStatus(`❌ ${err instanceof Error ? err.message : 'Import impossible'}`, 6000);
     } finally {
       setIsUploading(false);
     }
@@ -99,7 +99,7 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
   const handleFile = (file: File) => {
     if (file.name.endsWith('.json')) return handleJson(file);
     if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) return handlePdf(file);
-    showStatus('⚠️ Please upload a .json or .pdf file.');
+    showStatus('⚠️ Importez un fichier .json ou .pdf.');
   };
 
   // ── Drag & drop ──────────────────────────────────────────────────────────────
@@ -119,7 +119,7 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
   // ── "Use current CV" shortcut ─────────────────────────────────────────────
   const useCurrentCV = () => {
     onCvLoaded?.(cvData as object);
-    showStatus(`✅ Using ${cvData.profile.full_name}'s CV from store`);
+    showStatus(`✅ CV de ${cvData.profile.full_name} utilisé.`);
   };
 
   if (compact) {
@@ -128,10 +128,10 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
         {hasCurrentCV && (
           <button
             onClick={useCurrentCV}
-            className="flex w-full cursor-pointer items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-left text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100"
+            className="flex w-full cursor-pointer items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-left text-xs font-medium text-blue-700 transition-colors hover:bg-blue-500/15 dark:text-blue-300"
           >
             <span>👤</span>
-            <span className="truncate">Use {cvData.profile.full_name || 'current CV'}</span>
+            <span className="truncate">Utiliser {cvData.profile.full_name || 'le CV courant'}</span>
             <span className="ml-auto opacity-70">→</span>
           </button>
         )}
@@ -141,19 +141,19 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
           <input ref={pdfRef}  type="file" accept=".pdf"  className="hidden" onChange={onFileInput} />
           <button
             onClick={() => jsonRef.current?.click()}
-            className="flex-1 cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+            className="flex-1 cursor-pointer rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-foreground shadow-sm transition-colors hover:bg-accent"
           >
             {"{ }"} JSON
           </button>
           <button
             onClick={() => pdfRef.current?.click()}
             disabled={isUploading}
-            className="flex-1 cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex-1 cursor-pointer rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-foreground shadow-sm transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isUploading ? '⏳' : '📄'} PDF
           </button>
         </div>
-        {status && <p className="text-center text-xs text-slate-600">{status}</p>}
+        {status && <p className="text-center text-xs text-muted-foreground">{status}</p>}
       </div>
     );
   }
@@ -164,16 +164,16 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
       {hasCurrentCV && (
         <button
           onClick={useCurrentCV}
-          className="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 p-3 text-left text-sm font-medium text-blue-700 transition-all hover:bg-blue-100"
+            className="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-blue-500/30 bg-blue-500/10 p-3 text-left text-sm font-medium text-blue-700 transition-all hover:bg-blue-500/15 dark:text-blue-300"
         >
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10">
             👤
           </div>
           <div className="flex-1 min-w-0">
-            <p className="truncate font-semibold text-blue-900">
-              {cvData.profile.full_name || 'Current CV'}
+            <p className="truncate font-semibold">
+              {cvData.profile.full_name || 'CV courant'}
             </p>
-            <p className="text-xs opacity-60 mt-0.5">Already loaded in CV Creator — click to use</p>
+            <p className="mt-0.5 text-xs opacity-70">Déjà chargé dans le CV Builder — cliquez pour l’utiliser</p>
           </div>
           <span>→</span>
         </button>
@@ -186,8 +186,8 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
         onDrop={onDrop}
         className="relative flex cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed p-8 transition-all duration-200"
         style={{
-          borderColor: isDragging ? '#8b5cf6' : '#cbd5e1',
-          background: isDragging ? '#f5f3ff' : '#ffffff',
+          borderColor: isDragging ? 'hsl(var(--primary))' : 'hsl(var(--border))',
+          background: isDragging ? 'hsl(var(--primary) / 0.08)' : 'hsl(var(--card))',
         }}
         onClick={() => jsonRef.current?.click()}
       >
@@ -197,11 +197,11 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
           {isUploading ? '⏳' : '⬆️'}
         </div>
         <div className="text-center">
-          <p className="text-sm font-medium text-slate-900">
-            {isUploading ? 'Uploading…' : 'Drop your CV here'}
+          <p className="text-sm font-medium text-foreground">
+            {isUploading ? 'Import en cours…' : 'Déposez votre CV ici'}
           </p>
-          <p className="mt-1 text-xs text-slate-500">
-            JSON or PDF · or click to browse
+          <p className="mt-1 text-xs text-muted-foreground">
+            JSON ou PDF · cliquez pour parcourir
           </p>
         </div>
 
@@ -216,15 +216,15 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
         <button
           onClick={(e) => { e.stopPropagation(); pdfRef.current?.click(); }}
           disabled={isUploading}
-          className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition-all hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground shadow-sm transition-all hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isUploading ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : '📄'}
-          Upload PDF
+          Importer PDF
         </button>
       </div>
 
       {status && (
-        <p className="rounded-lg bg-slate-100 px-3 py-1.5 text-center text-xs text-slate-600">
+        <p className="rounded-lg bg-muted px-3 py-1.5 text-center text-xs text-muted-foreground">
           {status}
         </p>
       )}

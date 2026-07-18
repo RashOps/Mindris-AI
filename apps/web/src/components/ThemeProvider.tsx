@@ -1,9 +1,10 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useSyncExternalStore } from "react";
 
 type Theme = "light" | "dark";
 export const THEME_STORAGE_KEY = "mindris-theme";
+const THEME_CHANGE_EVENT = "mindris-theme-change";
 
 interface ThemeContextValue {
   theme: Theme;
@@ -31,23 +32,57 @@ function applyDocumentTheme(theme: Theme) {
   document.documentElement.style.colorScheme = theme;
 }
 
-function readInitialTheme(): Theme {
-  if (typeof window === "undefined") return "light";
+function readBrowserTheme(): Theme {
   return resolvePreferredTheme(
     window.localStorage.getItem(THEME_STORAGE_KEY),
     window.matchMedia("(prefers-color-scheme: dark)").matches,
   );
 }
 
+function getClientThemeSnapshot(): Theme {
+  return readBrowserTheme();
+}
+
+function getServerThemeSnapshot(): Theme {
+  return "light";
+}
+
+function subscribeToTheme(callback: () => void) {
+  const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+  const notify = () => callback();
+
+  window.queueMicrotask(notify);
+  window.addEventListener("storage", notify);
+  window.addEventListener(THEME_CHANGE_EVENT, notify);
+  mediaQuery.addEventListener("change", notify);
+
+  return () => {
+    window.removeEventListener("storage", notify);
+    window.removeEventListener(THEME_CHANGE_EVENT, notify);
+    mediaQuery.removeEventListener("change", notify);
+  };
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(readInitialTheme);
+  const theme = useSyncExternalStore(subscribeToTheme, getClientThemeSnapshot, getServerThemeSnapshot);
 
   useEffect(() => {
+    if (readBrowserTheme() !== theme) return;
     applyDocumentTheme(theme);
     window.localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
 
-  const value = useMemo(() => ({ theme, setTheme: setThemeState }), [theme]);
+  const value = useMemo(
+    () => ({
+      theme,
+      setTheme: (nextTheme: Theme) => {
+        applyDocumentTheme(nextTheme);
+        window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+        window.dispatchEvent(new Event(THEME_CHANGE_EVENT));
+      },
+    }),
+    [theme],
+  );
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 

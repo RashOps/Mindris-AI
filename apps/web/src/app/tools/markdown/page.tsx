@@ -2,7 +2,9 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { RENDERER_BASE_URL, apiUrl, jsonHeaders, rendererUrl } from "@/lib/api";
+import { fetchCoverLetter } from "@/lib/cover-letters";
 import { deleteDraft, loadDraft } from "@/lib/drafts";
+import { ToolbarSelect } from "@/components/ToolbarSelect";
 
 // ── Templates ─────────────────────────────────────────────────────────────────
 
@@ -15,7 +17,7 @@ const TEMPLATES = {
 ---
 
 **À l'attention du service Recrutement**
-Paris, le ${new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+Paris, le [date]
 
 ---
 
@@ -92,6 +94,13 @@ type MarkdownDraft = {
   generated_at?: string | null;
 };
 
+type CoverLetterItem = {
+  id: number;
+  job_id?: number | null;
+  markdown_content: string;
+  generated_at: string;
+};
+
 function defaultDraft() {
   return {
     markdown: TEMPLATES.cover_letter,
@@ -122,7 +131,29 @@ export default function MarkdownToolPage() {
   );
   const [coverLetterId, setCoverLetterId] = useState<number | null>(null);
   const [coverLetterJobId, setCoverLetterJobId] = useState<number | null>(null);
+  const [coverLetters, setCoverLetters] = useState<CoverLetterItem[]>([]);
+  const [isLoadingLetter, setIsLoadingLetter] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const refreshCoverLetters = useCallback(async () => {
+    try {
+      const response = await fetch(apiUrl("/api/v1/history/cover-letters"), {
+        headers: jsonHeaders(),
+      });
+      if (!response.ok) return;
+      const payload = (await response.json()) as { items?: CoverLetterItem[] };
+      setCoverLetters(Array.isArray(payload.items) ? payload.items : []);
+    } catch {
+      // History is optional for the generic Markdown editor.
+    }
+  }, []);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void refreshCoverLetters();
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [refreshCoverLetters]);
 
   useEffect(() => {
     let cancelled = false;
@@ -149,6 +180,44 @@ export default function MarkdownToolPage() {
       cancelled = true;
     };
   }, []);
+
+  const sameJobLetters = coverLetterJobId
+    ? coverLetters.filter((item) => item.job_id === coverLetterJobId)
+    : [];
+
+  const handleOpenCoverLetter = useCallback(
+    async (letterId: number) => {
+      setIsLoadingLetter(true);
+      setStatus(null);
+      try {
+        const letter = await fetchCoverLetter(letterId);
+        setMarkdown(letter.markdown_content);
+        setStyle("letter");
+        setTitle(`Lettre de motivation #${letter.id}`);
+        setCoverLetterId(letter.id);
+        setCoverLetterJobId(
+          typeof letter.job_id === "number" ? letter.job_id : null,
+        );
+        setActiveTemplate("cover_letter");
+        setStatus({
+          type: "success",
+          msg: `Lettre #${letter.id} chargée dans l’éditeur.`,
+        });
+      } catch (err: unknown) {
+        setStatus({
+          type: "error",
+          msg:
+            err instanceof Error
+              ? err.message
+              : "Chargement de la lettre impossible.",
+        });
+      } finally {
+        setIsLoadingLetter(false);
+        setTimeout(() => setStatus(null), 4000);
+      }
+    },
+    [],
+  );
 
   // ── Preview (debounced) ───────────────────────────────────────────────────
   const fetchPreview = useCallback(async (md: string, s: string, t: string) => {
@@ -203,11 +272,11 @@ export default function MarkdownToolPage() {
       a.download = `${title.replace(/\s+/g, "_") || "document"}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
-      setStatus({ type: "success", msg: "✅ PDF downloaded!" });
+      setStatus({ type: "success", msg: "PDF téléchargé." });
     } catch (err: unknown) {
       setStatus({
         type: "error",
-        msg: `❌ ${err instanceof Error ? err.message : "Export failed"}`,
+        msg: err instanceof Error ? err.message : "Export PDF impossible",
       });
     } finally {
       setIsExporting(false);
@@ -225,7 +294,7 @@ export default function MarkdownToolPage() {
         headers: jsonHeaders(),
         body: JSON.stringify({ markdown, title }),
       });
-      if (!res.ok) throw new Error(`DOCX export error: ${res.status}`);
+      if (!res.ok) throw new Error(`Export DOCX impossible : ${res.status}`);
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -233,11 +302,11 @@ export default function MarkdownToolPage() {
       a.download = `${title.replace(/\s+/g, "_") || "document"}.docx`;
       a.click();
       URL.revokeObjectURL(url);
-      setStatus({ type: "success", msg: "✅ DOCX downloaded!" });
+      setStatus({ type: "success", msg: "DOCX téléchargé." });
     } catch (err: unknown) {
       setStatus({
         type: "error",
-        msg: `❌ ${err instanceof Error ? err.message : "DOCX export failed"}`,
+        msg: err instanceof Error ? err.message : "Export DOCX impossible",
       });
     } finally {
       setIsExportingDocx(false);
@@ -265,11 +334,12 @@ export default function MarkdownToolPage() {
       const data = await res.json();
       if (typeof data.id === "number") setCoverLetterId(data.id);
       if (typeof data.job_id === "number") setCoverLetterJobId(data.job_id);
-      setStatus({ type: "success", msg: "✅ Letter version saved!" });
+      await refreshCoverLetters();
+      setStatus({ type: "success", msg: "Nouvelle version de lettre sauvegardée." });
     } catch (err: unknown) {
       setStatus({
         type: "error",
-        msg: `❌ ${err instanceof Error ? err.message : "Save failed"}`,
+        msg: err instanceof Error ? err.message : "Sauvegarde impossible",
       });
     } finally {
       setIsSavingVersion(false);
@@ -281,6 +351,8 @@ export default function MarkdownToolPage() {
   const applyTemplate = (key: keyof typeof TEMPLATES) => {
     setActiveTemplate(key);
     setMarkdown(TEMPLATES[key]);
+    setCoverLetterId(null);
+    setCoverLetterJobId(null);
     if (key === "cover_letter") {
       setStyle("letter");
       setTitle("Lettre de motivation");
@@ -303,7 +375,11 @@ export default function MarkdownToolPage() {
       {/* Toast */}
       {status && (
         <div
-          className={`fixed top-4 right-4 z-50 px-4 py-2.5 rounded-lg text-white text-sm shadow-xl transition-all ${status.type === "success" ? "bg-emerald-600" : "bg-rose-600"}`}
+          className={`fixed top-4 right-4 z-50 rounded-lg border px-4 py-2.5 text-sm shadow-xl transition-all ${
+            status.type === "success"
+              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+              : "border-destructive/30 bg-destructive/10 text-destructive"
+          }`}
         >
           {status.msg}
         </div>
@@ -311,10 +387,32 @@ export default function MarkdownToolPage() {
 
       {/* ── Header ───────────────────────────────────────────────────────────── */}
       <header className="flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border bg-card px-4 py-2 shadow-sm">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-3">
           <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             Markdown PDF
           </span>
+          {coverLetters.length > 0 ? (
+            <ToolbarSelect
+              value={coverLetterId ? String(coverLetterId) : ""}
+              ariaLabel="Charger une lettre persistée"
+              placeholder="Charger une lettre"
+              options={[
+                { value: "", label: "Charger une lettre" },
+                ...coverLetters.map((letter) => ({
+                  value: String(letter.id),
+                  label: `Lettre #${letter.id}`,
+                  hint: letter.job_id ? `Job #${letter.job_id}` : "Sans job",
+                })),
+              ]}
+              onChange={(value) => {
+                if (!value) return;
+                void handleOpenCoverLetter(Number(value));
+              }}
+              disabled={isLoadingLetter}
+              triggerClassName="app-select h-9 min-w-44 px-3 text-xs"
+              menuClassName="min-w-56"
+            />
+          ) : null}
         </div>
 
         {/* Controls */}
@@ -324,7 +422,7 @@ export default function MarkdownToolPage() {
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Document title..."
+            placeholder="Titre du document..."
             className="app-input h-9 w-44 px-3 text-sm"
           />
 
@@ -340,7 +438,7 @@ export default function MarkdownToolPage() {
                     : "bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 }`}
               >
-                {s === "document" ? "Document" : "Letter"}
+                {s === "document" ? "Document" : "Lettre"}
               </button>
             ))}
           </div>
@@ -355,10 +453,10 @@ export default function MarkdownToolPage() {
               {isSavingVersion ? (
                 <>
                   <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />{" "}
-                  Saving...
+                  Sauvegarde...
                 </>
               ) : (
-                <>Save Letter Version</>
+                <>Sauvegarder une nouvelle version</>
               )}
             </button>
           ) : null}
@@ -371,7 +469,7 @@ export default function MarkdownToolPage() {
             {isExportingDocx ? (
               <>
                 <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />{" "}
-                Generating...
+                Génération...
               </>
             ) : (
               <>↓ Export DOCX</>
@@ -386,7 +484,7 @@ export default function MarkdownToolPage() {
             {isExporting ? (
               <>
                 <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />{" "}
-                Generating...
+                Génération...
               </>
             ) : (
               <>↓ Export PDF</>
@@ -398,7 +496,7 @@ export default function MarkdownToolPage() {
       {/* ── Template bar ─────────────────────────────────────────────────────────── */}
       <div className="flex shrink-0 items-center gap-2 border-b border-border bg-card px-4 py-2">
         <span className="mr-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-          Template:
+          Template :
         </span>
         {(Object.keys(TEMPLATES) as Array<keyof typeof TEMPLATES>).map(
           (key) => (
@@ -411,16 +509,55 @@ export default function MarkdownToolPage() {
                   : "border-border bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               }`}
             >
-              {key === "blank" && "Blank"}
-              {key === "cover_letter" && "Cover Letter"}
-              {key === "technical_doc" && "Technical Doc"}
+              {key === "blank" && "Vide"}
+              {key === "cover_letter" && "Lettre"}
+              {key === "technical_doc" && "Doc technique"}
             </button>
           ),
         )}
         <div className="ml-auto text-xs text-muted-foreground">
-          {wordCount} words · {charCount} chars
+          {wordCount} mots · {charCount} caractères
         </div>
       </div>
+
+      {coverLetterId ? (
+        <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-border bg-muted/30 px-4 py-2 text-xs text-muted-foreground">
+          <span>
+            Lettre active :{" "}
+            <span className="font-semibold text-foreground">#{coverLetterId}</span>
+          </span>
+          <span>
+            Job :{" "}
+            <span className="font-semibold text-foreground">
+              {coverLetterJobId ? `#${coverLetterJobId}` : "non lié"}
+            </span>
+          </span>
+          <span>
+            Versions même job :{" "}
+            <span className="font-semibold text-foreground">
+              {sameJobLetters.length}
+            </span>
+          </span>
+          {sameJobLetters.length > 1 ? (
+            <div className="flex flex-wrap items-center gap-1">
+              {sameJobLetters.slice(0, 5).map((letter) => (
+                <button
+                  key={letter.id}
+                  type="button"
+                  onClick={() => void handleOpenCoverLetter(letter.id)}
+                  className={`rounded-full border px-2 py-0.5 font-medium transition-colors ${
+                    letter.id === coverLetterId
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-card text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  }`}
+                >
+                  #{letter.id}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {/* ── Editor / Preview split ────────────────────────────────────────── */}
       <div className="flex-1 flex overflow-hidden">
@@ -428,14 +565,14 @@ export default function MarkdownToolPage() {
         <div className="flex h-full w-1/2 flex-col border-r border-border bg-card">
           <div className="border-b border-border bg-card px-4 py-2">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              Markdown Editor
+              Éditeur Markdown
             </p>
           </div>
           <textarea
             value={markdown}
             onChange={(e) => setMarkdown(e.target.value)}
             spellCheck={false}
-            placeholder={`# Start writing...\n\nSupports **GFM Markdown** — headings, lists, code blocks, tables, blockquotes.\n\nPick a template above to get started quickly.`}
+            placeholder={`# Commence à écrire...\n\nSupporte le **Markdown GFM** — titres, listes, blocs de code, tableaux, citations.\n\nChoisis un template au-dessus pour démarrer vite.`}
             className="flex-1 w-full resize-none bg-background p-5 text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground focus:outline-none"
             style={{ fontFamily: "var(--font-mono)" }}
           />
@@ -445,12 +582,12 @@ export default function MarkdownToolPage() {
         <div className="flex h-full w-1/2 flex-col bg-muted/40">
           <div className="flex items-center justify-between border-b border-border bg-card px-4 py-2">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              Live Preview
+              Preview live
             </p>
             {isLoadingPreview && (
               <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <span className="h-2.5 w-2.5 animate-spin rounded-full border border-current border-t-transparent" />
-                Rendering...
+                Rendu...
               </span>
             )}
           </div>
@@ -461,7 +598,7 @@ export default function MarkdownToolPage() {
                 srcDoc={previewHtml}
                 className="h-full w-full rounded-lg border border-border bg-white shadow-sm"
                 title="Markdown Preview"
-                sandbox="allow-same-origin allow-scripts"
+                sandbox="allow-same-origin"
               />
             ) : (
               <div className="flex h-full w-full flex-col items-center justify-center text-muted-foreground">
@@ -481,16 +618,16 @@ export default function MarkdownToolPage() {
                       />
                     </svg>
                     <p className="text-sm font-medium text-foreground">
-                      Start typing or pick a template
+                      Commence à écrire ou choisis un template
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Preview updates automatically
+                      La preview se met à jour automatiquement
                     </p>
                   </>
                 ) : (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    Connecting to renderer...
+                    Connexion au renderer...
                   </div>
                 )}
               </div>
@@ -502,20 +639,20 @@ export default function MarkdownToolPage() {
       {/* ── Status bar ─────────────────────────────────────────────────────────── */}
       <div className="flex h-8 shrink-0 items-center gap-4 border-t border-border bg-card px-4">
         <span className="text-xs text-muted-foreground">
-          Style:{" "}
+          Style :{" "}
           <span className="font-medium capitalize text-foreground">
             {style}
           </span>
         </span>
         <span className="text-xs text-muted-foreground">
-          Renderer:{" "}
+          Renderer :{" "}
           <span className="font-medium text-foreground">
             {RENDERER_BASE_URL}
           </span>
         </span>
         {coverLetterId ? (
           <span className="text-xs text-muted-foreground">
-            Letter:{" "}
+            Lettre :{" "}
             <span className="font-medium text-foreground">
               #{coverLetterId}
             </span>

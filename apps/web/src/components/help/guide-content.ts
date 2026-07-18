@@ -124,7 +124,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
       "Configuration centralise les defaults par tâche, l’ingestion, les diagnostics runtime et les slots de secrets.",
       "Le RuntimeGate attend les endpoints backend/renderer avant d’ouvrir le workspace pour éviter une UI active sur un système non prêt.",
     ],
-    steps: ["Vérifier Ready", "Choisir les defaults", "Tester les providers", "Lancer l’action"],
+    steps: ["Vérifier Ready", "Choisir les réglages", "Tester les fournisseurs", "Lancer l’action"],
     checklist: [
       "API gateway prêt.",
       "Renderer prêt.",

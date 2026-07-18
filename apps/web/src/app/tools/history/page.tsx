@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowRight, Filter, History, Link2, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import { apiUrl, jsonHeaders } from "@/lib/api";
+import { openCoverLetterInMarkdown } from "@/lib/cover-letters";
 import {
   normalizeHistoryLedgerItem,
   type HistoryLedgerItem,
@@ -65,6 +67,7 @@ function subjectTone(subjectType: HistoryLedgerItem["subject_type"]): string {
 }
 
 export default function HistoryPage() {
+  const router = useRouter();
   const [items, setItems] = useState<HistoryLedgerItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [clearing, setClearing] = useState(false);
@@ -114,6 +117,10 @@ export default function HistoryPage() {
     () => items.find((item) => item.id === selectedId) ?? items[0] ?? null,
     [items, selectedId],
   );
+  const selectedCoverLetterId =
+    selectedItem?.subject_type === "cover_letter"
+      ? Number(selectedItem.subject_id)
+      : null;
 
   const clearHistory = useCallback(async () => {
     const confirmed = window.confirm(
@@ -299,6 +306,26 @@ export default function HistoryPage() {
                       {selectedItem.summary}
                     </p>
                   )}
+                  {selectedCoverLetterId ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void openCoverLetterInMarkdown(selectedCoverLetterId)
+                          .then(() => router.push("/tools/markdown"))
+                          .catch((openError: unknown) => {
+                            setError(
+                              openError instanceof Error
+                                ? openError.message
+                                : "Ouverture de la lettre impossible.",
+                            );
+                          });
+                      }}
+                      className="mt-3 inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                    >
+                      Ouvrir dans Markdown PDF
+                      <ArrowRight size={14} />
+                    </button>
+                  ) : null}
                 </div>
 
                 <div className="grid gap-3 md:grid-cols-2">

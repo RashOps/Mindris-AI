@@ -108,19 +108,19 @@ export const STATE_ORDER: WorkflowState[] = [
 ];
 
 export const STATE_LABELS: Record<WorkflowState, string> = {
-  scrape_completed: "Scrape completed",
-  opportunity_created: "Opportunity created",
-  resume_linked: "Resume linked",
-  ats_report_linked: "ATS linked",
-  cover_letter_linked: "Cover letter linked",
-  tracker_entry_created: "Tracker entry created",
-  ready_to_apply: "Ready to apply",
+  scrape_completed: "Offre importée",
+  opportunity_created: "Opportunité créée",
+  resume_linked: "CV lié",
+  ats_report_linked: "Score ATS lié",
+  cover_letter_linked: "Lettre liée",
+  tracker_entry_created: "Tracker créé",
+  ready_to_apply: "Prêt à candidater",
 };
 
 export function formatTimestamp(value?: string | null): string {
   if (!value) return "n/a";
   try {
-    return new Intl.DateTimeFormat("en", {
+    return new Intl.DateTimeFormat("fr-FR", {
       month: "short",
       day: "2-digit",
       hour: "2-digit",
@@ -154,32 +154,32 @@ export async function requestJson<T>(path: string, init?: RequestInit): Promise<
 }
 
 export function stateTone(active: boolean, done: boolean): string {
-  if (active) return "border-blue-600 bg-blue-600 text-white";
-  if (done) return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (active) return "border-primary bg-primary text-primary-foreground";
+  if (done) return "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
   return "border-border bg-card text-muted-foreground";
 }
 
 export function integrityTone(status?: string): string {
   if (status === "degraded") {
-    return "border-amber-200 bg-amber-50 text-amber-700";
+    return "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300";
   }
-  return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  return "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
 }
 
 export function repairActionLabel(action: string): string {
   switch (action) {
     case "detach_missing_application":
-      return "Detach missing tracker";
+      return "Détacher le tracker manquant";
     case "detach_missing_resume":
-      return "Detach missing resume";
+      return "Détacher le CV manquant";
     case "detach_missing_ats_report":
-      return "Detach missing ATS";
+      return "Détacher le score ATS manquant";
     case "detach_missing_cover_letter":
-      return "Detach missing letter";
+      return "Détacher la lettre manquante";
     case "reset_resume_locale":
-      return "Reset resume locale";
+      return "Réinitialiser la langue du CV";
     case "sync_application_links":
-      return "Sync tracker links";
+      return "Synchroniser le tracker";
     default:
       return action;
   }
