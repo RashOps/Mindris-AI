@@ -204,6 +204,52 @@ describe("generateHtml semantic sections", () => {
     }
   });
 
+  test("applies advanced section style controls in renderer-owned markup", () => {
+    const html = generateHtml(
+      {
+        ...baseCv,
+        global_settings: {
+          ...baseCv.global_settings,
+          sections: [
+            {
+              id: "experience",
+              type: "experience",
+              label: "Experience",
+              visible: true,
+              placement: "main",
+              display_mode: "list",
+              detail_level: "normal",
+              heading_style: "accent",
+              heading_capitalization: "normal",
+              title_subtitle_order: "subtitle_first",
+              date_location_position: "right",
+            },
+            {
+              id: "skills",
+              type: "skills",
+              label: "Skills",
+              visible: true,
+              placement: "sidebar",
+              skill_style: "bars",
+            },
+          ],
+        },
+      },
+      "modern",
+    );
+
+    expect(html).toContain('data-section-heading-style="accent"');
+    expect(html).toContain('data-section-heading-capitalization="normal"');
+    expect(html).toContain('data-section-date-location-position="right"');
+    expect(html).toContain('data-section-skill-style="bars"');
+    expect(html).toContain(
+      '<span class="company">Analytical Engines</span><h3>Engineer</h3>',
+    );
+    expect(html).toContain(".section-heading-accent .section-title");
+    expect(html).toContain(".section-meta-right .item-header");
+    expect(html).toContain(".section-skill-style-bars .tag::after");
+  });
+
   test("renders manual page breaks as renderer-owned section metadata", () => {
     const html = generateHtml(
       {
@@ -270,6 +316,7 @@ describe("generateHtml semantic sections", () => {
             separators: "#cbd5e1",
             palette_preset: "minimal",
             monochrome: false,
+            accent_targets: ["name", "dates"],
           },
         },
       },
@@ -289,6 +336,11 @@ describe("generateHtml semantic sections", () => {
     expect(html).toContain("--line-height: 1.35;");
     expect(html).toContain("--primary-color: #0f766e;");
     expect(html).toContain("--text-color: #111827;");
+    expect(html).toContain(".header h1");
+    expect(html).toContain("color: var(--primary-color, #2563eb);");
+    expect(html).toContain(".tagline");
+    expect(html).toContain("color: var(--text-color, #334155);");
+    expect(html).toContain(".meta");
     expect(html).toContain("--header-text-align: center;");
     expect(html).toContain("grid-template-columns: var(--grid-template-columns, var(--col-left-width) 1fr);");
   });

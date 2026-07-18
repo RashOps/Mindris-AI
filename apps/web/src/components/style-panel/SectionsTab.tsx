@@ -30,12 +30,37 @@ type SectionSettings = NonNullable<GlobalSettings["sections"]>[number];
 
 const DATE_LOCATION_SECTION_TYPES = new Set(["experience", "education"]);
 const SKILL_LIKE_SECTION_TYPES = new Set(["skills", "languages", "interests"]);
+const HEADING_STYLE_LABELS: Record<string, string> = {
+  line: "Ligne",
+  plain: "Simple",
+  box: "Encadré",
+  accent: "Accent",
+};
+const CAPITALIZATION_LABELS: Record<string, string> = {
+  normal: "Normal",
+  uppercase: "Majuscules",
+};
+const DATE_LOCATION_POSITION_LABELS: Record<string, string> = {
+  inline: "Sur la ligne",
+  right: "À droite",
+  below: "En dessous",
+};
+const SKILL_STYLE_LABELS: Record<string, string> = {
+  tags: "Tags",
+  plain: "Texte simple",
+  bars: "Barres",
+};
 
 interface SectionsTabProps {
   settings: GlobalSettings;
   sectionPlacements: string[];
   sectionModes: string[];
   sectionDetails: string[];
+  headingStyles: string[];
+  headingCapitalization: string[];
+  titleSubtitleOrders: string[];
+  dateLocationPositions: string[];
+  skillStyles: string[];
   updateSection: (index: number, patch: Partial<SectionSettings>) => void;
   moveSection: (index: number, delta: -1 | 1) => void;
   reorderSections: (activeId: string, overId: string) => void;
@@ -58,6 +83,11 @@ function SortableSectionCard({
   sectionPlacements,
   sectionModes,
   sectionDetails,
+  headingStyles,
+  headingCapitalization,
+  titleSubtitleOrders,
+  dateLocationPositions,
+  skillStyles,
   updateSection,
   moveSection,
 }: {
@@ -67,6 +97,11 @@ function SortableSectionCard({
   sectionPlacements: string[];
   sectionModes: string[];
   sectionDetails: string[];
+  headingStyles: string[];
+  headingCapitalization: string[];
+  titleSubtitleOrders: string[];
+  dateLocationPositions: string[];
+  skillStyles: string[];
   updateSection: (index: number, patch: Partial<SectionSettings>) => void;
   moveSection: (index: number, delta: -1 | 1) => void;
 }) {
@@ -196,39 +231,125 @@ function SortableSectionCard({
             </label>
           </div>
 
+          <div className="grid grid-cols-2 gap-2">
+            <ToolbarSelect
+              value={section.heading_style ?? "line"}
+              ariaLabel={`Style de titre ${section.type}`}
+              options={headingStyles.map((style) => ({
+                value: style,
+                label: HEADING_STYLE_LABELS[style] ?? style,
+              }))}
+              onChange={(value) =>
+                updateSection(index, {
+                  heading_style: value as SectionSettings["heading_style"],
+                })
+              }
+              triggerClassName={PANEL_INPUT_CLASS}
+            />
+            <ToolbarSelect
+              value={section.heading_capitalization ?? "uppercase"}
+              ariaLabel={`Capitalisation titre ${section.type}`}
+              options={headingCapitalization.map((style) => ({
+                value: style,
+                label: CAPITALIZATION_LABELS[style] ?? style,
+              }))}
+              onChange={(value) =>
+                updateSection(index, {
+                  heading_capitalization:
+                    value as SectionSettings["heading_capitalization"],
+                })
+              }
+              triggerClassName={PANEL_INPUT_CLASS}
+            />
+          </div>
+
           {supportsDates && (
-            <div className="grid grid-cols-2 gap-2">
-              <label className={PANEL_TOGGLE_CLASS}>
-                <span className="text-xs font-medium text-foreground">
-                  Dates
-                </span>
-                <input
-                  type="checkbox"
-                  checked={section.show_dates ?? true}
-                  onChange={(event) =>
+            <>
+              <div className="grid grid-cols-2 gap-2">
+                <ToolbarSelect
+                  value={section.title_subtitle_order ?? "title_first"}
+                  ariaLabel={`Ordre titre sous-titre ${section.type}`}
+                  options={titleSubtitleOrders.map((order) => ({
+                    value: order,
+                    label:
+                      order === "subtitle_first"
+                        ? "Organisation d'abord"
+                        : "Titre d'abord",
+                  }))}
+                  onChange={(value) =>
                     updateSection(index, {
-                      show_dates: event.target.checked,
+                      title_subtitle_order:
+                        value as SectionSettings["title_subtitle_order"],
                     })
                   }
-                  aria-label={`Afficher les dates ${section.type}`}
+                  triggerClassName={PANEL_INPUT_CLASS}
                 />
-              </label>
-              <label className={PANEL_TOGGLE_CLASS}>
-                <span className="text-xs font-medium text-foreground">
-                  Lieux
-                </span>
-                <input
-                  type="checkbox"
-                  checked={section.show_locations ?? true}
-                  onChange={(event) =>
+                <ToolbarSelect
+                  value={section.date_location_position ?? "inline"}
+                  ariaLabel={`Position dates lieux ${section.type}`}
+                  options={dateLocationPositions.map((position) => ({
+                    value: position,
+                    label: DATE_LOCATION_POSITION_LABELS[position] ?? position,
+                  }))}
+                  onChange={(value) =>
                     updateSection(index, {
-                      show_locations: event.target.checked,
+                      date_location_position:
+                        value as SectionSettings["date_location_position"],
                     })
                   }
-                  aria-label={`Afficher les lieux ${section.type}`}
+                  triggerClassName={PANEL_INPUT_CLASS}
                 />
-              </label>
-            </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <label className={PANEL_TOGGLE_CLASS}>
+                  <span className="text-xs font-medium text-foreground">
+                    Dates
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={section.show_dates ?? true}
+                    onChange={(event) =>
+                      updateSection(index, {
+                        show_dates: event.target.checked,
+                      })
+                    }
+                    aria-label={`Afficher les dates ${section.type}`}
+                  />
+                </label>
+                <label className={PANEL_TOGGLE_CLASS}>
+                  <span className="text-xs font-medium text-foreground">
+                    Lieux
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={section.show_locations ?? true}
+                    onChange={(event) =>
+                      updateSection(index, {
+                        show_locations: event.target.checked,
+                      })
+                    }
+                    aria-label={`Afficher les lieux ${section.type}`}
+                  />
+                </label>
+              </div>
+            </>
+          )}
+
+          {SKILL_LIKE_SECTION_TYPES.has(section.type) && (
+            <ToolbarSelect
+              value={section.skill_style ?? "tags"}
+              ariaLabel={`Style compétences ${section.type}`}
+              options={skillStyles.map((style) => ({
+                value: style,
+                label: SKILL_STYLE_LABELS[style] ?? style,
+              }))}
+              onChange={(value) =>
+                updateSection(index, {
+                  skill_style: value as SectionSettings["skill_style"],
+                })
+              }
+              triggerClassName={PANEL_INPUT_CLASS}
+            />
           )}
 
           <div className="flex gap-2">
@@ -260,6 +381,11 @@ export function SectionsTab({
   sectionPlacements,
   sectionModes,
   sectionDetails,
+  headingStyles,
+  headingCapitalization,
+  titleSubtitleOrders,
+  dateLocationPositions,
+  skillStyles,
   updateSection,
   moveSection,
   reorderSections,
@@ -295,10 +421,15 @@ export function SectionsTab({
                 section={section}
                 index={index}
                 total={sections.length}
-                sectionPlacements={sectionPlacements}
-                sectionModes={sectionModes}
-                sectionDetails={sectionDetails}
-                updateSection={updateSection}
+                  sectionPlacements={sectionPlacements}
+                  sectionModes={sectionModes}
+                  sectionDetails={sectionDetails}
+                  headingStyles={headingStyles}
+                  headingCapitalization={headingCapitalization}
+                  titleSubtitleOrders={titleSubtitleOrders}
+                  dateLocationPositions={dateLocationPositions}
+                  skillStyles={skillStyles}
+                  updateSection={updateSection}
                 moveSection={moveSection}
               />
             ))}

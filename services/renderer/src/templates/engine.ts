@@ -71,6 +71,11 @@ type SectionConfig = {
     show_dates?: boolean;
     show_locations?: boolean;
     page_break_before?: boolean;
+    heading_style?: "line" | "plain" | "box" | "accent";
+    heading_capitalization?: "normal" | "uppercase";
+    title_subtitle_order?: "title_first" | "subtitle_first";
+    date_location_position?: "inline" | "right" | "below";
+    skill_style?: "tags" | "plain" | "bars";
 };
 
 const DEFAULT_SECTIONS: SectionConfig[] = [
@@ -159,6 +164,86 @@ const dynamicSectionCss = `
     page-break-before: always;
 }
 
+.section-heading-plain .section-title {
+    border-bottom: 0;
+    padding-bottom: 0;
+}
+
+.section-heading-box .section-title {
+    border: 1px solid var(--separator-color, #e2e8f0);
+    border-radius: 8px;
+    background: var(--sidebar-background, #f8fafc);
+    padding: 5px 8px;
+}
+
+.section-heading-accent .section-title {
+    border-left: 4px solid var(--primary-color, #2563eb);
+    border-bottom: 0;
+    padding-left: 8px;
+}
+
+.section-heading-normal .section-title {
+    text-transform: none;
+}
+
+.section-heading-uppercase .section-title {
+    text-transform: uppercase;
+}
+
+.section-meta-right .item-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 12px;
+}
+
+.section-meta-right .item-header .meta {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    align-self: start;
+    text-align: right;
+}
+
+.section-meta-below .item-header .meta {
+    display: block;
+    margin-top: 2px;
+}
+
+.section-skill-style-plain .skill-tags {
+    display: block;
+}
+
+.section-skill-style-plain .tag,
+.section-skill-style-plain .kw-tag {
+    display: inline;
+    border: 0;
+    background: transparent;
+    padding: 0;
+}
+
+.section-skill-style-plain .tag:not(:last-child)::after,
+.section-skill-style-plain .kw-tag:not(:last-child)::after {
+    content: ", ";
+}
+
+.section-skill-style-bars .tag,
+.section-skill-style-bars .kw-tag {
+    position: relative;
+    display: block;
+    margin-bottom: 6px;
+    overflow: hidden;
+}
+
+.section-skill-style-bars .tag::after,
+.section-skill-style-bars .kw-tag::after {
+    content: "";
+    display: block;
+    height: 3px;
+    margin-top: 4px;
+    border-radius: 999px;
+    background: var(--primary-color, #2563eb);
+    opacity: 0.55;
+}
+
 @media print {
     .main-grid {
         display: grid;
@@ -204,14 +289,30 @@ function sectionShell(section: SectionConfig, content: string): string {
     const placement = section.placement || "main";
     const displayMode = section.display_mode || "list";
     const detailLevel = section.detail_level || "normal";
+    const headingStyle = section.heading_style || "line";
+    const headingCapitalization = section.heading_capitalization || "uppercase";
+    const dateLocationPosition = section.date_location_position || "inline";
+    const skillStyle = section.skill_style || "tags";
     const pageBreakClass = section.page_break_before ? " section-page-break-before" : "";
     const pageBreakAttribute = section.page_break_before
         ? ' data-section-page-break-before="true"'
         : "";
-    return `<section class="section section-placement-${placement} section-display-${html(displayMode)} section-detail-${html(detailLevel)}${pageBreakClass}" data-section-type="${html(section.type)}" data-section-placement="${html(placement)}" data-section-display-mode="${html(displayMode)}" data-section-detail-level="${html(detailLevel)}"${pageBreakAttribute}>
+    return `<section class="section section-placement-${placement} section-display-${html(displayMode)} section-detail-${html(detailLevel)} section-heading-${html(headingStyle)} section-heading-${html(headingCapitalization)} section-meta-${html(dateLocationPosition)} section-skill-style-${html(skillStyle)}${pageBreakClass}" data-section-type="${html(section.type)}" data-section-placement="${html(placement)}" data-section-display-mode="${html(displayMode)}" data-section-detail-level="${html(detailLevel)}" data-section-heading-style="${html(headingStyle)}" data-section-heading-capitalization="${html(headingCapitalization)}" data-section-date-location-position="${html(dateLocationPosition)}" data-section-skill-style="${html(skillStyle)}"${pageBreakAttribute}>
       <h2 class="section-title">${html(section.label)}</h2>
       ${content}
     </section>`;
+}
+
+function renderTitleSubtitle(
+    section: SectionConfig,
+    title: unknown,
+    subtitle: unknown,
+): string {
+    const titleMarkup = title ? `<h3>${html(title)}</h3>` : "";
+    const subtitleMarkup = subtitle ? `<span class="company">${html(subtitle)}</span>` : "";
+    return section.title_subtitle_order === "subtitle_first"
+        ? `${subtitleMarkup}${titleMarkup}`
+        : `${titleMarkup}${subtitleMarkup}`;
 }
 
 function renderExperience(cvData: any, section: SectionConfig): string {
@@ -231,8 +332,7 @@ function renderExperience(cvData: any, section: SectionConfig): string {
                 : "";
             return `<div class="item">
           <div class="item-header">
-            <h3>${html(entry.role)}</h3>
-            <span class="company">${html(entry.company)}</span>
+            ${renderTitleSubtitle(section, entry.role, entry.company)}
             ${meta ? `<span class="meta">${meta}</span>` : ""}
           </div>
           ${entry.description_markdown ? `<p class="description">${html(entry.description_markdown)}</p>` : ""}
@@ -385,9 +485,10 @@ function renderEducation(cvData: any, section: SectionConfig): string {
                 showLocations ? entry.location : "",
             ].filter(Boolean).map(html).join(" · ");
             return `<div class="item item--compact">
-          <h3>${html(entry.degree)}</h3>
-          <span class="institution">${html(entry.institution)}</span>
+          <div class="item-header">
+            ${renderTitleSubtitle(section, entry.degree, entry.institution)}
           ${meta ? `<span class="meta">${meta}</span>` : ""}
+          </div>
           ${entry.description_markdown ? `<p class="description description--sm">${html(entry.description_markdown)}</p>` : ""}
         </div>`;
         }).join(""),

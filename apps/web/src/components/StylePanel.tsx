@@ -35,6 +35,18 @@ type Tab =
   | "colors"
   | "sections"
   | "advanced";
+type AccentTarget = NonNullable<
+  NonNullable<GlobalSettings["colors"]>["accent_targets"]
+>[number];
+
+const ACCENT_TARGET_LABELS: Record<AccentTarget, string> = {
+  name: "Nom",
+  title: "Titre",
+  headings: "Titres sections",
+  dates: "Dates",
+  links: "Liens",
+  skills: "Compétences",
+};
 
 interface StylePanelProps {
   open?: boolean;
@@ -160,6 +172,23 @@ export function StylePanel({
   const sectionPlacements = options.sectionPlacements;
   const sectionModes = options.displayModes;
   const sectionDetails = options.detailLevels;
+  const accentTargetOptions = options.accentTargets as AccentTarget[];
+  const accentTargets: AccentTarget[] = colorSettings.accent_targets ?? [
+    "title",
+    "headings",
+    "links",
+    "skills",
+  ];
+  const toggleAccentTarget = (target: AccentTarget, checked: boolean) => {
+    update({
+      colors: {
+        ...colorSettings,
+        accent_targets: checked
+          ? Array.from(new Set([...accentTargets, target]))
+          : accentTargets.filter((item) => item !== target),
+      },
+    });
+  };
   const isEmbedded = variant === "embedded";
   const activeTab = visibleTabs.some((item) => item.key === tab)
     ? tab
@@ -616,6 +645,28 @@ export function StylePanel({
                   </label>
                 ) : null}
               </section>
+
+              {!isSimpleMode ? (
+                <section>
+                  <SectionLabel>Accent appliqué à</SectionLabel>
+                  <div className="grid grid-cols-2 gap-2">
+                    {accentTargetOptions.map((target) => (
+                      <label key={target} className={PANEL_TOGGLE_CLASS}>
+                        <span className="text-xs font-medium capitalize text-foreground">
+                          {ACCENT_TARGET_LABELS[target]}
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={accentTargets.includes(target)}
+                          onChange={(event) =>
+                            toggleAccentTarget(target, event.target.checked)
+                          }
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
             </>
           )}
 
@@ -625,6 +676,11 @@ export function StylePanel({
               sectionPlacements={sectionPlacements}
               sectionModes={sectionModes}
               sectionDetails={sectionDetails}
+              headingStyles={options.headingStyles}
+              headingCapitalization={options.headingCapitalization}
+              titleSubtitleOrders={options.titleSubtitleOrders}
+              dateLocationPositions={options.dateLocationPositions}
+              skillStyles={options.skillStyles}
               updateSection={updateSection}
               moveSection={moveSection}
               reorderSections={reorderSections}

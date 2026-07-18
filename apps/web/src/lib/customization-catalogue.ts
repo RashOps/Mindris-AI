@@ -50,6 +50,7 @@ export type CustomizationCatalogue = {
   colors: {
     palettePresets: string[];
     editable: string[];
+    accentTargets: string[];
     monochrome: boolean[];
     minimumContrast: number;
   };
@@ -57,6 +58,11 @@ export type CustomizationCatalogue = {
     types: string[];
     displayModes: string[];
     detailLevels: string[];
+    headingStyles: string[];
+    headingCapitalization: string[];
+    titleSubtitleOrders: string[];
+    dateLocationPositions: string[];
+    skillStyles: string[];
     toggles: string[];
     placements: string[];
   };
@@ -139,6 +145,7 @@ export const FALLBACK_CUSTOMIZATION_CATALOGUE: CustomizationCatalogue = {
       "sidebar_background",
       "separators",
     ],
+    accentTargets: ["name", "title", "headings", "dates", "links", "skills"],
     monochrome: [true, false],
     minimumContrast: 4.5,
   },
@@ -158,6 +165,11 @@ export const FALLBACK_CUSTOMIZATION_CATALOGUE: CustomizationCatalogue = {
     ],
     displayModes: ["list", "timeline", "cards", "compact"],
     detailLevels: ["short", "normal", "detailed"],
+    headingStyles: ["line", "plain", "box", "accent"],
+    headingCapitalization: ["normal", "uppercase"],
+    titleSubtitleOrders: ["title_first", "subtitle_first"],
+    dateLocationPositions: ["inline", "right", "below"],
+    skillStyles: ["tags", "plain", "bars"],
     toggles: ["visible", "show_dates", "show_locations", "page_break_before"],
     placements: ["main", "sidebar"],
   },
@@ -327,6 +339,10 @@ export function normalizeCustomizationCatalogue(
         value.colors?.editable,
         FALLBACK_CUSTOMIZATION_CATALOGUE.colors.editable,
       ),
+      accentTargets: copyArray(
+        value.colors?.accentTargets,
+        FALLBACK_CUSTOMIZATION_CATALOGUE.colors.accentTargets,
+      ),
       monochrome: copyArray(
         value.colors?.monochrome,
         FALLBACK_CUSTOMIZATION_CATALOGUE.colors.monochrome,
@@ -342,6 +358,26 @@ export function normalizeCustomizationCatalogue(
       detailLevels: copyArray(
         value.sections?.detailLevels,
         FALLBACK_CUSTOMIZATION_CATALOGUE.sections.detailLevels,
+      ),
+      headingStyles: copyArray(
+        value.sections?.headingStyles,
+        FALLBACK_CUSTOMIZATION_CATALOGUE.sections.headingStyles,
+      ),
+      headingCapitalization: copyArray(
+        value.sections?.headingCapitalization,
+        FALLBACK_CUSTOMIZATION_CATALOGUE.sections.headingCapitalization,
+      ),
+      titleSubtitleOrders: copyArray(
+        value.sections?.titleSubtitleOrders,
+        FALLBACK_CUSTOMIZATION_CATALOGUE.sections.titleSubtitleOrders,
+      ),
+      dateLocationPositions: copyArray(
+        value.sections?.dateLocationPositions,
+        FALLBACK_CUSTOMIZATION_CATALOGUE.sections.dateLocationPositions,
+      ),
+      skillStyles: copyArray(
+        value.sections?.skillStyles,
+        FALLBACK_CUSTOMIZATION_CATALOGUE.sections.skillStyles,
       ),
       toggles: copyArray(value.sections?.toggles, FALLBACK_CUSTOMIZATION_CATALOGUE.sections.toggles),
       placements: copyArray(
@@ -415,10 +451,16 @@ export function resolveCustomizationOptionLists(catalogue: CustomizationCatalogu
     bulletStyles: catalogue.typography.bulletStyles,
     palettePresets: catalogue.colors.palettePresets,
     editableColors: catalogue.colors.editable,
+    accentTargets: catalogue.colors.accentTargets,
     monochrome: catalogue.colors.monochrome,
     sectionTypes: catalogue.sections.types,
     displayModes: catalogue.sections.displayModes,
     detailLevels: catalogue.sections.detailLevels,
+    headingStyles: catalogue.sections.headingStyles,
+    headingCapitalization: catalogue.sections.headingCapitalization,
+    titleSubtitleOrders: catalogue.sections.titleSubtitleOrders,
+    dateLocationPositions: catalogue.sections.dateLocationPositions,
+    skillStyles: catalogue.sections.skillStyles,
     sectionToggles: catalogue.sections.toggles,
     sectionPlacements: catalogue.sections.placements,
     localeLanguages: catalogue.locale.languages,

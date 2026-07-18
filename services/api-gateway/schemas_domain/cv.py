@@ -128,6 +128,9 @@ class CVColorSettings(CVBaseModel):
         "tech"
     )
     monochrome: bool = False
+    accent_targets: list[
+        Literal["name", "title", "headings", "dates", "links", "skills"]
+    ] = Field(default_factory=lambda: ["title", "headings", "links", "skills"])
 
     @model_validator(mode="after")
     def validate_contrast(self) -> "CVColorSettings":
@@ -167,6 +170,11 @@ class CVSectionSettings(CVBaseModel):
     show_locations: bool = True
     detail_level: Literal["short", "normal", "detailed"] = "normal"
     page_break_before: bool = False
+    heading_style: Literal["line", "plain", "box", "accent"] = "line"
+    heading_capitalization: Literal["normal", "uppercase"] = "uppercase"
+    title_subtitle_order: Literal["title_first", "subtitle_first"] = "title_first"
+    date_location_position: Literal["inline", "right", "below"] = "inline"
+    skill_style: Literal["tags", "plain", "bars"] = "tags"
     icon: str | None = None
 
 

@@ -35,6 +35,9 @@ export interface GlobalSettings {
     separators?: string;
     palette_preset?: "corporate" | "tech" | "minimal" | "creative" | "custom";
     monochrome?: boolean;
+    accent_targets?: Array<
+      "name" | "title" | "headings" | "dates" | "links" | "skills"
+    >;
   };
   sections?: Array<{
     id: string;
@@ -47,6 +50,11 @@ export interface GlobalSettings {
     show_locations?: boolean;
     detail_level?: "short" | "normal" | "detailed";
     page_break_before?: boolean;
+    heading_style?: "line" | "plain" | "box" | "accent";
+    heading_capitalization?: "normal" | "uppercase";
+    title_subtitle_order?: "title_first" | "subtitle_first";
+    date_location_position?: "inline" | "right" | "below";
+    skill_style?: "tags" | "plain" | "bars";
     icon?: string | null;
   }>;
   locale?: {

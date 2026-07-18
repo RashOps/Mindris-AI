@@ -35,7 +35,11 @@ describe("customization catalogue helpers", () => {
 
     expect(options.fonts).toEqual(["Inter", "Merriweather"]);
     expect(options.headingFonts).toEqual(["Lato"]);
+    expect(options.accentTargets).toContain("headings");
     expect(options.sectionTypes).toContain("certifications");
+    expect(options.headingStyles).toContain("accent");
+    expect(options.dateLocationPositions).toContain("right");
+    expect(options.skillStyles).toContain("bars");
     expect(templates.find((template) => template.id === "ats")?.compatibleLayouts).toEqual([1]);
     expect(templates.find((template) => template.id === "ats")?.enforced?.layout?.columns).toBe(1);
   });

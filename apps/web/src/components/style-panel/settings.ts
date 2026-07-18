@@ -29,6 +29,11 @@ function defaultSections(
     show_locations: true,
     detail_level: "normal",
     page_break_before: false,
+    heading_style: "line",
+    heading_capitalization: "uppercase",
+    title_subtitle_order: "title_first",
+    date_location_position: "inline",
+    skill_style: "tags",
     icon: null,
   }));
 }
@@ -123,6 +128,12 @@ export function resolveSettings(
       separators: current?.colors?.separators ?? "#e2e8f0",
       palette_preset: current?.colors?.palette_preset ?? "tech",
       monochrome: current?.colors?.monochrome ?? false,
+      accent_targets: current?.colors?.accent_targets ?? [
+        "title",
+        "headings",
+        "links",
+        "skills",
+      ],
     },
     sections: mergeSections(current, catalogue),
     locale: {

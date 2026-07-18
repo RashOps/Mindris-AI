@@ -162,7 +162,45 @@ export function buildTokenOverrides(settings?: any): string {
 }
 `);
     }
+    const accentCss = buildAccentTargetCss(colors);
+    if (accentCss) {
+        blocks.push(accentCss);
+    }
     return blocks.join("\n\n");
+}
+
+function buildAccentTargetCss(colors: any): string {
+    const targets = Array.isArray(colors?.accent_targets)
+        ? new Set(colors.accent_targets)
+        : new Set(["title", "headings", "links", "skills"]);
+    const accent = "var(--primary-color, #2563eb)";
+    const heading = "var(--heading-color, #0f172a)";
+    const text = "var(--text-color, #334155)";
+    const muted = "var(--secondary-color, #64748b)";
+
+    return `
+.header h1 {
+  color: ${targets.has("name") ? accent : heading};
+}
+.tagline {
+  color: ${targets.has("title") ? accent : text};
+}
+.section-title {
+  color: ${targets.has("headings") ? accent : heading};
+}
+.meta {
+  color: ${targets.has("dates") ? accent : muted};
+}
+.contact-link,
+.proj-link {
+  color: ${targets.has("links") ? accent : "inherit"};
+}
+.tag,
+.kw-tag {
+  border-color: ${targets.has("skills") ? "color-mix(in srgb, var(--primary-color, #2563eb) 25%, transparent)" : "var(--separator-color, #e2e8f0)"};
+  color: ${targets.has("skills") ? accent : text};
+}
+`;
 }
 
 function smallerCssSize(current: string, fallback: string): string {
@@ -184,4 +222,3 @@ function numericPrefix(value: string): number | null {
     const parsed = Number.parseFloat(candidate);
     return Number.isNaN(parsed) ? null : parsed;
 }
-
