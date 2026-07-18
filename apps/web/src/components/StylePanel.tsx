@@ -49,7 +49,6 @@ type Tab =
 type AccentTarget = NonNullable<
   NonNullable<GlobalSettings["colors"]>["accent_targets"]
 >[number];
-
 const ACCENT_TARGET_LABELS: Record<AccentTarget, string> = {
   name: "Nom",
   title: "Titre",
@@ -73,14 +72,12 @@ const TAB_DESCRIPTIONS: Record<Tab, string> = {
   sections: "Ordonne et présente chaque section.",
   advanced: "Réglages experts et CSS encadré.",
 };
-
 interface StylePanelProps {
   open?: boolean;
   onClose?: () => void;
   variant?: "drawer" | "embedded";
   uiMode?: CvBuilderUiMode;
 }
-
 export function StylePanel({
   open = true,
   onClose,
@@ -92,7 +89,6 @@ export function StylePanel({
   const [catalogue, setCatalogue] = useState<CustomizationCatalogue>(
     FALLBACK_CUSTOMIZATION_CATALOGUE,
   );
-
   useEffect(() => {
     void fetchCustomizationCatalogue()
       .then((next) => setCatalogue(normalizeCustomizationCatalogue(next)))
