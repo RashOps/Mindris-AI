@@ -112,6 +112,8 @@ def test_customization_catalogue_exposes_backend_owned_options() -> None:
     assert "1.5" in options["typography"]["lineHeights"]
     assert "corporate" in options["colors"]["palettePresets"]
     assert "headings" in options["colors"]["accentTargets"]
+    assert "heading_lines" in options["colors"]["accentTargets"]
+    assert "icons" in options["colors"]["accentTargets"]
     assert "certifications" in options["sections"]["types"]
     assert "profile" not in options["sections"]["types"]
     assert "contact" not in options["sections"]["types"]

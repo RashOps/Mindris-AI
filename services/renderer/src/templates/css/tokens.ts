@@ -209,6 +209,7 @@ function buildAccentTargetCss(colors: any): string {
 }
 .section-title {
   color: ${targets.has("headings") ? accent : heading};
+  border-color: ${targets.has("heading_lines") ? accent : "var(--separator-color, #e2e8f0)"};
 }
 .meta {
   color: ${targets.has("dates") ? accent : muted};
@@ -216,6 +217,11 @@ function buildAccentTargetCss(colors: any): string {
 .contact-link,
 .proj-link {
   color: ${targets.has("links") ? accent : "inherit"};
+}
+.section-heading-icon,
+.contact-icon {
+  color: ${targets.has("icons") ? accent : "currentColor"};
+  border-color: ${targets.has("icons") ? accent : "currentColor"};
 }
 .tag,
 .kw-tag {

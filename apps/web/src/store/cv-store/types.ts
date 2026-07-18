@@ -50,7 +50,14 @@ export interface GlobalSettings {
     palette_preset?: "corporate" | "tech" | "minimal" | "creative" | "custom";
     monochrome?: boolean;
     accent_targets?: Array<
-      "name" | "title" | "headings" | "dates" | "links" | "skills"
+      | "name"
+      | "title"
+      | "headings"
+      | "heading_lines"
+      | "dates"
+      | "links"
+      | "icons"
+      | "skills"
     >;
   };
   links?: {

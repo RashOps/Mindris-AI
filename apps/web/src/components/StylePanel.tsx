@@ -54,8 +54,10 @@ const ACCENT_TARGET_LABELS: Record<AccentTarget, string> = {
   name: "Nom",
   title: "Titre",
   headings: "Titres sections",
+  heading_lines: "Lignes des titres",
   dates: "Dates",
   links: "Liens",
+  icons: "Icônes",
   skills: "Compétences",
 };
 const TAB_DESCRIPTIONS: Record<Tab, string> = {

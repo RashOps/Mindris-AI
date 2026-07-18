@@ -142,7 +142,16 @@ class CVColorSettings(CVBaseModel):
     )
     monochrome: bool = False
     accent_targets: list[
-        Literal["name", "title", "headings", "dates", "links", "skills"]
+        Literal[
+            "name",
+            "title",
+            "headings",
+            "heading_lines",
+            "dates",
+            "links",
+            "icons",
+            "skills",
+        ]
     ] = Field(default_factory=lambda: ["title", "headings", "links", "skills"])
 
     @model_validator(mode="after")

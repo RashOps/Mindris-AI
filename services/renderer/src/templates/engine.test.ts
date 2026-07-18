@@ -374,7 +374,7 @@ describe("generateHtml semantic sections", () => {
             separators: "#cbd5e1",
             palette_preset: "minimal",
             monochrome: false,
-            accent_targets: ["name", "dates"],
+            accent_targets: ["name", "heading_lines", "dates", "icons"],
           },
         },
       },
@@ -402,6 +402,7 @@ describe("generateHtml semantic sections", () => {
     expect(html).toContain(".header h1");
     expect(html).toContain("color: var(--primary-color, #2563eb);");
     expect(html).toContain(".tagline");
+    expect(html).toContain("border-color: var(--primary-color, #2563eb);");
     expect(html).toContain("color: var(--text-color, #334155);");
     expect(html).toContain(".meta");
     expect(html).toContain("--header-text-align: center;");
