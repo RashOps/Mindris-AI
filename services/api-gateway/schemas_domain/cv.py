@@ -10,11 +10,13 @@ class CVBaseModel(BaseModel):
 
     model_config = ConfigDict(extra="allow")
 
+
 class CVLocation(CVBaseModel):
     """Location object used in profile and experiences."""
 
     city: str = ""
     country: str = ""
+
 
 class CVSocial(CVBaseModel):
     """Social/contact link in a CV profile."""
@@ -22,6 +24,7 @@ class CVSocial(CVBaseModel):
     type: str = "other"
     url: str = ""
     label: str | None = None
+
 
 def _hex_to_rgb(value: str) -> tuple[int, int, int] | None:
     if not isinstance(value, str) or len(value) != 7 or not value.startswith("#"):
@@ -34,6 +37,7 @@ def _hex_to_rgb(value: str) -> tuple[int, int, int] | None:
         )
     except ValueError:
         return None
+
 
 def _relative_luminance(value: str) -> float | None:
     rgb = _hex_to_rgb(value)
@@ -49,6 +53,7 @@ def _relative_luminance(value: str) -> float | None:
         )
     return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
 
+
 def _contrast_ratio(foreground: str, background: str) -> float | None:
     fg = _relative_luminance(foreground)
     bg = _relative_luminance(background)
@@ -58,11 +63,13 @@ def _contrast_ratio(foreground: str, background: str) -> float | None:
     darker = min(fg, bg)
     return (lighter + 0.05) / (darker + 0.05)
 
+
 class CVPageMargins(CVBaseModel):
     """Page margin settings for resume rendering."""
 
     horizontal: str = "64px"
     vertical: str = "48px"
+
 
 class CVPageSettings(CVBaseModel):
     """Page-level customization settings."""
@@ -72,11 +79,13 @@ class CVPageSettings(CVBaseModel):
     page_break_mode: Literal["auto", "manual"] = "auto"
     one_page_challenge: bool = False
 
+
 class CVPhotoSettings(CVBaseModel):
     """Profile photo rendering settings."""
 
     enabled: bool = False
     shape: Literal["round", "square"] = "round"
+
 
 class CVLayoutSettings(CVBaseModel):
     """Layout customization settings."""
@@ -91,6 +100,7 @@ class CVLayoutSettings(CVBaseModel):
         default_factory=dict
     )
 
+
 class CVTypographySettings(CVBaseModel):
     """Typography customization settings."""
 
@@ -103,6 +113,7 @@ class CVTypographySettings(CVBaseModel):
     line_height: str = "1.5"
     date_style: Literal["normal", "italic", "small", "right"] = "normal"
     bullet_style: Literal["bullets", "dash", "dots", "icons"] = "bullets"
+
 
 class CVColorSettings(CVBaseModel):
     """Color customization settings with contrast guardrails."""
@@ -127,6 +138,7 @@ class CVColorSettings(CVBaseModel):
                 "Text and sidebar background contrast must be at least 4.5."
             )
         return self
+
 
 class CVSectionSettings(CVBaseModel):
     """Per-section rendering settings."""
@@ -156,11 +168,13 @@ class CVSectionSettings(CVBaseModel):
     detail_level: Literal["short", "normal", "detailed"] = "normal"
     icon: str | None = None
 
+
 class CVLocaleSettings(CVBaseModel):
     """Localized label and direction settings."""
 
     label_language: Literal["fr", "en", "de", "es"] = "fr"
     text_direction: Literal["ltr", "rtl"] = "ltr"
+
 
 def _contains_unsafe_css_fragment(value: str) -> str | None:
     lowered = value.lower()
@@ -174,6 +188,7 @@ def _contains_unsafe_css_fragment(value: str) -> str | None:
         if fragment in lowered:
             return fragment
     return None
+
 
 class CVAdvancedCssSettings(CVBaseModel):
     """Advanced CSS customization persisted with a resume."""
@@ -199,6 +214,7 @@ class CVAdvancedCssSettings(CVBaseModel):
         elif self.enabled is False and self.css_text.strip():
             self.enabled = True
         return self
+
 
 def default_cv_sections() -> list[CVSectionSettings]:
     """Return the default semantic section order."""
@@ -235,12 +251,14 @@ def default_cv_sections() -> list[CVSectionSettings]:
         ),
     ]
 
+
 def _min_css_size(current: str, fallback: str) -> str:
     current_value = _numeric_prefix(current)
     fallback_value = _numeric_prefix(fallback)
     if current_value is None or fallback_value is None:
         return fallback
     return current if current_value <= fallback_value else fallback
+
 
 def _min_line_height(current: str, fallback: str) -> str:
     try:
@@ -250,6 +268,7 @@ def _min_line_height(current: str, fallback: str) -> str:
         return fallback
     return current if current_value <= fallback_value else fallback
 
+
 def _numeric_prefix(value: str) -> float | None:
     if not isinstance(value, str):
         return None
@@ -258,6 +277,7 @@ def _numeric_prefix(value: str) -> float | None:
         return float(candidate)
     except ValueError:
         return None
+
 
 class CVGlobalSettings(CVBaseModel):
     """Rendering settings stored with the CV data."""
@@ -343,6 +363,7 @@ class CVGlobalSettings(CVBaseModel):
 
         return self
 
+
 class CVProfile(CVBaseModel):
     """Candidate profile section."""
 
@@ -353,6 +374,7 @@ class CVProfile(CVBaseModel):
     location: CVLocation = Field(default_factory=CVLocation)
     socials: list[CVSocial] = Field(default_factory=list)
     text_markdown: str = ""
+
 
 class CVExperienceItem(CVBaseModel):
     """Professional experience entry."""
@@ -365,6 +387,7 @@ class CVExperienceItem(CVBaseModel):
     description_markdown: str = ""
     keywords: list[str] = Field(default_factory=list)
 
+
 class CVEducationItem(CVBaseModel):
     """Education entry."""
 
@@ -375,12 +398,14 @@ class CVEducationItem(CVBaseModel):
     location: str = ""
     description_markdown: str = ""
 
+
 class CVSkillGroup(CVBaseModel):
     """Skill group entry."""
 
     id: str = ""
     category: str = ""
     skills: list[str] = Field(default_factory=list)
+
 
 class CVProjectItem(CVBaseModel):
     """Project entry."""
@@ -391,12 +416,14 @@ class CVProjectItem(CVBaseModel):
     description_markdown: str = ""
     tech_stack: list[str] = Field(default_factory=list)
 
+
 class CVLanguageItem(CVBaseModel):
     """Language entry."""
 
     id: str = ""
     language: str = ""
     level: str = ""
+
 
 class CVCertificationItem(CVBaseModel):
     """Certification entry."""
@@ -408,6 +435,7 @@ class CVCertificationItem(CVBaseModel):
     url: str = ""
     description_markdown: str = ""
 
+
 class CVVolunteeringItem(CVBaseModel):
     """Volunteering entry."""
 
@@ -417,6 +445,7 @@ class CVVolunteeringItem(CVBaseModel):
     period: str = ""
     location: str = ""
     description_markdown: str = ""
+
 
 class CVPublicationItem(CVBaseModel):
     """Publication entry."""
@@ -428,6 +457,7 @@ class CVPublicationItem(CVBaseModel):
     url: str = ""
     description_markdown: str = ""
 
+
 class CVReferenceItem(CVBaseModel):
     """Reference entry."""
 
@@ -438,6 +468,7 @@ class CVReferenceItem(CVBaseModel):
     contact: str = ""
     description_markdown: str = ""
 
+
 class CVCustomSectionItem(CVBaseModel):
     """Custom section entry."""
 
@@ -445,6 +476,7 @@ class CVCustomSectionItem(CVBaseModel):
     title: str = ""
     content_markdown: str = ""
     items: list[str] = Field(default_factory=list)
+
 
 class CVDataModel(CVBaseModel):
     """Validated backend shape for a resume CV payload."""
@@ -463,17 +495,20 @@ class CVDataModel(CVBaseModel):
     languages: list[CVLanguageItem] = Field(default_factory=list)
     hobbies: list[str] = Field(default_factory=list)
 
+
 class CVDocumentRequest(BaseModel):
     """Request body for saving the current CV."""
 
     cv_data: CVDataModel
     source: str = "json"
 
+
 class TemplateRenderPayloadRequest(BaseModel):
     """Request body for resolving backend-owned template defaults before rendering."""
 
     cv_data: CVDataModel
     template_id: str | None = None
+
 
 class MarkdownDocumentRequest(BaseModel):
     """Backend-owned request for Markdown workspace exports."""

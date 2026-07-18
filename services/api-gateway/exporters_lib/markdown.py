@@ -24,6 +24,7 @@ from .common import (
 
 logger = get_logger(__name__, service_name="api-gateway")
 
+
 def resume_to_markdown(record: ResumeRecord) -> str:
     """Render a persisted resume as portable Markdown."""
     logger.info("Rendering resume %s to Markdown", record.id)
@@ -122,10 +123,12 @@ def resume_to_markdown(record: ResumeRecord) -> str:
     logger.debug("Rendered Markdown resume %s (%d chars)", record.id, len(rendered))
     return rendered
 
+
 def _append_markdown_section(lines: list[str], title: str, content: str) -> None:
     if not content:
         return
     lines.extend(["", f"## {title}", "", content.strip()])
+
 
 def _append_experience(lines: list[str], value: Any, title: str = "Experience") -> None:
     items = [_mapping(item) for item in _items(value)]
@@ -152,6 +155,7 @@ def _append_experience(lines: list[str], value: Any, title: str = "Experience") 
             lines.append("")
             lines.append("Keywords: " + ", ".join(keywords))
 
+
 def _append_projects(lines: list[str], value: Any, title: str = "Projects") -> None:
     items = [_mapping(item) for item in _items(value)]
     items = [item for item in items if _text(item.get("name"))]
@@ -171,6 +175,7 @@ def _append_projects(lines: list[str], value: Any, title: str = "Projects") -> N
         if stack:
             lines.append("")
             lines.append("Stack: " + ", ".join(stack))
+
 
 def _append_certifications(
     lines: list[str], value: Any, title: str = "Certifications"
@@ -194,6 +199,7 @@ def _append_certifications(
         description = _text(item.get("description_markdown"))
         if description:
             lines.extend(["", description])
+
 
 def _append_volunteering(
     lines: list[str], value: Any, title: str = "Volunteering"
@@ -222,6 +228,7 @@ def _append_volunteering(
         if description:
             lines.extend(["", description])
 
+
 def _append_publications(
     lines: list[str], value: Any, title: str = "Publications"
 ) -> None:
@@ -244,6 +251,7 @@ def _append_publications(
         description = _text(item.get("description_markdown"))
         if description:
             lines.extend(["", description])
+
 
 def _append_references(lines: list[str], value: Any, title: str = "References") -> None:
     items = [_mapping(item) for item in _items(value)]
@@ -269,6 +277,7 @@ def _append_references(lines: list[str], value: Any, title: str = "References") 
         if description:
             lines.extend(["", description])
 
+
 def _append_custom_sections(lines: list[str], value: Any) -> None:
     items = [_mapping(item) for item in _items(value)]
     items = [item for item in items if _text(item.get("title"))]
@@ -284,6 +293,7 @@ def _append_custom_sections(lines: list[str], value: Any) -> None:
         if bullets:
             lines.append("")
             lines.extend([f"- {bullet}" for bullet in bullets])
+
 
 def _append_skills(lines: list[str], value: Any, title: str = "Skills") -> None:
     items = [_mapping(item) for item in _items(value)]
@@ -301,6 +311,7 @@ def _append_skills(lines: list[str], value: Any, title: str = "Skills") -> None:
             lines.append(f"- **{label}:** {', '.join(skills)}")
         else:
             lines.append(f"- **{label}**")
+
 
 def _append_education(lines: list[str], value: Any, title: str = "Education") -> None:
     items = [_mapping(item) for item in _items(value)]
@@ -327,6 +338,7 @@ def _append_education(lines: list[str], value: Any, title: str = "Education") ->
         if description:
             lines.extend(["", description])
 
+
 def _append_languages(lines: list[str], value: Any, title: str = "Languages") -> None:
     items = [_mapping(item) for item in _items(value)]
     values = [
@@ -336,6 +348,7 @@ def _append_languages(lines: list[str], value: Any, title: str = "Languages") ->
     values = [value for value in values if value]
     if values:
         lines.extend(["", f"## {title}", *[f"- {value}" for value in values]])
+
 
 def _append_hobbies(lines: list[str], value: Any, title: str = "Interests") -> None:
     values = [item for item in _items(value) if isinstance(item, str) and item.strip()]

@@ -18,6 +18,7 @@ logger = get_logger(__name__, service_name="api-gateway")
 
 SUPPORTED_RESUME_LOCALES = ("fr", "en", "de", "es")
 
+
 def _locale_from_cv_data(cv_data: dict | None, fallback: str = "fr") -> str:
     if not isinstance(cv_data, dict):
         return fallback
@@ -32,14 +33,17 @@ def _locale_from_cv_data(cv_data: dict | None, fallback: str = "fr") -> str:
                 return "fr"
     return fallback
 
+
 def _normalize_resume_locale(value: Any, fallback: str = "fr") -> str:
     locale = value if isinstance(value, str) else fallback
     return locale if locale in SUPPORTED_RESUME_LOCALES else fallback
+
 
 def _strip_multilingual_block(cv_data: dict | None) -> dict[str, Any]:
     payload = deepcopy(cv_data) if isinstance(cv_data, dict) else {}
     payload.pop("multilingual", None)
     return payload
+
 
 def _sync_variant_locale(cv_data: dict[str, Any], locale: str) -> dict[str, Any]:
     payload = deepcopy(cv_data)
@@ -53,6 +57,7 @@ def _sync_variant_locale(cv_data: dict[str, Any], locale: str) -> dict[str, Any]
         global_settings["locale"] = locale_settings
     locale_settings["label_language"] = locale
     return payload
+
 
 def _active_resume_payload(
     cv_data: dict[str, Any],
@@ -120,6 +125,7 @@ def _active_resume_payload(
 
     return normalized, changed
 
+
 def _public_multilingual_metadata(cv_data: dict[str, Any]) -> dict[str, Any]:
     multilingual = cv_data.get("multilingual", {})
     variants = multilingual.get("variants", {})
@@ -129,6 +135,7 @@ def _public_multilingual_metadata(cv_data: dict[str, Any]) -> dict[str, Any]:
         "activeLocale": multilingual.get("active_locale", "fr"),
         "availableLocales": available_locales,
     }
+
 
 def _compose_multilingual_resume(
     variants: dict[str, dict[str, Any]],
@@ -148,6 +155,7 @@ def _compose_multilingual_resume(
     }
     return active_payload
 
+
 def _persist_lazy_resume_migration(
     session: Session, record: ResumeRecord
 ) -> dict[str, Any]:
@@ -162,6 +170,7 @@ def _persist_lazy_resume_migration(
         session.commit()
         session.refresh(record)
     return normalized
+
 
 def resolve_resume_variant(
     record: ResumeRecord,
@@ -183,6 +192,7 @@ def resolve_resume_variant(
         raise ValueError(f"Unknown locale variant '{target_locale}'.")
     return deepcopy(variants[target_locale]), target_locale
 
+
 def localized_resume_record(
     record: ResumeRecord,
     *,
@@ -194,6 +204,7 @@ def localized_resume_record(
     localized.data_json = dump_json(payload)
     localized.locale = target_locale
     return localized
+
 
 def create_resume_locale_variant(
     session: Session,
@@ -231,6 +242,7 @@ def create_resume_locale_variant(
     create_resume_revision(session, record, label=f"locale:{target_locale}:create")
     return record
 
+
 def activate_resume_locale_variant(
     session: Session,
     record: ResumeRecord,
@@ -258,6 +270,7 @@ def activate_resume_locale_variant(
     session.refresh(record)
     create_resume_revision(session, record, label=f"locale:{target_locale}:activate")
     return record
+
 
 def delete_resume_locale_variant(
     session: Session,
@@ -296,6 +309,7 @@ def delete_resume_locale_variant(
     create_resume_revision(session, record, label=f"locale:{target_locale}:delete")
     return record
 
+
 def save_current_cv(
     session: Session, cv_data: dict, source: str = "json"
 ) -> CVDocumentRecord:
@@ -322,6 +336,7 @@ def save_current_cv(
     session.refresh(record)
     return record
 
+
 def get_current_cv(session: Session) -> dict | None:
     """Return the current CV data, if any."""
     record = session.exec(
@@ -330,6 +345,7 @@ def get_current_cv(session: Session) -> dict | None:
     if not record:
         logger.debug("No current CV document found")
     return load_json(record.data_json, None) if record else None
+
 
 def _latest_resume_revision(session: Session, resume_id: int | None) -> int:
     if resume_id is None:
@@ -340,6 +356,7 @@ def _latest_resume_revision(session: Session, resume_id: int | None) -> int:
         .order_by(ResumeRevisionRecord.revision.desc())
     ).first()
     return int(row or 0)
+
 
 def serialize_resume(session: Session, record: ResumeRecord) -> dict:
     """Convert a resume record to the public API shape."""
@@ -357,6 +374,7 @@ def serialize_resume(session: Session, record: ResumeRecord) -> dict:
         "createdAt": record.created_at.isoformat(),
         "updatedAt": record.updated_at.isoformat(),
     }
+
 
 def create_resume(
     session: Session,
@@ -392,6 +410,7 @@ def create_resume(
     create_resume_revision(session, record, label="initial")
     return record
 
+
 def update_resume(
     session: Session,
     record: ResumeRecord,
@@ -419,9 +438,11 @@ def update_resume(
             raise ValueError(f"Unknown locale variant '{target}'.")
         normalized, _ = _active_resume_payload(cv_data, target)
         variants[target] = _strip_multilingual_block(normalized)
-        active_locale = target if target_locale is not None else existing_multilingual[
-            "active_locale"
-        ]
+        active_locale = (
+            target
+            if target_locale is not None
+            else existing_multilingual["active_locale"]
+        )
         default_locale = existing_multilingual["default_locale"]
         if target_locale is None and locale is not None and locale in variants:
             active_locale = locale
@@ -448,6 +469,7 @@ def update_resume(
     session.refresh(record)
     create_resume_revision(session, record, label=source or "update")
     return record
+
 
 def create_resume_revision(
     session: Session,
@@ -477,6 +499,7 @@ def create_resume_revision(
     session.refresh(revision)
     return revision
 
+
 def list_resume_revisions(
     session: Session,
     resume_id: int,
@@ -488,6 +511,7 @@ def list_resume_revisions(
         .where(ResumeRevisionRecord.resume_id == resume_id)
         .order_by(ResumeRevisionRecord.revision.desc())
     ).all()
+
 
 def get_resume_revision(
     session: Session,
@@ -503,6 +527,7 @@ def get_resume_revision(
         )
     ).first()
 
+
 def serialize_resume_revision(record: ResumeRevisionRecord) -> dict:
     """Convert a resume revision to a public API payload."""
     return {
@@ -516,6 +541,7 @@ def serialize_resume_revision(record: ResumeRevisionRecord) -> dict:
         "label": record.label,
         "createdAt": record.created_at.isoformat(),
     }
+
 
 def compare_resume_revisions(
     session: Session,
@@ -561,6 +587,7 @@ def compare_resume_revisions(
         "changes": changes,
     }
 
+
 def _diff_revision_metadata(
     base: ResumeRevisionRecord,
     target: ResumeRevisionRecord,
@@ -589,6 +616,7 @@ def _diff_revision_metadata(
                 "after": after,
             }
         )
+
 
 def _diff_values(
     path: str, before: Any, after: Any, changes: list[dict[str, Any]]
@@ -690,6 +718,7 @@ def _diff_values(
         {"path": path or "root", "kind": "changed", "before": before, "after": after}
     )
 
+
 def _section_diff_summary(
     before: dict[str, Any], after: dict[str, Any]
 ) -> list[dict[str, Any]]:
@@ -731,6 +760,7 @@ def _section_diff_summary(
             }
         )
     return summaries
+
 
 def _section_count(value: Any) -> int:
     if isinstance(value, list):

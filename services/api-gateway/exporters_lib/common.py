@@ -36,23 +36,29 @@ SECTION_FALLBACK_ORDER = [
     "interests",
 ]
 
+
 def safe_export_filename(name: str, extension: str) -> str:
     """Return a conservative download filename."""
     stem = re.sub(r"[^A-Za-z0-9._-]+", "_", name.strip()).strip("._")
     return f"{stem or 'mindris_cv'}.{extension}"
 
+
 def _cv_data(record: ResumeRecord) -> dict[str, Any]:
     data = load_json(record.data_json, {})
     return data if isinstance(data, dict) else {}
 
+
 def _mapping(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
+
 
 def _items(value: Any) -> list[Any]:
     return value if isinstance(value, list) else []
 
+
 def _text(value: Any) -> str:
     return value.strip() if isinstance(value, str) else ""
+
 
 def _section_configs(cv_data: dict[str, Any]) -> list[dict[str, Any]]:
     settings = _mapping(cv_data.get("global_settings"))
@@ -66,6 +72,7 @@ def _section_configs(cv_data: dict[str, Any]) -> list[dict[str, Any]]:
         configs.append(item)
     return configs
 
+
 def _configured_section_types(cv_data: dict[str, Any]) -> set[str]:
     settings = _mapping(cv_data.get("global_settings"))
     sections = _items(settings.get("sections"))
@@ -76,11 +83,13 @@ def _configured_section_types(cv_data: dict[str, Any]) -> set[str]:
             configured_types.add(section_type)
     return configured_types
 
+
 def _section_title(section: dict[str, Any]) -> str:
     section_type = _text(section.get("type"))
     return _text(section.get("label")) or DEFAULT_SECTION_TITLES.get(
         section_type, section_type.title()
     )
+
 
 def _section_data_for_type(
     cv_data: dict[str, Any], section_type: str, profile: dict[str, Any]
@@ -111,8 +120,10 @@ def _section_data_for_type(
         return cv_data.get("hobbies")
     return None
 
+
 def _join_non_empty(values: list[str], separator: str = " - ") -> str:
     return separator.join(value for value in values if value)
+
 
 def _location_text(value: Any) -> str:
     if isinstance(value, str):
@@ -123,6 +134,7 @@ def _location_text(value: Any) -> str:
         [_text(value.get("city")), _text(value.get("country"))],
         ", ",
     )
+
 
 def _contact_parts(profile: dict[str, Any]) -> list[str]:
     parts = [
@@ -139,6 +151,7 @@ def _contact_parts(profile: dict[str, Any]) -> list[str]:
         elif url:
             parts.append(url)
     return [part for part in parts if part]
+
 
 def _string_items(value: Any) -> list[str]:
     return [item for item in _items(value) if isinstance(item, str) and item.strip()]

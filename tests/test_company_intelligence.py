@@ -3,8 +3,9 @@
 from intelligence.company_analyzer import analyze_company
 
 
-def test_company_intelligence_builds_deterministic_profile_from_local_evidence(
-) -> None:
+def test_company_intelligence_builds_deterministic_profile_from_local_evidence() -> (
+    None
+):
     insight = __import__("asyncio").run(
         analyze_company(
             "Mindris",
@@ -20,7 +21,9 @@ def test_company_intelligence_builds_deterministic_profile_from_local_evidence(
     assert insight["name"] == "Mindris"
     assert insight["canonical_domain"] == "mindris.com"
     assert insight["homepage_url"] == "https://mindris.com"
-    assert insight["careers_url"] == "https://jobs.mindris.com/careers/platform-engineer"
+    assert (
+        insight["careers_url"] == "https://jobs.mindris.com/careers/platform-engineer"
+    )
     assert insight["work_mode"] == "remote"
     assert "python" in [item.lower() for item in insight["tech_stack_known"]]
     assert "ownership" in [item.lower() for item in insight["culture_values"]]

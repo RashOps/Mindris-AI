@@ -16,6 +16,7 @@ class ResumeCreateRequest(BaseModel):
     locale: str = "fr"
     source: str = "manual"
 
+
 class ResumeUpdateRequest(BaseModel):
     """Patch a resume in the backend library."""
 
@@ -26,11 +27,13 @@ class ResumeUpdateRequest(BaseModel):
     locale: str | None = None
     source: str | None = None
 
+
 class ResumeLocaleCreateRequest(BaseModel):
     """Create a new locale variant for an existing resume."""
 
     locale: Literal["fr", "en", "de", "es"]
     source_locale: Literal["fr", "en", "de", "es"] | None = None
+
 
 class ResumeImportRequest(BaseModel):
     """Import a JSON resume document or raw CV data."""
@@ -40,10 +43,12 @@ class ResumeImportRequest(BaseModel):
     resume: dict[str, Any] | None = None
     source: str = "json"
 
+
 class DraftUpsertRequest(BaseModel):
     """Upsert a backend-owned cross-page draft."""
 
     data: dict[str, Any]
+
 
 class TemplateCatalogItem(BaseModel):
     """Resume template exposed by the backend template catalogue."""
@@ -59,6 +64,7 @@ class TemplateCatalogItem(BaseModel):
     author: str | None = None
     preset_settings: dict[str, Any] = Field(default_factory=dict)
 
+
 class CommunityTemplateManifest(BaseModel):
     """Portable community template package manifest."""
 
@@ -72,11 +78,13 @@ class CommunityTemplateManifest(BaseModel):
     tags: list[str] = Field(default_factory=list)
     engine_version: Literal["1"]
 
+
 class CommunityTemplateConfig(BaseModel):
     """Portable community template rendering config."""
 
     base_template_id: str = Field(min_length=1)
     preset_settings: dict[str, Any] = Field(default_factory=dict)
+
 
 class ResumeRevisionItem(BaseModel):
     """Snapshot entry returned by the resume versioning API."""
@@ -91,6 +99,7 @@ class ResumeRevisionItem(BaseModel):
     label: str | None = None
     createdAt: str
 
+
 class ResumeRevisionChangeItem(BaseModel):
     """Single field-level change between two resume revisions."""
 
@@ -98,6 +107,7 @@ class ResumeRevisionChangeItem(BaseModel):
     kind: Literal["added", "removed", "changed"]
     before: Any | None = None
     after: Any | None = None
+
 
 class ResumeRevisionSectionItem(BaseModel):
     """Semantic summary for a top-level CV section diff."""
@@ -107,6 +117,7 @@ class ResumeRevisionSectionItem(BaseModel):
     status: Literal["added", "removed", "changed", "unchanged"]
     beforeCount: int = 0
     afterCount: int = 0
+
 
 class ResumeRevisionCompareItem(BaseModel):
     """Comparison payload for two resume snapshots."""

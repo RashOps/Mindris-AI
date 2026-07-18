@@ -108,7 +108,9 @@ def _resolve_ingestion_mode(
         return "llama_parse"
     if ingestion_mode == "local_text":
         return "local_text"
-    api_key = resolve_secret_slot("llama_cloud_api_key", settings.llama_cloud_api_key) or ""
+    api_key = (
+        resolve_secret_slot("llama_cloud_api_key", settings.llama_cloud_api_key) or ""
+    )
     return "llama_parse" if api_key else "local_text"
 
 

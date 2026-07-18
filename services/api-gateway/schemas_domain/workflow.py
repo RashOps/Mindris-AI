@@ -14,6 +14,7 @@ class ActivityLedgerLink(BaseModel):
     subject_id: str
     relation: str
 
+
 class ActivityLedgerItem(BaseModel):
     """Normalized history ledger item."""
 
@@ -29,6 +30,7 @@ class ActivityLedgerItem(BaseModel):
     links: list[ActivityLedgerLink] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
+
 class OpportunityTransitionItem(BaseModel):
     """Chronological workflow transition entry."""
 
@@ -37,6 +39,7 @@ class OpportunityTransitionItem(BaseModel):
     action: str
     metadata: dict[str, Any] = Field(default_factory=dict)
     created_at: str
+
 
 class OpportunityIntegrityIssueItem(BaseModel):
     """One degraded workflow integrity issue detected by the backend."""
@@ -47,12 +50,14 @@ class OpportunityIntegrityIssueItem(BaseModel):
     message: str
     metadata: dict[str, Any] = Field(default_factory=dict)
 
+
 class OpportunityIntegrityItem(BaseModel):
     """Backend-owned integrity summary for one opportunity workflow."""
 
     status: str = "healthy"
     issues: list[OpportunityIntegrityIssueItem] = Field(default_factory=list)
     repair_actions: list[str] = Field(default_factory=list)
+
 
 class OpportunityItem(BaseModel):
     """Serialized opportunity workflow aggregate."""
@@ -80,6 +85,7 @@ class OpportunityItem(BaseModel):
         default_factory=OpportunityIntegrityItem
     )
 
+
 class OpportunityCreateRequest(BaseModel):
     """Create an opportunity anchor from a job or a manual payload."""
 
@@ -99,21 +105,25 @@ class OpportunityCreateRequest(BaseModel):
             return self
         raise ValueError("Provide job_id or both company and role.")
 
+
 class OpportunityResumeLinkRequest(BaseModel):
     """Link a resume locale variant to an opportunity."""
 
     resume_id: int
     locale: str | None = None
 
+
 class OpportunityAtsLinkRequest(BaseModel):
     """Link an ATS report to an opportunity."""
 
     ats_report_id: int
 
+
 class OpportunityCoverLetterLinkRequest(BaseModel):
     """Link a cover letter to an opportunity."""
 
     cover_letter_id: int
+
 
 class OpportunityTrackerLinkRequest(BaseModel):
     """Create or attach a tracker application from workflow context."""
@@ -130,10 +140,12 @@ class OpportunityTrackerLinkRequest(BaseModel):
             raise ValueError("Provide application_id or set create=true.")
         return self
 
+
 class OpportunityRepairRequest(BaseModel):
     """Execute one bounded backend-owned repair action on an opportunity."""
 
     action: str = Field(min_length=1)
+
 
 class ApplicationCreateRequest(BaseModel):
     """Create an application tracker item."""
@@ -147,12 +159,14 @@ class ApplicationCreateRequest(BaseModel):
     cover_letter_id: int | None = None
     ats_report_id: int | None = None
 
+
 class ApplicationReminderCreateRequest(BaseModel):
     """Create a follow-up reminder for one application."""
 
     title: str = Field(min_length=1)
     due_at: str = Field(min_length=1)
     notes: str = ""
+
 
 class ApplicationReminderUpdateRequest(BaseModel):
     """Patch a follow-up reminder."""
@@ -161,6 +175,7 @@ class ApplicationReminderUpdateRequest(BaseModel):
     due_at: str | None = None
     status: Literal["pending", "completed", "dismissed"] | None = None
     notes: str | None = None
+
 
 class ApplicationUpdateRequest(BaseModel):
     """Patch an application tracker item."""
@@ -172,6 +187,7 @@ class ApplicationUpdateRequest(BaseModel):
     notes: str | None = None
     cover_letter_id: int | None = None
     ats_report_id: int | None = None
+
 
 class ApplicationMoveRequest(BaseModel):
     """Move an application to a Kanban status and position."""

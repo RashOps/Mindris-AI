@@ -294,9 +294,7 @@ def _serialize_installed_template(record: CommunityTemplateRecord) -> dict[str, 
         category=record.category,
         accent=record.accent or (base.accent if base else "#2563eb"),
         layout=(
-            record.layout
-            if record.layout in {"single", "two-column"}
-            else "two-column"
+            record.layout if record.layout in {"single", "two-column"} else "two-column"
         ),
         base_template_id=record.base_template_id,
         author=record.author,

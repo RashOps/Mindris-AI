@@ -25,6 +25,7 @@ from .common import (
 
 logger = get_logger(__name__, service_name="api-gateway")
 
+
 def resume_to_html(record: ResumeRecord) -> str:
     """Render a persisted resume as standalone, script-free HTML."""
     logger.info("Rendering resume %s to HTML", record.id)
@@ -213,6 +214,7 @@ def resume_to_html(record: ResumeRecord) -> str:
     logger.debug("Rendered HTML resume %s (%d chars)", record.id, len(rendered))
     return rendered
 
+
 def _certifications_html(value: Any, title: str = "Certifications") -> str:
     items = [_mapping(item) for item in _items(value)]
     cards = []
@@ -232,6 +234,7 @@ def _certifications_html(value: Any, title: str = "Certifications") -> str:
             f"{body}</article>"
         )
     return _html_section(title, "\n  ".join(cards))
+
 
 def _volunteering_html(value: Any, title: str = "Volunteering") -> str:
     items = [_mapping(item) for item in _items(value)]
@@ -253,6 +256,7 @@ def _volunteering_html(value: Any, title: str = "Volunteering") -> str:
         )
     return _html_section(title, "\n  ".join(cards))
 
+
 def _publications_html(value: Any, title: str = "Publications") -> str:
     items = [_mapping(item) for item in _items(value)]
     cards = []
@@ -272,6 +276,7 @@ def _publications_html(value: Any, title: str = "Publications") -> str:
             f"{_markdownish_html(_text(item.get('description_markdown')))}</article>"
         )
     return _html_section(title, "\n  ".join(cards))
+
 
 def _references_html(value: Any, title: str = "References") -> str:
     items = [_mapping(item) for item in _items(value)]
@@ -295,6 +300,7 @@ def _references_html(value: Any, title: str = "References") -> str:
         )
     return _html_section(title, "\n  ".join(cards))
 
+
 def _custom_sections_html(value: Any) -> str:
     items = [_mapping(item) for item in _items(value)]
     sections = []
@@ -307,10 +313,12 @@ def _custom_sections_html(value: Any) -> str:
         sections.append(_html_section(entry_title, content + chips))
     return "\n  ".join(section for section in sections if section)
 
+
 def _html_section(title: str, content: str) -> str:
     if not content:
         return ""
     return f"<section>\n  <h2>{escape(title)}</h2>\n  {content}\n</section>"
+
 
 def _markdownish_html(content: str) -> str:
     lines = [line.strip() for line in content.splitlines() if line.strip()]
@@ -330,6 +338,7 @@ def _markdownish_html(content: str) -> str:
     if list_items:
         html_parts.append("<ul>" + "".join(list_items) + "</ul>")
     return "\n  ".join(html_parts)
+
 
 def _experience_html(value: Any, title: str = "Experience") -> str:
     items = [_mapping(item) for item in _items(value)]
@@ -352,6 +361,7 @@ def _experience_html(value: Any, title: str = "Experience") -> str:
         )
     return _html_section(title, "\n  ".join(cards))
 
+
 def _projects_html(value: Any, title: str = "Projects") -> str:
     items = [_mapping(item) for item in _items(value)]
     cards = []
@@ -369,6 +379,7 @@ def _projects_html(value: Any, title: str = "Projects") -> str:
         )
     return _html_section(title, "\n  ".join(cards))
 
+
 def _skills_html(value: Any, title: str = "Skills") -> str:
     items = [_mapping(item) for item in _items(value)]
     rows = []
@@ -381,6 +392,7 @@ def _skills_html(value: Any, title: str = "Skills") -> str:
                 f"{escape(', '.join(skills))}</p>"
             )
     return _html_section(title, "\n  ".join(rows))
+
 
 def _education_html(value: Any, title: str = "Education") -> str:
     items = [_mapping(item) for item in _items(value)]
@@ -403,6 +415,7 @@ def _education_html(value: Any, title: str = "Education") -> str:
         )
     return _html_section(title, "\n  ".join(cards))
 
+
 def _languages_html(value: Any, title: str = "Languages") -> str:
     items = [_mapping(item) for item in _items(value)]
     labels = [
@@ -411,12 +424,15 @@ def _languages_html(value: Any, title: str = "Languages") -> str:
     ]
     return _html_section(title, _list_html([label for label in labels if label]))
 
+
 def _hobbies_html(value: Any, title: str = "Interests") -> str:
     values = [item for item in _items(value) if isinstance(item, str) and item.strip()]
     return _html_section(title, _chips_html(values))
 
+
 def _meta_html(value: str) -> str:
     return f'<p class="meta">{escape(value)}</p>' if value else ""
+
 
 def _chips_html(values: list[str]) -> str:
     if not values:
@@ -426,6 +442,7 @@ def _chips_html(values: list[str]) -> str:
         + "".join(f'<span class="chip">{escape(value)}</span>' for value in values)
         + "</div>"
     )
+
 
 def _list_html(values: list[str]) -> str:
     if not values:

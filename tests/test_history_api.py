@@ -288,9 +288,7 @@ def test_score_and_cover_letter_routes_persist_job_aware_artifacts(monkeypatch) 
     job_detail = api.get(f"/api/v1/history/jobs/{job_id}", headers=headers)
     assert job_detail.status_code == 200
     job_payload = job_detail.json()
-    assert any(
-        item["id"] == score_payload["id"] for item in job_payload["ats_reports"]
-    )
+    assert any(item["id"] == score_payload["id"] for item in job_payload["ats_reports"])
     assert any(
         item["id"] == inherited_version_payload["id"]
         for item in job_payload["cover_letters"]
@@ -392,8 +390,7 @@ def test_history_ledger_builds_lineage_links_for_related_artifacts() -> None:
         for link in tracker_item["links"]
     )
     assert any(
-        link["subject_type"] == "cover_letter"
-        and link["subject_id"] == str(letter.id)
+        link["subject_type"] == "cover_letter" and link["subject_id"] == str(letter.id)
         for link in tracker_item["links"]
     )
 
