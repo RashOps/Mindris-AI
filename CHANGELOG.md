@@ -4,6 +4,8 @@ All notable changes to Mindris AI are documented here.
 
 ## Unreleased
 
+## v0.4.0 - 2026-07-18
+
 ### Added
 
 - Backend-owned artifact lineage linking jobs, resume revisions, ATS reports,
@@ -65,7 +67,7 @@ All notable changes to Mindris AI are documented here.
 
 - Python backend suite, Ruff, frontend tests/lint/typecheck/build, renderer
   tests/typecheck/build, browser E2E, and Docker release smoke are release
-  gates for the `v0.4.0` candidate.
+  gates for `v0.4.0`.
 
 ## v0.3.0 - 2026-07-02
 
