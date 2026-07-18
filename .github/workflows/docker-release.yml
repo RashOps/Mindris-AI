@@ -41,6 +41,7 @@ jobs:
         run: bun run typecheck
       - working-directory: services/renderer
         run: bun run build
+      - run: cp .env.example .env
       - run: docker compose -f docker-compose.release.yml config --quiet
       - run: sh -n scripts/install_self_hosted.sh scripts/update_self_hosted.sh scripts/uninstall_self_hosted.sh scripts/smoke_release.sh scripts/clean_self_hosted_test.sh
 
