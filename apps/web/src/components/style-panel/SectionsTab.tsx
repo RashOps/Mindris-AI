@@ -3,8 +3,9 @@ import { useState } from "react";
 import {
   DndContext,
   PointerSensor,
-  closestCenter,
+  pointerWithin,
   type DragEndEvent,
+  useDroppable,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -14,7 +15,13 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Eye,
+  EyeOff,
+  GripVertical,
+} from "lucide-react";
 
 import { ToolbarSelect } from "@/components/ToolbarSelect";
 import type { GlobalSettings } from "@/store/useCVStore";
@@ -26,6 +33,13 @@ import {
 } from "./constants";
 import { SectionLabel } from "./controls";
 import { VisualOptionGroup } from "./visual-controls";
+import {
+  moveSectionToPlacement,
+  moveSectionWithinPlacement,
+  placementOf,
+  sectionsForPlacement,
+  type SectionPlacement,
+} from "./section-placement";
 
 type SectionSettings = NonNullable<GlobalSettings["sections"]>[number];
 
@@ -62,6 +76,12 @@ const ICON_STYLE_LABELS: Record<string, string> = {
   outline: "Contour",
   filled: "Pleine",
 };
+const DISPLAY_MODE_LABELS: Record<string, string> = {
+  list: "Liste",
+  compact: "Compact",
+  timeline: "Chronologie",
+  cards: "Cartes",
+};
 
 interface SectionsTabProps {
   settings: GlobalSettings;
@@ -74,9 +94,9 @@ interface SectionsTabProps {
   dateLocationPositions: string[];
   skillStyles: string[];
   iconStyles: string[];
+  supportsTwoColumns: boolean;
   updateSection: (index: number, patch: Partial<SectionSettings>) => void;
-  moveSection: (index: number, delta: -1 | 1) => void;
-  reorderSections: (activeId: string, overId: string) => void;
+  replaceSections: (sections: SectionSettings[]) => void;
 }
 
 function sectionDisplayModes(section: SectionSettings, sectionModes: string[]) {
@@ -89,11 +109,9 @@ function sectionDisplayModes(section: SectionSettings, sectionModes: string[]) {
   return sectionModes.filter((mode) => mode !== "timeline");
 }
 
-function SortableSectionCard({
+export function SectionCard({
   section,
   index,
-  total,
-  sectionPlacements,
   sectionModes,
   sectionDetails,
   headingStyles,
@@ -103,12 +121,14 @@ function SortableSectionCard({
   skillStyles,
   iconStyles,
   updateSection,
-  moveSection,
+  canTransfer,
+  onTransfer,
+  onMove,
+  canMoveUp,
+  canMoveDown,
 }: {
   section: SectionSettings;
   index: number;
-  total: number;
-  sectionPlacements: string[];
   sectionModes: string[];
   sectionDetails: string[];
   headingStyles: string[];
@@ -118,10 +138,15 @@ function SortableSectionCard({
   skillStyles: string[];
   iconStyles: string[];
   updateSection: (index: number, patch: Partial<SectionSettings>) => void;
-  moveSection: (index: number, delta: -1 | 1) => void;
+  canTransfer: boolean;
+  onTransfer: () => void;
+  onMove: (delta: -1 | 1) => void;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const sortable = useSortable({ id: section.id });
+  const placement = placementOf(section);
+  const sortable = useSortable({ id: section.id, data: { placement } });
   const style = {
     transform: CSS.Transform.toString(sortable.transform),
     transition: sortable.transition,
@@ -149,31 +174,57 @@ function SortableSectionCard({
         <button
           type="button"
           onClick={() => setExpanded((value) => !value)}
+          aria-expanded={expanded}
           className="min-w-0 flex-1 text-left"
         >
           <span className="block truncate text-sm font-semibold text-foreground">
             {section.label}
           </span>
           <span className="block text-[10px] uppercase tracking-wider text-muted-foreground">
-            {section.type} · {section.placement ?? "main"} ·{" "}
-            {section.display_mode ?? "list"}
+            {DISPLAY_MODE_LABELS[section.display_mode ?? "list"] ??
+              section.display_mode ??
+              "Liste"}
           </span>
         </button>
-        <label className="flex items-center gap-2 rounded-md border border-input bg-background px-2 py-1.5 text-[11px] text-foreground">
-          Visible
-          <input
-            type="checkbox"
-            checked={section.visible ?? true}
-            onChange={(event) =>
-              updateSection(index, { visible: event.target.checked })
-            }
-            aria-label={`Afficher la section ${section.type}`}
-          />
-        </label>
+        {canTransfer ? (
+          <button
+            type="button"
+            onClick={onTransfer}
+            aria-label={`Déplacer ${section.label} vers la colonne ${placement === "main" ? "secondaire" : "principale"}`}
+            title={`Déplacer vers la colonne ${placement === "main" ? "secondaire" : "principale"}`}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-input bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            {placement === "main" ? (
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            )}
+          </button>
+        ) : null}
+        <button
+          type="button"
+          onClick={() =>
+            updateSection(index, { visible: !(section.visible ?? true) })
+          }
+          aria-pressed={section.visible ?? true}
+          aria-label={`${section.visible ?? true ? "Masquer" : "Afficher"} la section ${section.label}`}
+          title={
+            section.visible ?? true
+              ? "Masquer la section"
+              : "Afficher la section"
+          }
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-input bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        >
+          {section.visible ?? true ? (
+            <Eye className="h-4 w-4" aria-hidden="true" />
+          ) : (
+            <EyeOff className="h-4 w-4" aria-hidden="true" />
+          )}
+        </button>
       </div>
 
       {expanded && (
-        <div className="mt-3 grid gap-2">
+        <SectionAdvancedSettings>
           <input
             value={section.label}
             onChange={(event) =>
@@ -183,21 +234,7 @@ function SortableSectionCard({
             className={PANEL_INPUT_CLASS}
           />
 
-          <div className="grid grid-cols-2 gap-2">
-            <ToolbarSelect
-              value={section.placement ?? "main"}
-              ariaLabel={`Placement section ${section.type}`}
-              options={sectionPlacements.map((placement) => ({
-                value: placement,
-                label: placement === "sidebar" ? "sidebar" : "main",
-              }))}
-              onChange={(value) =>
-                updateSection(index, {
-                  placement: value as "main" | "sidebar",
-                })
-              }
-              triggerClassName={PANEL_INPUT_CLASS}
-            />
+          <div className="grid gap-2">
             <ToolbarSelect
               value={section.display_mode ?? "list"}
               ariaLabel={`Affichage section ${section.type}`}
@@ -392,23 +429,133 @@ function SortableSectionCard({
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => moveSection(index, -1)}
-              disabled={index === 0}
+              onClick={() => onMove(-1)}
+              disabled={!canMoveUp}
               className="rounded-md border border-input bg-background px-2 py-1 text-[11px] text-muted-foreground disabled:opacity-40"
             >
               Monter
             </button>
             <button
               type="button"
-              onClick={() => moveSection(index, 1)}
-              disabled={index === total - 1}
+              onClick={() => onMove(1)}
+              disabled={!canMoveDown}
               className="rounded-md border border-input bg-background px-2 py-1 text-[11px] text-muted-foreground disabled:opacity-40"
             >
               Descendre
             </button>
           </div>
-        </div>
+        </SectionAdvancedSettings>
       )}
+    </div>
+  );
+}
+
+export function SectionAdvancedSettings({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return <div className="mt-3 grid gap-2">{children}</div>;
+}
+
+export function SectionLane({
+  placement,
+  title,
+  description,
+  sections,
+  children,
+}: {
+  placement: SectionPlacement;
+  title: string;
+  description: string;
+  sections: SectionSettings[];
+  children: React.ReactNode;
+}) {
+  const droppable = useDroppable({
+    id: `section-lane-${placement}`,
+    data: { placement },
+  });
+
+  return (
+    <section
+      ref={droppable.setNodeRef}
+      aria-label={title}
+      className={`min-w-0 rounded-xl border p-2 transition-colors ${
+        droppable.isOver
+          ? "border-violet-500 bg-violet-50/70 dark:bg-violet-950/30"
+          : "border-border bg-muted/30"
+      }`}
+    >
+      <div className="mb-2 px-1">
+        <h3 className="text-xs font-semibold text-foreground">{title}</h3>
+        <p className="text-[10px] text-muted-foreground">{description}</p>
+      </div>
+      <SortableContext
+        items={sections.map((section) => section.id)}
+        strategy={verticalListSortingStrategy}
+      >
+        <div className="min-h-16 space-y-2">
+          {children}
+          {sections.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-border px-2 py-5 text-center text-[11px] text-muted-foreground">
+              Dépose une section ici
+            </p>
+          ) : null}
+        </div>
+      </SortableContext>
+    </section>
+  );
+}
+
+export function SectionPlacementBoard({
+  sections,
+  twoColumns,
+  renderCard,
+}: {
+  sections: SectionSettings[];
+  twoColumns: boolean;
+  renderCard: (section: SectionSettings) => React.ReactNode;
+}) {
+  const mainSections = sectionsForPlacement(sections, "main");
+  const sidebarSections = sectionsForPlacement(sections, "sidebar");
+
+  if (!twoColumns) {
+    return (
+      <div className="space-y-2">
+        <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+          Ce modèle utilise une seule colonne. Tu peux modifier l’ordre des
+          sections, mais pas leur répartition.
+        </div>
+        <SectionLane
+          placement="main"
+          title="Ordre des sections"
+          description="Du haut vers le bas dans le CV"
+          sections={sections}
+        >
+          {sections.map(renderCard)}
+        </SectionLane>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-3 xl:grid-cols-2">
+      <SectionLane
+        placement="main"
+        title="Colonne principale"
+        description="Expériences et contenu prioritaire"
+        sections={mainSections}
+      >
+        {mainSections.map(renderCard)}
+      </SectionLane>
+      <SectionLane
+        placement="sidebar"
+        title="Colonne secondaire"
+        description="Compétences et informations courtes"
+        sections={sidebarSections}
+      >
+        {sidebarSections.map(renderCard)}
+      </SectionLane>
     </div>
   );
 }
@@ -424,56 +571,98 @@ export function SectionsTab({
   dateLocationPositions,
   skillStyles,
   iconStyles,
+  supportsTwoColumns,
   updateSection,
-  moveSection,
-  reorderSections,
+  replaceSections,
 }: SectionsTabProps) {
   const sections = settings.sections ?? [];
+  const twoColumns =
+    supportsTwoColumns &&
+    settings.layout?.columns === 2 &&
+    settings.layout?.sidebar_position !== "none" &&
+    sectionPlacements.includes("sidebar");
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
   );
 
   const handleDragEnd = (event: DragEndEvent) => {
     const activeId = String(event.active.id);
-    const overId = event.over?.id ? String(event.over.id) : null;
-    if (!overId) return;
-    reorderSections(activeId, overId);
+    const over = event.over;
+    if (!over) return;
+    const overId = String(over.id);
+    const placement = over.data.current?.placement as
+      | SectionPlacement
+      | undefined;
+    if (!placement) return;
+    const activeSection = sections.find((section) => section.id === activeId);
+    if (!activeSection) return;
+    const targetPlacement = twoColumns ? placement : placementOf(activeSection);
+    replaceSections(
+      moveSectionToPlacement(
+        sections,
+        activeId,
+        targetPlacement,
+        overId.startsWith("section-lane-") ? undefined : overId,
+      ),
+    );
   };
 
   return (
     <section>
       <SectionLabel>Organisation des sections</SectionLabel>
+      <p className="mb-3 text-xs text-muted-foreground">
+        Fais glisser les sections pour les ordonner, ou utilise les flèches
+        pour changer de colonne.
+      </p>
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCenter}
+        collisionDetection={pointerWithin}
         onDragEnd={handleDragEnd}
       >
-        <SortableContext
-          items={sections.map((section) => section.id)}
-          strategy={verticalListSortingStrategy}
-        >
-          <div className="space-y-2">
-            {sections.map((section, index) => (
-              <SortableSectionCard
+        <SectionPlacementBoard
+          sections={sections}
+          twoColumns={twoColumns}
+          renderCard={(section) => {
+            const index = sections.findIndex((item) => item.id === section.id);
+            const lane = twoColumns
+              ? sectionsForPlacement(sections, placementOf(section))
+              : sections;
+            const laneIndex = lane.findIndex((item) => item.id === section.id);
+            return (
+              <SectionCard
                 key={section.id}
                 section={section}
                 index={index}
-                total={sections.length}
-                  sectionPlacements={sectionPlacements}
-                  sectionModes={sectionModes}
-                  sectionDetails={sectionDetails}
-                  headingStyles={headingStyles}
-                  headingCapitalization={headingCapitalization}
-                  titleSubtitleOrders={titleSubtitleOrders}
-                  dateLocationPositions={dateLocationPositions}
-              skillStyles={skillStyles}
-              iconStyles={iconStyles}
-                  updateSection={updateSection}
-                moveSection={moveSection}
+                sectionModes={sectionModes}
+                sectionDetails={sectionDetails}
+                headingStyles={headingStyles}
+                headingCapitalization={headingCapitalization}
+                titleSubtitleOrders={titleSubtitleOrders}
+                dateLocationPositions={dateLocationPositions}
+                skillStyles={skillStyles}
+                iconStyles={iconStyles}
+                updateSection={updateSection}
+                canTransfer={twoColumns}
+                onTransfer={() =>
+                  replaceSections(
+                    moveSectionToPlacement(
+                      sections,
+                      section.id,
+                      placementOf(section) === "main" ? "sidebar" : "main",
+                    ),
+                  )
+                }
+                onMove={(delta) =>
+                  replaceSections(
+                    moveSectionWithinPlacement(sections, section.id, delta),
+                  )
+                }
+                canMoveUp={laneIndex > 0}
+                canMoveDown={laneIndex < lane.length - 1}
               />
-            ))}
-          </div>
-        </SortableContext>
+            );
+          }}
+        />
       </DndContext>
     </section>
   );

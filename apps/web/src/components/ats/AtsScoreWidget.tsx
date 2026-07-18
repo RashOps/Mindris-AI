@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { ArrowRight, Zap } from 'lucide-react';
 
 interface AtsScoreWidgetProps {
   score: number;
@@ -59,7 +60,7 @@ export function AtsScoreWidget({ score, label, onClick }: AtsScoreWidgetProps) {
       {/* Score header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-sm">⚡</span>
+          <Zap className="h-4 w-4" aria-hidden="true" />
           <span className="text-xs font-semibold" style={{ color: '#c4b5fd' }}>
             ATS Score
           </span>
@@ -99,7 +100,7 @@ export function AtsScoreWidget({ score, label, onClick }: AtsScoreWidgetProps) {
           className="text-[10px] font-semibold flex items-center gap-1 transition-opacity hover:opacity-80"
           style={{ color: '#a78bfa' }}
         >
-          Full Report →
+          Full Report <ArrowRight className="h-3 w-3" aria-hidden="true" />
         </button>
       </div>
     </div>

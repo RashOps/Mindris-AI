@@ -1,6 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import {
+  Braces,
+  CircleUserRound,
+  X,
+  FileText,
+  LayoutTemplate,
+  Link,
+  ListTree,
+  MoveVertical,
+  Palette,
+  PanelTop,
+  PanelsTopLeft,
+  Type,
+  type LucideIcon,
+} from "lucide-react";
 import { ToolbarSelect } from "@/components/ToolbarSelect";
 import type { CvBuilderUiMode } from "@/app/tools/cv-creator/components/CvBuilderModeToggle";
 import { useCVStore } from "@/store/useCVStore";
@@ -72,6 +87,19 @@ const TAB_DESCRIPTIONS: Record<Tab, string> = {
   sections: "Ordonne et présente chaque section.",
   advanced: "Réglages experts et CSS encadré.",
 };
+export const STYLE_TABS: { key: Tab; label: string; icon: LucideIcon }[] = [
+  { key: "document", label: "Document", icon: FileText },
+  { key: "template", label: "Modèles", icon: LayoutTemplate },
+  { key: "layout", label: "Mise en page", icon: PanelsTopLeft },
+  { key: "typography", label: "Texte", icon: Type },
+  { key: "spacing", label: "Espacement", icon: MoveVertical },
+  { key: "colors", label: "Couleurs", icon: Palette },
+  { key: "photo", label: "Photo", icon: CircleUserRound },
+  { key: "header", label: "En-tête", icon: PanelTop },
+  { key: "links", label: "Liens", icon: Link },
+  { key: "sections", label: "Sections", icon: ListTree },
+  { key: "advanced", label: "Expert", icon: Braces },
+];
 interface StylePanelProps {
   open?: boolean;
   onClose?: () => void;
@@ -143,40 +171,11 @@ export function StylePanel({
     update({ sections: nextSections });
   };
 
-  const moveSection = (index: number, delta: -1 | 1) => {
-    const sections = [...(settings.sections ?? [])];
-    const nextIndex = index + delta;
-    if (nextIndex < 0 || nextIndex >= sections.length) return;
-    const [item] = sections.splice(index, 1);
-    sections.splice(nextIndex, 0, item);
-    update({ sections });
-  };
+  const replaceSections = (
+    sections: NonNullable<GlobalSettings["sections"]>,
+  ) => update({ sections });
 
-  const reorderSections = (activeId: string, overId: string) => {
-    if (activeId === overId) return;
-    const sections = [...(settings.sections ?? [])];
-    const fromIndex = sections.findIndex((section) => section.id === activeId);
-    const toIndex = sections.findIndex((section) => section.id === overId);
-    if (fromIndex < 0 || toIndex < 0) return;
-    const [item] = sections.splice(fromIndex, 1);
-    sections.splice(toIndex, 0, item);
-    update({ sections });
-  };
-
-  const TABS: { key: Tab; label: string; icon: string }[] = [
-    { key: "document", label: "Document", icon: "□" },
-    { key: "template", label: "Modèles", icon: "" },
-    { key: "layout", label: "Mise en page", icon: "◫" },
-    { key: "typography", label: "Texte", icon: "Aa" },
-    { key: "spacing", label: "Espacement", icon: "↕" },
-    { key: "colors", label: "Couleurs", icon: "●" },
-    { key: "photo", label: "Photo", icon: "◉" },
-    { key: "header", label: "En-tête", icon: "▤" },
-    { key: "links", label: "Liens", icon: "↗" },
-    { key: "sections", label: "Sections", icon: "≡" },
-    { key: "advanced", label: "Expert", icon: "{}" },
-  ];
-  const visibleTabs = TABS.filter((item) => {
+  const visibleTabs = STYLE_TABS.filter((item) => {
     if (uiMode === "simple") {
       return item.key === "template" || item.key === "colors";
     }
@@ -197,6 +196,11 @@ export function StylePanel({
   const isAdvancedMode = uiMode === "advanced";
 
   const sectionPlacements = options.sectionPlacements;
+  const selectedTemplate = templateCards.find(
+    (template) => template.id === settings.template_id,
+  );
+  const supportsTwoColumnSections =
+    selectedTemplate?.compatibleLayouts.includes(2) ?? true;
   const sectionModes = options.displayModes;
   const sectionDetails = options.detailLevels;
   const accentTargetOptions = options.accentTargets as AccentTarget[];
@@ -259,7 +263,7 @@ export function StylePanel({
               onClick={onClose}
               className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
             >
-              ✕
+              <X className="h-4 w-4" aria-hidden="true" />
             </button>
           )}
         </div>
@@ -303,9 +307,7 @@ export function StylePanel({
                     : "border-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 }`}
               >
-                {t.icon && (
-                  <span className="text-sm leading-none">{t.icon}</span>
-                )}
+                <t.icon className="h-4 w-4" aria-hidden="true" />
                 {t.label}
               </button>
             ))}
@@ -667,9 +669,9 @@ export function StylePanel({
               dateLocationPositions={options.dateLocationPositions}
               skillStyles={options.skillStyles}
               iconStyles={options.sectionIconStyles}
+              supportsTwoColumns={supportsTwoColumnSections}
               updateSection={updateSection}
-              moveSection={moveSection}
-              reorderSections={reorderSections}
+              replaceSections={replaceSections}
             />
           )}
 

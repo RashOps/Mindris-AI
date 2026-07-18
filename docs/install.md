@@ -82,7 +82,7 @@ curl -fsSL https://raw.githubusercontent.com/RashOps/Mindris-AI/main/scripts/ins
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/RashOps/Mindris-AI/main/scripts/install_self_hosted.sh \
-  | MINDRIS_RELEASE_REF="v0.3.0" MINDRIS_HOME="$HOME/.mindris-ai" sh
+  | MINDRIS_RELEASE_REF="v0.4.0" MINDRIS_HOME="$HOME/.mindris-ai" sh
 ```
 
 Le tag Docker utilisé est contrôlé par `MINDRIS_VERSION` dans le fichier `.env`.

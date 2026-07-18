@@ -45,3 +45,11 @@ spec: docs/staging/specs/2026-06-24-cv-customization-studio.md
   spec: docs/staging/specs/2026-06-24-cv-customization-studio.md#cv-customization-studio
 
 [parallel] T2 can run after T1 schema decisions are merged. T3 and T4 should remain sequential because renderer semantics and tokens touch the same files. T5 should run before T6 so the UI consumes the final section model. T7 runs last.
+
+# Mise à jour du 18 juillet 2026
+
+La répartition des sections est désormais exposée sous forme de colonnes
+visuelles dans l'onglet Sections. Les boutons de transfert constituent le
+mécanisme accessible principal et le glisser-déposer reste un complément pour
+l'ordre et les déplacements intercolonnes. Voir
+[`ADR 020`](../../adr/020-accessible-cv-section-placement.md).

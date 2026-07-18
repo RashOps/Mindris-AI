@@ -7,6 +7,7 @@ import { ToolbarSelect } from "@/components/ToolbarSelect";
 import { useRouter } from "next/navigation";
 import { apiUrl, jsonHeaders } from "@/lib/api";
 import { saveDraft } from "@/lib/drafts";
+import { ArrowRight, X } from "lucide-react";
 
 // ── LLM options ───────────────────────────────────────────────────────────────
 
@@ -19,7 +20,7 @@ const PROVIDERS: { id: LLMProvider; label: string }[] = [
 
 const MODELS: Record<string, { id: string; label: string }[]> = {
   gemini: [
-    { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash ⚡" },
+    { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
     { id: "gemini-1.5-pro", label: "Gemini 1.5 Pro" },
   ],
   groq: [
@@ -191,7 +192,7 @@ export function CoverLetterModal({ open, onClose }: CoverLetterModalProps) {
               onMouseEnter={(e) => (e.currentTarget.style.color = "#e2e8f0")}
               onMouseLeave={(e) => (e.currentTarget.style.color = "#475569")}
             >
-              ✕
+              <X className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
 
@@ -347,7 +348,11 @@ export function CoverLetterModal({ open, onClose }: CoverLetterModalProps) {
                   Génération en cours…
                 </>
               ) : (
-                <>Générer la lettre → Ouvrir dans l&apos;éditeur</>
+                <>
+                  Générer la lettre
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  Ouvrir dans l&apos;éditeur
+                </>
               )}
             </button>
           </div>

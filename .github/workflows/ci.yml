@@ -1,9 +1,9 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - main
+  # push:
+  #   branches:
+  #     - main
   pull_request:
   workflow_dispatch:
 
@@ -26,6 +26,8 @@ jobs:
       - working-directory: apps/web
         run: bun install --frozen-lockfile
       - working-directory: apps/web
+        run: bun test
+      - working-directory: apps/web
         run: bun run lint
       - working-directory: apps/web
         run: bun run typecheck
@@ -33,6 +35,8 @@ jobs:
         run: bun run build
       - working-directory: services/renderer
         run: bun install --frozen-lockfile
+      - working-directory: services/renderer
+        run: bun test
       - working-directory: services/renderer
         run: bun run typecheck
       - working-directory: services/renderer

@@ -4,6 +4,14 @@ import { useRef, useState } from 'react';
 import { cvDataFromImport, useCVStore } from '@/store/useCVStore';
 import { apiUrl, apiHeaders, jsonHeaders } from '@/lib/api';
 import { PdfIngestionModeSelect } from '@/components/PdfIngestionModeSelect';
+import {
+  ArrowRight,
+  Braces,
+  CircleUserRound,
+  FileText,
+  LoaderCircle,
+  Upload,
+} from 'lucide-react';
 
 
 
@@ -57,16 +65,16 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
         }),
       });
       onCvLoaded?.(importedCV);
-      showStatus('✅ CV JSON chargé.');
+      showStatus('CV JSON chargé.');
     } catch (err: unknown) {
-      showStatus(`❌ ${err instanceof Error ? err.message : 'Fichier JSON invalide.'}`, 5000);
+      showStatus(err instanceof Error ? err.message : 'Fichier JSON invalide.', 5000);
     }
   };
 
   // ── PDF handler ──────────────────────────────────────────────────────────────
   const handlePdf = async (file: File) => {
     setIsUploading(true);
-    showStatus('📄 Lecture du PDF (10-30s)…', 30000);
+    showStatus('Lecture du PDF (10-30s)…', 30000);
     try {
       const form = new FormData();
       form.append('file', file);
@@ -88,9 +96,9 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
         }).catch(() => undefined);
         onCvLoaded?.(data.cv_data);
       }
-      showStatus('✅ PDF lu et indexé.');
+      showStatus('PDF lu et indexé.');
     } catch (err: unknown) {
-      showStatus(`❌ ${err instanceof Error ? err.message : 'Import impossible'}`, 6000);
+      showStatus(err instanceof Error ? err.message : 'Import impossible', 6000);
     } finally {
       setIsUploading(false);
     }
@@ -99,7 +107,7 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
   const handleFile = (file: File) => {
     if (file.name.endsWith('.json')) return handleJson(file);
     if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) return handlePdf(file);
-    showStatus('⚠️ Importez un fichier .json ou .pdf.');
+    showStatus('Importez un fichier .json ou .pdf.');
   };
 
   // ── Drag & drop ──────────────────────────────────────────────────────────────
@@ -119,7 +127,7 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
   // ── "Use current CV" shortcut ─────────────────────────────────────────────
   const useCurrentCV = () => {
     onCvLoaded?.(cvData as object);
-    showStatus(`✅ CV de ${cvData.profile.full_name} utilisé.`);
+    showStatus(`CV de ${cvData.profile.full_name} utilisé.`);
   };
 
   if (compact) {
@@ -130,9 +138,9 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
             onClick={useCurrentCV}
             className="flex w-full cursor-pointer items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-left text-xs font-medium text-blue-700 transition-colors hover:bg-blue-500/15 dark:text-blue-300"
           >
-            <span>👤</span>
+            <CircleUserRound className="h-4 w-4 shrink-0" aria-hidden="true" />
             <span className="truncate">Utiliser {cvData.profile.full_name || 'le CV courant'}</span>
-            <span className="ml-auto opacity-70">→</span>
+            <ArrowRight className="ml-auto h-4 w-4 opacity-70" aria-hidden="true" />
           </button>
         )}
         <div className="flex gap-2">
@@ -143,14 +151,19 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
             onClick={() => jsonRef.current?.click()}
             className="flex-1 cursor-pointer rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-foreground shadow-sm transition-colors hover:bg-accent"
           >
-            {"{ }"} JSON
+            <Braces className="mr-1 inline h-4 w-4" aria-hidden="true" /> JSON
           </button>
           <button
             onClick={() => pdfRef.current?.click()}
             disabled={isUploading}
             className="flex-1 cursor-pointer rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-foreground shadow-sm transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isUploading ? '⏳' : '📄'} PDF
+            {isUploading ? (
+              <LoaderCircle className="mr-1 inline h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <FileText className="mr-1 inline h-4 w-4" aria-hidden="true" />
+            )}
+            PDF
           </button>
         </div>
         {status && <p className="text-center text-xs text-muted-foreground">{status}</p>}
@@ -167,7 +180,7 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
             className="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-blue-500/30 bg-blue-500/10 p-3 text-left text-sm font-medium text-blue-700 transition-all hover:bg-blue-500/15 dark:text-blue-300"
         >
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10">
-            👤
+            <CircleUserRound className="h-5 w-5" aria-hidden="true" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="truncate font-semibold">
@@ -175,7 +188,7 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
             </p>
             <p className="mt-0.5 text-xs opacity-70">Déjà chargé dans le CV Builder — cliquez pour l’utiliser</p>
           </div>
-          <span>→</span>
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </button>
       )}
 
@@ -194,7 +207,11 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
         <div
           className="flex h-12 w-12 items-center justify-center rounded-lg bg-violet-50 text-2xl"
         >
-          {isUploading ? '⏳' : '⬆️'}
+          {isUploading ? (
+            <LoaderCircle className="h-6 w-6 animate-spin" aria-hidden="true" />
+          ) : (
+            <Upload className="h-6 w-6" aria-hidden="true" />
+          )}
         </div>
         <div className="text-center">
           <p className="text-sm font-medium text-foreground">
@@ -218,7 +235,11 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
           disabled={isUploading}
           className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground shadow-sm transition-all hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isUploading ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : '📄'}
+          {isUploading ? (
+            <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <FileText className="h-4 w-4" aria-hidden="true" />
+          )}
           Importer PDF
         </button>
       </div>

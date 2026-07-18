@@ -2,13 +2,20 @@
 
 import { useEffect, useRef, useState } from "react";
 import { connectApiEventStream } from "@/lib/api";
+import {
+  CheckCircle2,
+  Circle,
+  LoaderCircle,
+  Play,
+  Square,
+  XCircle,
+} from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface GhostEvent {
   id: string;
   event: string;       // node_start | node_done | pipeline_start | done | error | ping
-  icon: string;
   message: string;
   score?: number;
   content?: string;
@@ -65,7 +72,6 @@ export function GhostMode({ jobId, onDone, onError, onJobResult, onCompanyResult
         const entry: GhostEvent = {
           id: `${Date.now()}-${Math.random()}`,
           event: eventType,
-          icon: typeof data.icon === "string" ? data.icon : (eventType === "error" ? "❌" : "•"),
           message: typeof data.message === "string" ? data.message : "",
           score: typeof data.score === "number" ? data.score : undefined,
           content: typeof data.content === "string" ? data.content : undefined,
@@ -109,7 +115,6 @@ export function GhostMode({ jobId, onDone, onError, onJobResult, onCompanyResult
             {
               id: `err-${Date.now()}`,
               event: "error",
-              icon: "❌",
               message: "Lost connection to the pipeline.",
               ts: Date.now(),
             },
@@ -172,7 +177,7 @@ export function GhostMode({ jobId, onDone, onError, onJobResult, onCompanyResult
 
         {/* Blinking cursor while running */}
         {status === "running" && (
-          <div className="text-[#818cf8] animate-pulse text-base leading-none mt-1">█</div>
+          <Square className="mt-1 h-3 w-3 animate-pulse fill-current text-[#818cf8]" aria-hidden="true" />
         )}
 
         <div ref={bottomRef} />
@@ -181,12 +186,12 @@ export function GhostMode({ jobId, onDone, onError, onJobResult, onCompanyResult
       {/* Bottom status */}
       {status === "done" && (
         <div className="px-4 py-2.5 border-t border-white/8 bg-[#161b22] text-xs text-green-400 flex items-center gap-2 shrink-0">
-          <span>✅</span> Pipeline complete — CV tailored and ready for export.
+          <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> Pipeline complete — CV tailored and ready for export.
         </div>
       )}
       {status === "error" && (
         <div className="px-4 py-2.5 border-t border-white/8 bg-[#161b22] text-xs text-red-400 flex items-center gap-2 shrink-0">
-          <span>❌</span> Pipeline encountered an error. Check the API gateway logs.
+          <XCircle className="h-4 w-4" aria-hidden="true" /> Pipeline encountered an error. Check the API gateway logs.
         </div>
       )}
     </div>
@@ -207,11 +212,24 @@ function EventLine({ evt }: { evt: GhostEvent }) {
   const time = new Date(evt.ts).toLocaleTimeString("fr-FR", {
     hour: "2-digit", minute: "2-digit", second: "2-digit",
   });
+  const EventIcon =
+    evt.event === "error"
+      ? XCircle
+      : evt.event === "done" || evt.event === "node_done"
+        ? CheckCircle2
+        : evt.event === "pipeline_start"
+          ? Play
+          : evt.event === "node_start"
+            ? LoaderCircle
+            : Circle;
 
   return (
     <div className="flex items-start gap-2.5 leading-relaxed">
       <span className="text-slate-600 text-[10px] shrink-0 mt-0.5 w-16">{time}</span>
-      <span className="shrink-0">{evt.icon}</span>
+      <EventIcon
+        className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${evt.event === "node_start" ? "animate-spin" : ""}`}
+        aria-hidden="true"
+      />
       <span className={`text-xs ${color} flex-1`}>
         {evt.message}
         {evt.score !== undefined && (

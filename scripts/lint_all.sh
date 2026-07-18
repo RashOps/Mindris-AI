@@ -15,15 +15,13 @@ require_cmd uv
 require_cmd bun
 
 cd "$ROOT_DIR"
-UV_CACHE_DIR="$UV_CACHE_DIR" uv run --no-sync ruff check \
-  packages/utils \
-  services/api-gateway/main.py \
-  services/api-gateway/routers/templates.py \
-  services/api-gateway/schemas.py
+UV_CACHE_DIR="$UV_CACHE_DIR" uv run --no-sync ruff check .
+UV_CACHE_DIR="$UV_CACHE_DIR" uv run --no-sync ruff format --check .
 
 cd "$ROOT_DIR/apps/web"
 bun run lint
 bun run typecheck
+bun run build
 
 cd "$ROOT_DIR/services/renderer"
 bun run typecheck

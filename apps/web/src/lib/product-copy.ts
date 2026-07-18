@@ -41,7 +41,7 @@ export const PRODUCT_COPY = {
     guide: {
       label: "Guide",
       shortLabel: "Guide",
-      description: "Guide produit, parcours et règles d’utilisation",
+      description: "Guide produit, workflows et règles d’utilisation",
     },
     markdown: {
       label: "Markdown PDF",

@@ -97,13 +97,73 @@ describe("generateHtml semantic sections", () => {
     expect(html).toContain("Core Skills");
     expect(html).not.toContain("Hidden Projects");
     expect(html).not.toContain("Hidden Project");
-    expect(html.indexOf("Core Skills")).toBeLessThan(
-      html.indexOf("Selected Experience"),
+    expect(html.indexOf("Selected Experience")).toBeLessThan(
+      html.indexOf("Licences"),
     );
     expect(html).toContain('data-section-placement="sidebar"');
     expect(html).toContain('data-section-placement="main"');
     expect(html).toContain('data-section-display-mode="timeline"');
     expect(html).toContain('data-section-detail-level="short"');
+  });
+
+  test("moves a transferred section into the rendered secondary column", () => {
+    const html = generateHtml(
+      {
+        ...baseCv,
+        global_settings: {
+          ...baseCv.global_settings,
+          sections: baseCv.global_settings.sections.map((section) =>
+            section.id === "experience"
+              ? { ...section, placement: "sidebar" as const }
+              : section,
+          ),
+        },
+      },
+      "modern",
+    );
+
+    expect(html).toContain(
+      'class="section section-placement-sidebar section-display-timeline',
+    );
+    expect(html).toContain('data-section-type="experience"');
+  });
+
+  test("stacks two-column sections independently without implicit grid gaps", () => {
+    const html = generateHtml(baseCv, "modern");
+    const mainMarker = '<div class="section-column section-column-main">';
+    const sidebarMarker = '<div class="section-column section-column-sidebar">';
+    const mainStart = html.indexOf(mainMarker);
+    const sidebarStart = html.indexOf(sidebarMarker);
+    const mainColumn = html.slice(mainStart, sidebarStart);
+    const sidebarColumn = html.slice(sidebarStart);
+
+    expect(mainStart).toBeGreaterThan(-1);
+    expect(sidebarStart).toBeGreaterThan(mainStart);
+    expect(mainColumn).toContain('data-section-type="experience"');
+    expect(mainColumn).toContain('data-section-type="certifications"');
+    expect(mainColumn).not.toContain('data-section-type="skills"');
+    expect(sidebarColumn).toContain('data-section-type="skills"');
+    expect(html).toContain(".section-column-main");
+    expect(html).toContain(".section-column-sidebar");
+  });
+
+  test("preserves configured global order for a single-column layout", () => {
+    const html = generateHtml(
+      {
+        ...baseCv,
+        global_settings: {
+          ...baseCv.global_settings,
+          layout: { columns: 1, sidebar_position: "none" },
+        },
+      },
+      "modern",
+    );
+
+    const renderedMarkup = html.slice(html.indexOf("wrapper.innerHTML = `"));
+    expect(renderedMarkup).not.toContain("section-column-main");
+    expect(renderedMarkup.indexOf("Core Skills")).toBeLessThan(
+      renderedMarkup.indexOf("Selected Experience"),
+    );
   });
 
   test("keeps every built-in template aligned with dynamic section placement", () => {

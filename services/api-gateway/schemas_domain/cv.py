@@ -99,9 +99,9 @@ class CVLayoutSettings(CVBaseModel):
     density: Literal["student", "compact", "normal", "senior"] = "normal"
     header_alignment: Literal["left", "center", "right"] = "left"
     header_position: Literal["top", "left", "right"] = "top"
-    header_details_arrangement: Literal[
-        "inline", "grid", "bullet", "bar", "icons"
-    ] = "inline"
+    header_details_arrangement: Literal["inline", "grid", "bullet", "bar", "icons"] = (
+        "inline"
+    )
     header_icon_style: Literal["none", "outline", "filled"] = "outline"
     photo: CVPhotoSettings = Field(default_factory=CVPhotoSettings)
     section_placement: dict[str, Literal["main", "sidebar"]] = Field(
@@ -217,9 +217,7 @@ class CVLocaleSettings(CVBaseModel):
 
     label_language: Literal["fr", "en", "de", "es"] = "fr"
     text_direction: Literal["ltr", "rtl"] = "ltr"
-    date_format: Literal["MM/YYYY", "YYYY-MM", "MMM YYYY", "MMMM YYYY"] = (
-        "MM/YYYY"
-    )
+    date_format: Literal["MM/YYYY", "YYYY-MM", "MMM YYYY", "MMMM YYYY"] = "MM/YYYY"
 
 
 def _contains_unsafe_css_fragment(value: str) -> str | None:

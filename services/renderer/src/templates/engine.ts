@@ -313,6 +313,18 @@ const dynamicSectionCss = `
     align-items: start;
 }
 
+.section-column {
+    min-width: 0;
+}
+
+.section-column-main {
+    grid-column: var(--main-column, 1);
+}
+
+.section-column-sidebar {
+    grid-column: var(--sidebar-column, 2);
+}
+
 .section-placement-main {
     grid-column: var(--main-column, 1);
 }
@@ -795,16 +807,34 @@ function renderSection(cvData: any, section: SectionConfig): string {
     }
 }
 
-function renderCvContent(cvData: any): string {
+function usesTwoColumnLayout(cvData: any, templateId: string): boolean {
+    const layout = cvData?.global_settings?.layout;
+    if (templateId === "ats") return false;
+    return layout?.columns !== 1 && layout?.sidebar_position !== "none";
+}
+
+function renderCvContent(cvData: any, templateId: string): string {
     const sectionsConfig = configuredSections(cvData);
     const usedTypes = new Set(sectionsConfig.map((section) => section.type));
     const warning = renderOnePageWarning(cvData);
     const cssWarning = renderAdvancedCssWarning(cvData);
-    const sections = sectionsConfig
-        .map((section) => renderSection(cvData, section))
-        .concat(renderFallbackSections(cvData, usedTypes))
-        .filter(Boolean)
-        .join("");
+    const renderedSections = sectionsConfig
+        .map((section) => ({
+            placement: section.placement === "sidebar" ? "sidebar" : "main",
+            content: renderSection(cvData, section),
+        }))
+        .filter((section) => Boolean(section.content));
+    const fallbackSections = renderFallbackSections(cvData, usedTypes);
+    const twoColumns = usesTwoColumnLayout(cvData, templateId);
+    const sections = twoColumns
+        ? `<div class="section-column section-column-main">${renderedSections
+            .filter((section) => section.placement === "main")
+            .map((section) => section.content)
+            .join("")}${fallbackSections}</div><div class="section-column section-column-sidebar">${renderedSections
+            .filter((section) => section.placement === "sidebar")
+            .map((section) => section.content)
+            .join("")}</div>`
+        : renderedSections.map((section) => section.content).join("") + fallbackSections;
     const headerPosition = ["top", "left", "right"].includes(
         cvData?.global_settings?.layout?.header_position,
     )
@@ -1054,7 +1084,7 @@ export function generateHtml(cvData: any, templateId: string = "modern"): string
 
     let content = "";
     if (supportedTemplates.has(activeTemplate)) {
-        content = renderCvContent(cvData);
+        content = renderCvContent(cvData, activeTemplate);
     } else {
         throw new Error(`Template "${resolvedTemplate}" is not supported.`);
     }

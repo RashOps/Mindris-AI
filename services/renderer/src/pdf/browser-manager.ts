@@ -9,6 +9,7 @@ type BrowserManagerStatus = {
 type BrowserManagerOptions = {
     maxConcurrentPages?: number;
     renderTimeoutMs?: number;
+    launchBrowser?: () => Promise<Browser>;
 };
 
 const DEFAULT_MAX_CONCURRENT_PAGES = 2;
@@ -25,6 +26,7 @@ export class BrowserManager {
     private activePages = 0;
     private readonly maxConcurrentPages: number;
     private readonly renderTimeoutMs: number;
+    private readonly launchBrowser: () => Promise<Browser>;
 
     constructor(options: BrowserManagerOptions = {}) {
         this.maxConcurrentPages = options.maxConcurrentPages
@@ -37,6 +39,10 @@ export class BrowserManager {
                 process.env.RENDERER_RENDER_TIMEOUT_MS,
                 DEFAULT_RENDER_TIMEOUT_MS,
             );
+        this.launchBrowser = options.launchBrowser ?? (() => puppeteer.launch({
+            headless: true,
+            args: ["--no-sandbox", "--disable-setuid-sandbox"],
+        }));
     }
 
     status(): BrowserManagerStatus {
@@ -51,15 +57,15 @@ export class BrowserManager {
         await this.waitForPageSlot();
         this.activePages += 1;
 
-        const browser = await this.getBrowser();
-        const page = await browser.newPage();
-        page.setDefaultTimeout(this.renderTimeoutMs);
-        page.setDefaultNavigationTimeout(this.renderTimeoutMs);
-
+        let page: Page | null = null;
         try {
+            const browser = await this.getBrowser();
+            page = await browser.newPage();
+            page.setDefaultTimeout(this.renderTimeoutMs);
+            page.setDefaultNavigationTimeout(this.renderTimeoutMs);
             return await callback(page);
         } finally {
-            await page.close().catch(() => undefined);
+            await page?.close().catch(() => undefined);
             this.activePages = Math.max(0, this.activePages - 1);
         }
     }
@@ -79,10 +85,7 @@ export class BrowserManager {
         }
 
         if (!this.launchPromise) {
-            this.launchPromise = puppeteer.launch({
-                headless: true,
-                args: ["--no-sandbox", "--disable-setuid-sandbox"],
-            }).then((browser) => {
+            this.launchPromise = this.launchBrowser().then((browser) => {
                 this.browser = browser;
                 this.launchPromise = null;
                 browser.on("disconnected", () => {

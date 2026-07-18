@@ -64,7 +64,11 @@ Ces composants doivent etre preferes aux headers, sidebars et panneaux crees loc
 - UI produit claire ou sombre selon le theme actif.
 - Surfaces sombres reservees aux previews, logs, editeurs et consoles specifiques si elles ne suivent pas encore les tokens de base.
 - Rayon standard : `rounded-lg`.
-- Navigation avec icones `lucide-react`, pas d'emojis.
+- Toutes les icones d'interface utilisent `lucide-react`, y compris les CTA,
+  fermetures, statuts, imports et controles de formulaire.
+- Les emojis et glyphes Unicode decoratifs ne sont pas des icones produit. Les
+  symboles qui appartiennent reellement au contenu, comme `Markdown → PDF` ou
+  une comparaison de versions, restent du texte semantique.
 - Actions compactes avec boutons standards.
 - Pas de page tool avec logo/header produit duplique : le shell est responsable du chrome.
 

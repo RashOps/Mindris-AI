@@ -16,7 +16,8 @@ import {
 } from "./components";
 import Link from "next/link";
 import { apiUrl, connectApiEventStream, jsonHeaders } from "@/lib/api";
-import { deleteDraft, loadDraft, saveDraft } from "@/lib/drafts";
+import { loadDraft, saveDraft } from "@/lib/drafts";
+import { ArrowRight } from "lucide-react";
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
@@ -38,10 +39,9 @@ export default function AtsScorePage() {
   useEffect(() => {
     let cancelled = false;
     void loadDraft<AtsReportDraft>("ats-report")
-      .then(async (draft) => {
+      .then((draft) => {
         if (cancelled || !draft?.report) return;
         setReport(normalizeAtsReport(draft.report));
-        await deleteDraft("ats-report");
       })
       .catch(() => undefined);
     return () => {
@@ -103,7 +103,7 @@ export default function AtsScorePage() {
               const insights = data;
               setSseMessages((prev) => [
                 ...prev,
-                `✓ Offre analysée : ${insights.job_title}`,
+                `Offre analysée : ${insights.job_title}`,
               ]);
 
               const scoreRes = await fetch(apiUrl("/api/v1/cv/score"), {
@@ -471,7 +471,8 @@ export default function AtsScorePage() {
               href="/tools/cv-creator"
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground no-underline transition-all hover:bg-primary/90"
             >
-              Corriger dans le CV Builder →
+              Corriger dans le CV Builder
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
           </div>
         </div>

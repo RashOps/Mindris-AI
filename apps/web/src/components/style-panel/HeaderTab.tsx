@@ -1,4 +1,5 @@
 import type { GlobalSettings } from "@/store/useCVStore";
+import { ExternalLink } from "lucide-react";
 
 import { PANEL_TOGGLE_CLASS } from "./constants";
 import { SectionLabel } from "./controls";
@@ -158,7 +159,9 @@ export function LinksTab({
         />
       </label>
       <label className={PANEL_TOGGLE_CLASS}>
-        <span className="text-xs font-medium text-foreground">Afficher ↗</span>
+        <span className="flex items-center gap-1 text-xs font-medium text-foreground">
+          Afficher <ExternalLink className="h-3 w-3" aria-hidden="true" />
+        </span>
         <input
           type="checkbox"
           checked={settings.show_icon ?? false}

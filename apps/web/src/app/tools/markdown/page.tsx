@@ -73,9 +73,9 @@ Converts Markdown to a PDF document.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| markdown | string | ✅ | Markdown content |
-| style | string | ❌ | \`document\` or \`letter\` |
-| title | string | ❌ | Document title |
+| markdown | string | Oui | Markdown content |
+| style | string | Non | \`document\` or \`letter\` |
+| title | string | Non | Document title |
 
 **Response:** PDF binary stream (\`application/pdf\`)
 

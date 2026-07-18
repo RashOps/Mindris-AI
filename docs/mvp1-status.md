@@ -1,6 +1,6 @@
 # Etat MVP1 - Mindris AI
 
-Date : 17 juillet 2026
+Date : 18 juillet 2026
 
 ## Statut global
 
@@ -41,11 +41,11 @@ Le principe architectural reste respecte : le frontend n'est pas un service meti
 - Tests backend complets : la commande standard reste documentee, mais l'environnement d'agent peut etre lent ou bloque par SQLite/cache. Le chemin fiable utilise `UV_CACHE_DIR=/tmp/uv-cache` et `STORAGE_DIR=/tmp/mindris-ai-test-storage`.
 - Import PDF : depend encore des providers IA configures et des cles disponibles.
 - Score ATS et generation de lettre : fonctionnels dans le flow, mais dependants du provider LLM selectionne.
-- Markdown PDF : persistence des lettres disponible, mais l'UX d'ouverture/versioning de lettres existantes reste a polir.
-- ATS Score : scoring et persistence fonctionnels, mais l'interface peut encore etre simplifiee.
-- Workflow Beta : contrats et liens backend presents, UX a maturer avant de le presenter comme stable.
+- Workflow Beta : filtrage job-aware, checklist et recovery paths sont presents,
+  mais la promotion hors Beta reste une decision produit ulterieure.
 - i18n : francais-first applique aux surfaces prioritaires, pas encore centralise dans un systeme de traduction complet.
-- Tests end-to-end navigateur : parcours Playwright disponibles/cibles, mais la suite complete reste a consolider.
+- Tests end-to-end navigateur : parcours Playwright disponibles et executes
+  manuellement en CI ; la release Docker les execute apres publication des images.
 
 ## Hors scope MVP1
 
@@ -274,13 +274,22 @@ Validation externe effectuee dans une distro Debian WSL propre :
 - `/api/v1/system/ready` retourne `ready` ;
 - `/ready` renderer retourne `ready`.
 
+## Candidat release v0.4.0 - 18 juillet 2026
+
+Le candidat `v0.4.0` consolide les runs Runtime, UI, artefact lineage,
+self-hosting et personnalisation avancee du CV Builder. La release stable reste
+conditionnee par :
+
+- les checks Python, frontend et renderer ;
+- le navigateur E2E sur les images GHCR candidates ;
+- un fresh install Debian du tag RC ;
+- la validation explicite des endpoints RuntimeGate et des exports CV.
+
 ## Prochaine phase recommandee actuelle - juillet 2026
 
 Priorites recommandees hors Tauri/Desktop :
 
-1. Finaliser Markdown PDF et l'ouverture/versioning des lettres persistantes.
-2. Simplifier ATS Score et Tracker.
-3. Maturer Workflow Beta avant de le presenter comme stable.
-4. Centraliser l'i18n francais-first pour preparer une traduction utilisateur.
-5. Enrichir le Guide avec parcours contextualises par page.
-6. Ajouter un job CI de dry-run install self-hosted et smoke release post-publish.
+1. Conserver Workflow en Beta jusqu'a une decision de promotion explicite.
+2. Centraliser l'i18n francais-first pour preparer une traduction utilisateur.
+3. Observer le comportement de la release self-hosted `v0.4.0`.
+4. Reporter Desktop/Tauri apres stabilisation de cette release.

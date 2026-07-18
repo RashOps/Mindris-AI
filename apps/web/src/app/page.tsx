@@ -1,10 +1,21 @@
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import {
+  ArrowRight,
+  Download,
+  ExternalLink,
+  FileText,
+  Link2,
+  MonitorCog,
+  Target,
+  Upload,
+  Zap,
+} from "lucide-react";
 
 const FEATURES = [
   {
     id: "cv-creator",
-    icon: "🎯",
+    icon: Target,
     label: "Disponible",
     title: "CV Builder",
     description:
@@ -14,7 +25,7 @@ const FEATURES = [
   },
   {
     id: "markdown-pdf",
-    icon: "📝",
+    icon: FileText,
     label: "Disponible",
     title: "Markdown → PDF",
     description:
@@ -24,7 +35,7 @@ const FEATURES = [
   },
   {
     id: "ats-score",
-    icon: "⚡",
+    icon: Zap,
     label: "Disponible",
     title: "ATS Score",
     description:
@@ -39,41 +50,25 @@ const STEPS = [
     number: "01",
     title: "Importer le CV",
     description: "Dépose un PDF ou JSON. Le backend construit un CV structuré et réutilisable dans les outils.",
-    icon: (
-      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-      </svg>
-    ),
+    icon: <Upload className="h-5 w-5" aria-hidden="true" />,
   },
   {
     number: "02",
     title: "Coller l’offre",
     description: "Ajoute une URL d’offre pour extraire titre, entreprise, exigences et signaux ATS exploitables.",
-    icon: (
-      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-      </svg>
-    ),
+    icon: <Link2 className="h-5 w-5" aria-hidden="true" />,
   },
   {
     number: "03",
     title: "Le backend travaille",
     description: "Les services backend pilotent parsing, scoring, génération et persistance sans exposer les secrets au navigateur.",
-    icon: (
-      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-      </svg>
-    ),
+    icon: <MonitorCog className="h-5 w-5" aria-hidden="true" />,
   },
   {
     number: "04",
     title: "Télécharger le PDF",
     description: "Prévisualise, corrige, puis exporte le CV ou la lettre via le renderer local.",
-    icon: (
-      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-      </svg>
-    ),
+    icon: <Download className="h-5 w-5" aria-hidden="true" />,
   },
 ];
 
@@ -102,7 +97,7 @@ export default function LandingPage() {
           <div className="hidden items-center gap-8 md:flex">
             <a href="#features" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">Outils</a>
             <a href="#how-it-works" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">Parcours</a>
-            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">GitHub ↗</a>
+            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">GitHub <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" /></a>
           </div>
 
           <div className="flex items-center gap-2">
@@ -111,7 +106,7 @@ export default function LandingPage() {
               href="/dashboard"
               className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-400 px-4 py-2 text-sm font-semibold text-white shadow-[0_0_20px_rgba(37,99,235,0.25)] transition-all hover:shadow-[0_0_26px_rgba(37,99,235,0.35)]"
             >
-              Ouvrir l’app →
+              Ouvrir l’app <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
           </div>
         </div>
@@ -140,7 +135,7 @@ export default function LandingPage() {
               href="/dashboard"
               className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-400 px-8 py-3.5 text-base font-semibold text-white shadow-[0_0_30px_rgba(37,99,235,0.3)] transition-all hover:shadow-[0_0_40px_rgba(37,99,235,0.4)]"
             >
-              Démarrer →
+              Démarrer <ArrowRight className="h-5 w-5" aria-hidden="true" />
             </Link>
             <Link
               href="/tools/markdown"
@@ -179,15 +174,15 @@ export default function LandingPage() {
                 className="flex flex-col gap-4 rounded-2xl border border-border bg-card/80 p-7 shadow-sm backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-3xl">{f.icon}</span>
+                  <f.icon className="h-8 w-8 text-indigo-500 dark:text-indigo-300" aria-hidden="true" />
                   <span className="rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-widest text-indigo-500 dark:text-indigo-300">
                     {f.label}
                   </span>
                 </div>
                 <h3 className="text-xl font-bold text-foreground">{f.title}</h3>
                 <p className="flex-1 text-sm leading-relaxed text-muted-foreground">{f.description}</p>
-                <Link href={f.cta.href} className="mt-1 text-sm font-semibold text-indigo-500 transition-colors hover:text-indigo-600 dark:text-indigo-300 dark:hover:text-indigo-200">
-                  {f.cta.label} →
+                <Link href={f.cta.href} className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-indigo-500 transition-colors hover:text-indigo-600 dark:text-indigo-300 dark:hover:text-indigo-200">
+                  {f.cta.label} <ArrowRight className="h-4 w-4" aria-hidden="true" />
                 </Link>
               </div>
             ))}
@@ -232,7 +227,7 @@ export default function LandingPage() {
               href="/dashboard"
               className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-400 px-10 py-4 text-base font-semibold text-white shadow-[0_0_30px_rgba(37,99,235,0.35)] transition-all hover:shadow-[0_0_42px_rgba(37,99,235,0.45)]"
             >
-              Ouvrir Mindris AI →
+              Ouvrir Mindris AI <ArrowRight className="h-5 w-5" aria-hidden="true" />
             </Link>
           </div>
         </div>

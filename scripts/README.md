@@ -39,6 +39,7 @@ Actions :
 - installe tout le workspace Python avec `uv sync --all-packages` ;
 - installe Chromium Playwright ;
 - installe les dépendances Bun du frontend et du renderer.
+- installe la version de Chrome attendue par Puppeteer pour les exports PDF.
 
 Commande :
 
@@ -50,7 +51,7 @@ Commande :
 
 - juste après un clone ;
 - après changement de dépendances ;
-- quand Playwright/Chromium manque.
+- quand Playwright, Chromium ou le navigateur Puppeteer du renderer manque.
 
 ### [`reset_local_deps.sh`](./reset_local_deps.sh)
 

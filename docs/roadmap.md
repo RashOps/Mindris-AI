@@ -188,25 +188,35 @@ ADRs : [013](adr/013-runtime-gate-and-cv-builder-stabilization.md),
 
 ADR : [016](adr/016-ghcr-one-command-self-hosting.md).
 
-## 🔵 Phase 29 : Secondary Tools Simplification
-- [ ] **Markdown PDF + lettres persistantes :** Ouvrir une lettre existante, afficher `cover_letter_id`, sauvegarder une version et revenir a History/Workflow.
-- [ ] **ATS Score simplifie :** Clarifier les CTA, etats vides, selection job/CV et restitution des deductions.
-- [ ] **Tracker simplifie :** Reduire la densite, clarifier les colonnes et rendre les actions secondaires moins envahissantes.
-- [ ] **History polish :** Garder le ledger lisible quand le volume augmente et faciliter les filtres par job/opportunite.
+## 🟢 Phase 29 : Secondary Tools Simplification (Terminée)
+- [x] **Markdown PDF + lettres persistantes :** Ouvrir une lettre existante, afficher `cover_letter_id`, sauvegarder une version et revenir a History/Workflow.
+- [x] **ATS Score simplifie :** Clarifier les CTA, etats vides, selection job/CV et restitution des deductions.
+- [x] **Tracker simplifie :** Reduire la densite, clarifier les colonnes et rendre les actions secondaires moins envahissantes.
+- [x] **History polish :** Garder le ledger lisible quand le volume augmente et faciliter les filtres par job/opportunite.
 
 ## 🔵 Phase 30 : Workflow Beta Maturity
-- [ ] **Filtrage job-aware :** Restreindre les artefacts proposes aux jobs/opportunites coherents.
-- [ ] **Checklist "pret a candidater" :** Exposer clairement ce qui manque avant tracker/envoi.
-- [ ] **Recovery paths :** Rendre reparables les liens orphelins ou incoherents sans action fragile.
+- [x] **Filtrage job-aware :** Restreindre les artefacts proposes aux jobs/opportunites coherents.
+- [x] **Checklist "pret a candidater" :** Exposer clairement ce qui manque avant tracker/envoi.
+- [x] **Recovery paths :** Rendre reparables les liens orphelins ou incoherents sans action fragile.
 - [ ] **Promotion hors Beta :** Ne retirer le badge Beta qu'apres validation des historiques, liens et parcours UX.
 
 ## 🔵 Phase 31 : I18n & Guide Experience
 - [ ] **Textes UI centralises :** Sortir progressivement les strings produit des composants.
 - [ ] **Francais-first canonique :** Garder le francais comme langue produit par defaut.
 - [ ] **Traduction utilisateur :** Preparer une couche EN sans deplacer la logique metier dans le frontend.
-- [ ] **Guide contextualise :** Ajouter des parcours/checklists relies aux pages et actions critiques.
+- [x] **Guide contextualise :** Ajouter des parcours/checklists relies aux pages et actions critiques.
 
 ## ⚪ Phase 32 : Desktop/Tauri (Reportée)
 - [ ] **Shell Tauri :** Reprendre apres stabilisation Docker, Workflow Beta et i18n.
 - [ ] **Supervision services locaux :** Decider native binaries vs Docker containers.
 - [ ] **Installateurs Linux/Windows :** Priorite apres one-command Docker et guide utilisateur mature.
+
+## 🔵 Phase 33 : Release v0.4.0
+
+- [x] **Version et changelog candidat :** Synchroniser les manifests et les notes `Unreleased` sur `0.4.0`.
+- [x] **Gates CI complets :** Ajouter les tests Bun frontend/renderer et les validations pre-publication Docker.
+- [ ] **Candidat GHCR :** Publier `v0.4.0-rc.1` avec smoke et navigateur E2E post-publication.
+- [ ] **Fresh install Debian :** Valider installation, RuntimeGate, CV Builder et exports depuis les images RC.
+- [ ] **Release stable :** Finaliser le changelog, taguer `v0.4.0` et publier la GitHub Release.
+
+ADR : [021](adr/021-v0-4-release-gates-and-rc-distribution.md).

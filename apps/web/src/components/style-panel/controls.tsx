@@ -1,4 +1,5 @@
 import type React from "react";
+import { Minus, Plus } from "lucide-react";
 
 export function Slider({
   label,
@@ -49,7 +50,7 @@ export function Slider({
             onClick={() => changeBy(-step)}
             className="cv-slider-step"
           >
-            −
+            <Minus className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
         ) : null}
         <input
@@ -71,7 +72,7 @@ export function Slider({
             onClick={() => changeBy(step)}
             className="cv-slider-step"
           >
-            +
+            <Plus className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
         ) : null}
       </div>

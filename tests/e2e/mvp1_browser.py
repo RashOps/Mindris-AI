@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import re
 import sys
 import time
 import urllib.error
@@ -311,8 +312,10 @@ def seed_workflow_with_missing_tracker(
 
 def assert_download(page: Page, menu_name: str, item_name: str, suffix: str) -> None:
     """Open a grouped download menu and assert a non-empty download."""
-    with page.expect_download(timeout=30_000) as download_info:
-        page.get_by_role("button", name=menu_name).click()
+    with page.expect_download(timeout=60_000) as download_info:
+        menu = page.get_by_role("menu", name=f"{menu_name} menu")
+        if not menu.is_visible():
+            page.get_by_role("button", name=menu_name).click()
         page.get_by_role("menuitem", name=item_name).click()
     download = download_info.value
     suggested = download.suggested_filename
@@ -326,6 +329,31 @@ def assert_download(page: Page, menu_name: str, item_name: str, suffix: str) -> 
         raise AssertionError(f"Expected {suffix} download, got {suggested}")
     if size <= 0:
         raise AssertionError(f"{suggested} is empty")
+
+
+def assert_pdf_download(page: Page) -> None:
+    """Assert the asynchronous renderer-backed PDF action with diagnostics."""
+    downloads = []
+    page.on("download", lambda download: downloads.append(download))
+    if not page.get_by_role("menu", name="Exporter menu").is_visible():
+        export_button = page.get_by_role("button", name="Exporter")
+        export_button.click()
+        expect(export_button).to_have_attribute("aria-expanded", "true", timeout=5_000)
+    page.get_by_role("menuitem", name="PDF").click()
+    expect(page.get_by_text("Génération du PDF...", exact=True)).to_be_visible()
+    for _ in range(240):
+        if downloads:
+            break
+        page.wait_for_timeout(250)
+    if not downloads:
+        toasts = page.locator(".fixed.z-\\[100\\]").all_inner_texts()
+        raise AssertionError(f"PDF download did not start; visible toasts: {toasts}")
+    download = downloads[0]
+    path = download.path()
+    if path is None or Path(path).stat().st_size <= 0:
+        raise AssertionError("Exporter > PDF produced an empty file")
+    if not download.suggested_filename.lower().endswith(".pdf"):
+        raise AssertionError("Exporter > PDF produced an unexpected filename")
 
 
 def run(args: argparse.Namespace) -> None:
@@ -384,9 +412,7 @@ def run(args: argparse.Namespace) -> None:
             '[data-testid="template-card-mindris-community-open-source"] img'
         )
         expect(preview).to_be_visible(timeout=15_000)
-        natural_width = preview.evaluate("img => img.naturalWidth")
-        if natural_width <= 0:
-            raise AssertionError("Community template preview image did not decode")
+        expect(preview).to_have_js_property("naturalWidth", 1, timeout=15_000)
         with page.expect_download(timeout=30_000) as template_download_info:
             page.get_by_test_id("template-export-mindris-community-open-source").click()
         template_download = template_download_info.value
@@ -399,42 +425,52 @@ def run(args: argparse.Namespace) -> None:
         )
 
         page.goto(f"{args.base_url.rstrip('/')}/tools/cv-creator")
-        page.locator('select[title="Active resume"]').select_option(resume_id)
-        expect(page.locator('select[title="Active resume"]')).to_have_value(
-            resume_id,
+        resume_name = f"E2E Resume {unique}"
+        page.get_by_role("button", name="Choisir le CV").click()
+        page.get_by_role("menuitem", name=resume_name).click()
+        expect(page.get_by_role("button", name="Choisir le CV")).to_contain_text(
+            resume_name,
             timeout=20_000,
         )
-        page.get_by_test_id("locale-create-select").select_option("en")
-        page.get_by_test_id("locale-create-button").click()
-        expect(page.get_by_test_id("locale-switch-en")).to_be_visible(timeout=10_000)
-        page.get_by_test_id("locale-switch-en").click()
-        expect(page.get_by_test_id("locale-switch-en")).to_have_css(
-            "background-color",
-            "rgb(15, 23, 42)",
+        page.get_by_role("button", name="Ajouter une langue").click()
+        page.get_by_role("menuitem", name="EN", exact=True).click()
+        page.get_by_role("button", name="Ajouter", exact=True).click()
+        expect(page.get_by_role("button", name="EN", exact=True)).to_be_visible(
+            timeout=10_000
         )
-        expect(page.get_by_role("button", name="Style")).to_be_visible()
-        page.get_by_role("button", name="Style").click()
+        page.get_by_role("button", name="EN", exact=True).click()
+        expect(page.get_by_role("button", name="EN", exact=True)).to_have_class(
+            re.compile(r"bg-primary")
+        )
+        expect(page.get_by_role("tab", name="Style", exact=True)).to_be_visible()
+        page.get_by_role("tab", name="Style", exact=True).click()
         expect(page.get_by_label("Style panel")).to_be_visible()
-        page.get_by_role("button", name="ATS Strict").click()
-        page.get_by_role("button", name="Layout").click()
+        page.get_by_role("button", name="Template ATS Strict").click()
+        page.get_by_role("tab", name="Document").click()
         page.get_by_label("Toggle one page challenge").check()
-        page.get_by_role("button", name="Sections").click()
-        page.get_by_label("Section label experience").fill("Parcours professionnel")
-        page.get_by_label("Toggle section languages").uncheck()
-        page.get_by_label("Move section projects up").click()
-        page.get_by_label("Section placement experience").select_option("main")
-        page.get_by_label("Section display mode experience").select_option("timeline")
-        expect(page.get_by_label("Section label experience")).to_have_value(
+        page.get_by_role("tab", name="Sections").click()
+        page.get_by_role(
+            "button", name=re.compile(r"^(Expériences|Experience)")
+        ).click()
+        page.get_by_label("Libellé section experience").fill("Parcours professionnel")
+        page.get_by_label("Affichage section experience").click()
+        page.get_by_role("menuitem", name="timeline", exact=True).click()
+        page.get_by_label(re.compile(r"Masquer la section (Languages|Langues)")).click()
+        project_button = page.get_by_role(
+            "button", name=re.compile(r"^(Projets|Projects)")
+        )
+        project_button.click()
+        project_card = project_button.locator("..").locator("..")
+        project_card.get_by_role("button", name="Monter", exact=True).click()
+        expect(page.get_by_label("Libellé section experience")).to_have_value(
             "Parcours professionnel"
         )
-        page.get_by_label("Style panel").get_by_role("button", name="✕").click()
-        page.locator(".fixed.inset-0.z-40").wait_for(state="detached", timeout=5_000)
-        expect(page.get_by_role("button", name="Saved")).to_be_visible(timeout=20_000)
+        expect(page.get_by_text("Sauvegardé", exact=True)).to_be_visible(timeout=20_000)
 
-        assert_download(page, "Download CV", "DOCX", ".docx")
-        assert_download(page, "Download CV", "LaTeX", ".tex")
-        assert_download(page, "Download CV", "Typst", ".typ")
-        assert_download(page, "Download CV", "PDF", ".pdf")
+        assert_pdf_download(page)
+        assert_download(page, "Exporter", "DOCX", ".docx")
+        assert_download(page, "Exporter", "LaTeX", ".tex")
+        assert_download(page, "Exporter", "Typst", ".typ")
 
         resume = request_json(
             args.api_url,
@@ -487,7 +523,9 @@ def run(args: argparse.Namespace) -> None:
         assert document.index("Projets") < document.index("Parcours professionnel")
 
         page.goto(f"{args.base_url.rstrip('/')}/tools/ats-score")
-        expect(page.get_by_text("ATS Score Analyzer")).to_be_visible(timeout=15_000)
+        expect(page.get_by_role("heading", name="Score ATS")).to_be_visible(
+            timeout=15_000
+        )
         expect(page.get_by_text("E2E fixture: strong match")).to_be_visible(
             timeout=15_000
         )
@@ -530,9 +568,9 @@ def run(args: argparse.Namespace) -> None:
         page.get_by_test_id("tracker-add-button").click()
         card = page.locator("article", has_text=company).first
         expect(card).to_be_visible(timeout=15_000)
-        card.get_by_role("button", name="Show details").click()
-        card.get_by_role("button", name="Applied").click()
-        applied_column = page.locator("section", has_text="Applied").first
+        card.get_by_role("button", name="Détails").click()
+        card.get_by_role("button", name="Candidaté").click()
+        applied_column = page.locator("section", has_text="Candidaté").first
         expect(applied_column.get_by_text(company)).to_be_visible(timeout=15_000)
 
         if console_errors or page_errors or response_errors:

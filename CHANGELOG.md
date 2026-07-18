@@ -4,7 +4,66 @@ All notable changes to Mindris AI are documented here.
 
 ## Unreleased
 
-No unreleased changes.
+### Added
+
+- Backend-owned artifact lineage linking jobs, resume revisions, ATS reports,
+  cover letters, opportunities, tracker entries, and LLM runs.
+- Unified History ledger, Workflow Beta readiness checklist, recovery paths,
+  and persistent Markdown cover-letter versioning.
+- RuntimeGate readiness contract for the API Gateway and renderer.
+- Three CV Builder modes (`Simple`, `Normal`, `Avance`) with Structure and
+  Style exposed as accessible tabs.
+- Advanced renderer-backed CV customization for templates, layout,
+  typography, spacing, colors, header, links, photo, section presentation,
+  and sanitized custom CSS.
+- Accessible section placement board with independent main/sidebar ordering,
+  transfer buttons, and cross-column drag and drop.
+- Visual product guide, French-first product copy, centralized theme tokens,
+  and a Lucide-only interface icon contract.
+- One-command self-hosting through versioned GHCR images with install, update,
+  uninstall, cleanup, and release smoke scripts.
+
+### Changed
+
+- Reorganized the advanced CV Builder around Offer, AI, Actions, and
+  diagnostics while keeping business decisions in backend services.
+- Simplified Dashboard, ATS Score, Tracker, Markdown PDF, History, and
+  Workflow surfaces across light and dark themes.
+- Centralized toolbar dropdowns and responsive shell behavior.
+- Expanded service, application, script, installation, architecture, and
+  contributor documentation.
+
+### Fixed
+
+- RuntimeGate no longer remains blocked after both readiness endpoints pass.
+- CV template CSS now follows dynamic renderer markup for every built-in
+  template.
+- Section `display_mode`, `detail_level`, photo, header, link, and placement
+  controls affect preview and export consistently.
+- Two-column CV layouts compact each column independently after moving a
+  section, eliminating implicit CSS Grid gaps.
+- Theme hydration, hardcoded light surfaces, dropdown alignment, mobile
+  overflow, and incomplete Unicode interface icons were corrected.
+- Renderer concurrency slots are released even when Chromium fails before a
+  page is created, preventing permanent PDF queue saturation.
+- The latest ATS report remains available after React remounts instead of
+  being consumed as a one-shot draft.
+- Local setup now installs both Playwright Chromium and the Chrome build pinned
+  by Puppeteer for renderer-backed PDF exports.
+
+### Security
+
+- Browser code no longer carries public API credentials or persists product
+  secrets locally.
+- Upload, template, Markdown, HTML, URL, and advanced CSS boundaries are
+  validated or sanitized by backend-owned contracts.
+- Secret slots remain write-only and logs redact sensitive values.
+
+### Verified
+
+- Python backend suite, Ruff, frontend tests/lint/typecheck/build, renderer
+  tests/typecheck/build, browser E2E, and Docker release smoke are release
+  gates for the `v0.4.0` candidate.
 
 ## v0.3.0 - 2026-07-02
 

@@ -1,6 +1,6 @@
 # Checklist QA MVP1
 
-Date : 17 juillet 2026
+Date : 18 juillet 2026
 
 Cette checklist sert de controle manuel rapide apres un run de consolidation ou
 avant une release locale/self-hosted.
@@ -33,6 +33,11 @@ curl -I http://localhost:3000
 - [ ] Import PDF et JSON affichent un etat clair.
 - [ ] Export PDF fonctionne via le renderer.
 - [ ] Les menus Importer/Exporter restent alignes sidebar ouverte et fermee.
+- [ ] Les onglets du Studio utilisent des icones Lucide lisibles.
+- [ ] Une section peut passer d'une colonne a l'autre par bouton et drag/drop.
+- [ ] Les sections suivantes remontent sans laisser de vide dans la preview.
+- [ ] Le modele une colonne masque les actions de transfert.
+- [ ] La photo apparait de facon identique dans la preview et l'export.
 
 ## Templates et renderer
 
@@ -103,6 +108,8 @@ curl -I http://localhost:3000
 - [ ] `api-gateway`, `renderer` et `web` sont `healthy`.
 - [ ] Port `3000` occupe : `MINDRIS_WEB_PORT=3100` fonctionne.
 - [ ] `scripts/clean_self_hosted_test.sh` nettoie le test.
+- [ ] Le tag RC installe des images portant exactement le meme tag GHCR.
+- [ ] Le navigateur E2E post-publication passe sur les images RC.
 
 ## Commandes de validation ciblees
 

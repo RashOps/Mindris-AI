@@ -8,6 +8,18 @@ import { ToolbarSelect } from "@/components/ToolbarSelect";
 import { AtsScoreWidget } from "@/components/ats/AtsScoreWidget";
 import { apiUrl, jsonHeaders } from "@/lib/api";
 import { saveDraft } from "@/lib/drafts";
+import {
+  ArrowRight,
+  BriefcaseBusiness,
+  Building2,
+  Clipboard,
+  MessageCircle,
+  Medal,
+  PenLine,
+  Target,
+  X,
+  Zap,
+} from "lucide-react";
 
 
 
@@ -138,10 +150,10 @@ export function JobInsightsPanel({ open, onClose, variant = "drawer" }: JobInsig
       const data = await res.json();
       if (data.patch) {
         applyPatch(data.patch);
-        setPatchStatus("✅ CV patched successfully!");
+        setPatchStatus("CV patched successfully!");
       }
     } catch (err: unknown) {
-      setPatchStatus(`❌ ${errorMessage(err, "Patch failed")}`);
+      setPatchStatus(errorMessage(err, "Patch failed"));
     } finally {
       setIsPatchLoading(false);
       setTimeout(() => setPatchStatus(null), 4000);
@@ -151,7 +163,7 @@ export function JobInsightsPanel({ open, onClose, variant = "drawer" }: JobInsig
   const copyToClipboard = () => {
     if (!jobInsights) return;
     navigator.clipboard.writeText(jobInsights.raw_markdown);
-    setPatchStatus("📋 Copied to clipboard!");
+    setPatchStatus("Copied to clipboard!");
     setTimeout(() => setPatchStatus(null), 2000);
   };
 
@@ -183,19 +195,21 @@ export function JobInsightsPanel({ open, onClose, variant = "drawer" }: JobInsig
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between border-b border-white/10 bg-slate-900/90 px-4 py-3">
           <div className="flex items-center gap-2">
-            <span className="text-base">💼</span>
+            <BriefcaseBusiness className="h-4 w-4" aria-hidden="true" />
             <h2 className="text-sm font-semibold text-slate-100" style={{ fontFamily: "var(--font-space)" }}>Job Insights</h2>
           </div>
           <button
             onClick={onClose}
             className="flex h-6 w-6 items-center justify-center rounded text-sm text-slate-500 transition-colors hover:text-slate-200"
-          >✕</button>
+          ><X className="h-4 w-4" aria-hidden="true" /></button>
         </div>
 
         {/* No insights yet */}
         {!jobInsights ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center text-slate-500">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/5 text-2xl">🎯</div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/5">
+              <Target className="h-6 w-6" aria-hidden="true" />
+            </div>
             <div>
               <p className="text-sm font-medium text-slate-400">No job insights yet</p>
               <p className="mt-1 text-xs text-slate-500">Paste a job URL and click Optimize to generate tailored content.</p>
@@ -234,7 +248,11 @@ export function JobInsightsPanel({ open, onClose, variant = "drawer" }: JobInsig
                 disabled={isScoring}
                 className="flex w-full items-center justify-center gap-1 rounded border border-white/10 bg-white/5 py-1.5 text-[10px] font-medium text-slate-400 transition-colors hover:bg-white/10 disabled:opacity-50"
               >
-                {isScoring ? <span className="w-2 h-2 border border-slate-500 border-t-transparent rounded-full animate-spin" /> : "🏅"}
+                {isScoring ? (
+                  <span className="w-2 h-2 border border-slate-500 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Medal className="h-3.5 w-3.5" aria-hidden="true" />
+                )}
                 Deep Score my CV
               </button>
             </div>
@@ -285,10 +303,11 @@ export function JobInsightsPanel({ open, onClose, variant = "drawer" }: JobInsig
                 className="w-full mt-2 py-1.5 text-xs font-semibold rounded-lg disabled:opacity-50 transition-all flex items-center justify-center gap-2"
                 style={{ background: 'linear-gradient(135deg, #1d4ed8, #2563eb)', color: '#fff', boxShadow: '0 0 12px rgba(37,99,235,0.25)' }}
               >
-                {isPatchLoading
-                  ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Patching…</>
-                  : "⚡ Apply to CV"
-                }
+                {isPatchLoading ? (
+                  <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Patching…</>
+                ) : (
+                  <><Zap className="h-3.5 w-3.5" aria-hidden="true" /> Apply to CV</>
+                )}
               </button>
               {patchStatus && <p className="mt-1.5 text-center text-xs text-slate-400">{patchStatus}</p>}
             </div>
@@ -298,7 +317,7 @@ export function JobInsightsPanel({ open, onClose, variant = "drawer" }: JobInsig
             {jobInsights.company_insight && (
               <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                 <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: '#475569' }}>
-                  🏢 Company Intel
+                  <Building2 className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" /> Company Intel
                 </p>
                 <div className="space-y-2 text-xs" style={{ color: '#94a3b8' }}>
                   <p><span style={{ color: '#cbd5e1' }}>Industry:</span> {jobInsights.company_insight.industry}</p>
@@ -380,7 +399,8 @@ export function JobInsightsPanel({ open, onClose, variant = "drawer" }: JobInsig
             {jobInsights.hard_skills.length > 0 && (
               <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                 <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: '#475569' }}>
-                  🎯 Required Skills — drag → Skills section
+                  <Target className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />
+                  Required Skills — drag to Skills section
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {jobInsights.hard_skills.map(s => (
@@ -394,7 +414,8 @@ export function JobInsightsPanel({ open, onClose, variant = "drawer" }: JobInsig
             {jobInsights.soft_skills.length > 0 && (
               <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                 <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: '#475569' }}>
-                  💬 Soft Skills — drag → Skills section
+                  <MessageCircle className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />
+                  Soft Skills — drag to Skills section
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {jobInsights.soft_skills.map(s => (
@@ -408,7 +429,8 @@ export function JobInsightsPanel({ open, onClose, variant = "drawer" }: JobInsig
             {jobInsights.drafted_bullets.length > 0 && (
               <div className="px-4 py-3">
                 <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: '#475569' }}>
-                  ✍️ AI Bullets — drag → Experience
+                  <PenLine className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />
+                  AI Bullets — drag to Experience
                 </p>
                 <div className="space-y-1.5">
                   {jobInsights.drafted_bullets.map((bullet, i) => (
@@ -427,7 +449,7 @@ export function JobInsightsPanel({ open, onClose, variant = "drawer" }: JobInsig
               onClick={copyToClipboard}
               className="flex-1 rounded-lg border border-white/10 bg-white/5 py-1.5 text-xs font-medium text-slate-400 transition-colors hover:bg-white/10"
             >
-              📋 Copy
+              <Clipboard className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" /> Copy
             </button>
             <button
               onClick={() => {
@@ -435,13 +457,13 @@ export function JobInsightsPanel({ open, onClose, variant = "drawer" }: JobInsig
               }}
               className="flex-1 rounded-lg border border-white/10 bg-white/5 py-1.5 text-xs font-medium text-slate-400 transition-colors hover:bg-white/10"
             >
-              → Markdown
+              <ArrowRight className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" /> Markdown
             </button>
             <button
               onClick={() => { clearJobInsights(); }}
               className="px-2 py-1.5 text-xs text-slate-500 transition-colors hover:text-rose-400"
               title="Clear"
-            >✕</button>
+            ><X className="h-4 w-4" aria-hidden="true" /></button>
           </div>
         )}
       </aside>

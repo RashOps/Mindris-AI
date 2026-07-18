@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ToolbarSelect } from "@/components/ToolbarSelect";
+import { GripVertical, Plus, X } from "lucide-react";
 
 import {
   DndContext,
@@ -38,9 +39,7 @@ const SELECT_CLASS =
 
 const DragHandle = () => (
   <div className="flex-shrink-0 cursor-grab px-1 text-slate-400 transition-colors hover:text-slate-700">
-    <svg width="14" height="14" viewBox="0 0 15 15" fill="none">
-      <path d="M5.5 4.625C6.12 4.625 6.625 4.12 6.625 3.5C6.625 2.88 6.12 2.375 5.5 2.375C4.88 2.375 4.375 2.88 4.375 3.5C4.375 4.12 4.88 4.625 5.5 4.625ZM9.5 4.625C10.12 4.625 10.625 4.12 10.625 3.5C10.625 2.88 10.12 2.375 9.5 2.375C8.88 2.375 8.375 2.88 8.375 3.5C8.375 4.12 8.88 4.625 9.5 4.625ZM10.625 7.5C10.625 8.12 10.12 8.625 9.5 8.625C8.88 8.625 8.375 8.12 8.375 7.5C8.375 6.88 8.88 6.375 9.5 6.375C10.12 6.375 10.625 6.88 10.625 7.5ZM5.5 8.625C6.12 8.625 6.625 8.12 6.625 7.5C6.625 6.88 6.12 6.375 5.5 6.375C4.88 6.375 4.375 6.88 4.375 7.5C4.375 8.12 4.88 4.625 5.5 8.625ZM10.625 11.5C10.625 12.12 10.12 12.625 9.5 12.625C8.88 12.625 8.375 12.12 8.375 11.5C8.375 10.88 8.88 10.375 9.5 10.375C10.12 10.375 10.625 10.88 10.625 11.5ZM5.5 12.625C6.12 12.625 6.625 12.12 6.625 11.5C6.625 10.88 6.12 10.375 5.5 10.375C4.88 10.375 4.375 10.88 4.375 11.5C4.375 12.12 4.88 12.625 5.5 12.625Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"/>
-    </svg>
+    <GripVertical className="h-3.5 w-3.5" aria-hidden="true" />
   </div>
 );
 
@@ -82,9 +81,7 @@ const RemoveBtn = ({ onClick }: { onClick: () => void }) => (
     className="ml-auto flex h-6 w-6 flex-shrink-0 cursor-pointer items-center justify-center rounded text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600"
     title="Remove"
   >
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M18 6L6 18M6 6l12 12"/>
-    </svg>
+    <X className="h-3 w-3" aria-hidden="true" />
   </button>
 );
 
@@ -107,7 +104,7 @@ const SectionCard = ({
           onClick={onAdd}
           className="flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-violet-700 transition-colors hover:bg-violet-50 dark:text-violet-300 dark:hover:bg-violet-950/40"
         >
-          <span className="text-base leading-none">+</span> {addLabel}
+          <Plus className="h-4 w-4" aria-hidden="true" /> {addLabel}
         </button>
       )}
     </div>
@@ -176,7 +173,7 @@ function TagInput({
             onClick={() => onChange(tags.filter((_, j) => j !== i))}
             className="cursor-pointer text-violet-500 hover:text-violet-800"
           >
-            ×
+            <X className="h-3 w-3" aria-hidden="true" />
           </button>
         </span>
       ))}
@@ -627,7 +624,7 @@ function ProfileSection() {
             onClick={() => setProfile({ socials: [...p.socials, { type: "other", url: "" }] })}
             className="mt-1 cursor-pointer rounded-md px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-50"
           >
-            + Add social
+            <Plus className="h-4 w-4" aria-hidden="true" /> Add social
           </button>
         </div>
 

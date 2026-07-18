@@ -28,5 +28,6 @@ bun install --frozen-lockfile
 
 cd "$ROOT_DIR/services/renderer"
 bun install --frozen-lockfile
+bunx puppeteer browsers install chrome
 
 echo "local-setup-ok"
