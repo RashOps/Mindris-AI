@@ -6,7 +6,6 @@ import type { CvBuilderUiMode } from "@/app/tools/cv-creator/components/CvBuilde
 import { useCVStore } from "@/store/useCVStore";
 import type { GlobalSettings } from "@/store/useCVStore";
 import {
-  DEFAULT_FONT,
   PANEL_INPUT_CLASS,
   PANEL_TOGGLE_CLASS,
 } from "@/components/style-panel/constants";
@@ -14,11 +13,11 @@ import { AdvancedCssPanel } from "@/components/style-panel/AdvancedCssPanel";
 import { LayoutTab } from "@/components/style-panel/LayoutTab";
 import { PhotoTab } from "@/components/style-panel/PhotoTab";
 import { HeaderTab, LinksTab } from "@/components/style-panel/HeaderTab";
+import { TypographyTab } from "@/components/style-panel/TypographyTab";
 import { SectionsTab } from "@/components/style-panel/SectionsTab";
 import { SectionLabel } from "@/components/style-panel/controls";
 import {
   ColorSwatchPicker,
-  SteppedSlider,
   ToggleGrid,
   VisualOptionGroup,
 } from "@/components/style-panel/visual-controls";
@@ -423,242 +422,12 @@ export function StylePanel({
           )}
 
           {activeTab === "typography" && (
-            <>
-              <section>
-                <SectionLabel>Polices</SectionLabel>
-                <div className="space-y-3">
-                  <ToolbarSelect
-                    value={typographySettings.body_font ?? DEFAULT_FONT}
-                    ariaLabel="Body font"
-                    options={options.fonts.map((font) => ({
-                      value: font,
-                      label: font,
-                    }))}
-                    onChange={(value) =>
-                      update({
-                        font_family: value,
-                        typography: {
-                          ...typographySettings,
-                          body_font: value,
-                        },
-                      })
-                    }
-                    triggerClassName={PANEL_INPUT_CLASS + " w-full"}
-                    menuClassName="min-w-64"
-                  />
-                  <ToolbarSelect
-                    value={typographySettings.heading_font ?? DEFAULT_FONT}
-                    ariaLabel="Heading font"
-                    options={options.headingFonts.map((font) => ({
-                      value: font,
-                      label: font,
-                    }))}
-                    onChange={(value) =>
-                      update({
-                        typography: {
-                          ...typographySettings,
-                          heading_font: value,
-                        },
-                      })
-                    }
-                    triggerClassName={PANEL_INPUT_CLASS + " w-full"}
-                    menuClassName="min-w-64"
-                  />
-                </div>
-              </section>
-
-              <section>
-                <SectionLabel>Tailles</SectionLabel>
-                <SteppedSlider
-                  label="Taille du texte"
-                  min={options.bodySize.min}
-                  max={options.bodySize.max}
-                  value={parseInt(
-                    typographySettings.body_size ??
-                      typographySettings.base_size ??
-                      settings.font_size ??
-                      "13",
-                    10,
-                  )}
-                  unit="px"
-                  onChange={(v) =>
-                    update({
-                      font_size: `${v}px`,
-                      typography: {
-                        ...typographySettings,
-                        base_size: `${v}px`,
-                        body_size: `${v}px`,
-                      },
-                    })
-                  }
-                />
-                <SteppedSlider
-                  label="Nom"
-                  min={options.nameSize.min}
-                  max={options.nameSize.max}
-                  value={parseInt(typographySettings.name_size ?? "28", 10)}
-                  unit="px"
-                  onChange={(v) =>
-                    update({
-                      typography: {
-                        ...typographySettings,
-                        name_size: `${v}px`,
-                      },
-                    })
-                  }
-                />
-                <SteppedSlider
-                  label="Titre professionnel"
-                  min={options.titleSize.min}
-                  max={options.titleSize.max}
-                  value={parseInt(typographySettings.title_size ?? "15", 10)}
-                  unit="px"
-                  onChange={(v) =>
-                    update({
-                      typography: { ...typographySettings, title_size: `${v}px` },
-                    })
-                  }
-                />
-                <SteppedSlider
-                  label="Titres des sections"
-                  min={options.sectionHeadingSize.min}
-                  max={options.sectionHeadingSize.max}
-                  value={parseInt(
-                    typographySettings.section_heading_size ?? "10",
-                    10,
-                  )}
-                  unit="px"
-                  onChange={(v) =>
-                    update({
-                      typography: {
-                        ...typographySettings,
-                        section_heading_size: `${v}px`,
-                      },
-                    })
-                  }
-                />
-                <SteppedSlider
-                  label="Titres des entrées"
-                  min={options.entryHeadingSize.min}
-                  max={options.entryHeadingSize.max}
-                  value={parseInt(
-                    typographySettings.entry_heading_size ?? "14",
-                    10,
-                  )}
-                  unit="px"
-                  onChange={(v) =>
-                    update({
-                      typography: {
-                        ...typographySettings,
-                        entry_heading_size: `${v}px`,
-                      },
-                    })
-                  }
-                />
-              </section>
-
-              <section>
-                <SectionLabel>Présentation</SectionLabel>
-                <div className="grid gap-2">
-                  <ToolbarSelect
-                    value={typographySettings.weight ?? "regular"}
-                    ariaLabel="Typography weight"
-                    options={options.weights.map((weight) => ({
-                      value: weight,
-                      label: weight,
-                    }))}
-                    onChange={(value) =>
-                      update({
-                        typography: {
-                          ...typographySettings,
-                          weight: value as NonNullable<
-                            GlobalSettings["typography"]
-                          >["weight"],
-                        },
-                      })
-                    }
-                    triggerClassName={PANEL_INPUT_CLASS}
-                  />
-                  <label className={PANEL_TOGGLE_CLASS}>
-                    <span className="text-xs font-medium text-foreground">
-                      Titres en majuscules
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={typographySettings.titles_uppercase ?? true}
-                      onChange={(e) =>
-                        update({
-                          typography: {
-                            ...typographySettings,
-                            titles_uppercase: e.target.checked,
-                          },
-                        })
-                      }
-                    />
-                  </label>
-                  <ToolbarSelect
-                    value={
-                      typographySettings.line_height ??
-                      settings.line_height ??
-                      "1.5"
-                    }
-                    ariaLabel="Line height"
-                    options={options.lineHeights.map((lineHeight) => ({
-                      value: lineHeight,
-                      label: lineHeight,
-                    }))}
-                    onChange={(value) =>
-                      update({
-                        line_height: value,
-                        typography: {
-                          ...typographySettings,
-                          line_height: value,
-                        },
-                      })
-                    }
-                    triggerClassName={PANEL_INPUT_CLASS}
-                  />
-                  <ToolbarSelect
-                    value={typographySettings.date_style ?? "normal"}
-                    ariaLabel="Date style"
-                    options={options.dateStyles.map((style) => ({
-                      value: style,
-                      label: style,
-                    }))}
-                    onChange={(value) =>
-                      update({
-                        typography: {
-                          ...typographySettings,
-                          date_style: value as NonNullable<
-                            GlobalSettings["typography"]
-                          >["date_style"],
-                        },
-                      })
-                    }
-                    triggerClassName={PANEL_INPUT_CLASS}
-                  />
-                  <ToolbarSelect
-                    value={typographySettings.bullet_style ?? "bullets"}
-                    ariaLabel="Bullet style"
-                    options={options.bulletStyles.map((style) => ({
-                      value: style,
-                      label: style,
-                    }))}
-                    onChange={(value) =>
-                      update({
-                        typography: {
-                          ...typographySettings,
-                          bullet_style: value as NonNullable<
-                            GlobalSettings["typography"]
-                          >["bullet_style"],
-                        },
-                      })
-                    }
-                    triggerClassName={PANEL_INPUT_CLASS}
-                  />
-                </div>
-              </section>
-            </>
+            <TypographyTab
+              settings={settings}
+              typography={typographySettings}
+              options={options}
+              update={update}
+            />
           )}
 
           {activeTab === "layout" && (
