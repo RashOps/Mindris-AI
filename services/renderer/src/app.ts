@@ -14,6 +14,8 @@ import {
 } from "./openapi";
 import { generateHtml } from "./templates/engine";
 
+const LOOPBACK_BROWSER_ORIGIN = /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/;
+
 function errorMessage(error: unknown, fallback: string): string {
     return error instanceof Error ? error.message : fallback;
 }
@@ -111,7 +113,7 @@ export function buildRendererApp(
     };
 
     return new Elysia()
-        .use(cors({ origin: ["http://localhost:3000", "http://127.0.0.1:3000"] }))
+        .use(cors({ origin: LOOPBACK_BROWSER_ORIGIN }))
         .onRequest(({ request }) => {
             startedAt.set(request, performance.now());
         })
