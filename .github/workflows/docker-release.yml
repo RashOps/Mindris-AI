@@ -131,6 +131,10 @@ jobs:
           MINDRIS_VERSION="$image_version" \
           MINDRIS_WEB_PORT=3100 \
           scripts/install_self_hosted.sh
+          api_key="$(sed -n 's/^API_KEY=//p' /tmp/mindris-ai-release-smoke/.env)"
+          test -n "$api_key"
+          echo "::add-mask::$api_key"
+          echo "MINDRIS_SMOKE_API_KEY=$api_key" >> "$GITHUB_ENV"
 
       - name: Smoke release stack
         run: |
@@ -142,7 +146,7 @@ jobs:
         env:
           WEB_URL: http://localhost:3100
           API_URL: http://localhost:8000
-          API_KEY: dev-mindris-api-key
+          API_KEY: ${{ env.MINDRIS_SMOKE_API_KEY }}
         run: scripts/e2e_browser.sh
 
       - name: Cleanup release stack
