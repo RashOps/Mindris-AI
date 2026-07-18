@@ -96,9 +96,9 @@ export function LayoutTab({
 
       {(scope === "all" || scope === "spacing") && (
               <section>
-                <SectionLabel>Margins</SectionLabel>
+                <SectionLabel>Marges et rythme</SectionLabel>
                 <Slider
-                  label="Horizontal"
+                  label="Marges horizontales"
                   min={options.margins.range.min}
                   max={options.margins.range.max}
                   value={parseInt(
@@ -122,7 +122,7 @@ export function LayoutTab({
                   }
                 />
                 <Slider
-                  label="Vertical"
+                  label="Marges verticales"
                   min={options.margins.range.min}
                   max={options.margins.range.max}
                   value={parseInt(
@@ -144,7 +144,7 @@ export function LayoutTab({
                   }
                 />
                 <Slider
-                  label="Entry spacing"
+                  label="Espacement des éléments"
                   min={4}
                   max={36}
                   value={parseInt(settings.entry_spacing ?? "20", 10)}
@@ -156,7 +156,7 @@ export function LayoutTab({
 
       {(scope === "all" || scope === "layout") && (
               <section>
-                <SectionLabel>Columns</SectionLabel>
+                <SectionLabel>Colonnes</SectionLabel>
                 <div className="grid gap-2">
                   <ToolbarSelect
                     value={String(layoutSettings.columns ?? 2)}
@@ -212,7 +212,7 @@ export function LayoutTab({
                     triggerClassName={PANEL_INPUT_CLASS}
                   />
                   <Slider
-                    label="Sidebar width"
+                    label="Largeur de la colonne"
                     min={options.sidebarWidthRange.min}
                     max={options.sidebarWidthRange.max}
                     value={parseInt(
@@ -238,7 +238,7 @@ export function LayoutTab({
 
       {(scope === "all" || scope === "layout") && (
               <section>
-                <SectionLabel>Header</SectionLabel>
+                <SectionLabel>En-tête</SectionLabel>
                 <div className="grid gap-2">
                   <ToolbarSelect
                     value={layoutSettings.header_alignment ?? "left"}

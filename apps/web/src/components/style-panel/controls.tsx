@@ -8,6 +8,7 @@ export function Slider({
   value,
   unit,
   onChange,
+  showSteps = true,
 }: {
   label: string;
   min: number;
@@ -16,11 +17,19 @@ export function Slider({
   value: number;
   unit: string;
   onChange: (v: number) => void;
+  showSteps?: boolean;
 }) {
+  const progress = max === min ? 0 : ((value - min) / (max - min)) * 100;
+  const changeBy = (delta: number) => {
+    const precision = String(step).split(".")[1]?.length ?? 0;
+    const next = Math.min(max, Math.max(min, value + delta));
+    onChange(Number(next.toFixed(precision)));
+  };
+
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2.5 rounded-lg border border-border bg-background p-3">
       <div className="flex items-center justify-between">
-        <label className="text-xs font-medium text-muted-foreground">
+        <label className="text-xs font-semibold text-foreground">
           {label}
         </label>
         <span
@@ -31,16 +40,41 @@ export function Slider({
           {unit}
         </span>
       </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(event) => onChange(Number(event.target.value))}
-        className="h-1.5 w-full cursor-pointer appearance-none rounded-full"
-        style={{ accentColor: "var(--panel-accent, #8b5cf6)" }}
-      />
+      <div className="flex items-center gap-2">
+        {showSteps ? (
+          <button
+            type="button"
+            aria-label={`Diminuer ${label}`}
+            disabled={value <= min}
+            onClick={() => changeBy(-step)}
+            className="cv-slider-step"
+          >
+            −
+          </button>
+        ) : null}
+        <input
+          type="range"
+          aria-label={label}
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={(event) => onChange(Number(event.target.value))}
+          className="cv-range min-w-0 flex-1"
+          style={{ "--cv-range-progress": `${progress}%` } as React.CSSProperties}
+        />
+        {showSteps ? (
+          <button
+            type="button"
+            aria-label={`Augmenter ${label}`}
+            disabled={value >= max}
+            onClick={() => changeBy(step)}
+            className="cv-slider-step"
+          >
+            +
+          </button>
+        ) : null}
+      </div>
       <div className="flex justify-between text-[10px] text-muted-foreground">
         <span>
           {min}

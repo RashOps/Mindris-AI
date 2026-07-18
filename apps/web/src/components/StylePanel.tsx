@@ -224,7 +224,7 @@ export function StylePanel({
               Design Studio
             </h2>
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
-              Backend catalogue driven
+              Réglages fournis par le moteur
             </p>
           </div>
           {onClose && (
@@ -347,10 +347,11 @@ export function StylePanel({
 
               {!isSimpleMode ? (
                 <section>
-                  <SectionLabel>Template notes</SectionLabel>
+                  <SectionLabel>Notes du template</SectionLabel>
                   <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
-                    The backend keeps template compatibility and enforcement.
-                    This panel only sends API state.
+                    Le moteur garantit la compatibilité du template. Les
+                    réglages affichés ici sont appliqués à l’aperçu et à
+                    l’export.
                   </div>
                 </section>
               ) : null}
@@ -360,7 +361,7 @@ export function StylePanel({
           {activeTab === "typography" && (
             <>
               <section>
-                <SectionLabel>Fonts</SectionLabel>
+                <SectionLabel>Polices</SectionLabel>
                 <div className="space-y-3">
                   <ToolbarSelect
                     value={typographySettings.body_font ?? DEFAULT_FONT}
@@ -403,16 +404,16 @@ export function StylePanel({
               </section>
 
               <section>
-                <SectionLabel>Size</SectionLabel>
+                <SectionLabel>Tailles</SectionLabel>
                 <Slider
-                  label="Base size"
+                  label="Taille du texte"
                   min={options.baseSize.min}
                   max={options.baseSize.max}
                   value={parseInt(
                     typographySettings.base_size ?? settings.font_size ?? "13",
                     10,
                   )}
-                  unit="pt"
+                  unit="px"
                   onChange={(v) =>
                     update({
                       font_size: `${v}px`,
@@ -424,7 +425,7 @@ export function StylePanel({
                   }
                 />
                 <Slider
-                  label="Heading scale"
+                  label="Échelle des titres"
                   min={options.headingScale.min}
                   max={options.headingScale.max}
                   step={options.headingScale.step ?? 0.05}
@@ -442,7 +443,7 @@ export function StylePanel({
               </section>
 
               <section>
-                <SectionLabel>Behavior</SectionLabel>
+                <SectionLabel>Présentation</SectionLabel>
                 <div className="grid gap-2">
                   <ToolbarSelect
                     value={typographySettings.weight ?? "regular"}
@@ -465,7 +466,7 @@ export function StylePanel({
                   />
                   <label className={PANEL_TOGGLE_CLASS}>
                     <span className="text-xs font-medium text-foreground">
-                      Uppercase titles
+                      Titres en majuscules
                     </span>
                     <input
                       type="checkbox"
@@ -703,7 +704,7 @@ export function StylePanel({
             }
             className="w-full cursor-pointer rounded-lg border border-input bg-background py-2 text-xs font-medium text-foreground shadow-sm transition-colors hover:bg-accent"
           >
-            Reset to backend defaults
+            Réinitialiser les réglages
           </button>
         </div>
       </aside>
