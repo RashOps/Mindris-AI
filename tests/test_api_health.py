@@ -66,6 +66,29 @@ def test_llm_catalogue_accepts_local_loopback_without_browser_key() -> None:
     assert payload["providers"]["groq"]["mode"] == "cloud"
 
 
+def test_llm_catalogue_accepts_loopback_browser_through_container_bridge() -> None:
+    api = client(client_host="172.18.0.1", base_url="http://localhost:8000")
+    response = api.get(
+        "/api/v1/llm/catalogue",
+        headers={"Origin": "http://localhost:3100"},
+    )
+
+    assert response.status_code == 200
+
+
+def test_container_bridge_requires_an_explicit_loopback_browser_origin() -> None:
+    api = client(client_host="172.18.0.1", base_url="http://localhost:8000")
+
+    assert api.get("/api/v1/llm/catalogue").status_code == 401
+    assert (
+        api.get(
+            "/api/v1/llm/catalogue",
+            headers={"Origin": "https://untrusted.example"},
+        ).status_code
+        == 401
+    )
+
+
 def test_llm_catalogue_rejects_query_string_credentials() -> None:
     api = client(client_host="198.51.100.25", base_url="http://mindris.example")
     response = api.get("/api/v1/llm/catalogue?api_key=dev-mindris-api-key")

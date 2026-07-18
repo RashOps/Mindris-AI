@@ -42,7 +42,7 @@ def is_local_request(request: Request) -> bool:
     """Return whether the request comes from an explicit local runtime context."""
     client_host = request.client.host if request.client else None
     request_host = request.url.hostname
-    if not _is_loopback_host(client_host) or not _is_loopback_host(request_host):
+    if not _is_loopback_host(request_host):
         return False
 
     origin = _parsed_host(request.headers.get("origin"))
@@ -50,7 +50,16 @@ def is_local_request(request: Request) -> bool:
         return False
 
     referer = _parsed_host(request.headers.get("referer"))
-    return not (referer and not _is_loopback_host(referer))
+    if referer and not _is_loopback_host(referer):
+        return False
+
+    if _is_loopback_host(client_host):
+        return True
+
+    # Docker Desktop/WSL forwards host-loopback traffic through its bridge.
+    # In that case, require an explicit loopback browser origin so arbitrary
+    # non-browser clients cannot inherit the local trust boundary.
+    return origin is not None
 
 
 def auth_boundary_contract() -> dict[str, object]:
