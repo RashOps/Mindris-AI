@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { generateHtml } from "./engine";
 
+const builtInTemplateIds = ["modern", "compact", "ats", "student", "creative"];
+
 const baseCv = {
   global_settings: {
     template_id: "modern",
@@ -31,6 +33,15 @@ const baseCv = {
         placement: "main",
         display_mode: "list",
       },
+      {
+        id: "certifications",
+        type: "certifications",
+        label: "Licences",
+        visible: true,
+        placement: "main",
+        display_mode: "cards",
+        detail_level: "detailed",
+      },
     ],
   },
   profile: {
@@ -59,7 +70,15 @@ const baseCv = {
       tech_stack: ["Secret"],
     },
   ],
-  certifications: [],
+  certifications: [
+    {
+      name: "Machine Learning Specialty",
+      issuer: "Mindris Academy",
+      date: "2026",
+      url: "https://example.com/cert",
+      description_markdown: "- Backend-driven rendering",
+    },
+  ],
   volunteering: [],
   publications: [],
   references: [],
@@ -88,7 +107,7 @@ describe("generateHtml semantic sections", () => {
   });
 
   test("keeps every built-in template aligned with dynamic section placement", () => {
-    for (const templateId of ["modern", "compact", "ats", "student", "creative"]) {
+    for (const templateId of builtInTemplateIds) {
       const html = generateHtml(
         {
           ...baseCv,
@@ -104,12 +123,84 @@ describe("generateHtml semantic sections", () => {
       expect(html).toContain(".section-placement-main");
       expect(html).toContain(".section-display-compact");
       expect(html).toContain(".section-display-timeline");
+      expect(html).toContain(".section-display-cards");
       expect(html).toContain(".section-detail-short");
+      expect(html).toContain(".section-detail-detailed");
       expect(html).toContain('data-section-placement="sidebar"');
       expect(html).toContain('data-section-placement="main"');
       expect(html).toContain('data-section-display-mode="compact"');
       expect(html).toContain('data-section-display-mode="timeline"');
+      expect(html).toContain('data-section-display-mode="cards"');
       expect(html).toContain('data-section-detail-level="short"');
+      expect(html).toContain('data-section-detail-level="detailed"');
+    }
+  });
+
+  test("renders each built-in template through the backend-driven semantic contract", () => {
+    for (const templateId of builtInTemplateIds) {
+      const html = generateHtml(
+        {
+          ...baseCv,
+          global_settings: {
+            ...baseCv.global_settings,
+            template_id: templateId,
+          },
+        },
+        templateId,
+      );
+
+      expect(html).toContain("<!DOCTYPE html>");
+      expect(html).toContain(
+        "const shadow = host.attachShadow({ mode: 'open' })",
+      );
+      expect(html).toContain("#cv-container");
+      expect(html).toContain("Ada Lovelace");
+      expect(html).toContain("AI Engineer");
+      expect(html).toContain("Core Skills");
+      expect(html).toContain("Selected Experience");
+      expect(html).toContain("Licences");
+      expect(html).toContain("Machine Learning Specialty");
+      expect(html).not.toContain("Hidden Projects");
+      expect(html).not.toContain("Hidden Project");
+      expect(html).toContain('data-section-type="skills"');
+      expect(html).toContain('data-section-type="experience"');
+      expect(html).toContain('data-section-type="certifications"');
+      expect(html).toContain('data-section-placement="sidebar"');
+      expect(html).toContain('data-section-placement="main"');
+    }
+  });
+
+  test("applies section display controls for dates and locations", () => {
+    for (const templateId of builtInTemplateIds) {
+      const html = generateHtml(
+        {
+          ...baseCv,
+          global_settings: {
+            ...baseCv.global_settings,
+            template_id: templateId,
+            sections: [
+              {
+                id: "experience",
+                type: "experience",
+                label: "Experience without metadata",
+                visible: true,
+                placement: "main",
+                display_mode: "list",
+                detail_level: "normal",
+                show_dates: false,
+                show_locations: false,
+              },
+            ],
+          },
+        },
+        templateId,
+      );
+
+      expect(html).toContain("Experience without metadata");
+      expect(html).toContain("Engineer");
+      expect(html).toContain("Analytical Engines");
+      expect(html).not.toContain("1842 - 1843");
+      expect(html).not.toContain("London");
     }
   });
 
@@ -176,6 +267,12 @@ describe("generateHtml semantic sections", () => {
     const html = generateHtml(
       {
         ...baseCv,
+        global_settings: {
+          ...baseCv.global_settings,
+          sections: baseCv.global_settings.sections.filter(
+            (section) => section.type !== "certifications",
+          ),
+        },
         certifications: [
           {
             name: "AWS Certified",
