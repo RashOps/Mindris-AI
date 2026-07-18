@@ -245,8 +245,21 @@ def test_score_and_cover_letter_routes_persist_job_aware_artifacts(monkeypatch) 
         },
     )
     assert version_response.status_code == 200
-    assert version_response.json()["previous_id"] == letter_payload["id"]
-    assert version_response.json()["job_id"] == job_id
+    version_payload = version_response.json()
+    assert version_payload["previous_id"] == letter_payload["id"]
+    assert version_payload["job_id"] == job_id
+
+    inherited_version_response = api.post(
+        f"/api/v1/cover-letter/{version_payload['id']}/version",
+        headers=headers,
+        json={
+            "markdown": "Dear Mindris,\n\nSecond edited version.",
+        },
+    )
+    assert inherited_version_response.status_code == 200
+    inherited_version_payload = inherited_version_response.json()
+    assert inherited_version_payload["previous_id"] == version_payload["id"]
+    assert inherited_version_payload["job_id"] == job_id
 
     ats_history = api.get("/api/v1/history/ats-reports", headers=headers)
     assert any(item["job_id"] == job_id for item in ats_history.json()["items"])
@@ -262,6 +275,26 @@ def test_score_and_cover_letter_routes_persist_job_aware_artifacts(monkeypatch) 
     assert letter_detail.status_code == 200
     assert letter_detail.json()["item"]["id"] == letter_payload["id"]
     assert letter_detail.json()["item"]["markdown_content"]
+    edited_letter_detail = api.get(
+        f"/api/v1/history/cover-letters/{inherited_version_payload['id']}",
+        headers=headers,
+    )
+    assert edited_letter_detail.status_code == 200
+    assert edited_letter_detail.json()["item"]["job_id"] == job_id
+    assert (
+        edited_letter_detail.json()["item"]["markdown_content"]
+        == "Dear Mindris,\n\nSecond edited version."
+    )
+    job_detail = api.get(f"/api/v1/history/jobs/{job_id}", headers=headers)
+    assert job_detail.status_code == 200
+    job_payload = job_detail.json()
+    assert any(
+        item["id"] == score_payload["id"] for item in job_payload["ats_reports"]
+    )
+    assert any(
+        item["id"] == inherited_version_payload["id"]
+        for item in job_payload["cover_letters"]
+    )
 
 
 def test_history_ledger_builds_lineage_links_for_related_artifacts() -> None:
