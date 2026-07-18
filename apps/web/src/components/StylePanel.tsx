@@ -26,7 +26,15 @@ import {
 
 export { mergeSections } from "@/components/style-panel/settings";
 
-type Tab = "design" | "typography" | "layout" | "sections" | "advanced";
+type Tab =
+  | "document"
+  | "template"
+  | "layout"
+  | "typography"
+  | "spacing"
+  | "colors"
+  | "sections"
+  | "advanced";
 
 interface StylePanelProps {
   open?: boolean;
@@ -42,7 +50,7 @@ export function StylePanel({
   uiMode = "advanced",
 }: StylePanelProps) {
   const { cvData, setGlobalSettings } = useCVStore();
-  const [tab, setTab] = useState<Tab>("design");
+  const [tab, setTab] = useState<Tab>("template");
   const [catalogue, setCatalogue] = useState<CustomizationCatalogue>(
     FALLBACK_CUSTOMIZATION_CATALOGUE,
   );
@@ -121,19 +129,27 @@ export function StylePanel({
   };
 
   const TABS: { key: Tab; label: string; icon: string }[] = [
-    { key: "design", label: "Design", icon: "" },
+    { key: "document", label: "Document", icon: "□" },
+    { key: "template", label: "Template", icon: "" },
+    { key: "layout", label: "Layout", icon: "◫" },
     { key: "typography", label: "Texte", icon: "Aa" },
-    { key: "layout", label: "Page", icon: "◫" },
+    { key: "spacing", label: "Espacement", icon: "↕" },
+    { key: "colors", label: "Couleurs", icon: "●" },
     { key: "sections", label: "Sections", icon: "≡" },
-    { key: "advanced", label: "Avancé", icon: "{}" },
+    { key: "advanced", label: "Expert", icon: "{}" },
   ];
   const visibleTabs = TABS.filter((item) => {
-    if (uiMode === "simple") return item.key === "design";
+    if (uiMode === "simple") {
+      return item.key === "template" || item.key === "colors";
+    }
     if (uiMode === "normal") {
       return (
-        item.key === "design" ||
+        item.key === "document" ||
+        item.key === "template" ||
+        item.key === "layout" ||
         item.key === "typography" ||
-        item.key === "layout"
+        item.key === "spacing" ||
+        item.key === "colors"
       );
     }
     return true;
@@ -147,7 +163,7 @@ export function StylePanel({
   const isEmbedded = variant === "embedded";
   const activeTab = visibleTabs.some((item) => item.key === tab)
     ? tab
-    : (visibleTabs[0]?.key ?? "design");
+    : (visibleTabs[0]?.key ?? "template");
 
   return (
     <>
@@ -193,12 +209,12 @@ export function StylePanel({
         </div>
 
         {visibleTabs.length > 1 ? (
-          <div className="flex shrink-0 border-b border-border">
+          <div className="flex shrink-0 overflow-x-auto border-b border-border">
             {visibleTabs.map((t) => (
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className={`flex flex-1 cursor-pointer flex-col items-center gap-0.5 border-b-2 py-2.5 text-[11px] font-semibold transition-colors ${
+                className={`flex min-w-20 flex-1 cursor-pointer flex-col items-center gap-0.5 whitespace-nowrap border-b-2 py-2.5 text-[11px] font-semibold transition-colors ${
                   activeTab === t.key
                     ? "border-violet-600 bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300"
                     : "border-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
@@ -214,119 +230,16 @@ export function StylePanel({
         ) : null}
 
         <div className="flex-1 space-y-5 overflow-y-auto px-5 pt-4 pb-24">
-          {activeTab === "design" && (
+          {activeTab === "document" && (
             <>
-              <section>
-                <SectionLabel>Template</SectionLabel>
-                <div className="grid grid-cols-2 gap-3">
-                  {templateCards.map((template) => (
-                    <button
-                      key={template.id}
-                      onClick={() => updateTemplate(template.id)}
-                      aria-label={`Template ${template.label}`}
-                      className={`flex cursor-pointer flex-col items-start gap-1 rounded-lg border p-3 text-left transition-all ${
-                        settings.template_id === template.id
-                          ? "border-violet-600 bg-violet-50 shadow-[0_0_0_3px_rgba(124,58,237,0.08)] dark:bg-violet-950/40"
-                          : "border-border bg-background hover:bg-accent"
-                      }`}
-                    >
-                      <span className="text-sm font-semibold text-foreground">
-                        {template.label}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {template.compatibleLayouts.join("/")}-col
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </section>
-
-              <section>
-                <SectionLabel>
-                  {isSimpleMode ? "Couleur principale" : "Palette"}
-                </SectionLabel>
-                {!isSimpleMode ? (
-                  <ToolbarSelect
-                    value={colorSettings.palette_preset ?? "tech"}
-                    ariaLabel="Palette preset"
-                    options={options.palettePresets.map((preset) => ({
-                      value: preset,
-                      label: preset,
-                    }))}
-                    onChange={(value) =>
-                      update({
-                        colors: {
-                          ...colorSettings,
-                          palette_preset: value as NonNullable<
-                            GlobalSettings["colors"]
-                          >["palette_preset"],
-                        },
-                      })
-                    }
-                    triggerClassName={PANEL_INPUT_CLASS + " w-full"}
-                  />
-                ) : null}
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  {options.editableColors
-                    .filter((token) => !isSimpleMode || token === "primary")
-                    .map((token) => (
-                      <label key={token} className="space-y-1">
-                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                          {token.replace("_", " ")}
-                        </span>
-                        <input
-                          type="color"
-                          value={
-                            (
-                              colorSettings as Record<
-                                string,
-                                string | undefined
-                              >
-                            )?.[token] ?? "#2563eb"
-                          }
-                          onChange={(e) =>
-                            update({
-                              colors: {
-                                ...colorSettings,
-                                [token]: e.target.value,
-                              },
-                            })
-                          }
-                          className="h-9 w-full cursor-pointer rounded-md border border-input bg-background"
-                        />
-                      </label>
-                    ))}
-                </div>
-                {!isSimpleMode ? (
-                  <label className={PANEL_TOGGLE_CLASS + " mt-3"}>
-                    <span className="text-xs font-medium text-foreground">
-                      Monochrome
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={colorSettings.monochrome ?? false}
-                      onChange={(e) =>
-                        update({
-                          colors: {
-                            ...colorSettings,
-                            monochrome: e.target.checked,
-                          },
-                        })
-                      }
-                    />
-                  </label>
-                ) : null}
-              </section>
-
-              {!isSimpleMode ? (
-                <section>
-                  <SectionLabel>Template notes</SectionLabel>
-                  <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
-                    The backend keeps template compatibility and enforcement.
-                    This panel only sends API state.
-                  </div>
-                </section>
-              ) : null}
+              <LayoutTab
+                settings={settings}
+                pageSettings={pageSettings}
+                layoutSettings={layoutSettings}
+                options={options}
+                update={update}
+                scope="document"
+              />
 
               {isAdvancedMode ? (
                 <section>
@@ -370,6 +283,45 @@ export function StylePanel({
                       }
                       triggerClassName={PANEL_INPUT_CLASS}
                     />
+                  </div>
+                </section>
+              ) : null}
+            </>
+          )}
+
+          {activeTab === "template" && (
+            <>
+              <section>
+                <SectionLabel>Template</SectionLabel>
+                <div className="grid grid-cols-2 gap-3">
+                  {templateCards.map((template) => (
+                    <button
+                      key={template.id}
+                      onClick={() => updateTemplate(template.id)}
+                      aria-label={`Template ${template.label}`}
+                      className={`flex cursor-pointer flex-col items-start gap-1 rounded-lg border p-3 text-left transition-all ${
+                        settings.template_id === template.id
+                          ? "border-violet-600 bg-violet-50 shadow-[0_0_0_3px_rgba(124,58,237,0.08)] dark:bg-violet-950/40"
+                          : "border-border bg-background hover:bg-accent"
+                      }`}
+                    >
+                      <span className="text-sm font-semibold text-foreground">
+                        {template.label}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {template.compatibleLayouts.join("/")}-col
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              {!isSimpleMode ? (
+                <section>
+                  <SectionLabel>Template notes</SectionLabel>
+                  <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+                    The backend keeps template compatibility and enforcement.
+                    This panel only sends API state.
                   </div>
                 </section>
               ) : null}
@@ -571,7 +523,100 @@ export function StylePanel({
               layoutSettings={layoutSettings}
               options={options}
               update={update}
+              scope="layout"
             />
+          )}
+
+          {activeTab === "spacing" && (
+            <LayoutTab
+              settings={settings}
+              pageSettings={pageSettings}
+              layoutSettings={layoutSettings}
+              options={options}
+              update={update}
+              scope="spacing"
+            />
+          )}
+
+          {activeTab === "colors" && (
+            <>
+              <section>
+                <SectionLabel>
+                  {isSimpleMode ? "Couleur principale" : "Palette"}
+                </SectionLabel>
+                {!isSimpleMode ? (
+                  <ToolbarSelect
+                    value={colorSettings.palette_preset ?? "tech"}
+                    ariaLabel="Palette preset"
+                    options={options.palettePresets.map((preset) => ({
+                      value: preset,
+                      label: preset,
+                    }))}
+                    onChange={(value) =>
+                      update({
+                        colors: {
+                          ...colorSettings,
+                          palette_preset: value as NonNullable<
+                            GlobalSettings["colors"]
+                          >["palette_preset"],
+                        },
+                      })
+                    }
+                    triggerClassName={PANEL_INPUT_CLASS + " w-full"}
+                  />
+                ) : null}
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  {options.editableColors
+                    .filter((token) => !isSimpleMode || token === "primary")
+                    .map((token) => (
+                      <label key={token} className="space-y-1">
+                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                          {token.replace("_", " ")}
+                        </span>
+                        <input
+                          type="color"
+                          value={
+                            (
+                              colorSettings as Record<
+                                string,
+                                string | undefined
+                              >
+                            )?.[token] ?? "#2563eb"
+                          }
+                          onChange={(event) =>
+                            update({
+                              colors: {
+                                ...colorSettings,
+                                [token]: event.target.value,
+                              },
+                            })
+                          }
+                          className="h-9 w-full cursor-pointer rounded-md border border-input bg-background"
+                        />
+                      </label>
+                    ))}
+                </div>
+                {!isSimpleMode ? (
+                  <label className={PANEL_TOGGLE_CLASS + " mt-3"}>
+                    <span className="text-xs font-medium text-foreground">
+                      Monochrome
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={colorSettings.monochrome ?? false}
+                      onChange={(event) =>
+                        update({
+                          colors: {
+                            ...colorSettings,
+                            monochrome: event.target.checked,
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                ) : null}
+              </section>
+            </>
           )}
 
           {activeTab === "sections" && (

@@ -16,6 +16,7 @@ interface LayoutTabProps {
   layoutSettings: NonNullable<GlobalSettings["layout"]>;
   options: StyleOptions;
   update: (patch: Partial<GlobalSettings>) => void;
+  scope?: "all" | "document" | "layout" | "spacing";
 }
 
 export function LayoutTab({
@@ -24,9 +25,11 @@ export function LayoutTab({
   layoutSettings,
   options,
   update,
+  scope = "all",
 }: LayoutTabProps) {
   return (
     <>
+      {(scope === "all" || scope === "document") && (
               <section>
                 <SectionLabel>Page</SectionLabel>
                 <div className="grid gap-2">
@@ -89,7 +92,9 @@ export function LayoutTab({
                   </label>
                 </div>
               </section>
+      )}
 
+      {(scope === "all" || scope === "spacing") && (
               <section>
                 <SectionLabel>Margins</SectionLabel>
                 <Slider
@@ -147,7 +152,9 @@ export function LayoutTab({
                   onChange={(v) => update({ entry_spacing: `${v}px` })}
                 />
               </section>
+      )}
 
+      {(scope === "all" || scope === "layout") && (
               <section>
                 <SectionLabel>Columns</SectionLabel>
                 <div className="grid gap-2">
@@ -227,7 +234,9 @@ export function LayoutTab({
                   />
                 </div>
               </section>
+      )}
 
+      {(scope === "all" || scope === "layout") && (
               <section>
                 <SectionLabel>Header</SectionLabel>
                 <div className="grid gap-2">
@@ -252,6 +261,7 @@ export function LayoutTab({
                   />
                 </div>
               </section>
+      )}
 
     </>
   );
