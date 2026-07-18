@@ -97,6 +97,11 @@ export interface OpportunityItem {
   integrity?: OpportunityIntegrity;
 }
 
+export type WorkflowActionRunner = (
+  action: string,
+  callback: () => Promise<void>,
+) => Promise<void>;
+
 export const STATE_ORDER: WorkflowState[] = [
   "scrape_completed",
   "opportunity_created",
