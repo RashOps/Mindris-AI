@@ -31,6 +31,7 @@ class Settings(BaseSettings):
         alias="API_KEY",
     )
     renderer_url: str = Field(default="http://localhost:4000", alias="RENDERER_URL")
+    cors_origins: str = Field(default="", alias="CORS_ORIGINS")
     service_timeout_seconds: float = Field(
         default=45.0,
         alias="SERVICE_TIMEOUT_SECONDS",
@@ -79,6 +80,14 @@ class Settings(BaseSettings):
 
     # ── Logging ────────────────────────────────────────────────────────────
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
+
+    def allowed_cors_origins(self) -> list[str]:
+        """Return explicit non-loopback browser origins configured by operators."""
+        return [
+            origin.strip().rstrip("/")
+            for origin in self.cors_origins.split(",")
+            if origin.strip()
+        ]
 
     def model_post_init(self, __context: object) -> None:
         """Ensure required directories exist after settings are loaded."""

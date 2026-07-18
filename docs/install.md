@@ -71,6 +71,14 @@ Smoke test avec le port personnalisé :
 MINDRIS_WEB_PORT=3100 "$HOME/.mindris-ai/smoke.sh"
 ```
 
+Tous les ports `localhost` et `127.0.0.1` sont acceptés automatiquement par
+l’API. Pour exposer l’interface depuis un autre hôte du réseau, renseigne les
+origines exactes, séparées par des virgules, puis redémarre la stack :
+
+```bash
+CORS_ORIGINS=http://192.168.1.20:3100
+```
+
 ## Installation dans un autre dossier
 
 ```bash

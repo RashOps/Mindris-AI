@@ -50,6 +50,8 @@ All notable changes to Mindris AI are documented here.
   being consumed as a one-shot draft.
 - Local setup now installs both Playwright Chromium and the Chrome build pinned
   by Puppeteer for renderer-backed PDF exports.
+- Self-hosted frontends can use any loopback port without being blocked by
+  CORS; remote browser origins remain explicit through `CORS_ORIGINS`.
 
 ### Security
 

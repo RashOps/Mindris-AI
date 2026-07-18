@@ -100,6 +100,7 @@ Variables principales :
 |---|---|
 | `API_KEY` | clé opérateur pour scripts et appels non navigateur |
 | `RENDERER_URL` | URL du renderer Bun |
+| `CORS_ORIGINS` | origines web réseau autorisées, séparées par des virgules ; les ports loopback sont autorisés automatiquement |
 | `MAX_PDF_UPLOAD_BYTES` | limite d’upload PDF |
 | `OPENAI_API_KEY` | provider OpenAI optionnel |
 | `GROQ_API_KEY` | provider Groq optionnel |
