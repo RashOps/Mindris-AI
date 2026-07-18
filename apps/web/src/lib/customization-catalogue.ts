@@ -43,6 +43,11 @@ export type CustomizationCatalogue = {
     bodyFonts: string[];
     headingFonts: string[];
     baseSize: RangeSpec;
+    bodySize: RangeSpec;
+    nameSize: RangeSpec;
+    titleSize: RangeSpec;
+    sectionHeadingSize: RangeSpec;
+    entryHeadingSize: RangeSpec;
     headingScale: RangeSpec;
     weights: string[];
     capitalization: string[];
@@ -134,6 +139,11 @@ export const FALLBACK_CUSTOMIZATION_CATALOGUE: CustomizationCatalogue = {
     bodyFonts: ["Inter", "Roboto", "Lato", "Merriweather", "DM Sans"],
     headingFonts: ["Inter", "Roboto", "Lato", "Merriweather", "DM Sans"],
     baseSize: { min: 9, max: 14, unit: "px" },
+    bodySize: { min: 9, max: 14, unit: "px" },
+    nameSize: { min: 20, max: 40, unit: "px" },
+    titleSize: { min: 11, max: 22, unit: "px" },
+    sectionHeadingSize: { min: 9, max: 18, unit: "px" },
+    entryHeadingSize: { min: 10, max: 20, unit: "px" },
     headingScale: { min: 1.0, max: 1.6, step: 0.05, unit: "" },
     weights: ["regular", "medium", "bold"],
     capitalization: ["normal", "uppercase"],
@@ -323,6 +333,26 @@ export function normalizeCustomizationCatalogue(
         value.typography?.baseSize,
         FALLBACK_CUSTOMIZATION_CATALOGUE.typography.baseSize,
       ),
+      bodySize: mergeRange(
+        value.typography?.bodySize,
+        FALLBACK_CUSTOMIZATION_CATALOGUE.typography.bodySize,
+      ),
+      nameSize: mergeRange(
+        value.typography?.nameSize,
+        FALLBACK_CUSTOMIZATION_CATALOGUE.typography.nameSize,
+      ),
+      titleSize: mergeRange(
+        value.typography?.titleSize,
+        FALLBACK_CUSTOMIZATION_CATALOGUE.typography.titleSize,
+      ),
+      sectionHeadingSize: mergeRange(
+        value.typography?.sectionHeadingSize,
+        FALLBACK_CUSTOMIZATION_CATALOGUE.typography.sectionHeadingSize,
+      ),
+      entryHeadingSize: mergeRange(
+        value.typography?.entryHeadingSize,
+        FALLBACK_CUSTOMIZATION_CATALOGUE.typography.entryHeadingSize,
+      ),
       headingScale: mergeRange(
         value.typography?.headingScale,
         FALLBACK_CUSTOMIZATION_CATALOGUE.typography.headingScale,
@@ -461,6 +491,11 @@ export function resolveCustomizationOptionLists(catalogue: CustomizationCatalogu
     fonts: catalogue.typography.bodyFonts,
     headingFonts: catalogue.typography.headingFonts,
     baseSize: catalogue.typography.baseSize,
+    bodySize: catalogue.typography.bodySize,
+    nameSize: catalogue.typography.nameSize,
+    titleSize: catalogue.typography.titleSize,
+    sectionHeadingSize: catalogue.typography.sectionHeadingSize,
+    entryHeadingSize: catalogue.typography.entryHeadingSize,
     headingScale: catalogue.typography.headingScale,
     weights: catalogue.typography.weights,
     capitalization: catalogue.typography.capitalization,

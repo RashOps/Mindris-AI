@@ -46,6 +46,16 @@ export function buildTokenOverrides(settings?: any): string {
         props.push(`  --heading-font-family: ${cssFontFamily(typography.heading_font)};`);
     if (typography.base_size ?? settings.font_size)
         props.push(`  --font-size-base: ${typography.base_size ?? settings.font_size};`);
+    if (typography.body_size ?? typography.base_size ?? settings.font_size)
+        props.push(`  --font-size-body: ${typography.body_size ?? typography.base_size ?? settings.font_size};`);
+    if (typography.name_size)
+        props.push(`  --font-size-name: ${typography.name_size};`);
+    if (typography.title_size)
+        props.push(`  --font-size-title: ${typography.title_size};`);
+    if (typography.section_heading_size)
+        props.push(`  --font-size-section-heading: ${typography.section_heading_size};`);
+    if (typography.entry_heading_size)
+        props.push(`  --font-size-entry-heading: ${typography.entry_heading_size};`);
     if (typography.heading_scale)
         props.push(`  --heading-scale: ${typography.heading_scale};`);
     if (typography.weight)

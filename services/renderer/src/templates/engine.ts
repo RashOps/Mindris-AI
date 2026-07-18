@@ -103,6 +103,27 @@ function configuredSections(cvData: any): SectionConfig[] {
 }
 
 const dynamicSectionCss = `
+:host {
+    font-size: var(--font-size-body, var(--font-size-base, 13px));
+}
+
+.header h1 {
+    font-size: var(--font-size-name, calc(var(--font-size-base, 13px) * 2.15 * var(--heading-scale, 1)));
+}
+
+.tagline {
+    font-size: var(--font-size-title, calc(var(--font-size-base, 13px) * 1.15));
+}
+
+.section-title {
+    font-size: var(--font-size-section-heading, calc(var(--font-size-base, 13px) * 0.8));
+}
+
+.item h3,
+.skill-category {
+    font-size: var(--font-size-entry-heading, calc(var(--font-size-base, 13px) * 1.05));
+}
+
 .header-with-photo {
     display: flex;
     align-items: flex-start;

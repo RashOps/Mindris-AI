@@ -25,6 +25,11 @@ export interface GlobalSettings {
     body_font?: string;
     heading_font?: string;
     base_size?: string;
+    body_size?: string;
+    name_size?: string;
+    title_size?: string;
+    section_heading_size?: string;
+    entry_heading_size?: string;
     heading_scale?: string;
     weight?: "regular" | "medium" | "bold";
     titles_uppercase?: boolean;

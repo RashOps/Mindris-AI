@@ -430,10 +430,13 @@ export function StylePanel({
                 <SectionLabel>Tailles</SectionLabel>
                 <SteppedSlider
                   label="Taille du texte"
-                  min={options.baseSize.min}
-                  max={options.baseSize.max}
+                  min={options.bodySize.min}
+                  max={options.bodySize.max}
                   value={parseInt(
-                    typographySettings.base_size ?? settings.font_size ?? "13",
+                    typographySettings.body_size ??
+                      typographySettings.base_size ??
+                      settings.font_size ??
+                      "13",
                     10,
                   )}
                   unit="px"
@@ -443,22 +446,70 @@ export function StylePanel({
                       typography: {
                         ...typographySettings,
                         base_size: `${v}px`,
+                        body_size: `${v}px`,
                       },
                     })
                   }
                 />
                 <SteppedSlider
-                  label="Échelle des titres"
-                  min={options.headingScale.min}
-                  max={options.headingScale.max}
-                  step={options.headingScale.step ?? 0.05}
-                  value={parseFloat(typographySettings.heading_scale ?? "1")}
-                  unit="x"
+                  label="Nom"
+                  min={options.nameSize.min}
+                  max={options.nameSize.max}
+                  value={parseInt(typographySettings.name_size ?? "28", 10)}
+                  unit="px"
                   onChange={(v) =>
                     update({
                       typography: {
                         ...typographySettings,
-                        heading_scale: String(v.toFixed(2)),
+                        name_size: `${v}px`,
+                      },
+                    })
+                  }
+                />
+                <SteppedSlider
+                  label="Titre professionnel"
+                  min={options.titleSize.min}
+                  max={options.titleSize.max}
+                  value={parseInt(typographySettings.title_size ?? "15", 10)}
+                  unit="px"
+                  onChange={(v) =>
+                    update({
+                      typography: { ...typographySettings, title_size: `${v}px` },
+                    })
+                  }
+                />
+                <SteppedSlider
+                  label="Titres des sections"
+                  min={options.sectionHeadingSize.min}
+                  max={options.sectionHeadingSize.max}
+                  value={parseInt(
+                    typographySettings.section_heading_size ?? "10",
+                    10,
+                  )}
+                  unit="px"
+                  onChange={(v) =>
+                    update({
+                      typography: {
+                        ...typographySettings,
+                        section_heading_size: `${v}px`,
+                      },
+                    })
+                  }
+                />
+                <SteppedSlider
+                  label="Titres des entrées"
+                  min={options.entryHeadingSize.min}
+                  max={options.entryHeadingSize.max}
+                  value={parseInt(
+                    typographySettings.entry_heading_size ?? "14",
+                    10,
+                  )}
+                  unit="px"
+                  onChange={(v) =>
+                    update({
+                      typography: {
+                        ...typographySettings,
+                        entry_heading_size: `${v}px`,
                       },
                     })
                   }

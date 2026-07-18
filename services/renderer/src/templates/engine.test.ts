@@ -302,6 +302,11 @@ describe("generateHtml semantic sections", () => {
             body_font: "Merriweather",
             heading_font: "Lato",
             base_size: "11px",
+            body_size: "12px",
+            name_size: "32px",
+            title_size: "16px",
+            section_heading_size: "11px",
+            entry_heading_size: "15px",
             heading_scale: "1.25",
             line_height: "1.35",
             date_style: "right",
@@ -333,6 +338,11 @@ describe("generateHtml semantic sections", () => {
     expect(html).toContain("--font-family: Merriweather, sans-serif;");
     expect(html).toContain("--heading-font-family: Lato, sans-serif;");
     expect(html).toContain("--font-size-base: 11px;");
+    expect(html).toContain("--font-size-body: 12px;");
+    expect(html).toContain("--font-size-name: 32px;");
+    expect(html).toContain("--font-size-title: 16px;");
+    expect(html).toContain("--font-size-section-heading: 11px;");
+    expect(html).toContain("--font-size-entry-heading: 15px;");
     expect(html).toContain("--line-height: 1.35;");
     expect(html).toContain("--primary-color: #0f766e;");
     expect(html).toContain("--text-color: #111827;");

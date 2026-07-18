@@ -110,6 +110,11 @@ class CVTypographySettings(CVBaseModel):
     body_font: str = "Inter"
     heading_font: str = "Inter"
     base_size: str = "13px"
+    body_size: str = "13px"
+    name_size: str = "28px"
+    title_size: str = "15px"
+    section_heading_size: str = "10px"
+    entry_heading_size: str = "14px"
     heading_scale: str = "1.0"
     weight: Literal["regular", "medium", "bold"] = "regular"
     titles_uppercase: bool = True

@@ -99,6 +99,12 @@ def test_customization_catalogue_exposes_backend_owned_options() -> None:
     assert options["layout"]["sidebarWidth"]["presets"] == ["25%", "30%", "35%"]
     assert options["typography"]["baseSize"]["unit"] == "px"
     assert options["typography"]["baseSize"]["max"] >= 13
+    assert options["typography"]["nameSize"] == {
+        "min": 20,
+        "max": 40,
+        "unit": "px",
+    }
+    assert options["typography"]["entryHeadingSize"]["max"] == 20
     assert options["typography"]["bodyFonts"][:3] == ["Inter", "Roboto", "Lato"]
     assert "1.5" in options["typography"]["lineHeights"]
     assert "corporate" in options["colors"]["palettePresets"]

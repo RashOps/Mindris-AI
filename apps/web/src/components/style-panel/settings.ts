@@ -103,6 +103,9 @@ export function resolveSettings(
       header_alignment: current?.layout?.header_alignment ?? "left",
       photo: {
         enabled: current?.layout?.photo?.enabled ?? false,
+        grayscale: current?.layout?.photo?.grayscale ?? false,
+        position: current?.layout?.photo?.position ?? "left",
+        size: current?.layout?.photo?.size ?? "m",
         shape: current?.layout?.photo?.shape ?? "round",
       },
       section_placement: current?.layout?.section_placement ?? {},
@@ -111,6 +114,17 @@ export function resolveSettings(
       body_font: bodyFont,
       heading_font: headingFont,
       base_size: current?.typography?.base_size ?? current?.font_size ?? "13px",
+      body_size:
+        current?.typography?.body_size ??
+        current?.typography?.base_size ??
+        current?.font_size ??
+        "13px",
+      name_size: current?.typography?.name_size ?? "28px",
+      title_size: current?.typography?.title_size ?? "15px",
+      section_heading_size:
+        current?.typography?.section_heading_size ?? "10px",
+      entry_heading_size:
+        current?.typography?.entry_heading_size ?? "14px",
       heading_scale: current?.typography?.heading_scale ?? "1.0",
       weight: current?.typography?.weight ?? "regular",
       titles_uppercase: current?.typography?.titles_uppercase ?? true,
