@@ -84,7 +84,10 @@ class CVPhotoSettings(CVBaseModel):
     """Profile photo rendering settings."""
 
     enabled: bool = False
-    shape: Literal["round", "square"] = "round"
+    grayscale: bool = False
+    position: Literal["left", "top", "right"] = "left"
+    size: Literal["xs", "s", "m", "l", "xl"] = "m"
+    shape: Literal["round", "square", "rounded", "portrait"] = "round"
 
 
 class CVLayoutSettings(CVBaseModel):
@@ -383,6 +386,7 @@ class CVProfile(CVBaseModel):
     location: CVLocation = Field(default_factory=CVLocation)
     socials: list[CVSocial] = Field(default_factory=list)
     text_markdown: str = ""
+    photo_url: str | None = None
 
 
 class CVExperienceItem(CVBaseModel):

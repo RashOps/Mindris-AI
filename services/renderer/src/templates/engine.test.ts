@@ -538,4 +538,53 @@ describe("generateHtml semantic sections", () => {
     expect(html).not.toContain("url(https://evil.test/a.png)");
     expect(html).toContain("Advanced CSS dropped unsupported rules.");
   });
+
+  test("renders an enabled profile photo with all renderer-backed options", () => {
+    const html = generateHtml(
+      {
+        ...baseCv,
+        profile: {
+          ...baseCv.profile,
+          photo_url: "data:image/png;base64,iVBORw0KGgo=",
+        },
+        global_settings: {
+          ...baseCv.global_settings,
+          layout: {
+            columns: 2,
+            sidebar_position: "right",
+            photo: {
+              enabled: true,
+              grayscale: true,
+              position: "left",
+              size: "l",
+              shape: "rounded",
+            },
+          },
+        },
+      },
+      "modern",
+    );
+
+    expect(html).toContain(
+      'class="profile-photo profile-photo-left profile-photo-l profile-photo-rounded profile-photo-grayscale"',
+    );
+    expect(html).toContain('src="data:image/png;base64,iVBORw0KGgo&#x3D;"');
+  });
+
+  test("does not render a disabled or unsafe profile photo", () => {
+    const html = generateHtml(
+      {
+        ...baseCv,
+        profile: { ...baseCv.profile, photo_url: "https://example.com/photo.png" },
+        global_settings: {
+          ...baseCv.global_settings,
+          layout: { photo: { enabled: true } },
+        },
+      },
+      "modern",
+    );
+
+    expect(html).not.toContain('<img class="profile-photo');
+    expect(html).not.toContain("example.com/photo.png");
+  });
 });

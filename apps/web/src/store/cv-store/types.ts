@@ -12,7 +12,13 @@ export interface GlobalSettings {
     sidebar_width?: string;
     density?: "student" | "compact" | "normal" | "senior";
     header_alignment?: "left" | "center" | "right";
-    photo?: { enabled?: boolean; shape?: "round" | "square" };
+    photo?: {
+      enabled?: boolean;
+      grayscale?: boolean;
+      position?: "left" | "top" | "right";
+      size?: "xs" | "s" | "m" | "l" | "xl";
+      shape?: "round" | "square" | "rounded" | "portrait";
+    };
     section_placement?: Record<string, "main" | "sidebar">;
   };
   typography?: {
@@ -100,6 +106,7 @@ export interface Profile {
   location: Location;
   socials: Social[];
   text_markdown: string;
+  photo_url?: string | null;
 }
 
 export interface ExperienceItem {

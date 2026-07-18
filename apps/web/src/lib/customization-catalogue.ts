@@ -32,6 +32,9 @@ export type CustomizationCatalogue = {
     headerAlignments: string[];
     photo: {
       enabled: boolean[];
+      grayscale: boolean[];
+      positions: string[];
+      sizes: string[];
       shapes: string[];
     };
     placements: string[];
@@ -120,7 +123,10 @@ export const FALLBACK_CUSTOMIZATION_CATALOGUE: CustomizationCatalogue = {
     headerAlignments: ["left", "center", "right"],
     photo: {
       enabled: [true, false],
-      shapes: ["round", "square"],
+      grayscale: [true, false],
+      positions: ["left", "top", "right"],
+      sizes: ["xs", "s", "m", "l", "xl"],
+      shapes: ["round", "square", "rounded", "portrait"],
     },
     placements: ["main", "sidebar"],
   },
@@ -281,6 +287,18 @@ export function normalizeCustomizationCatalogue(
         enabled: copyArray(
           value.layout?.photo?.enabled,
           FALLBACK_CUSTOMIZATION_CATALOGUE.layout.photo.enabled,
+        ),
+        grayscale: copyArray(
+          value.layout?.photo?.grayscale,
+          FALLBACK_CUSTOMIZATION_CATALOGUE.layout.photo.grayscale,
+        ),
+        positions: copyArray(
+          value.layout?.photo?.positions,
+          FALLBACK_CUSTOMIZATION_CATALOGUE.layout.photo.positions,
+        ),
+        sizes: copyArray(
+          value.layout?.photo?.sizes,
+          FALLBACK_CUSTOMIZATION_CATALOGUE.layout.photo.sizes,
         ),
         shapes: copyArray(
           value.layout?.photo?.shapes,

@@ -12,6 +12,7 @@ import {
 } from "@/components/style-panel/constants";
 import { AdvancedCssPanel } from "@/components/style-panel/AdvancedCssPanel";
 import { LayoutTab } from "@/components/style-panel/LayoutTab";
+import { PhotoTab } from "@/components/style-panel/PhotoTab";
 import { SectionsTab } from "@/components/style-panel/SectionsTab";
 import { SectionLabel } from "@/components/style-panel/controls";
 import {
@@ -38,6 +39,7 @@ type Tab =
   | "typography"
   | "spacing"
   | "colors"
+  | "photo"
   | "sections"
   | "advanced";
 type AccentTarget = NonNullable<
@@ -66,7 +68,7 @@ export function StylePanel({
   variant = "drawer",
   uiMode = "advanced",
 }: StylePanelProps) {
-  const { cvData, setGlobalSettings } = useCVStore();
+  const { cvData, setGlobalSettings, setProfile } = useCVStore();
   const [tab, setTab] = useState<Tab>("template");
   const [catalogue, setCatalogue] = useState<CustomizationCatalogue>(
     FALLBACK_CUSTOMIZATION_CATALOGUE,
@@ -152,6 +154,7 @@ export function StylePanel({
     { key: "typography", label: "Texte", icon: "Aa" },
     { key: "spacing", label: "Espacement", icon: "↕" },
     { key: "colors", label: "Couleurs", icon: "●" },
+    { key: "photo", label: "Photo", icon: "◉" },
     { key: "sections", label: "Sections", icon: "≡" },
     { key: "advanced", label: "Expert", icon: "{}" },
   ];
@@ -680,6 +683,23 @@ export function StylePanel({
                 </section>
               ) : null}
             </>
+          )}
+
+          {activeTab === "photo" && (
+            <PhotoTab
+              profile={cvData.profile}
+              settings={layoutSettings.photo ?? { enabled: false }}
+              options={catalogue.layout.photo}
+              updateProfile={setProfile}
+              updateSettings={(patch) =>
+                update({
+                  layout: {
+                    ...layoutSettings,
+                    photo: { ...layoutSettings.photo, ...patch },
+                  },
+                })
+              }
+            />
           )}
 
           {activeTab === "sections" && (

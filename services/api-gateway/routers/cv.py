@@ -1,9 +1,12 @@
 """CV, cover letter, patch, and ATS routes."""
 
 import asyncio
+import base64
 import json
+from pathlib import Path
 from time import perf_counter
 from typing import Annotated, Literal
+from uuid import uuid4
 
 from database.records import CoverLetterRecord
 from database.session import Session, get_session
@@ -31,6 +34,12 @@ from utils.logger import get_logger
 logger = get_logger(__name__, service_name="api-gateway")
 router = APIRouter(prefix="/api/v1", tags=["cv"])
 SessionDep = Annotated[Session, Depends(get_session)]
+MAX_PHOTO_UPLOAD_BYTES = 2 * 1024 * 1024
+PHOTO_TYPES = {
+    "image/jpeg": (".jpg", (b"\xff\xd8\xff",)),
+    "image/png": (".png", (b"\x89PNG\r\n\x1a\n",)),
+    "image/webp": (".webp", (b"RIFF",)),
+}
 
 
 def _validate_pdf_bytes(pdf_bytes: bytes) -> None:
@@ -38,6 +47,49 @@ def _validate_pdf_bytes(pdf_bytes: bytes) -> None:
         raise HTTPException(status_code=400, detail="PDF file is empty.")
     if not pdf_bytes.startswith(b"%PDF"):
         raise HTTPException(status_code=400, detail="Invalid PDF file signature.")
+
+
+def _validated_photo_type(content_type: str | None, content: bytes) -> tuple[str, str]:
+    if not content:
+        raise HTTPException(status_code=400, detail="Photo file is empty.")
+    if len(content) > MAX_PHOTO_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="Photo file is too large (2 MB maximum).",
+        )
+    spec = PHOTO_TYPES.get(content_type or "")
+    if spec is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Only JPEG, PNG, and WebP photos are accepted.",
+        )
+    extension, signatures = spec
+    valid_signature = any(content.startswith(signature) for signature in signatures)
+    if content_type == "image/webp":
+        valid_signature = (
+            valid_signature and len(content) >= 12 and content[8:12] == b"WEBP"
+        )
+    if not valid_signature:
+        raise HTTPException(status_code=400, detail="Invalid photo file signature.")
+    return extension, content_type or "application/octet-stream"
+
+
+@router.post("/cv/photo", status_code=status.HTTP_201_CREATED)
+async def upload_profile_photo(file: UploadFile) -> dict[str, str | int]:
+    """Validate and persist a renderer-safe profile photo."""
+    content = await file.read()
+    extension, content_type = _validated_photo_type(file.content_type, content)
+    asset_id = f"{uuid4().hex}{extension}"
+    assets_dir = Path(settings.storage_dir) / "cv-assets"
+    assets_dir.mkdir(parents=True, exist_ok=True)
+    (assets_dir / asset_id).write_bytes(content)
+    encoded = base64.b64encode(content).decode("ascii")
+    return {
+        "asset_id": asset_id,
+        "photo_url": f"data:{content_type};base64,{encoded}",
+        "content_type": content_type,
+        "size": len(content),
+    }
 
 
 @router.get("/cv/current")

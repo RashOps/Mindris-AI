@@ -103,6 +103,44 @@ function configuredSections(cvData: any): SectionConfig[] {
 }
 
 const dynamicSectionCss = `
+.header-with-photo {
+    display: flex;
+    align-items: flex-start;
+    gap: 18px;
+}
+
+.header-with-photo.header-photo-right {
+    flex-direction: row-reverse;
+}
+
+.header-with-photo.header-photo-top {
+    flex-direction: column;
+    align-items: var(--photo-top-align, flex-start);
+}
+
+.header-with-photo .header-body {
+    min-width: 0;
+    flex: 1;
+}
+
+.profile-photo {
+    display: block;
+    flex: 0 0 auto;
+    object-fit: cover;
+    object-position: center;
+}
+
+.profile-photo-xs { --profile-photo-width: 48px; width: 48px; height: 48px; }
+.profile-photo-s { --profile-photo-width: 60px; width: 60px; height: 60px; }
+.profile-photo-m { --profile-photo-width: 76px; width: 76px; height: 76px; }
+.profile-photo-l { --profile-photo-width: 92px; width: 92px; height: 92px; }
+.profile-photo-xl { --profile-photo-width: 112px; width: 112px; height: 112px; }
+.profile-photo-round { border-radius: 9999px; }
+.profile-photo-square { border-radius: 0; }
+.profile-photo-rounded { border-radius: 14px; }
+.profile-photo-portrait { height: calc(var(--profile-photo-width, 76px) * 1.25); border-radius: 10px; }
+.profile-photo-grayscale { filter: grayscale(1); }
+
 .main-grid {
     display: grid;
     grid-template-columns: var(--grid-template-columns, var(--col-left-width, 65%) 1fr);
@@ -269,12 +307,18 @@ function renderContact(profile: any): string {
 
 function renderHeader(cvData: any): string {
     const profile = cvData?.profile ?? {};
+    const photoSettings = cvData?.global_settings?.layout?.photo ?? {};
+    const photo = renderProfilePhoto(profile, photoSettings);
+    const photoPosition = ["left", "top", "right"].includes(photoSettings.position)
+        ? photoSettings.position
+        : "left";
     const summary = profile.text_markdown
         ? `<p class="summary">${html(profile.text_markdown)}</p>`
         : "";
     return `
-  <header class="header">
+  <header class="header${photo ? ` header-with-photo header-photo-${photoPosition}` : ""}">
     <div class="header-accent"></div>
+    ${photo}
     <div class="header-body">
       <h1>${html(profile.full_name)}</h1>
       <p class="tagline">${html(profile.title)}</p>
@@ -282,6 +326,23 @@ function renderHeader(cvData: any): string {
       ${summary}
     </div>
   </header>`;
+}
+
+function renderProfilePhoto(profile: any, settings: any): string {
+    if (settings?.enabled !== true || typeof profile?.photo_url !== "string") return "";
+    const source = profile.photo_url.trim();
+    if (!/^data:image\/(?:png|jpeg|webp);base64,[a-zA-Z0-9+/=]+$/.test(source)) return "";
+    const position = ["left", "top", "right"].includes(settings.position)
+        ? settings.position
+        : "left";
+    const size = ["xs", "s", "m", "l", "xl"].includes(settings.size)
+        ? settings.size
+        : "m";
+    const shape = ["round", "square", "rounded", "portrait"].includes(settings.shape)
+        ? settings.shape
+        : "round";
+    const grayscale = settings.grayscale === true ? " profile-photo-grayscale" : "";
+    return `<img class="profile-photo profile-photo-${position} profile-photo-${size} profile-photo-${shape}${grayscale}" src="${html(source)}" alt="" />`;
 }
 
 function sectionShell(section: SectionConfig, content: string): string {

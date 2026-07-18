@@ -477,7 +477,13 @@ CUSTOMIZATION_CATALOGUE = {
         },
         "densities": ["student", "compact", "normal", "senior"],
         "headerAlignments": ["left", "center", "right"],
-        "photo": {"enabled": [True, False], "shapes": ["round", "square"]},
+        "photo": {
+            "enabled": [True, False],
+            "grayscale": [True, False],
+            "positions": ["left", "top", "right"],
+            "sizes": ["xs", "s", "m", "l", "xl"],
+            "shapes": ["round", "square", "rounded", "portrait"],
+        },
         "placements": ["main", "sidebar"],
     },
     "typography": {
