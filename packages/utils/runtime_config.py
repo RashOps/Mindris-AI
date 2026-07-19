@@ -17,25 +17,15 @@ logger = get_logger(__name__, service_name="utils")
 CONFIG_PATH = settings.storage_dir / "runtime-config.json"
 SECRETS_PATH = settings.storage_dir / "runtime-secrets.json"
 
+DEFAULT_TASK_CONFIGURATION: dict[str, dict[str, str]] = {
+    "optimize": {"provider": "groq", "model_name": "llama-3.3-70b-versatile"},
+    "cover_letter": {"provider": "groq", "model_name": "llama-3.3-70b-versatile"},
+    "ats_score": {"provider": "groq", "model_name": "llama-3.1-8b-instant"},
+    "patch": {"provider": "groq", "model_name": "llama-3.3-70b-versatile"},
+}
+
 DEFAULT_APP_CONFIGURATION: dict[str, Any] = {
-    "defaults": {
-        "optimize": {
-            "provider": "groq",
-            "model_name": "llama-3.3-70b-versatile",
-        },
-        "cover_letter": {
-            "provider": "groq",
-            "model_name": "llama-3.3-70b-versatile",
-        },
-        "ats_score": {
-            "provider": "groq",
-            "model_name": "llama-3.1-8b-instant",
-        },
-        "patch": {
-            "provider": "groq",
-            "model_name": "llama-3.3-70b-versatile",
-        },
-    },
+    "defaults": DEFAULT_TASK_CONFIGURATION,
     "pdf_ingestion_mode": "auto",
 }
 

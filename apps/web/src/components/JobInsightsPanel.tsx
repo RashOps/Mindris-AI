@@ -3,8 +3,7 @@
 import { useState, useCallback } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { useCVStore } from "@/store/useCVStore";
-import type { LLMProvider } from "@/store/useCVStore";
-import { ToolbarSelect } from "@/components/ToolbarSelect";
+import { LLMSelector } from "@/components/LLMSelector";
 import { AtsScoreWidget } from "@/components/ats/AtsScoreWidget";
 import { apiUrl, jsonHeaders } from "@/lib/api";
 import { saveDraft } from "@/lib/drafts";
@@ -74,21 +73,6 @@ function DraggableBullet({ bullet, index }: { bullet: string; index: number }) {
   );
 }
 
-// ── LLM Selector ──────────────────────────────────────────────────────────────
-
-const PROVIDERS = [
-  { id: "groq",    label: "Groq" },
-  { id: "gemini",  label: "Gemini" },
-  { id: "openai",  label: "OpenAI" },
-  { id: "mistral", label: "Mistral" },
-];
-const MODELS: Record<string, { id: string; label: string }[]> = {
-  groq:    [{ id: "llama-3.3-70b-versatile", label: "Llama 3.3 70B" }, { id: "llama-3.1-8b-instant", label: "Llama 3.1 8B" }],
-  gemini:  [{ id: "gemini-2.0-flash", label: "Gemini Flash" }, { id: "gemini-1.5-pro", label: "Gemini Pro" }],
-  openai:  [{ id: "gpt-4o", label: "GPT-4o" }, { id: "gpt-4o-mini", label: "GPT-4o Mini" }],
-  mistral: [{ id: "mistral-large-latest", label: "Mistral Large" }, { id: "mistral-small-latest", label: "Mistral Small" }],
-};
-
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
 }
@@ -116,19 +100,15 @@ export function JobInsightsPanel({ open, onClose, variant = "drawer" }: JobInsig
   const {
     jobInsights, clearJobInsights,
     autoInjectMode, setAutoInjectMode,
-    applyPatch, cvData, appSettings, setAppSettings,
+    applyPatch, cvData, appSettings,
     calculateAtsScore,
   } = useCVStore();
 
   const [isPatchLoading, setIsPatchLoading] = useState(false);
   const [patchStatus, setPatchStatus] = useState<string | null>(null);
   const [isScoring, setIsScoring] = useState(false);
-  const [provider, setProvider] = useState(appSettings.patch_llm.provider);
-  const [modelName, setModelName] = useState(appSettings.patch_llm.model_name);
-
   const handleAutoInjectToggle = (v: boolean) => {
     setAutoInjectMode(v);
-    setAppSettings({ patch_llm: { provider, model_name: modelName } });
   };
 
   const triggerPatch = useCallback(async (bullets: string[]) => {
@@ -142,8 +122,8 @@ export function JobInsightsPanel({ open, onClose, variant = "drawer" }: JobInsig
         body: JSON.stringify({
           drafted_bullets: bullets,
           cv_data: cvData,
-          provider,
-          model_name: modelName,
+          provider: appSettings.patch_llm.provider,
+          model_name: appSettings.patch_llm.model_name,
         }),
       });
       if (!res.ok) throw new Error("Patch failed");
@@ -158,7 +138,7 @@ export function JobInsightsPanel({ open, onClose, variant = "drawer" }: JobInsig
       setIsPatchLoading(false);
       setTimeout(() => setPatchStatus(null), 4000);
     }
-  }, [cvData, provider, modelName, applyPatch]);
+  }, [cvData, appSettings.patch_llm, applyPatch]);
 
   const copyToClipboard = () => {
     if (!jobInsights) return;
@@ -275,26 +255,8 @@ export function JobInsightsPanel({ open, onClose, variant = "drawer" }: JobInsig
                 </button>
               </div>
               {/* LLM selector for patch */}
-              <div className="flex gap-1.5 mt-2">
-                <ToolbarSelect
-                  value={provider}
-                  ariaLabel="Patch provider"
-                  options={PROVIDERS.map((p) => ({ value: p.id, label: p.label }))}
-                  onChange={(value) => {
-                    const nextProvider = value as LLMProvider;
-                    setProvider(nextProvider);
-                    setModelName(MODELS[nextProvider]?.[0]?.id ?? modelName);
-                  }}
-                  triggerClassName="flex-1 rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 focus:outline-none"
-                />
-                <ToolbarSelect
-                  value={modelName}
-                  ariaLabel="Patch model"
-                  options={(MODELS[provider] ?? []).map((m) => ({ value: m.id, label: m.label }))}
-                  onChange={setModelName}
-                  triggerClassName="flex-1 rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 focus:outline-none"
-                  menuClassName="min-w-56"
-                />
+              <div className="mt-2">
+                <LLMSelector taskKey="patch_llm" label="Modèle de correction" />
               </div>
 
               <button

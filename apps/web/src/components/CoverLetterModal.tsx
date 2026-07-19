@@ -2,40 +2,11 @@
 
 import { useState } from "react";
 import { useCVStore } from "@/store/useCVStore";
-import type { LLMProvider } from "@/store/useCVStore";
-import { ToolbarSelect } from "@/components/ToolbarSelect";
+import { LLMSelector } from "@/components/LLMSelector";
 import { useRouter } from "next/navigation";
 import { apiUrl, jsonHeaders } from "@/lib/api";
 import { saveDraft } from "@/lib/drafts";
 import { ArrowRight, X } from "lucide-react";
-
-// ── LLM options ───────────────────────────────────────────────────────────────
-
-const PROVIDERS: { id: LLMProvider; label: string }[] = [
-  { id: "gemini", label: "Gemini" },
-  { id: "groq", label: "Groq" },
-  { id: "openai", label: "OpenAI" },
-  { id: "mistral", label: "Mistral" },
-];
-
-const MODELS: Record<string, { id: string; label: string }[]> = {
-  gemini: [
-    { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
-    { id: "gemini-1.5-pro", label: "Gemini 1.5 Pro" },
-  ],
-  groq: [
-    { id: "llama-3.3-70b-versatile", label: "Llama 3.3 70B" },
-    { id: "mixtral-8x7b-32768", label: "Mixtral 8x7B" },
-  ],
-  openai: [
-    { id: "gpt-4o", label: "GPT-4o" },
-    { id: "gpt-4o-mini", label: "GPT-4o Mini" },
-  ],
-  mistral: [
-    { id: "mistral-large-latest", label: "Mistral Large" },
-    { id: "mistral-small-latest", label: "Mistral Small" },
-  ],
-};
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -45,7 +16,7 @@ interface CoverLetterModalProps {
 }
 
 export function CoverLetterModal({ open, onClose }: CoverLetterModalProps) {
-  const { cvData, jobInsights, appSettings, setAppSettings } = useCVStore();
+  const { cvData, jobInsights, appSettings } = useCVStore();
   const router = useRouter();
 
   const [instructions, setInstructions] = useState("");
@@ -53,21 +24,6 @@ export function CoverLetterModal({ open, onClose }: CoverLetterModalProps) {
   const [showExample, setShowExample] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const [provider, setProvider] = useState<LLMProvider>(
-    appSettings.cover_letter_llm.provider,
-  );
-  const [modelName, setModelName] = useState(
-    appSettings.cover_letter_llm.model_name,
-  );
-
-  const handleProviderChange = (p: LLMProvider) => {
-    setProvider(p);
-    setModelName(MODELS[p][0].id);
-    setAppSettings({
-      cover_letter_llm: { provider: p, model_name: MODELS[p][0].id },
-    });
-  };
 
   const handleGenerate = async () => {
     setIsGenerating(true);
@@ -92,8 +48,8 @@ export function CoverLetterModal({ open, onClose }: CoverLetterModalProps) {
           job_insights: insights,
           instructions,
           example_letter: exampleLetter || null,
-          provider,
-          model_name: modelName,
+          provider: appSettings.cover_letter_llm.provider,
+          model_name: appSettings.cover_letter_llm.model_name,
           job_id: jobInsights?.job_id ?? jobInsights?.job_record_id ?? null,
         }),
       });
@@ -270,34 +226,12 @@ export function CoverLetterModal({ open, onClose }: CoverLetterModalProps) {
               >
                 Modèle IA
               </label>
-              <div className="flex gap-2">
-                <ToolbarSelect
-                  value={provider}
-                  ariaLabel="Cover letter provider"
-                  options={PROVIDERS.map((p) => ({
-                    value: p.id,
-                    label: p.label,
-                  }))}
-                  onChange={(value) =>
-                    handleProviderChange(value as LLMProvider)
-                  }
-                  triggerClassName="flex-1 h-9 text-sm rounded-lg px-3 focus:outline-none border border-white/10 bg-white/5 text-slate-200"
-                />
-                <ToolbarSelect
-                  value={modelName}
-                  ariaLabel="Cover letter model"
-                  options={(MODELS[provider] ?? []).map((m) => ({
-                    value: m.id,
-                    label: m.label,
-                  }))}
-                  onChange={setModelName}
-                  triggerClassName="flex-1 h-9 text-sm rounded-lg px-3 focus:outline-none border border-white/10 bg-white/5 text-slate-200"
-                  menuClassName="min-w-64"
-                />
-              </div>
-              <p className="text-[10px] mt-1" style={{ color: "#334155" }}>
-                Groq Llama 3.3 70B recommandé — rapide et gratuit. Gemini Flash
-                si quota disponible.
+              <LLMSelector
+                taskKey="cover_letter_llm"
+                label="Modèle de rédaction"
+              />
+              <p className="text-[10px] mt-1" style={{ color: "#64748b" }}>
+                La liste et la disponibilité sont synchronisées par le backend.
               </p>
             </div>
 
