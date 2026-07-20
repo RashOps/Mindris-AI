@@ -173,8 +173,8 @@ vraies clés. Compose développe les secrets en clair dans cette sortie.
 
 ## Publication des images
 
-Les images sont publiées par `.github/workflows/docker-release.yml` :
-
-- `latest` sur la branche `main` ;
-- `sha-<commit>` pour chaque build ;
-- `v*` pour les tags de release.
+Les branches et pull requests ne publient aucune image. Le workflow
+`.github/workflows/release-candidate.yml` construit uniquement les tags
+`vX.Y.Z-rc.N`. Après validation, `.github/workflows/release-promote.yml`
+réutilise les mêmes manifests par digest pour créer `vX.Y.Z` et `latest`, sans
+rebuild. Voir [la politique de release](releases.md).

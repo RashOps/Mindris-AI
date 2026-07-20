@@ -235,7 +235,8 @@ La distribution self-hosted utilise :
 - `scripts/update_self_hosted.sh`
 - `scripts/uninstall_self_hosted.sh`
 - `scripts/smoke_release.sh`
-- `.github/workflows/docker-release.yml`
+- `.github/workflows/release-candidate.yml`
+- `.github/workflows/release-promote.yml`
 
 Les images attendues sont publiées sur GHCR :
 
@@ -250,6 +251,7 @@ ghcr.io/rashops/mindris-ai-web
 - [Installation self-hosted](docs/install.md)
 - [Développement local](docs/local-development.md)
 - [Self-hosting Docker](docs/self-hosting.md)
+- [Politique de release](docs/releases.md)
 - [Runtime agent](docs/agent-runtime.md)
 - [ADRs](docs/adr/)
 - [Politique marque](TRADEMARKS.md)

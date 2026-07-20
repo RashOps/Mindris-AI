@@ -1,11 +1,11 @@
 name: CI
 
 on:
-  # push:
-  #   branches:
-  #     - main
   pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   backend:
@@ -47,7 +47,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker compose -f docker-compose.release.yml config --quiet
-      - run: sh -n scripts/install_self_hosted.sh scripts/update_self_hosted.sh scripts/uninstall_self_hosted.sh scripts/smoke_release.sh scripts/clean_self_hosted_test.sh
+      - run: sh -n scripts/install_self_hosted.sh scripts/update_self_hosted.sh scripts/uninstall_self_hosted.sh scripts/smoke_release.sh scripts/clean_self_hosted_test.sh scripts/verify_release_promotion.sh scripts/test_release_policy.sh
+      - run: scripts/test_release_policy.sh
       - run: |
           MINDRIS_HOME=/tmp/mindris-ai-ci-dry-run \
           MINDRIS_INSTALL_DRY_RUN=true \

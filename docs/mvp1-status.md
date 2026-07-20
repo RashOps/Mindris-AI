@@ -255,7 +255,9 @@ Termine :
   - `scripts/uninstall_self_hosted.sh`
   - `scripts/smoke_release.sh`
   - `scripts/clean_self_hosted_test.sh`
-- Workflow GitHub Actions `.github/workflows/docker-release.yml`.
+- Workflows GitHub Actions séparés : `.github/workflows/release-candidate.yml`
+  construit les RC et `.github/workflows/release-promote.yml` promeut les
+  manifests validés par digest pour les tags stables.
 - `docs/install.md` pour l'installation one-command.
 - README public reecrit en francais-first.
 - Guide interne enrichi avec parcours, checklists et liens vers surfaces produit.

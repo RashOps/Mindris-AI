@@ -76,3 +76,25 @@ Public forks and derivative services should not use the official Mindris identit
 - explain the user-facing or operational impact
 - note tests run
 - mention follow-up work if the change is intentionally partial
+
+## Politique de release
+
+Une pull request ne publie aucun artefact. Après merge dans `main`, la release
+se fait en deux étapes immuables :
+
+1. créer `vX.Y.Z-rc.N` depuis le commit à livrer ; ce tag construit et teste les
+   trois images GHCR ;
+2. après validation du RC et intégration de son commit dans `main`, créer
+   `vX.Y.Z` sur un arbre Git strictement identique.
+
+Le tag stable ne reconstruit rien : il promeut par digest les manifests du RC
+vers `vX.Y.Z` et `latest`. Le contrôle local est :
+
+```bash
+git fetch origin main --tags
+./scripts/verify_release_promotion.sh vX.Y.Z
+```
+
+Ne déplacez et ne supprimez jamais un tag pour relancer la CI. Une correction
+produit un nouveau commit et le RC suivant. La procédure complète est décrite
+dans [docs/releases.md](docs/releases.md).
