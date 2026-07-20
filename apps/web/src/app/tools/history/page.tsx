@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowRight, Filter, History, Link2, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Filter, History, Link2, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { apiUrl, jsonHeaders } from "@/lib/api";
@@ -66,6 +66,16 @@ function subjectTone(subjectType: HistoryLedgerItem["subject_type"]): string {
   }
 }
 
+const SUBJECT_LABELS: Record<HistoryLedgerItem["subject_type"], string> = {
+  job_scrape: "Offre",
+  resume_revision: "Révision du CV",
+  cover_letter: "Lettre",
+  ats_report: "Rapport ATS",
+  opportunity: "Workflow",
+  tracker_event: "Suivi",
+  llm_run: "Exécution IA",
+};
+
 export default function HistoryPage() {
   const router = useRouter();
   const [items, setItems] = useState<HistoryLedgerItem[]>([]);
@@ -76,6 +86,7 @@ export default function HistoryPage() {
   const [subjectType, setSubjectType] =
     useState<(typeof SUBJECT_OPTIONS)[number]["id"]>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [mobilePane, setMobilePane] = useState<"list" | "detail">("list");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -121,6 +132,24 @@ export default function HistoryPage() {
     selectedItem?.subject_type === "cover_letter"
       ? Number(selectedItem.subject_id)
       : null;
+  const groupedItems = useMemo(() => {
+    const groups: Array<{
+      id: string;
+      label: string;
+      items: HistoryLedgerItem[];
+    }> = [];
+    for (const item of items) {
+      const current = groups.find((group) => group.id === item.group_id);
+      if (current) current.items.push(item);
+      else
+        groups.push({
+          id: item.group_id,
+          label: item.group_label,
+          items: [item],
+        });
+    }
+    return groups;
+  }, [items]);
 
   const clearHistory = useCallback(async () => {
     const confirmed = window.confirm(
@@ -225,7 +254,7 @@ export default function HistoryPage() {
         )}
 
         <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.8fr)]">
-          <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+          <section className={`${mobilePane === "list" ? "block" : "hidden"} overflow-hidden rounded-2xl border border-border bg-card shadow-sm xl:block`}>
             <div className="border-b border-border px-4 py-3">
               <p className="text-sm font-semibold text-foreground">
                 Activité récente · {items.length}
@@ -241,12 +270,26 @@ export default function HistoryPage() {
                 Aucune activité pour ce filtre.
               </div>
             ) : (
-              <div className="max-h-[calc(100vh-18rem)] divide-y divide-border overflow-y-auto">
-                {items.map((item) => (
+              <div className="max-h-[calc(100vh-18rem)] overflow-y-auto">
+                {groupedItems.map((group) => (
+                  <div key={group.id} className="border-b border-border last:border-b-0">
+                    <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-muted/95 px-4 py-2 backdrop-blur">
+                      <p className="truncate text-xs font-semibold text-foreground">
+                        {group.label}
+                      </p>
+                      <span className="shrink-0 text-[10px] text-muted-foreground">
+                        {group.items.length} événement{group.items.length > 1 ? "s" : ""}
+                      </span>
+                    </div>
+                    <div className="divide-y divide-border">
+                    {group.items.map((item) => (
                   <button
                     key={item.id}
                     type="button"
-                    onClick={() => setSelectedId(item.id)}
+                    onClick={() => {
+                      setSelectedId(item.id);
+                      setMobilePane("detail");
+                    }}
                     className={`flex w-full flex-col gap-2 px-4 py-4 text-left transition-colors hover:bg-accent ${
                       selectedItem?.id === item.id ? "bg-accent" : "bg-card"
                     }`}
@@ -255,7 +298,7 @@ export default function HistoryPage() {
                       <span
                         className={`rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wider ${subjectTone(item.subject_type)}`}
                       >
-                        {item.subject_type.replace("_", " ")}
+                        {SUBJECT_LABELS[item.subject_type]}
                       </span>
                       {item.status && (
                         <span className="text-[11px] font-medium text-muted-foreground">
@@ -277,16 +320,29 @@ export default function HistoryPage() {
                       )}
                     </div>
                   </button>
+                    ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
           </section>
 
-          <section className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+          <section className={`${mobilePane === "detail" ? "block" : "hidden"} sticky top-20 max-h-[calc(100vh-6rem)] overflow-hidden rounded-2xl border border-border bg-card shadow-sm xl:block`}>
             <div className="border-b border-border px-4 py-3">
-              <p className="text-sm font-semibold text-foreground">
-                Détails de lignée
-              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMobilePane("list")}
+                  className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground xl:hidden"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+                  Historique
+                </button>
+                <p className="text-sm font-semibold text-foreground">
+                  Détails de lignée
+                </p>
+              </div>
             </div>
             {!selectedItem ? (
               <div className="px-4 py-6 text-sm text-muted-foreground">
@@ -328,24 +384,31 @@ export default function HistoryPage() {
                   ) : null}
                 </div>
 
-                <div className="grid gap-3 md:grid-cols-2">
+                {(selectedItem.provider || selectedItem.model_name ||
+                  Object.values(selectedItem.metadata).some(
+                    (value) => value !== null && value !== undefined && value !== "",
+                  )) ? <div className="grid gap-3 md:grid-cols-2">
+                  {(selectedItem.provider || selectedItem.model_name) ? (
                   <div className="rounded-xl border border-border bg-muted/40 p-3">
                     <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       Runtime
                     </p>
                     <p className="mt-2 text-sm text-foreground">
-                      Provider : {selectedItem.provider || "n/a"}
+                      Provider : {selectedItem.provider}
                     </p>
                     <p className="mt-1 text-sm text-foreground">
-                      Modèle : {selectedItem.model_name || "n/a"}
+                      Modèle : {selectedItem.model_name}
                     </p>
                   </div>
+                  ) : null}
                   <div className="rounded-xl border border-border bg-muted/40 p-3">
                     <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       Métadonnées
                     </p>
                     <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-                      {Object.entries(selectedItem.metadata).slice(0, 5).map(([key, value]) => (
+                      {Object.entries(selectedItem.metadata)
+                        .filter(([, value]) => value !== null && value !== undefined && value !== "")
+                        .slice(0, 5).map(([key, value]) => (
                         <p key={key}>
                           <span className="font-medium text-foreground">{key}</span>{" "}
                           {String(value)}
@@ -353,7 +416,7 @@ export default function HistoryPage() {
                       ))}
                     </div>
                   </div>
-                </div>
+                </div> : null}
 
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -375,7 +438,7 @@ export default function HistoryPage() {
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium text-foreground">
-                              {link.subject_type.replace("_", " ")} #{link.subject_id}
+                              {SUBJECT_LABELS[link.subject_type as HistoryLedgerItem["subject_type"]] ?? link.subject_type} #{link.subject_id}
                             </p>
                             <p className="text-xs text-muted-foreground">{link.relation}</p>
                           </div>

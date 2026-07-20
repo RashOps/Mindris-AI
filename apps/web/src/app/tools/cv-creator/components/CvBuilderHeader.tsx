@@ -16,6 +16,7 @@ import { PdfIngestionModeSelect } from "@/components/PdfIngestionModeSelect";
 import { ToolbarSelect } from "@/components/ToolbarSelect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ContextualGuideLink } from "@/components/help/ContextualGuideLink";
 
 import type { HeaderMenuAction } from "./HeaderActionMenu";
 import { HeaderActionMenu } from "./HeaderActionMenu";
@@ -299,6 +300,7 @@ export function CvBuilderHeader(props: {
           </p>
           <div className="min-w-0">{resumeSelector}</div>
           <div className="ml-auto flex items-center gap-2">
+            <ContextualGuideLink tool="cv-creator" />
             <CvBuilderModeToggle value={uiMode} onChange={onChangeUiMode} />
             <button
               onClick={onRetrySave}
@@ -419,6 +421,7 @@ export function CvBuilderHeader(props: {
               <button onClick={() => setMobileToolsOpen(false)} className="app-toolbar-button flex h-8 w-8 items-center justify-center" aria-label="Fermer"><X size={16} /></button>
             </div>
             <div className="space-y-4">
+              <ContextualGuideLink tool="cv-creator" />
               <CvBuilderModeToggle value={uiMode} onChange={onChangeUiMode} />
               <div className="flex flex-wrap gap-2">{resumeNameInput}{!isSimple ? <><button onClick={onCreateResume} className={TOOLBAR_BUTTON_CLASS}>Nouveau</button><button onClick={onDuplicateResume} className={TOOLBAR_BUTTON_CLASS}>Dupliquer</button></> : null}</div>
               {(isNormal || isAdvanced) ? localeControls : null}

@@ -690,6 +690,40 @@ def test_cv_schema_migrates_legacy_global_settings() -> None:
     assert settings["layout"]["sidebar_width"] == "30%"
 
 
+def test_cv_schema_keeps_explicit_v2_settings_canonical() -> None:
+    payload = _cv_payload("creative")
+    payload["global_settings"].update(
+        {
+            "primary_color": "#2563eb",
+            "font_family": "Inter",
+            "font_size": "13px",
+            "line_height": "1.5",
+            "margin_h": "64px",
+            "col_left_width": "65",
+            "colors": {"primary": "#e11d48"},
+            "typography": {
+                "body_font": "Lato",
+                "base_size": "12px",
+                "line_height": "1.55",
+            },
+            "page": {"margins": {"horizontal": "30px", "vertical": "30px"}},
+            "layout": {"sidebar_width": "32%", "sidebar_position": "left"},
+        }
+    )
+
+    settings = CVDataModel.model_validate(payload).model_dump(mode="json")[
+        "global_settings"
+    ]
+
+    assert settings["colors"]["primary"] == "#e11d48"
+    assert settings["typography"]["body_font"] == "Lato"
+    assert settings["typography"]["base_size"] == "12px"
+    assert settings["typography"]["line_height"] == "1.55"
+    assert settings["page"]["margins"]["horizontal"] == "30px"
+    assert settings["layout"]["sidebar_width"] == "32%"
+    assert settings["layout"]["sidebar_position"] == "left"
+
+
 def test_cv_schema_applies_ats_strict_constraints() -> None:
     payload = _cv_payload("ats")
     payload["global_settings"] = {

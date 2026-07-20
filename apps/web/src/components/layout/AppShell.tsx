@@ -14,10 +14,10 @@ import {
   nextDesktopSidebarCompactState,
   resolveDesktopSidebarLayout,
 } from "@/config/layout";
-import { PRODUCT_COPY } from "@/lib/product-copy";
 import { cn } from "@/lib/utils";
 import { RuntimeGate } from "@/components/layout/RuntimeGate";
 import { useCVStore } from "@/store/useCVStore";
+import { useI18n } from "@/i18n/I18nProvider";
 
 interface AppShellProps {
   children: ReactNode;
@@ -33,21 +33,22 @@ function isActive(pathname: string, href: string): boolean {
 }
 
 function Brand({ collapsed = false }: { collapsed?: boolean }) {
+  const { messages } = useI18n();
   return (
     <Link
       href="/"
       className="flex items-center gap-3 no-underline"
-      title={PRODUCT_COPY.app.backHome}
+      title={messages.app.backHome}
     >
       <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-sm font-black text-primary-foreground">
         M
       </div>
       <div className={cn("min-w-0", collapsed && "hidden")}>
         <p className="truncate text-sm font-semibold text-foreground">
-          {PRODUCT_COPY.app.name}
+          {messages.app.name}
         </p>
         <p className="truncate text-xs text-muted-foreground">
-          {PRODUCT_COPY.app.tagline}
+          {messages.app.tagline}
         </p>
       </div>
     </Link>
@@ -62,12 +63,14 @@ function NavLinks({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
+  const { messages } = useI18n();
 
   return (
     <nav className="space-y-1">
       {APP_NAV_ITEMS.map((item) => {
         const active = isActive(pathname, item.href);
         const Icon = item.icon;
+        const copy = messages.tools[item.id];
         return (
           <Link
             key={item.href}
@@ -82,15 +85,17 @@ function NavLinks({
             )}
             title={
               collapsed
-                ? [item.label, item.badge].filter(Boolean).join(" ")
+                ? [copy.label, "badge" in copy ? copy.badge : undefined]
+                    .filter(Boolean)
+                    .join(" ")
                 : undefined
             }
           >
             <Icon size={17} />
             {!collapsed && (
               <span className="min-w-0 flex-1 truncate">
-                {item.label}
-                {item.badge && (
+                {copy.label}
+                {"badge" in copy && copy.badge && (
                   <sup
                     className={cn(
                       "ml-1 inline-flex translate-y-[-0.28em] rounded-full border px-1 py-0 text-[8px] font-black uppercase leading-none tracking-[0.12em]",
@@ -99,7 +104,7 @@ function NavLinks({
                         : "border-amber-300/70 bg-amber-50 text-amber-700 dark:border-amber-400/40 dark:bg-amber-400/10 dark:text-amber-300",
                     )}
                   >
-                    {item.badge}
+                    {copy.badge}
                   </sup>
                 )}
               </span>
@@ -112,6 +117,7 @@ function NavLinks({
 }
 
 function SidebarUtilities({ collapsed = false }: { collapsed?: boolean }) {
+  const { messages } = useI18n();
   const configuration = APP_SIDEBAR_SECTIONS.find(
     (section) => section.id === "configuration",
   );
@@ -127,12 +133,12 @@ function SidebarUtilities({ collapsed = false }: { collapsed?: boolean }) {
                 "w-full rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
                 collapsed ? "justify-center px-2" : "justify-start gap-3",
               )}
-              title={collapsed ? configuration.label : undefined}
+              title={collapsed ? messages.sidebar.configuration.label : undefined}
             >
               <configuration.icon size={17} />
               {!collapsed && (
                 <span className="min-w-0 flex-1 truncate text-left">
-                  {configuration.label}
+                  {messages.sidebar.configuration.label}
                 </span>
               )}
             </Button>
@@ -150,6 +156,7 @@ export function AppShell({
   actions,
   contentClassName,
 }: AppShellProps) {
+  const { messages } = useI18n();
   const hydrateAppSettings = useCVStore((state) => state.hydrateAppSettings);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [desktopCollapsed, setDesktopCollapsed] = useState(false);
@@ -254,14 +261,14 @@ export function AppShell({
                   <Menu size={18} />
                 </Button>
                 <div className="min-w-0">
-                  {title && (
+                  {(title || messages.app.workspaceTitle) && (
                     <h1 className="truncate text-lg font-semibold tracking-tight text-foreground">
-                      {title}
+                      {title || messages.app.workspaceTitle}
                     </h1>
                   )}
-                  {description && (
+                  {(description || messages.app.workspaceDescription) && (
                     <p className="truncate text-sm text-muted-foreground">
-                      {description}
+                      {description || messages.app.workspaceDescription}
                     </p>
                   )}
                 </div>
@@ -272,7 +279,12 @@ export function AppShell({
               </div>
             </div>
           </header>
-          <main className={cn("min-h-[calc(100vh-4rem)]", contentClassName)}>
+          <main
+            className={cn(
+              "min-h-[calc(100dvh-7.5rem-1px)] sm:min-h-[calc(100dvh-4.5rem-1px)]",
+              contentClassName,
+            )}
+          >
             {children}
           </main>
         </div>

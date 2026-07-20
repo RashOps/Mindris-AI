@@ -1,149 +1,322 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, BookOpen, CheckCircle2, Sparkles } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  ArrowRight,
+  BookOpen,
+  Check,
+  CheckCircle2,
+  Circle,
+  FilePlus2,
+  Map,
+  Send,
+  Sparkles,
+  WandSparkles,
+} from "lucide-react";
 
-import { GUIDE_SECTIONS } from "@/components/help/guide-content";
+import {
+  GUIDE_SECTIONS,
+  type GuideSection,
+} from "@/components/help/guide-content";
+import { loadDraft, saveDraft } from "@/lib/drafts";
+
+type GuideProgress = { completed?: string[] };
+
+const PATHS = [
+  {
+    id: "first-cv",
+    title: "Créer mon premier CV",
+    description: "Partir d’un profil brut et obtenir un document propre et exportable.",
+    icon: FilePlus2,
+    sectionTitles: ["Mindris en une boucle", "2. Construire le CV"],
+    route: "/tools/cv-creator",
+    cta: "Créer mon CV",
+  },
+  {
+    id: "tailor",
+    title: "Adapter mon CV à une offre",
+    description: "Transformer une offre en exigences vérifiables puis valider les changements.",
+    icon: WandSparkles,
+    sectionTitles: ["1. Démarrer depuis une offre", "2. Construire le CV"],
+    route: "/tools/cv-creator",
+    cta: "Analyser une offre",
+  },
+  {
+    id: "application",
+    title: "Préparer une candidature complète",
+    description: "Relier CV, ATS, lettre et suivi sans perdre la lignée des artefacts.",
+    icon: Send,
+    sectionTitles: [
+      "3. Piloter le Workflow",
+      "4. Suivre et auditer",
+      "Parcours recommandé quotidien",
+    ],
+    route: "/tools/workflow",
+    cta: "Ouvrir le Workflow Beta",
+  },
+] as const;
+
+function progressKey(section: GuideSection, item: string): string {
+  return `${section.title}::${item}`;
+}
 
 export default function GuidePage() {
-  const primaryFlow = GUIDE_SECTIONS.find(
-    (section) => section.title === "Parcours recommandé quotidien",
+  const [activePathId, setActivePathId] = useState<(typeof PATHS)[number]["id"]>(
+    "first-cv",
   );
+  const [activeSectionTitle, setActiveSectionTitle] = useState<string>(
+    PATHS[0].sectionTitles[0],
+  );
+  const [completed, setCompleted] = useState<string[]>([]);
+  const [isProgressLoaded, setIsProgressLoaded] = useState(false);
+
+  const activePath = PATHS.find((path) => path.id === activePathId) ?? PATHS[0];
+  const pathSections = useMemo(
+    () =>
+      activePath.sectionTitles
+        .map((title) => GUIDE_SECTIONS.find((section) => section.title === title))
+        .filter((section): section is GuideSection => Boolean(section)),
+    [activePath],
+  );
+  const activeSection =
+    pathSections.find((section) => section.title === activeSectionTitle) ??
+    pathSections[0];
+  const pathChecklist = pathSections.flatMap((section) =>
+    section.checklist.map((item) => progressKey(section, item)),
+  );
+  const completedInPath = pathChecklist.filter((key) => completed.includes(key)).length;
+  const progress = pathChecklist.length
+    ? Math.round((completedInPath / pathChecklist.length) * 100)
+    : 0;
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadDraft<GuideProgress>("guide-progress")
+      .then((draft) => {
+        if (!cancelled && Array.isArray(draft?.completed)) {
+          setCompleted(draft.completed);
+        }
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled) setIsProgressLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const selectPath = (path: (typeof PATHS)[number]) => {
+    setActivePathId(path.id);
+    setActiveSectionTitle(path.sectionTitles[0]);
+  };
+
+  const toggleChecklist = (key: string) => {
+    const next = completed.includes(key)
+      ? completed.filter((item) => item !== key)
+      : [...completed, key];
+    setCompleted(next);
+    void saveDraft("guide-progress", { completed: next });
+  };
 
   return (
     <main className="app-page min-h-[calc(100vh-4rem)]">
       <div className="mx-auto max-w-7xl px-4 py-4 lg:px-6">
         <header className="app-header-surface overflow-hidden rounded-2xl px-5 py-6 lg:px-7">
-          <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
-            <div className="space-y-5">
+          <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+            <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
                 <Sparkles size={13} className="text-primary" />
-                Manuel Mindris
+                Guide Mindris
               </div>
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
-                  <BookOpen size={20} />
+              <div className="mt-4 flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+                  <BookOpen size={20} aria-hidden="true" />
                 </div>
-                <div className="max-w-2xl">
-                  <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-                    Guide visuel pour utiliser Mindris efficacement
+                <div>
+                  <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+                    Choisissez ce que vous voulez accomplir
                   </h1>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    Des parcours guidés, checklists et repères visuels pour préparer
-                    une candidature sans se perdre dans les réglages avancés.
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                    Trois parcours courts remplacent le long manuel. Chaque étape ouvre
+                    directement la bonne surface et votre progression reste enregistrée
+                    par le backend.
                   </p>
                 </div>
               </div>
             </div>
 
-            {primaryFlow && (
-              <div className="rounded-2xl border border-border bg-card/80 p-4 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Workflow recommandé
+            <div className="rounded-2xl border border-border bg-card/80 p-4 shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  <Map className="h-4 w-4 text-primary" aria-hidden="true" />
+                  Progression du parcours
                 </p>
-                <div className="mt-4 flex flex-wrap items-center gap-2">
-                  {primaryFlow.steps.map((step, index) => (
-                    <div key={step} className="flex items-center gap-2">
-                      <span className="rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary">
-                        {step}
-                      </span>
-                      {index < primaryFlow.steps.length - 1 && (
-                        <ArrowRight size={14} className="text-muted-foreground" />
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <p className="mt-4 text-xs leading-5 text-muted-foreground">
-                  {primaryFlow.tips[0]}
-                </p>
+                <span className="text-sm font-semibold text-foreground">{progress}%</span>
               </div>
-            )}
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-primary transition-[width] duration-300 motion-reduce:transition-none"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <p className="mt-3 text-xs text-muted-foreground">
+                {isProgressLoaded
+                  ? `${completedInPath} étape${completedInPath > 1 ? "s" : ""} validée${completedInPath > 1 ? "s" : ""} sur ${pathChecklist.length}.`
+                  : "Chargement de votre progression…"}
+              </p>
+            </div>
           </div>
         </header>
 
-        <div className="mt-5 grid gap-4 lg:grid-cols-2">
-          {GUIDE_SECTIONS.map((section) => {
-            const Icon = section.icon;
+        <section className="mt-5 flex gap-3 overflow-x-auto pb-2 md:grid md:grid-cols-3" aria-label="Parcours guidés">
+          {PATHS.map((path) => {
+            const Icon = path.icon;
+            const active = path.id === activePath.id;
             return (
-              <section
-                key={section.title}
-                className="group app-surface rounded-2xl p-5 transition duration-200 hover:-translate-y-0.5 hover:shadow-md"
+              <button
+                key={path.id}
+                id={path.id}
+                type="button"
+                onClick={() => selectPath(path)}
+                aria-pressed={active}
+                className={`min-w-[82vw] rounded-2xl border p-4 text-left transition md:min-w-0 ${
+                  active
+                    ? "border-primary bg-primary text-primary-foreground shadow-md"
+                    : "border-border bg-card text-foreground hover:border-primary/40 hover:bg-accent"
+                }`}
               >
-                <div className="mb-4 flex items-start gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary transition group-hover:bg-primary group-hover:text-primary-foreground">
-                    <Icon size={18} />
+                <Icon className="h-5 w-5" aria-hidden="true" />
+                <h2 className="mt-4 text-base font-semibold">{path.title}</h2>
+                <p className={`mt-1 text-sm leading-5 ${active ? "text-primary-foreground/75" : "text-muted-foreground"}`}>
+                  {path.description}
+                </p>
+              </button>
+            );
+          })}
+        </section>
+
+        {activeSection ? (
+          <div className="mt-5 grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+            <aside className="rounded-2xl border border-border bg-card p-3 shadow-sm">
+              <p className="px-2 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                Étapes du parcours
+              </p>
+              <div className="space-y-1">
+                {pathSections.map((section, index) => (
+                  <button
+                    key={section.title}
+                    type="button"
+                    onClick={() => setActiveSectionTitle(section.title)}
+                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition ${
+                      section.title === activeSection.title
+                        ? "bg-accent text-accent-foreground"
+                        : "text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border bg-background text-xs font-semibold">
+                      {index + 1}
+                    </span>
+                    <span className="text-sm font-medium">{section.title}</span>
+                  </button>
+                ))}
+              </div>
+            </aside>
+
+            <section className="rounded-2xl border border-border bg-card p-5 shadow-sm lg:p-6">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                    <activeSection.icon size={18} aria-hidden="true" />
                   </div>
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                      {section.badge}
+                      {activeSection.badge}
                     </p>
-                    <h2 className="mt-1 text-base font-semibold text-foreground">
-                      {section.title}
+                    <h2 className="mt-1 text-xl font-semibold text-foreground">
+                      {activeSection.title}
                     </h2>
-                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                      {section.summary}
+                    <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
+                      {activeSection.summary}
                     </p>
                   </div>
                 </div>
+                <Link
+                  href={activeSection.route ?? activePath.route}
+                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground no-underline hover:bg-primary/90"
+                >
+                  {activePath.cta}
+                  <ArrowRight size={14} aria-hidden="true" />
+                </Link>
+              </div>
 
-                <div className="rounded-xl border border-border bg-muted/30 p-3">
-                  <div className="flex flex-wrap gap-2">
-                    {section.steps.map((step) => (
-                      <span
-                        key={step}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-xs text-foreground"
-                      >
-                        <CheckCircle2 size={12} className="text-emerald-500" />
-                        {step}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mt-4 rounded-xl border border-border bg-background p-3">
-                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                    Checklist
+              <div className="mt-6 grid gap-5 xl:grid-cols-2">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    Déroulé
                   </p>
-                  <div className="space-y-2">
-                    {section.checklist.map((item) => (
-                      <div key={item} className="flex items-start gap-2 text-sm text-foreground">
-                        <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-emerald-500" />
-                        <span>{item}</span>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    {activeSection.steps.map((step, index) => (
+                      <div key={step} className="flex items-center gap-2">
+                        <span className="rounded-full border border-border bg-muted/40 px-3 py-1.5 text-xs font-medium text-foreground">
+                          {step}
+                        </span>
+                        {index < activeSection.steps.length - 1 ? (
+                          <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+                        ) : null}
                       </div>
                     ))}
                   </div>
-                </div>
-
-                <div className="mt-4 space-y-3">
-                  {section.items.map((item, index) => (
-                    <p
-                      key={`${section.title}-${index}`}
-                      className="text-sm leading-6 text-muted-foreground"
-                    >
-                      {item}
-                    </p>
-                  ))}
-                </div>
-
-                {section.tips.length > 0 && (
-                  <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-xs leading-5 text-primary">
-                    Conseil : {section.tips[0]}
+                  <div className="mt-5 space-y-3">
+                    {activeSection.items.map((item) => (
+                      <p key={item} className="text-sm leading-6 text-muted-foreground">
+                        {item}
+                      </p>
+                    ))}
                   </div>
-                )}
+                </div>
 
-                {section.route && (
-                  <Link
-                    href={section.route}
-                    className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-primary no-underline hover:underline"
-                  >
-                    Ouvrir la surface associée
-                    <ArrowRight size={14} />
-                  </Link>
-                )}
-              </section>
-            );
-          })}
-        </div>
+                <div className="rounded-xl border border-border bg-background p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    Checklist
+                  </p>
+                  <div className="mt-3 space-y-2">
+                    {activeSection.checklist.map((item) => {
+                      const key = progressKey(activeSection, item);
+                      const checked = completed.includes(key);
+                      return (
+                        <button
+                          key={item}
+                          type="button"
+                          role="checkbox"
+                          aria-checked={checked}
+                          onClick={() => toggleChecklist(key)}
+                          className="flex w-full items-start gap-3 rounded-lg p-2 text-left text-sm text-foreground transition hover:bg-muted"
+                        >
+                          {checked ? (
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
+                              <Check className="h-3 w-3" aria-hidden="true" />
+                            </span>
+                          ) : (
+                            <Circle className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                          )}
+                          <span className={checked ? "text-muted-foreground line-through" : ""}>
+                            {item}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-4 flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs leading-5 text-primary">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                    {activeSection.tips[0]}
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        ) : null}
       </div>
     </main>
   );

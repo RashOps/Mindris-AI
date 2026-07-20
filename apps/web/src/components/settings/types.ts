@@ -22,6 +22,7 @@ export type SystemConfigurationPayload = {
     app?: {
       defaults?: Record<string, { provider?: string; model_name?: string }>;
       pdf_ingestion_mode?: AppSettings["pdf_ingestion_mode"];
+      ui_locale?: AppSettings["ui_locale"];
     };
     llm?: {
       providers?: ProviderStatus;

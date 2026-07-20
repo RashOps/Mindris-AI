@@ -1,0 +1,40 @@
+/* Atlas Sidebar — calm profile rail and generous professional rhythm. */
+:host {
+    --primary-color: #0f766e;
+    --sidebar-background: #ecfdf5;
+    --heading-color: #134e4a;
+    --separator-color: #a7f3d0;
+}
+
+.cv-header {
+    border-bottom: 0;
+    padding-bottom: 24px;
+}
+
+.profile-name {
+    letter-spacing: -0.04em;
+}
+
+.main-grid {
+    gap: 30px;
+}
+
+.section-column-sidebar {
+    background: var(--sidebar-background);
+    border-radius: 18px;
+    padding: 22px;
+}
+
+.section-title {
+    border-bottom: 0;
+    letter-spacing: 0.12em;
+}
+
+.section-title::after {
+    content: "";
+    display: block;
+    width: 28px;
+    height: 2px;
+    margin-top: 7px;
+    background: var(--primary-color);
+}

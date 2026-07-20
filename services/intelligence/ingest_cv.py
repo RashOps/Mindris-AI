@@ -136,11 +136,18 @@ def chunk_cv_data(cv_data: dict) -> list[dict]:
     return chunks
 
 
-def ingest_cv_data(cv_data: dict) -> None:
+def ingest_cv_data(
+    cv_data: dict,
+    *,
+    resume_id: int | str | None = None,
+    locale: str | None = None,
+) -> None:
     """Chunk and index a CV dictionary into ChromaDB.
 
     Args:
         cv_data: The CV data dictionary.
+        resume_id: Persisted resume identity, or ``current`` when omitted.
+        locale: Locale variant stored in the vector metadata.
     """
     logger.info("🚀 Initializing Vector Store...")
     # Will connect to storage/vectordb and use HuggingFace embeddings
@@ -149,15 +156,33 @@ def ingest_cv_data(cv_data: dict) -> None:
     logger.info("✂️  Chunking CV data...")
     chunks = chunk_cv_data(cv_data)
 
+    namespace = str(resume_id) if resume_id is not None else "current"
+    resolved_locale = locale or str(
+        cv_data.get("global_settings", {}).get("locale", {}).get("label_language", "fr")
+    )
     texts = [c["text"] for c in chunks]
-    metadatas = [c["metadata"] for c in chunks]
+    metadatas = [
+        {
+            **c["metadata"],
+            "resume_id": namespace,
+            "locale": resolved_locale,
+        }
+        for c in chunks
+    ]
 
     logger.info(
         "🧠 Generating embeddings for %d chunks and saving to ChromaDB...", len(chunks)
     )
 
-    # Clear existing vectors to avoid duplicates / dead data
-    store.clear()
+    # Replace only this CV/locale namespace; other resumes remain searchable.
+    store.delete_where(
+        {
+            "$and": [
+                {"resume_id": {"$eq": namespace}},
+                {"locale": {"$eq": resolved_locale}},
+            ]
+        }
+    )
 
     if texts:
         store.add_texts(texts=texts, metadatas=metadatas)

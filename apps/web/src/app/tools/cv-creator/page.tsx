@@ -220,7 +220,19 @@ export default function AppPage() {
         drafted_bullets: stringArray(data.drafted_bullets),
         raw_markdown:
           typeof data.raw_markdown === "string" ? data.raw_markdown : "",
-        score: typeof data.score === "number" ? data.score : 0,
+        score: typeof data.score === "number" ? data.score : null,
+        evidence_ledger: Array.isArray(data.evidence_ledger)
+          ? data.evidence_ledger
+          : [],
+        evidence_matrix: Array.isArray(data.evidence_matrix)
+          ? data.evidence_matrix
+          : [],
+        proposed_changes: Array.isArray(data.proposed_changes)
+          ? data.proposed_changes
+          : [],
+        evaluation: data.evaluation ?? null,
+        warnings: stringArray(data.warnings),
+        requires_user_review: data.requires_user_review !== false,
         ats_report: data.ats_report,
         company_insight: data.company_insight,
       };
@@ -356,6 +368,8 @@ export default function AppPage() {
           job_url: jobUrl,
           provider: appSettings.optimize_llm.provider,
           model_name: appSettings.optimize_llm.model_name,
+          resume_id: Number(activeResumeId),
+          resume_locale: activeLocale || "fr",
         }),
       });
       if (!res.ok) throw new Error("Démarrage du pipeline impossible");

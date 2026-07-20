@@ -14,6 +14,7 @@ export interface BackendSystemConfiguration {
   app?: {
     defaults?: Record<string, BackendTaskConfig>;
     pdf_ingestion_mode?: unknown;
+    ui_locale?: unknown;
   };
   llm?: {
     defaults?: Record<string, BackendTaskConfig>;
@@ -27,6 +28,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   ats_llm: { provider: "groq", model_name: "llama-3.1-8b-instant" },
   patch_llm: { provider: "groq", model_name: "llama-3.3-70b-versatile" },
   pdf_ingestion_mode: "auto",
+  ui_locale: "fr",
 };
 
 export function normalizeAppSettings(value: unknown): AppSettings {
@@ -53,6 +55,7 @@ export function normalizeAppSettings(value: unknown): AppSettings {
       candidate.pdf_ingestion_mode,
       DEFAULT_APP_SETTINGS.pdf_ingestion_mode,
     ),
+    ui_locale: candidate.ui_locale === "en" ? "en" : "fr",
   };
 }
 
@@ -66,6 +69,7 @@ export function systemConfigurationToAppSettings(
     ats_llm: defaults.ats_score,
     patch_llm: defaults.patch,
     pdf_ingestion_mode: value?.app?.pdf_ingestion_mode,
+    ui_locale: value?.app?.ui_locale,
   });
 }
 

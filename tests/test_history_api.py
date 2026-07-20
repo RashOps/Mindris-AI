@@ -108,6 +108,8 @@ def test_history_ledger_returns_normalized_items_and_filters(monkeypatch) -> Non
         "title",
         "summary",
         "timestamp",
+        "group_id",
+        "group_label",
         "links",
         "metadata",
     } <= set(first)
@@ -381,6 +383,8 @@ def test_history_ledger_builds_lineage_links_for_related_artifacts() -> None:
     assert ledger_response.status_code == 200
     items = ledger_response.json()["items"]
     assert items
+    assert {item["group_id"] for item in items} == {f"job:{job.id}"}
+    assert all(item["group_label"] == f"{job.title} · {job.company}" for item in items)
 
     tracker_item = next(
         item for item in items if item["subject_type"] == "tracker_event"

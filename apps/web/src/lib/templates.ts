@@ -52,6 +52,7 @@ export async function fetchResumeTemplates(): Promise<ResumeTemplate[]> {
 export async function resolveTemplateRenderPayload(
   cvData: CVData,
   templateId?: string,
+  applyPreset = false,
 ): Promise<{ cv_data: CVData; template_id: string }> {
   const response = await fetch(apiUrl("/api/v1/templates/resolve-render-payload"), {
     method: "POST",
@@ -59,6 +60,7 @@ export async function resolveTemplateRenderPayload(
     body: JSON.stringify({
       cv_data: cvData,
       template_id: templateId,
+      apply_preset: applyPreset,
     }),
   });
   if (!response.ok) {

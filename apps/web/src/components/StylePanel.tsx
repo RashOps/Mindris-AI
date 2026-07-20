@@ -33,7 +33,7 @@ import { SectionsTab } from "@/components/style-panel/SectionsTab";
 import { SectionLabel } from "@/components/style-panel/controls";
 import {
   ColorSwatchPicker,
-  LayoutPreview,
+  TemplatePreview,
   ToggleGrid,
   VisualOptionGroup,
 } from "@/components/style-panel/visual-controls";
@@ -46,6 +46,7 @@ import {
   type CustomizationCatalogue,
   FALLBACK_CUSTOMIZATION_CATALOGUE,
 } from "@/lib/customization-catalogue";
+import { resolveTemplateRenderPayload } from "@/lib/templates";
 
 export { mergeSections } from "@/components/style-panel/settings";
 
@@ -117,6 +118,9 @@ export function StylePanel({
   const [catalogue, setCatalogue] = useState<CustomizationCatalogue>(
     FALLBACK_CUSTOMIZATION_CATALOGUE,
   );
+  const [applyingTemplate, setApplyingTemplate] = useState<string | null>(null);
+  const [templateError, setTemplateError] = useState<string | null>(null);
+  const [templateCategory, setTemplateCategory] = useState("all");
   useEffect(() => {
     void fetchCustomizationCatalogue()
       .then((next) => setCatalogue(normalizeCustomizationCatalogue(next)))
@@ -130,6 +134,17 @@ export function StylePanel({
   const templateCards = useMemo(
     () => buildTemplateCards(catalogue),
     [catalogue],
+  );
+  const templateCategories = useMemo(
+    () => Array.from(new Set(templateCards.map((template) => template.category))),
+    [templateCards],
+  );
+  const visibleTemplateCards = useMemo(
+    () =>
+      templateCategory === "all"
+        ? templateCards
+        : templateCards.filter((template) => template.category === templateCategory),
+    [templateCards, templateCategory],
   );
   const settings = useMemo(
     () => resolveSettings(cvData.global_settings, catalogue),
@@ -156,8 +171,17 @@ export function StylePanel({
   const update = (patch: Partial<GlobalSettings>) =>
     setGlobalSettings({ ...settings, ...patch });
 
-  const updateTemplate = (templateId: string) => {
-    setGlobalSettings({ ...settings, template_id: templateId });
+  const updateTemplate = async (templateId: string) => {
+    setApplyingTemplate(templateId);
+    setTemplateError(null);
+    try {
+      const resolved = await resolveTemplateRenderPayload(cvData, templateId, true);
+      setGlobalSettings(resolved.cv_data.global_settings);
+    } catch {
+      setTemplateError("Le modèle n’a pas pu être appliqué. Réessaie dans un instant.");
+    } finally {
+      setApplyingTemplate(null);
+    }
   };
 
   const updateSection = (
@@ -405,13 +429,31 @@ export function StylePanel({
             <>
               <section>
                 <SectionLabel>Template</SectionLabel>
+                <div className="mb-3">
+                  <ToolbarSelect
+                    value={templateCategory}
+                    ariaLabel="Filtrer les modèles par catégorie"
+                    options={[
+                      { value: "all", label: "Toutes les catégories" },
+                      ...templateCategories.map((category) => ({
+                        value: category,
+                        label: category,
+                      })),
+                    ]}
+                    onChange={setTemplateCategory}
+                    triggerClassName={PANEL_INPUT_CLASS}
+                  />
+                </div>
                 <div className="grid grid-cols-2 gap-3">
-                  {templateCards.map((template) => (
+                  {visibleTemplateCards.map((template) => (
                     <button
                       key={template.id}
-                      onClick={() => updateTemplate(template.id)}
+                      type="button"
+                      disabled={applyingTemplate !== null}
+                      aria-busy={applyingTemplate === template.id}
+                      onClick={() => void updateTemplate(template.id)}
                       aria-label={`Template ${template.label}`}
-                      className={`flex cursor-pointer flex-col items-start gap-1 rounded-lg border p-3 text-left transition-all ${
+                      className={`flex cursor-pointer flex-col items-start gap-1 rounded-lg border p-3 text-left transition-all disabled:cursor-wait disabled:opacity-70 ${
                         settings.template_id === template.id
                           ? "border-violet-600 bg-violet-50 shadow-[0_0_0_3px_rgba(124,58,237,0.08)] dark:bg-violet-950/40"
                           : "border-border bg-background hover:bg-accent"
@@ -420,24 +462,23 @@ export function StylePanel({
                       <span className="text-sm font-semibold text-foreground">
                         {template.label}
                       </span>
-                      <span className="flex h-14 w-full items-center justify-center rounded-md bg-muted/50">
-                        <LayoutPreview
-                          columns={
-                            template.compatibleLayouts.includes(2) ? 2 : 1
-                          }
-                          sidebar={
-                            template.compatibleLayouts.includes(2)
-                              ? "right"
-                              : "none"
-                          }
+                      <span className="flex h-24 w-full items-center justify-center rounded-md bg-muted/50">
+                        <TemplatePreview
+                          style={template.previewStyle}
+                          accent={template.accent}
                         />
                       </span>
                       <span className="text-[10px] text-muted-foreground">
-                        {template.compatibleLayouts.join("/")}-col
+                        {template.category} - {template.compatibleLayouts.join("/")}-col
                       </span>
                     </button>
                   ))}
                 </div>
+                {templateError ? (
+                  <p role="alert" className="mt-3 text-xs text-destructive">
+                    {templateError}
+                  </p>
+                ) : null}
               </section>
 
               {!isSimpleMode ? (

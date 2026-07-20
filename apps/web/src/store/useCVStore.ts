@@ -320,10 +320,6 @@ export const useCVStore = create<CVStore>()((set, get) => ({
     }
   },
 
-  // ── Auto-inject mode ────────────────────────────────────────────────────────
-  autoInjectMode: false,
-  setAutoInjectMode: (v) => set({ autoInjectMode: v }),
-
   // ── Patch from AI bullets ────────────────────────────────────────────────────
   applyPatch: (patch) =>
     set((state) => {

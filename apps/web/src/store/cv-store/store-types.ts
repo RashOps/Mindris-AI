@@ -56,10 +56,6 @@ export interface CVStore {
   clearJobInsights: () => void;
   calculateAtsScore: () => Promise<void>;
 
-  // Auto-inject mode (Option A)
-  autoInjectMode: boolean;
-  setAutoInjectMode: (v: boolean) => void;
-
   // Apply a patch from /api/v1/cv/patch-from-bullets
   applyPatch: (patch: {
     experience?: Array<{ id: string; description_markdown: string }>;

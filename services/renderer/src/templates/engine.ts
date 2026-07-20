@@ -309,6 +309,7 @@ const dynamicSectionCss = `
 .main-grid {
     display: grid;
     grid-template-columns: var(--grid-template-columns, var(--col-left-width, 65%) 1fr);
+    grid-auto-flow: dense;
     gap: var(--section-gap, 28px);
     align-items: start;
 }
@@ -818,14 +819,18 @@ function renderCvContent(cvData: any, templateId: string): string {
     const usedTypes = new Set(sectionsConfig.map((section) => section.type));
     const warning = renderOnePageWarning(cvData);
     const cssWarning = renderAdvancedCssWarning(cvData);
+    const twoColumns = usesTwoColumnLayout(cvData, templateId);
     const renderedSections = sectionsConfig
         .map((section) => ({
-            placement: section.placement === "sidebar" ? "sidebar" : "main",
-            content: renderSection(cvData, section),
+            placement:
+                twoColumns && section.placement === "sidebar" ? "sidebar" : "main",
+            content: renderSection(
+                cvData,
+                twoColumns ? section : { ...section, placement: "main" },
+            ),
         }))
         .filter((section) => Boolean(section.content));
     const fallbackSections = renderFallbackSections(cvData, usedTypes);
-    const twoColumns = usesTwoColumnLayout(cvData, templateId);
     const sections = twoColumns
         ? `<div class="section-column section-column-main">${renderedSections
             .filter((section) => section.placement === "main")
@@ -1048,26 +1053,39 @@ const modernTemplate = Handlebars.compile(`
 
 // ── Engine Entry Point ────────────────────────────────────────────────────────
 
-export function generateHtml(cvData: any, templateId: string = "modern"): string {
-    // Prefer template_id from global_settings if not explicitly passed
+export function generateHtml(cvData: any, templateId?: string): string {
+    // An operation-level selection must win over the CV's persisted default.
     const resolvedTemplate =
-        (cvData?.global_settings?.template_id as string | undefined) ?? templateId;
+        templateId ??
+        (cvData?.global_settings?.template_id as string | undefined) ??
+        "modern";
 
-    const supportedTemplates = new Set([
-        "modern",
-        "compact",
-        "ats",
-        "student",
-        "creative",
-    ]);
+    const templateStyles: Record<string, string[]> = {
+        modern: ["modern"],
+        "atlas-sidebar": ["modern", "atlas-sidebar"],
+        compact: ["compact"],
+        ats: ["ats"],
+        student: ["student"],
+        creative: ["creative"],
+        ledger: ["modern", "ledger"],
+        executive: ["modern", "executive"],
+        signal: ["compact", "signal"],
+        scholar: ["student", "scholar"],
+    };
+    const supportedTemplates = new Set(Object.keys(templateStyles));
     const activeTemplate = supportedTemplates.has(resolvedTemplate)
         ? resolvedTemplate
         : "modern";
+    const activeStyles = templateStyles[activeTemplate] ?? ["modern"];
 
-    const cssPath = join(import.meta.dir, "styles", `${activeTemplate}.css`);
     let css = "";
     try {
-        css = readFileSync(cssPath, "utf-8");
+        css = activeStyles
+            .map((styleId) =>
+                readFileSync(join(import.meta.dir, "styles", `${styleId}.css`), "utf-8"),
+            )
+            .join("\n\n");
+        css += `\n\n/* template-id: ${activeTemplate} */`;
     } catch {
         console.warn(`CSS not found for template "${activeTemplate}", using fallback.`);
         css = ":host { font-family: sans-serif; }";

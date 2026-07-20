@@ -27,7 +27,7 @@ export function RuntimeConfigurationSection({
   onSave: () => void;
 }) {
   return (
-    <SettingsSection title="Ingestion and local runtime" icon={<HardDrive size={16} />}>
+    <SettingsSection title="Ingestion et interface" icon={<HardDrive size={16} />}>
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label>PDF ingestion mode</Label>
@@ -43,6 +43,24 @@ export function RuntimeConfigurationSection({
               setDraftSettings((current) => ({
                 ...current,
                 pdf_ingestion_mode: value as AppSettings["pdf_ingestion_mode"],
+              }))
+            }
+            triggerClassName="app-select h-10 w-full px-3 text-sm"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Langue de l’interface</Label>
+          <ToolbarSelect
+            value={draftSettings.ui_locale}
+            ariaLabel="Langue de l’interface"
+            options={[
+              { value: "fr", label: "Français" },
+              { value: "en", label: "English" },
+            ]}
+            onChange={(value) =>
+              setDraftSettings((current) => ({
+                ...current,
+                ui_locale: value as AppSettings["ui_locale"],
               }))
             }
             triggerClassName="app-select h-10 w-full px-3 text-sm"

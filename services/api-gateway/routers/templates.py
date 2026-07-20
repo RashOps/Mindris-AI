@@ -31,7 +31,7 @@ SessionDep = Annotated[Session, Depends(get_session)]
 READY_TEMPLATES = [
     TemplateCatalogItem(
         id="modern",
-        name="Modern",
+        name="Atlas",
         description=(
             "Balanced two-column layout for tech, product, and business profiles."
         ),
@@ -39,10 +39,38 @@ READY_TEMPLATES = [
         category="tech",
         accent="#2563eb",
         layout="two-column",
+        preset_settings={
+            "global_settings": {
+                "template_id": "modern",
+                "layout": {
+                    "columns": 2,
+                    "sidebar_position": "right",
+                    "sidebar_width": "35%",
+                    "density": "normal",
+                    "header_alignment": "left",
+                },
+                "typography": {
+                    "body_font": "Inter",
+                    "heading_font": "Inter",
+                    "base_size": "13px",
+                    "line_height": "1.5",
+                },
+                "colors": {
+                    "primary": "#2563eb",
+                    "secondary": "#64748b",
+                    "text": "#334155",
+                    "heading": "#0f172a",
+                    "sidebar_background": "#f8fafc",
+                    "separators": "#e2e8f0",
+                    "palette_preset": "tech",
+                    "monochrome": False,
+                },
+            }
+        },
     ),
     TemplateCatalogItem(
         id="compact",
-        name="Compact",
+        name="Terminal",
         description=(
             "Dense one-page format for experienced profiles and long histories."
         ),
@@ -50,33 +78,329 @@ READY_TEMPLATES = [
         category="senior",
         accent="#0f766e",
         layout="two-column",
+        preset_settings={
+            "global_settings": {
+                "template_id": "compact",
+                "layout": {
+                    "columns": 2,
+                    "sidebar_position": "right",
+                    "sidebar_width": "38%",
+                    "density": "compact",
+                    "header_alignment": "left",
+                },
+                "typography": {
+                    "body_font": "Inter",
+                    "heading_font": "Inter",
+                    "base_size": "11px",
+                    "line_height": "1.4",
+                },
+                "colors": {
+                    "primary": "#0f766e",
+                    "secondary": "#475569",
+                    "text": "#1f2937",
+                    "heading": "#134e4a",
+                    "sidebar_background": "#f0fdfa",
+                    "separators": "#99f6e4",
+                    "palette_preset": "minimal",
+                    "monochrome": False,
+                },
+            }
+        },
     ),
     TemplateCatalogItem(
         id="ats",
-        name="ATS Strict",
+        name="Mono ATS",
         description="Single-column, low-decoration template for ATS-friendly CVs.",
         status="ready",
         category="ats",
         accent="#475569",
         layout="single",
+        preset_settings={
+            "global_settings": {
+                "template_id": "ats",
+                "layout": {
+                    "columns": 1,
+                    "sidebar_position": "none",
+                    "density": "compact",
+                    "header_alignment": "left",
+                },
+                "typography": {
+                    "body_font": "Inter",
+                    "heading_font": "Inter",
+                    "base_size": "12px",
+                    "line_height": "1.45",
+                },
+                "colors": {
+                    "primary": "#475569",
+                    "secondary": "#475569",
+                    "text": "#111827",
+                    "heading": "#111827",
+                    "sidebar_background": "#ffffff",
+                    "separators": "#cbd5e1",
+                    "palette_preset": "minimal",
+                    "monochrome": True,
+                },
+            }
+        },
     ),
     TemplateCatalogItem(
         id="student",
-        name="Student",
+        name="Graduate",
         description="Education-first template for internships and first roles.",
         status="ready",
         category="student",
         accent="#7c3aed",
         layout="single",
+        preset_settings={
+            "global_settings": {
+                "template_id": "student",
+                "layout": {
+                    "columns": 1,
+                    "sidebar_position": "none",
+                    "density": "student",
+                    "header_alignment": "left",
+                },
+                "typography": {
+                    "body_font": "Inter",
+                    "heading_font": "Inter",
+                    "base_size": "12px",
+                    "line_height": "1.5",
+                },
+                "colors": {
+                    "primary": "#7c3aed",
+                    "secondary": "#64748b",
+                    "text": "#334155",
+                    "heading": "#2e1065",
+                    "sidebar_background": "#faf5ff",
+                    "separators": "#ddd6fe",
+                    "palette_preset": "creative",
+                    "monochrome": False,
+                },
+            }
+        },
     ),
     TemplateCatalogItem(
         id="creative",
-        name="Creative",
+        name="Studio",
         description="Editorial template for marketing, design, and content roles.",
         status="ready",
         category="creative",
         accent="#e11d48",
         layout="two-column",
+        preset_settings={
+            "global_settings": {
+                "template_id": "creative",
+                "layout": {
+                    "columns": 2,
+                    "sidebar_position": "left",
+                    "sidebar_width": "32%",
+                    "density": "normal",
+                    "header_alignment": "center",
+                },
+                "typography": {
+                    "body_font": "Lato",
+                    "heading_font": "Merriweather",
+                    "base_size": "12px",
+                    "line_height": "1.55",
+                    "titles_uppercase": False,
+                },
+                "colors": {
+                    "primary": "#e11d48",
+                    "secondary": "#64748b",
+                    "text": "#334155",
+                    "heading": "#4c0519",
+                    "sidebar_background": "#fff1f2",
+                    "separators": "#fecdd3",
+                    "palette_preset": "creative",
+                    "monochrome": False,
+                },
+            }
+        },
+    ),
+    TemplateCatalogItem(
+        id="atlas-sidebar",
+        name="Atlas Sidebar",
+        description="Balanced general-purpose layout with a calm profile sidebar.",
+        status="ready",
+        category="general",
+        accent="#0f766e",
+        layout="two-column",
+        preset_settings={
+            "global_settings": {
+                "template_id": "atlas-sidebar",
+                "layout": {
+                    "columns": 2,
+                    "sidebar_position": "left",
+                    "sidebar_width": "32%",
+                    "density": "normal",
+                    "header_alignment": "left",
+                },
+                "typography": {
+                    "body_font": "DM Sans",
+                    "heading_font": "DM Sans",
+                    "base_size": "12px",
+                    "line_height": "1.5",
+                },
+                "colors": {
+                    "primary": "#0f766e",
+                    "secondary": "#64748b",
+                    "text": "#334155",
+                    "heading": "#134e4a",
+                    "sidebar_background": "#ecfdf5",
+                    "separators": "#a7f3d0",
+                    "palette_preset": "minimal",
+                    "monochrome": False,
+                },
+            }
+        },
+    ),
+    TemplateCatalogItem(
+        id="ledger",
+        name="Ledger",
+        description="Editorial serif template for legal, finance, and consulting.",
+        status="ready",
+        category="professional",
+        accent="#7c2d12",
+        layout="single",
+        preset_settings={
+            "global_settings": {
+                "template_id": "ledger",
+                "layout": {
+                    "columns": 1,
+                    "sidebar_position": "none",
+                    "density": "senior",
+                    "header_alignment": "center",
+                },
+                "typography": {
+                    "body_font": "Lato",
+                    "heading_font": "Merriweather",
+                    "base_size": "12px",
+                    "line_height": "1.6",
+                    "titles_uppercase": False,
+                },
+                "colors": {
+                    "primary": "#7c2d12",
+                    "secondary": "#57534e",
+                    "text": "#292524",
+                    "heading": "#431407",
+                    "sidebar_background": "#fafaf9",
+                    "separators": "#d6d3d1",
+                    "palette_preset": "corporate",
+                    "monochrome": False,
+                },
+            }
+        },
+    ),
+    TemplateCatalogItem(
+        id="executive",
+        name="Executive",
+        description="Confident, restrained template for senior leadership profiles.",
+        status="ready",
+        category="senior",
+        accent="#1e3a5f",
+        layout="two-column",
+        preset_settings={
+            "global_settings": {
+                "template_id": "executive",
+                "layout": {
+                    "columns": 2,
+                    "sidebar_position": "right",
+                    "sidebar_width": "30%",
+                    "density": "senior",
+                    "header_alignment": "left",
+                },
+                "typography": {
+                    "body_font": "Lato",
+                    "heading_font": "Merriweather",
+                    "base_size": "12px",
+                    "line_height": "1.55",
+                },
+                "colors": {
+                    "primary": "#1e3a5f",
+                    "secondary": "#64748b",
+                    "text": "#334155",
+                    "heading": "#172554",
+                    "sidebar_background": "#f1f5f9",
+                    "separators": "#cbd5e1",
+                    "palette_preset": "corporate",
+                    "monochrome": False,
+                },
+            }
+        },
+    ),
+    TemplateCatalogItem(
+        id="signal",
+        name="Signal",
+        description="Crisp product and technology layout with visible impact markers.",
+        status="ready",
+        category="tech",
+        accent="#4f46e5",
+        layout="two-column",
+        preset_settings={
+            "global_settings": {
+                "template_id": "signal",
+                "layout": {
+                    "columns": 2,
+                    "sidebar_position": "right",
+                    "sidebar_width": "34%",
+                    "density": "compact",
+                    "header_alignment": "left",
+                },
+                "typography": {
+                    "body_font": "DM Sans",
+                    "heading_font": "DM Sans",
+                    "base_size": "12px",
+                    "line_height": "1.45",
+                },
+                "colors": {
+                    "primary": "#4f46e5",
+                    "secondary": "#64748b",
+                    "text": "#312e81",
+                    "heading": "#1e1b4b",
+                    "sidebar_background": "#eef2ff",
+                    "separators": "#c7d2fe",
+                    "palette_preset": "tech",
+                    "monochrome": False,
+                },
+            }
+        },
+    ),
+    TemplateCatalogItem(
+        id="scholar",
+        name="Scholar",
+        description="Research-first layout for publications, education, and academia.",
+        status="ready",
+        category="academic",
+        accent="#1d4ed8",
+        layout="single",
+        preset_settings={
+            "global_settings": {
+                "template_id": "scholar",
+                "layout": {
+                    "columns": 1,
+                    "sidebar_position": "none",
+                    "density": "student",
+                    "header_alignment": "center",
+                },
+                "typography": {
+                    "body_font": "Lato",
+                    "heading_font": "Merriweather",
+                    "base_size": "12px",
+                    "line_height": "1.6",
+                    "titles_uppercase": False,
+                },
+                "colors": {
+                    "primary": "#1d4ed8",
+                    "secondary": "#475569",
+                    "text": "#1e293b",
+                    "heading": "#172554",
+                    "sidebar_background": "#ffffff",
+                    "separators": "#94a3b8",
+                    "palette_preset": "minimal",
+                    "monochrome": False,
+                },
+            }
+        },
     ),
 ]
 
@@ -431,17 +755,24 @@ def resolve_template_defaults(
 
 
 def apply_template_defaults(
-    cv_data: dict[str, Any], template_id: str, session: Session | None = None
+    cv_data: dict[str, Any],
+    template_id: str,
+    session: Session | None = None,
+    *,
+    apply_preset: bool = False,
 ) -> dict[str, Any]:
-    """Overlay template defaults on top of a CV payload."""
+    """Resolve template defaults or explicitly apply its visual preset."""
     defaults = resolve_template_defaults(template_id, session=session)
     if not defaults:
-        return cv_data
-    merged = _deep_merge(defaults, cv_data)
+        merged = deepcopy(cv_data)
+    elif apply_preset:
+        merged = _deep_merge(cv_data, defaults)
+    else:
+        merged = _deep_merge(defaults, cv_data)
     template = _catalog_template_item(template_id)
-    if template is not None and template.base_template_id:
+    if template is not None:
         global_settings = merged.setdefault("global_settings", {})
-        global_settings["template_id"] = template.base_template_id
+        global_settings["template_id"] = template.base_template_id or template.id
     if session is not None:
         record = session.exec(
             select(CommunityTemplateRecord).where(
@@ -598,9 +929,32 @@ CUSTOMIZATION_CATALOGUE = {
         ],
     },
     "templates": {
-        "modern": {"compatibleLayouts": [1, 2]},
-        "compact": {"compatibleLayouts": [1, 2]},
+        "modern": {
+            "label": "Atlas",
+            "category": "Généraliste",
+            "accent": "#2563eb",
+            "previewStyle": "atlas",
+            "compatibleLayouts": [1, 2],
+        },
+        "atlas-sidebar": {
+            "label": "Atlas Sidebar",
+            "category": "Généraliste",
+            "accent": "#0f766e",
+            "previewStyle": "sidebar",
+            "compatibleLayouts": [1, 2],
+        },
+        "compact": {
+            "label": "Terminal",
+            "category": "Ingénierie",
+            "accent": "#0f766e",
+            "previewStyle": "terminal",
+            "compatibleLayouts": [1, 2],
+        },
         "ats": {
+            "label": "Mono ATS",
+            "category": "ATS",
+            "accent": "#475569",
+            "previewStyle": "mono",
             "compatibleLayouts": [1],
             "enforced": {
                 "layout": {"columns": 1, "sidebar_position": "none"},
@@ -609,8 +963,48 @@ CUSTOMIZATION_CATALOGUE = {
                 "typography": {"bullet_style": "dash"},
             },
         },
-        "student": {"compatibleLayouts": [1]},
-        "creative": {"compatibleLayouts": [1, 2]},
+        "student": {
+            "label": "Graduate",
+            "category": "Début de carrière",
+            "accent": "#7c3aed",
+            "previewStyle": "graduate",
+            "compatibleLayouts": [1],
+        },
+        "creative": {
+            "label": "Studio",
+            "category": "Créatif",
+            "accent": "#e11d48",
+            "previewStyle": "studio",
+            "compatibleLayouts": [1, 2],
+        },
+        "ledger": {
+            "label": "Ledger",
+            "category": "Éditorial",
+            "accent": "#7c2d12",
+            "previewStyle": "ledger",
+            "compatibleLayouts": [1],
+        },
+        "executive": {
+            "label": "Executive",
+            "category": "Direction",
+            "accent": "#1e3a5f",
+            "previewStyle": "executive",
+            "compatibleLayouts": [1, 2],
+        },
+        "signal": {
+            "label": "Signal",
+            "category": "Tech & Produit",
+            "accent": "#4f46e5",
+            "previewStyle": "signal",
+            "compatibleLayouts": [1, 2],
+        },
+        "scholar": {
+            "label": "Scholar",
+            "category": "Académique",
+            "accent": "#1d4ed8",
+            "previewStyle": "scholar",
+            "compatibleLayouts": [1],
+        },
     },
 }
 
@@ -667,7 +1061,10 @@ def resolve_template_render_payload_route(
             requested_template_id = settings_template_id
     requested_template_id = requested_template_id or "modern"
     resolved_cv_data = apply_template_defaults(
-        cv_data, requested_template_id, session=session
+        cv_data,
+        requested_template_id,
+        session=session,
+        apply_preset=request.apply_preset,
     )
     resolved_settings = resolved_cv_data.setdefault("global_settings", {})
     resolved_template_id = resolved_settings.get("template_id")

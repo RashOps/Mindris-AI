@@ -169,6 +169,8 @@ describe("useCVStore normalization", () => {
     expect(normalized.summary).toBe("");
     expect(normalized.links[0]?.relation).toBe("evaluated_against");
     expect(normalized.metadata.score).toBe(88);
+    expect(normalized.group_id).toBe("date:2026-07-02");
+    expect(normalized.group_label).toBe("Activité non classée");
   });
 
   test("normalizes legacy resume documents into multilingual metadata", () => {

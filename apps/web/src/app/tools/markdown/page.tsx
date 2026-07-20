@@ -5,6 +5,16 @@ import { RENDERER_BASE_URL, apiUrl, jsonHeaders, rendererUrl } from "@/lib/api";
 import { fetchCoverLetter } from "@/lib/cover-letters";
 import { deleteDraft, loadDraft } from "@/lib/drafts";
 import { ToolbarSelect } from "@/components/ToolbarSelect";
+import {
+  ArrowRight,
+  BriefcaseBusiness,
+  Clock3,
+  Download,
+  Eye,
+  FileText,
+  PencilLine,
+  Save,
+} from "lucide-react";
 
 // ── Templates ─────────────────────────────────────────────────────────────────
 
@@ -133,6 +143,7 @@ export default function MarkdownToolPage() {
   const [coverLetterJobId, setCoverLetterJobId] = useState<number | null>(null);
   const [coverLetters, setCoverLetters] = useState<CoverLetterItem[]>([]);
   const [isLoadingLetter, setIsLoadingLetter] = useState(false);
+  const [mobileView, setMobileView] = useState<"editor" | "preview">("editor");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const refreshCoverLetters = useCallback(async () => {
@@ -371,7 +382,7 @@ export default function MarkdownToolPage() {
   const charCount = markdown.length;
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden bg-background text-foreground">
+    <div className="flex h-[calc(100dvh-7.5rem-1px)] flex-col overflow-hidden bg-background text-foreground sm:h-[calc(100dvh-4.5rem-1px)]">
       {/* Toast */}
       {status && (
         <div
@@ -456,7 +467,10 @@ export default function MarkdownToolPage() {
                   Sauvegarde...
                 </>
               ) : (
-                <>Sauvegarder une nouvelle version</>
+                <>
+                  <Save className="h-4 w-4" aria-hidden="true" />
+                  Enregistrer une version
+                </>
               )}
             </button>
           ) : null}
@@ -472,7 +486,10 @@ export default function MarkdownToolPage() {
                 Génération...
               </>
             ) : (
-              <>↓ Export DOCX</>
+              <>
+                <Download className="h-4 w-4" aria-hidden="true" />
+                DOCX
+              </>
             )}
           </button>
 
@@ -487,7 +504,10 @@ export default function MarkdownToolPage() {
                 Génération...
               </>
             ) : (
-              <>↓ Export PDF</>
+              <>
+                <Download className="h-4 w-4" aria-hidden="true" />
+                PDF
+              </>
             )}
           </button>
         </div>
@@ -521,37 +541,38 @@ export default function MarkdownToolPage() {
       </div>
 
       {coverLetterId ? (
-        <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-border bg-muted/30 px-4 py-2 text-xs text-muted-foreground">
-          <span>
-            Lettre active :{" "}
-            <span className="font-semibold text-foreground">#{coverLetterId}</span>
-          </span>
-          <span>
-            Job :{" "}
-            <span className="font-semibold text-foreground">
-              {coverLetterJobId ? `#${coverLetterJobId}` : "non lié"}
+        <div className="shrink-0 border-b border-border bg-muted/30 px-4 py-2 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1 font-medium text-foreground">
+              <BriefcaseBusiness className="h-3.5 w-3.5" aria-hidden="true" />
+              {coverLetterJobId ? `Offre #${coverLetterJobId}` : "Offre non liée"}
             </span>
-          </span>
-          <span>
-            Versions même job :{" "}
-            <span className="font-semibold text-foreground">
-              {sameJobLetters.length}
+            <ArrowRight className="h-3 w-3" aria-hidden="true" />
+            <span className="font-medium text-foreground">
+              Lettre #{coverLetterId}
             </span>
-          </span>
+            <ArrowRight className="h-3 w-3" aria-hidden="true" />
+            <span>Export PDF</span>
+            <span className="ml-auto inline-flex items-center gap-1">
+              <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
+              {sameJobLetters.length} version{sameJobLetters.length > 1 ? "s" : ""}
+            </span>
+          </div>
           {sameJobLetters.length > 1 ? (
-            <div className="flex flex-wrap items-center gap-1">
-              {sameJobLetters.slice(0, 5).map((letter) => (
+            <div className="mt-2 flex items-center gap-2 overflow-x-auto pb-1">
+              {sameJobLetters.map((letter) => (
                 <button
                   key={letter.id}
                   type="button"
                   onClick={() => void handleOpenCoverLetter(letter.id)}
-                  className={`rounded-full border px-2 py-0.5 font-medium transition-colors ${
+                  className={`shrink-0 rounded-full border px-2 py-1 font-medium transition-colors ${
                     letter.id === coverLetterId
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-border bg-card text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                   }`}
                 >
-                  #{letter.id}
+                  Version #{letter.id} ·{" "}
+                  {new Date(letter.generated_at).toLocaleDateString("fr-FR")}
                 </button>
               ))}
             </div>
@@ -559,10 +580,48 @@ export default function MarkdownToolPage() {
         </div>
       ) : null}
 
+      <div
+        className="grid shrink-0 grid-cols-2 border-b border-border bg-card md:hidden"
+        role="tablist"
+        aria-label="Vue Markdown"
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mobileView === "editor"}
+          onClick={() => setMobileView("editor")}
+          className={`flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium ${
+            mobileView === "editor"
+              ? "border-b-2 border-primary text-foreground"
+              : "text-muted-foreground"
+          }`}
+        >
+          <PencilLine className="h-3.5 w-3.5" aria-hidden="true" />
+          Éditeur
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mobileView === "preview"}
+          onClick={() => setMobileView("preview")}
+          className={`flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium ${
+            mobileView === "preview"
+              ? "border-b-2 border-primary text-foreground"
+              : "text-muted-foreground"
+          }`}
+        >
+          <Eye className="h-3.5 w-3.5" aria-hidden="true" />
+          Aperçu
+        </button>
+      </div>
+
       {/* ── Editor / Preview split ────────────────────────────────────────── */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex flex-1 overflow-hidden">
         {/* Left — Markdown editor */}
-        <div className="flex h-full w-1/2 flex-col border-r border-border bg-card">
+        <div
+          className={`${mobileView === "editor" ? "flex" : "hidden"} h-full w-full flex-col border-r border-border bg-card md:flex md:w-1/2`}
+          role="tabpanel"
+        >
           <div className="border-b border-border bg-card px-4 py-2">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
               Éditeur Markdown
@@ -579,10 +638,13 @@ export default function MarkdownToolPage() {
         </div>
 
         {/* Right — Live preview */}
-        <div className="flex h-full w-1/2 flex-col bg-muted/40">
+        <div
+          className={`${mobileView === "preview" ? "flex" : "hidden"} h-full w-full flex-col bg-muted/40 md:flex md:w-1/2`}
+          role="tabpanel"
+        >
           <div className="flex items-center justify-between border-b border-border bg-card px-4 py-2">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              Preview live
+              Aperçu en direct
             </p>
             {isLoadingPreview && (
               <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -604,24 +666,12 @@ export default function MarkdownToolPage() {
               <div className="flex h-full w-full flex-col items-center justify-center text-muted-foreground">
                 {!markdown.trim() ? (
                   <>
-                    <svg
-                      className="mb-4 h-12 w-12 text-muted-foreground"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
+                    <FileText className="mb-4 h-12 w-12" aria-hidden="true" />
                     <p className="text-sm font-medium text-foreground">
                       Commence à écrire ou choisis un template
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      La preview se met à jour automatiquement
+                      L’aperçu se met à jour automatiquement
                     </p>
                   </>
                 ) : (
@@ -638,7 +688,7 @@ export default function MarkdownToolPage() {
 
       {/* ── Status bar ─────────────────────────────────────────────────────────── */}
       <div className="flex h-8 shrink-0 items-center gap-4 border-t border-border bg-card px-4">
-        <span className="text-xs text-muted-foreground">
+        <span className="hidden text-xs text-muted-foreground md:inline">
           Style :{" "}
           <span className="font-medium capitalize text-foreground">
             {style}
@@ -668,7 +718,7 @@ export default function MarkdownToolPage() {
           </span>
         ) : null}
         <span className="ml-auto text-xs text-muted-foreground">
-          Markdown Converter
+          Markdown vers PDF
         </span>
       </div>
     </div>

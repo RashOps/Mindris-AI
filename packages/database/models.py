@@ -54,6 +54,38 @@ class JobOfferExtract(BaseModel):
         default_factory=list,
         description="Interpersonal / soft skills valued (e.g. Leadership, Autonomy).",
     )
+    responsibilities: list[str] = Field(
+        default_factory=list,
+        description="Primary responsibilities explicitly stated in the offer.",
+    )
+    must_have_requirements: list[str] = Field(
+        default_factory=list,
+        description="Mandatory or clearly required qualifications.",
+    )
+    nice_to_have_requirements: list[str] = Field(
+        default_factory=list,
+        description="Optional or preferred qualifications.",
+    )
+    differentiators: list[str] = Field(
+        default_factory=list,
+        description="Candidate qualities presented as differentiating advantages.",
+    )
+    tools_environments: list[str] = Field(
+        default_factory=list,
+        description="Named tools, platforms, standards, and work environments.",
+    )
+    language_requirements: list[str] = Field(
+        default_factory=list,
+        description="Required spoken or written languages and levels.",
+    )
+    disqualifiers: list[str] = Field(
+        default_factory=list,
+        description="Explicit eligibility constraints or eliminating criteria.",
+    )
+    tone_keywords: list[str] = Field(
+        default_factory=list,
+        description="Words describing the offer's culture and communication tone.",
+    )
 
     # ── Optional metadata ─────────────────────────────────────────────────────
     experience_level: str | None = Field(
@@ -102,6 +134,14 @@ class JobOffer(BaseModel):
     )
     hard_skills: list[str] = Field(default_factory=list)
     soft_skills: list[str] = Field(default_factory=list)
+    responsibilities: list[str] = Field(default_factory=list)
+    must_have_requirements: list[str] = Field(default_factory=list)
+    nice_to_have_requirements: list[str] = Field(default_factory=list)
+    differentiators: list[str] = Field(default_factory=list)
+    tools_environments: list[str] = Field(default_factory=list)
+    language_requirements: list[str] = Field(default_factory=list)
+    disqualifiers: list[str] = Field(default_factory=list)
+    tone_keywords: list[str] = Field(default_factory=list)
     experience_level: str | None = None
     remote_policy: str | None = None
     salary_range: str | None = None

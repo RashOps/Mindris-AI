@@ -38,7 +38,7 @@ export function WorkflowHeader({
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-3 gap-2 xl:gap-3">
           {[
             {
               label: "Opportunités",
@@ -52,15 +52,15 @@ export function WorkflowHeader({
             return (
               <div
                 key={metric.label}
-                className="rounded-xl border border-border bg-muted/40 px-3 py-3"
+                className="rounded-xl border border-border bg-muted/40 px-2 py-2 xl:px-3 xl:py-3"
               >
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                <div className="mb-1 flex items-center justify-between xl:mb-2">
+                  <p className="truncate text-[9px] font-medium uppercase tracking-wide text-muted-foreground xl:text-xs">
                     {metric.label}
                   </p>
-                  <Icon size={14} className="text-muted-foreground" />
+                  <Icon size={14} className="hidden text-muted-foreground xl:block" />
                 </div>
-                <p className="text-2xl font-semibold text-foreground">
+                <p className="text-lg font-semibold text-foreground xl:text-2xl">
                   {metric.value}
                 </p>
               </div>

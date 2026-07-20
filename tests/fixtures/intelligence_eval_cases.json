@@ -1,0 +1,74 @@
+[
+  {
+    "id": "tech-en-grounded",
+    "locale": "en",
+    "job_family": "technology",
+    "evidence": [
+      {"id": "fact_1", "section_type": "experience", "text": "Built Python workflow services"}
+    ],
+    "changes": [
+      {
+        "section_id": "experience",
+        "after": "Built Python workflow services",
+        "reason": "Matches the platform requirement",
+        "source_fact_ids": ["fact_1"],
+        "confidence": 1.0
+      }
+    ],
+    "accepted": 1
+  },
+  {
+    "id": "marketing-fr-unsupported-metric",
+    "locale": "fr",
+    "job_family": "marketing",
+    "evidence": [
+      {"id": "fact_1", "section_type": "experience", "text": "Animation de campagnes sociales"}
+    ],
+    "changes": [
+      {
+        "section_id": "experience",
+        "after": "Augmentation des conversions de 40 %",
+        "reason": "Ajoute une métrique",
+        "source_fact_ids": ["fact_missing"],
+        "confidence": 0.2
+      }
+    ],
+    "accepted": 0
+  },
+  {
+    "id": "legal-fr-grounded",
+    "locale": "fr",
+    "job_family": "legal",
+    "evidence": [
+      {"id": "fact_8", "section_type": "experience", "text": "Relecture de contrats commerciaux"}
+    ],
+    "changes": [
+      {
+        "section_id": "experience",
+        "after": "Relu des contrats commerciaux",
+        "reason": "Clarifie la responsabilité",
+        "source_fact_ids": ["fact_8"],
+        "confidence": 0.95
+      }
+    ],
+    "accepted": 1
+  },
+  {
+    "id": "student-en-fabricated-certification",
+    "locale": "en",
+    "job_family": "student",
+    "evidence": [
+      {"id": "fact_2", "section_type": "education", "text": "BSc Computer Science"}
+    ],
+    "changes": [
+      {
+        "section_id": "certifications",
+        "after": "AWS Certified Solutions Architect",
+        "reason": "Matches cloud keywords",
+        "source_fact_ids": ["fact_99"],
+        "confidence": 0.1
+      }
+    ],
+    "accepted": 0
+  }
+]

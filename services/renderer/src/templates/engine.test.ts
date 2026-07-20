@@ -1,7 +1,18 @@
 import { describe, expect, test } from "bun:test";
 import { generateHtml } from "./engine";
 
-const builtInTemplateIds = ["modern", "compact", "ats", "student", "creative"];
+const builtInTemplateIds = [
+  "modern",
+  "atlas-sidebar",
+  "compact",
+  "ats",
+  "student",
+  "creative",
+  "ledger",
+  "executive",
+  "signal",
+  "scholar",
+];
 
 const baseCv = {
   global_settings: {
@@ -90,6 +101,36 @@ const baseCv = {
 };
 
 describe("generateHtml semantic sections", () => {
+  test("prefers an explicitly requested template over the stored CV template", () => {
+    const html = generateHtml(baseCv, "ats");
+
+    expect(html).toContain("Mindris AI — ATS CV Template");
+    expect(html).not.toContain("Mindris AI — Modern CV Template");
+  });
+
+  test("uses the stored CV template when no template is explicitly requested", () => {
+    const html = generateHtml({
+      ...baseCv,
+      global_settings: {
+        ...baseCv.global_settings,
+        template_id: "creative",
+      },
+    });
+
+    expect(html).toContain("Mindris AI — Creative CV Template");
+  });
+
+  test("loads a distinct stylesheet for every built-in template", () => {
+    const renderedTemplates = builtInTemplateIds.map((templateId) =>
+      generateHtml(baseCv, templateId),
+    );
+
+    expect(new Set(renderedTemplates).size).toBe(builtInTemplateIds.length);
+    for (const [index, templateId] of builtInTemplateIds.entries()) {
+      expect(renderedTemplates[index]).toContain(`template-id: ${templateId}`);
+    }
+  });
+
   test("uses section configuration for label, visibility, order, and placement", () => {
     const html = generateHtml(baseCv, "modern");
 
@@ -145,6 +186,7 @@ describe("generateHtml semantic sections", () => {
     expect(sidebarColumn).toContain('data-section-type="skills"');
     expect(html).toContain(".section-column-main");
     expect(html).toContain(".section-column-sidebar");
+    expect(html).toContain("grid-auto-flow: dense");
   });
 
   test("preserves configured global order for a single-column layout", () => {
@@ -161,6 +203,7 @@ describe("generateHtml semantic sections", () => {
 
     const renderedMarkup = html.slice(html.indexOf("wrapper.innerHTML = `"));
     expect(renderedMarkup).not.toContain("section-column-main");
+    expect(renderedMarkup).not.toContain('data-section-placement="sidebar"');
     expect(renderedMarkup.indexOf("Core Skills")).toBeLessThan(
       renderedMarkup.indexOf("Selected Experience"),
     );
@@ -186,7 +229,11 @@ describe("generateHtml semantic sections", () => {
       expect(html).toContain(".section-display-cards");
       expect(html).toContain(".section-detail-short");
       expect(html).toContain(".section-detail-detailed");
-      expect(html).toContain('data-section-placement="sidebar"');
+      if (templateId === "ats") {
+        expect(html).not.toContain('data-section-placement="sidebar"');
+      } else {
+        expect(html).toContain('data-section-placement="sidebar"');
+      }
       expect(html).toContain('data-section-placement="main"');
       expect(html).toContain('data-section-display-mode="compact"');
       expect(html).toContain('data-section-display-mode="timeline"');
@@ -225,7 +272,11 @@ describe("generateHtml semantic sections", () => {
       expect(html).toContain('data-section-type="skills"');
       expect(html).toContain('data-section-type="experience"');
       expect(html).toContain('data-section-type="certifications"');
-      expect(html).toContain('data-section-placement="sidebar"');
+      if (templateId === "ats") {
+        expect(html).not.toContain('data-section-placement="sidebar"');
+      } else {
+        expect(html).toContain('data-section-placement="sidebar"');
+      }
       expect(html).toContain('data-section-placement="main"');
     }
   });

@@ -15,14 +15,14 @@ describe("app shell sidebar layout", () => {
 
     expect(guide?.href).toBe("/tools/guide");
     expect(guide?.label).toBe("Guide");
-    expect(guide?.description).toContain("workflow");
+    expect(guide?.description).toContain("parcours");
   });
 
   test("keeps workflow name separate from its beta status badge", () => {
     const workflow = APP_NAV_ITEMS.find((item) => item.id === "workflow");
 
     expect(workflow?.label).toBe("Workflow");
-    expect(workflow?.shortLabel).toBe("Flow");
+    expect(workflow?.shortLabel).toBe("Parcours");
     expect(workflow?.badge).toBe("Beta");
   });
 

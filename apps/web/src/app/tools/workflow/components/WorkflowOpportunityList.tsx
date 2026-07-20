@@ -1,6 +1,7 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Loader2, Search } from "lucide-react";
 
 import {
   STATE_LABELS,
@@ -22,10 +23,34 @@ export function WorkflowOpportunityList({
   selectedId,
   onSelect,
 }: WorkflowOpportunityListProps) {
+  const [query, setQuery] = useState("");
+  const filteredOpportunities = useMemo(() => {
+    const needle = query.trim().toLocaleLowerCase("fr");
+    if (!needle) return opportunities;
+    return opportunities.filter((item) =>
+      `${item.role} ${item.company}`.toLocaleLowerCase("fr").includes(needle),
+    );
+  }, [opportunities, query]);
+
   return (
     <section className="rounded-2xl border border-border bg-card shadow-sm">
       <div className="border-b border-border px-4 py-3">
-        <p className="text-sm font-semibold text-foreground">Opportunités actives</p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm font-semibold text-foreground">Opportunités actives</p>
+          <span className="text-xs text-muted-foreground">
+            {filteredOpportunities.length}/{opportunities.length}
+          </span>
+        </div>
+        <label className="relative mt-3 block">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Rechercher une opportunité"
+            className="app-input h-9 w-full pl-9 text-xs"
+          />
+        </label>
       </div>
       {loading ? (
         <div className="flex items-center gap-2 px-4 py-6 text-sm text-muted-foreground">
@@ -36,9 +61,13 @@ export function WorkflowOpportunityList({
         <div className="px-4 py-6 text-sm text-muted-foreground">
           Aucune opportunité. Démarrez depuis une offre importée ou créez une fiche manuelle.
         </div>
+      ) : filteredOpportunities.length === 0 ? (
+        <div className="px-4 py-6 text-sm text-muted-foreground">
+          Aucune opportunité ne correspond à cette recherche.
+        </div>
       ) : (
-        <div className="divide-y divide-border">
-          {opportunities.map((item) => (
+        <div className="max-h-[60vh] divide-y divide-border overflow-y-auto">
+          {filteredOpportunities.map((item) => (
             <button
               key={item.id}
               type="button"

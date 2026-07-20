@@ -1,0 +1,38 @@
+/* Signal — crisp product and engineering layout with modular sections. */
+:host {
+    --primary-color: #4f46e5;
+    --heading-color: #1e1b4b;
+    --sidebar-background: #eef2ff;
+    --separator-color: #c7d2fe;
+}
+
+.cv-header {
+    border-bottom: 3px solid var(--primary-color);
+}
+
+.profile-name {
+    letter-spacing: -0.045em;
+}
+
+.section-column-sidebar {
+    background: var(--sidebar-background);
+    border-radius: 12px;
+    padding: 18px;
+}
+
+.section-title {
+    border: 0;
+    background: color-mix(in srgb, var(--primary-color) 9%, white);
+    border-radius: 6px;
+    padding: 6px 9px;
+}
+
+.entry {
+    border-left: 2px solid var(--separator-color);
+    padding-left: 12px;
+}
+
+.tag {
+    border-radius: 5px;
+    border: 1px solid var(--separator-color);
+}

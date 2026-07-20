@@ -11,6 +11,18 @@ type TemplateEnforcement = {
   typography?: { bullet_style?: "bullets" | "dash" | "dots" | "icons" };
 };
 
+export type TemplatePreviewStyle =
+  | "atlas"
+  | "sidebar"
+  | "terminal"
+  | "mono"
+  | "graduate"
+  | "studio"
+  | "ledger"
+  | "executive"
+  | "signal"
+  | "scholar";
+
 export type CustomizationCatalogue = {
   schemaVersion: string;
   page: {
@@ -100,6 +112,10 @@ export type CustomizationCatalogue = {
   templates: Record<
     string,
     {
+      label?: string;
+      category?: string;
+      accent?: string;
+      previewStyle?: TemplatePreviewStyle;
       compatibleLayouts: number[];
       enforced?: TemplateEnforcement;
     }
@@ -109,6 +125,9 @@ export type CustomizationCatalogue = {
 export type TemplateCard = {
   id: string;
   label: string;
+  category: string;
+  accent: string;
+  previewStyle: TemplatePreviewStyle;
   compatibleLayouts: number[];
   enforced?: TemplateEnforcement;
 };
@@ -257,9 +276,20 @@ export const FALLBACK_CUSTOMIZATION_CATALOGUE: CustomizationCatalogue = {
     ],
   },
   templates: {
-    modern: { compatibleLayouts: [1, 2] },
-    compact: { compatibleLayouts: [1, 2] },
+    modern: { label: "Atlas", category: "Généraliste", accent: "#2563eb", previewStyle: "atlas", compatibleLayouts: [1, 2] },
+    "atlas-sidebar": {
+      label: "Atlas Sidebar",
+      category: "Généraliste",
+      accent: "#0f766e",
+      previewStyle: "sidebar",
+      compatibleLayouts: [1, 2],
+    },
+    compact: { label: "Terminal", category: "Ingénierie", accent: "#0f766e", previewStyle: "terminal", compatibleLayouts: [1, 2] },
     ats: {
+      label: "Mono ATS",
+      category: "ATS",
+      accent: "#475569",
+      previewStyle: "mono",
       compatibleLayouts: [1],
       enforced: {
         layout: { columns: 1, sidebar_position: "none" },
@@ -268,8 +298,12 @@ export const FALLBACK_CUSTOMIZATION_CATALOGUE: CustomizationCatalogue = {
         typography: { bullet_style: "dash" },
       },
     },
-    student: { compatibleLayouts: [1] },
-    creative: { compatibleLayouts: [1, 2] },
+    student: { label: "Graduate", category: "Début de carrière", accent: "#7c3aed", previewStyle: "graduate", compatibleLayouts: [1] },
+    creative: { label: "Studio", category: "Créatif", accent: "#e11d48", previewStyle: "studio", compatibleLayouts: [1, 2] },
+    ledger: { label: "Ledger", category: "Éditorial", accent: "#7c2d12", previewStyle: "ledger", compatibleLayouts: [1] },
+    executive: { label: "Executive", category: "Direction", accent: "#1e3a5f", previewStyle: "executive", compatibleLayouts: [1, 2] },
+    signal: { label: "Signal", category: "Tech & Produit", accent: "#4f46e5", previewStyle: "signal", compatibleLayouts: [1, 2] },
+    scholar: { label: "Scholar", category: "Académique", accent: "#1d4ed8", previewStyle: "scholar", compatibleLayouts: [1] },
   },
 };
 
@@ -288,7 +322,11 @@ function mergeTemplates(
 ): CustomizationCatalogue["templates"] {
   if (!value || typeof value !== "object") return fallback;
   const entries = value as CustomizationCatalogue["templates"];
-  return { ...fallback, ...entries };
+  return Object.fromEntries(
+    Array.from(new Set([...Object.keys(fallback), ...Object.keys(entries)])).map(
+      (id) => [id, { ...fallback[id], ...entries[id] }],
+    ),
+  ) as CustomizationCatalogue["templates"];
 }
 
 export function normalizeCustomizationCatalogue(
@@ -611,7 +649,10 @@ export function resolveCustomizationOptionLists(catalogue: CustomizationCatalogu
 export function buildTemplateCards(catalogue: CustomizationCatalogue): TemplateCard[] {
   return Object.entries(catalogue.templates).map(([id, template]) => ({
     id,
-    label: id === "ats" ? "ATS Strict" : id.charAt(0).toUpperCase() + id.slice(1),
+    label: template.label ?? id.charAt(0).toUpperCase() + id.slice(1),
+    category: template.category ?? "Autre",
+    accent: template.accent ?? "#64748b",
+    previewStyle: template.previewStyle ?? "atlas",
     compatibleLayouts: template.compatibleLayouts,
     enforced: template.enforced,
   }));

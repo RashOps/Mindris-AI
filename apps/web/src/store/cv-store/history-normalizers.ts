@@ -29,6 +29,14 @@ export function normalizeHistoryLedgerItem(
     model_name:
       typeof candidate.model_name === "string" ? candidate.model_name : null,
     status: typeof candidate.status === "string" ? candidate.status : null,
+    group_id:
+      typeof candidate.group_id === "string" && candidate.group_id
+        ? candidate.group_id
+        : `date:${candidate.timestamp?.slice(0, 10) ?? "unknown"}`,
+    group_label:
+      typeof candidate.group_label === "string" && candidate.group_label
+        ? candidate.group_label
+        : "Activité non classée",
     links: Array.isArray(candidate.links)
       ? candidate.links.map((link) => ({
           subject_type:

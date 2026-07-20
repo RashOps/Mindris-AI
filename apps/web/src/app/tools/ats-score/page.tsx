@@ -17,7 +17,7 @@ import {
 import Link from "next/link";
 import { apiUrl, connectApiEventStream, jsonHeaders } from "@/lib/api";
 import { loadDraft, saveDraft } from "@/lib/drafts";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ChartNoAxesColumn, FileSearch, RotateCcw } from "lucide-react";
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
@@ -34,6 +34,9 @@ export default function AtsScorePage() {
   const [sseMessages, setSseMessages] = useState<string[]>([]);
   const [cvLoaded, setCvLoaded] = useState(!!cvData?.profile?.full_name);
   const [error, setError] = useState<string | null>(null);
+  const [resultTab, setResultTab] = useState<
+    "summary" | "keywords" | "details"
+  >("summary");
   const jobIdRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -42,6 +45,7 @@ export default function AtsScorePage() {
       .then((draft) => {
         if (cancelled || !draft?.report) return;
         setReport(normalizeAtsReport(draft.report));
+        setResultTab("summary");
       })
       .catch(() => undefined);
     return () => {
@@ -129,6 +133,7 @@ export default function AtsScorePage() {
                   atsData.ats_report ?? atsData,
                 );
                 setReport(newReport);
+                setResultTab("summary");
                 await saveDraft("ats-report", { report: newReport });
               }
             } catch {
@@ -160,19 +165,20 @@ export default function AtsScorePage() {
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-background text-foreground">
-      {/* Hero section */}
-      <div className="px-6">
-        <AtsHero
-          jobUrl={jobUrl}
-          setJobUrl={setJobUrl}
-          atsMode={atsMode}
-          setAtsMode={setAtsMode}
-          onAnalyze={handleAnalyze}
-          isAnalyzing={isAnalyzing}
-          cvLoaded={cvLoaded}
-          onCvLoaded={handleCvLoaded}
-        />
-      </div>
+      {!report ? (
+        <div className="px-4 sm:px-6">
+          <AtsHero
+            jobUrl={jobUrl}
+            setJobUrl={setJobUrl}
+            atsMode={atsMode}
+            setAtsMode={setAtsMode}
+            onAnalyze={handleAnalyze}
+            isAnalyzing={isAnalyzing}
+            cvLoaded={cvLoaded}
+            onCvLoaded={handleCvLoaded}
+          />
+        </div>
+      ) : null}
 
       {/* SSE progress */}
       {isAnalyzing && (
@@ -192,7 +198,67 @@ export default function AtsScorePage() {
 
       {/* Dashboard */}
       {report && (
-        <div className="max-w-5xl mx-auto px-6 pb-16 mt-8 space-y-6">
+        <div className="mx-auto max-w-5xl space-y-5 px-4 pb-12 pt-6 sm:px-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <FileSearch className="h-4 w-4" aria-hidden="true" />
+                Rapport ATS
+                <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] uppercase text-muted-foreground">
+                  {report.mode}
+                </span>
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {report.context.job_title || "Offre analysée"}
+                {report.context.job_company
+                  ? ` · ${report.context.job_company}`
+                  : ""}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setReport(null);
+                setError(null);
+              }}
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-3 text-xs font-medium text-foreground transition hover:bg-accent"
+            >
+              <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+              Nouvelle analyse
+            </button>
+          </div>
+
+          <div
+            className="grid grid-cols-3 rounded-xl border border-border bg-card p-1"
+            role="tablist"
+            aria-label="Sections du rapport ATS"
+          >
+            {(
+              [
+                ["summary", "Résumé"],
+                ["keywords", "Mots-clés"],
+                ["details", "Détails"],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                role="tab"
+                aria-selected={resultTab === value}
+                onClick={() => setResultTab(value)}
+                className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
+                  resultTab === value
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {resultTab === "summary" ? (
+            <div className="space-y-5" role="tabpanel">
           {/* ── Row 1: Score + Summary + Bar Chart ── */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Score gauge */}
@@ -259,27 +325,10 @@ export default function AtsScorePage() {
                   {report.summary}
                 </p>
               </div>
-              <div>
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                  Mots-clés
-                </p>
-                <KeywordBarChart keywords={report.keyword_analysis} />
-              </div>
             </div>
           </div>
 
-          {/* ── Row 2: Radar + Recommendations ── */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Radar */}
-            <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-              <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Couverture des compétences
-              </p>
-              <SkillsRadar keywords={report.keyword_analysis} />
-            </div>
-
-            {/* Recommendations */}
-            <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+          <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
               <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                 Recommandations
               </p>
@@ -290,9 +339,12 @@ export default function AtsScorePage() {
                   Aucune amélioration critique détectée.
                 </p>
               )}
-            </div>
           </div>
+            </div>
+          ) : null}
 
+          {resultTab === "details" ? (
+            <div className="space-y-5" role="tabpanel">
           {/* ── Scoring breakdown ── */}
           {report.scoring_breakdown?.length > 0 && (
             <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
@@ -457,6 +509,26 @@ export default function AtsScorePage() {
               </div>
             </div>
           </div>
+            </div>
+          ) : null}
+
+          {resultTab === "keywords" ? (
+            <div className="space-y-5" role="tabpanel">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+                  <p className="mb-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    <ChartNoAxesColumn className="h-3.5 w-3.5" aria-hidden="true" />
+                    Couverture des compétences
+                  </p>
+                  <SkillsRadar keywords={report.keyword_analysis} />
+                </div>
+                <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+                  <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    Synthèse des mots-clés
+                  </p>
+                  <KeywordBarChart keywords={report.keyword_analysis} />
+                </div>
+              </div>
           {/* ── Row 3: Full keyword table ── */}
           <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
             <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -464,6 +536,8 @@ export default function AtsScorePage() {
             </p>
             <KeywordTable keywords={report.keyword_analysis} />
           </div>
+            </div>
+          ) : null}
 
           {/* ── CTA ── */}
           <div className="text-center pt-2">

@@ -293,3 +293,30 @@ Priorites recommandees hors Tauri/Desktop :
 2. Centraliser l'i18n francais-first pour preparer une traduction utilisateur.
 3. Observer le comportement de la release self-hosted `v0.4.0`.
 4. Reporter Desktop/Tauri apres stabilisation de cette release.
+
+## Run 23 - Templates, intelligence factuelle et simplification produit - 20 juillet 2026
+
+ADRs : [`023`](adr/023-cv-template-catalogue-and-evidence-driven-adaptation.md),
+[`024`](adr/024-progressive-product-ui-backend-owned-i18n-and-guide.md).
+
+Terminé :
+
+- Résolution déterministe des templates et séparation rendu/application de preset.
+- Catalogue de dix templates avec galerie filtrable et previews distinctes.
+- Photo, page breaks, placements de sections et options renderer testés.
+- Pipeline d’adaptation structuré avec registre de faits, matrice
+  exigences/preuves, feedback évaluateur et validation humaine.
+- Index RAG isolé par CV et locale.
+- Markdown mobile en tabs, ATS progressif, Tracker mobile filtré, Workflow
+  master/detail et History groupé par candidature backend-owned.
+- i18n typé FR/EN avec `ui_locale` persisté par le backend.
+- Guide en trois parcours avec progression enregistrée côté backend.
+- README Docker et landing mis à jour ; le cas `MINDRIS_WEB_PORT=3100` est
+  visible dans l’installation rapide.
+
+Évidence visuelle :
+
+- `.screenshots/template-catalogue-2026-07-20/`
+- `.screenshots/product-simplification-2026-07-20/`
+
+Desktop/Tauri reste explicitement hors de ce run.

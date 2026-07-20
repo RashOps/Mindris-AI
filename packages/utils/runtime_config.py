@@ -27,6 +27,7 @@ DEFAULT_TASK_CONFIGURATION: dict[str, dict[str, str]] = {
 DEFAULT_APP_CONFIGURATION: dict[str, Any] = {
     "defaults": DEFAULT_TASK_CONFIGURATION,
     "pdf_ingestion_mode": "auto",
+    "ui_locale": "fr",
 }
 
 SECRET_SLOTS = {
@@ -82,6 +83,8 @@ def load_runtime_configuration() -> dict[str, Any]:
                 )
     if current.get("pdf_ingestion_mode") in {"auto", "llama_parse", "local_text"}:
         merged["pdf_ingestion_mode"] = current["pdf_ingestion_mode"]
+    if current.get("ui_locale") in {"fr", "en"}:
+        merged["ui_locale"] = current["ui_locale"]
     return merged
 
 
@@ -100,6 +103,8 @@ def save_runtime_configuration(config: dict[str, Any]) -> dict[str, Any]:
                     current["defaults"][task]["model_name"] = model_name
     if config.get("pdf_ingestion_mode") in {"auto", "llama_parse", "local_text"}:
         current["pdf_ingestion_mode"] = config["pdf_ingestion_mode"]
+    if config.get("ui_locale") in {"fr", "en"}:
+        current["ui_locale"] = config["ui_locale"]
     _write_json(CONFIG_PATH, current)
     return current
 

@@ -128,6 +128,7 @@ export function ConfigurationDrawer({
             patch: draftSettings.patch_llm,
           },
           pdf_ingestion_mode: draftSettings.pdf_ingestion_mode,
+          ui_locale: draftSettings.ui_locale,
         }),
       });
       if (!response.ok) {
