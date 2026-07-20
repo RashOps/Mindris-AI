@@ -55,7 +55,10 @@ def _ledger_item(
     status: str | None = None,
     links: list[dict] | None = None,
     metadata: dict | None = None,
+    group_id: str | None = None,
+    group_label: str | None = None,
 ) -> dict:
+    fallback_date = timestamp.date().isoformat()
     return ActivityLedgerItem(
         id=id,
         subject_type=subject_type,
@@ -66,9 +69,51 @@ def _ledger_item(
         provider=provider,
         model_name=model_name,
         status=status,
+        group_id=group_id or f"date:{fallback_date}",
+        group_label=group_label or f"Activité du {fallback_date}",
         links=links or [],
         metadata=metadata or {},
     ).model_dump(mode="json")
+
+
+def _assign_history_groups(items: list[dict], jobs: list[ScrapedJobRecord]) -> None:
+    """Attach backend-owned candidature groups to normalized ledger items."""
+    job_labels = {
+        row.id: " · ".join(part for part in (row.title, row.company) if part)
+        for row in jobs
+        if row.id is not None
+    }
+    grouped_artifacts: dict[tuple[str, str], tuple[str, str]] = {}
+
+    for item in items:
+        job_id = item.get("metadata", {}).get("job_id")
+        if job_id is not None:
+            item["group_id"] = f"job:{job_id}"
+            item["group_label"] = job_labels.get(job_id, f"Offre #{job_id}")
+        elif item["subject_type"] == "opportunity":
+            item["group_id"] = f"opportunity:{item['subject_id']}"
+            item["group_label"] = " · ".join(
+                part for part in (item["title"], item["summary"]) if part
+            )
+        elif item["subject_type"] == "tracker_event":
+            item["group_id"] = f"application:{item['subject_id']}"
+            item["group_label"] = " · ".join(
+                part for part in (item["title"], item["summary"]) if part
+            )
+        grouped_artifacts[(item["subject_type"], item["subject_id"])] = (
+            item["group_id"],
+            item["group_label"],
+        )
+
+    for item in items:
+        if item["group_id"].startswith("date:"):
+            for link in item.get("links", []):
+                group = grouped_artifacts.get(
+                    (link["subject_type"], link["subject_id"])
+                )
+                if group:
+                    item["group_id"], item["group_label"] = group
+                    break
 
 
 def _job_ledger_item(row: ScrapedJobRecord) -> dict:
@@ -286,6 +331,7 @@ def _build_history_ledger(session: Session) -> list[dict]:
         *[_opportunity_ledger_item(session, row) for row in opportunities],
         *[_llm_run_ledger_item(row) for row in llm_runs],
     ]
+    _assign_history_groups(items, jobs)
     return sorted(items, key=lambda item: item["timestamp"], reverse=True)
 
 

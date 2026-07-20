@@ -5,6 +5,7 @@ from pathlib import Path
 import yaml
 from crewai import Agent
 from utils.logger import get_logger
+from utils.runtime_config import load_runtime_configuration
 
 from .llm_config import get_llm
 
@@ -16,8 +17,8 @@ class MindrisAgents:
 
     def __init__(
         self,
-        provider: str = "ollama",
-        model_name: str = "gemma4:32k",
+        provider: str | None = None,
+        model_name: str | None = None,
     ) -> None:
         """Load agent configuration and initialize the LLM.
 
@@ -25,6 +26,9 @@ class MindrisAgents:
             provider: The LLM provider (e.g., "ollama", "groq", "gemini", "openai").
             model_name: The specific model name for the provider.
         """
+        runtime_default = load_runtime_configuration()["defaults"]["optimize"]
+        provider = provider or runtime_default["provider"]
+        model_name = model_name or runtime_default["model_name"]
         config_path = Path(__file__).parent / "agents.yaml"
         logger.debug("Loading agent configuration from %s", config_path)
         with config_path.open(encoding="utf-8") as f:

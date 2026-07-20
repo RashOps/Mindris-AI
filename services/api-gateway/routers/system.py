@@ -124,6 +124,8 @@ async def update_system_configuration(
         }
     if request.pdf_ingestion_mode is not None:
         payload["pdf_ingestion_mode"] = request.pdf_ingestion_mode
+    if request.ui_locale is not None:
+        payload["ui_locale"] = request.ui_locale
     save_runtime_configuration(payload)
     return {"status": "success", "item": _configuration_payload()}
 

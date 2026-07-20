@@ -1,0 +1,39 @@
+/* Scholar — publication-first academic document with bookish typography. */
+:host {
+    --primary-color: #1d4ed8;
+    --heading-color: #172554;
+    --separator-color: #94a3b8;
+    --sidebar-background: #ffffff;
+}
+
+.cv-header {
+    text-align: center;
+    border-bottom: 2px solid var(--heading-color);
+    padding-bottom: 18px;
+}
+
+.profile-name,
+.section-title,
+.entry-title {
+    font-family: var(--heading-font-family);
+}
+
+.contact-row {
+    justify-content: center;
+}
+
+.section-title {
+    text-transform: none;
+    letter-spacing: 0;
+    border: 0;
+    border-bottom: 1px solid var(--separator-color);
+    padding-bottom: 5px;
+}
+
+.entry-meta {
+    font-style: italic;
+}
+
+[data-section-type="publications"] .entry-title {
+    color: var(--primary-color);
+}

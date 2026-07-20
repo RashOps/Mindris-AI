@@ -27,6 +27,8 @@ class ActivityLedgerItem(BaseModel):
     provider: str | None = None
     model_name: str | None = None
     status: str | None = None
+    group_id: str
+    group_label: str
     links: list[ActivityLedgerLink] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
 

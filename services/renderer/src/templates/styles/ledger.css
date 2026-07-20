@@ -1,0 +1,34 @@
+/* Ledger — editorial hierarchy for legal, finance, and advisory profiles. */
+:host {
+    --primary-color: #7c2d12;
+    --heading-color: #431407;
+    --separator-color: #d6d3d1;
+    --sidebar-background: #fafaf9;
+}
+
+.cv-header {
+    text-align: center;
+    border-top: 4px double var(--heading-color);
+    border-bottom: 1px solid var(--separator-color);
+    padding: 22px 0 18px;
+}
+
+.profile-name {
+    font-family: var(--heading-font-family);
+    letter-spacing: 0.03em;
+}
+
+.contact-row {
+    justify-content: center;
+}
+
+.section-title {
+    font-family: var(--heading-font-family);
+    text-transform: none;
+    letter-spacing: 0.02em;
+    border-bottom: 1px solid var(--heading-color);
+}
+
+.entry-title {
+    font-family: var(--heading-font-family);
+}

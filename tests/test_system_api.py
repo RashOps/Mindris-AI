@@ -74,6 +74,7 @@ def test_system_configuration_update_persists_runtime_defaults(
                 "ats_score": {"provider": "openai", "model_name": "gpt-4o-mini"},
             },
             "pdf_ingestion_mode": "local_text",
+            "ui_locale": "en",
         },
     )
 
@@ -82,6 +83,7 @@ def test_system_configuration_update_persists_runtime_defaults(
     assert item["app"]["defaults"]["optimize"]["provider"] == "ollama"
     assert item["app"]["defaults"]["ats_score"]["model_name"] == "gpt-4o-mini"
     assert item["app"]["pdf_ingestion_mode"] == "local_text"
+    assert item["app"]["ui_locale"] == "en"
 
 
 def test_system_secret_update_marks_slot_as_configured_without_leaking_value(

@@ -5,7 +5,7 @@ Supported providers : ollama | groq | gemini | openai | mistral
 Default LLMs per task
 ---------------------
 - optimize     : Groq  — llama-3.3-70b-versatile  (fast, high quality)
-- cover_letter : Gemini — gemini-2.0-flash         (creative writing)
+- cover_letter : Groq  — llama-3.3-70b-versatile  (creative writing)
 - ats_score    : Groq  — llama-3.1-8b-instant      (lightweight scoring)
 - patch        : Groq  — llama-3.3-70b-versatile
 
@@ -20,100 +20,18 @@ from utils.config import settings
 from utils.logger import get_logger
 from utils.runtime_config import load_runtime_configuration, resolve_secret_slot
 
+from .model_catalogue import (
+    SUPPORTED_PROVIDERS,
+    TASK_DEFAULTS,
+    TASK_FALLBACKS,
+    get_model_registry,
+    provider_configuration_status,
+)
+
 if TYPE_CHECKING:
     from crewai import LLM
 
 logger = get_logger(__name__, service_name="intelligence")
-
-# ── Per-task defaults ─────────────────────────────────────────────────────────
-
-TASK_DEFAULTS: dict[str, dict[str, str]] = {
-    "optimize": {
-        "provider": "groq",
-        "model_name": "llama-3.3-70b-versatile",
-    },
-    "cover_letter": {
-        "provider": "groq",
-        "model_name": "llama-3.3-70b-versatile",  # Gemini when quota available
-    },
-    "ats_score": {
-        "provider": "groq",
-        "model_name": "llama-3.1-8b-instant",
-    },
-    "patch": {
-        "provider": "groq",
-        "model_name": "llama-3.3-70b-versatile",
-    },
-}
-
-# ── Model catalogue (for frontend selectors) ──────────────────────────────────
-
-MODEL_CATALOGUE: dict[str, list[dict[str, str]]] = {
-    "groq": [
-        {"id": "llama-3.3-70b-versatile", "label": "Llama 3.3 70B"},
-        {"id": "llama-3.1-8b-instant", "label": "Llama 3.1 8B (fast)"},
-        {"id": "mixtral-8x7b-32768", "label": "Mixtral 8x7B"},
-        {"id": "gemma2-9b-it", "label": "Gemma 2 9B"},
-    ],
-    "gemini": [
-        {"id": "gemini-2.0-flash", "label": "Gemini 2.0 Flash"},
-        {"id": "gemini-1.5-pro", "label": "Gemini 1.5 Pro"},
-        {"id": "gemini-1.5-flash", "label": "Gemini 1.5 Flash"},
-    ],
-    "openai": [
-        {"id": "gpt-4o", "label": "GPT-4o"},
-        {"id": "gpt-4o-mini", "label": "GPT-4o Mini"},
-        {"id": "gpt-4-turbo", "label": "GPT-4 Turbo"},
-    ],
-    "mistral": [
-        {"id": "mistral-large-latest", "label": "Mistral Large"},
-        {"id": "mistral-small-latest", "label": "Mistral Small"},
-        {"id": "open-mistral-7b", "label": "Mistral 7B (open)"},
-    ],
-    "ollama": [
-        {"id": "gemma4:32k", "label": "Gemma4 32K (local)"},
-        {"id": "llama3.2", "label": "Llama 3.2 (local)"},
-        {"id": "phi4", "label": "Phi-4 (local)"},
-    ],
-}
-
-
-def provider_configuration_status() -> dict[str, dict[str, str | bool]]:
-    """Return user-facing provider availability metadata."""
-    groq_api_key = resolve_secret_slot("groq_api_key", settings.groq_api_key)
-    gemini_api_key = resolve_secret_slot("gemini_api_key", settings.gemini_api_key)
-    openai_api_key = resolve_secret_slot("openai_api_key", settings.openai_api_key)
-    mistral_api_key = resolve_secret_slot("mistral_api_key", settings.mistral_api_key)
-    cloud_secret_reason = "Configure this provider in backend secret slots."
-    return {
-        "groq": {
-            "configured": bool(groq_api_key),
-            "mode": "cloud",
-            "reason": "" if groq_api_key else cloud_secret_reason,
-        },
-        "gemini": {
-            "configured": bool(gemini_api_key),
-            "mode": "cloud",
-            "reason": "" if gemini_api_key else cloud_secret_reason,
-        },
-        "openai": {
-            "configured": bool(openai_api_key),
-            "mode": "cloud",
-            "reason": "" if openai_api_key else cloud_secret_reason,
-        },
-        "mistral": {
-            "configured": bool(mistral_api_key),
-            "mode": "cloud",
-            "reason": "" if mistral_api_key else cloud_secret_reason,
-        },
-        "ollama": {
-            "configured": bool(settings.ollama_api_base.strip()),
-            "mode": "local",
-            "reason": ""
-            if settings.ollama_api_base.strip()
-            else "Set OLLAMA_API_BASE to a local Ollama endpoint.",
-        },
-    }
 
 
 def ensure_provider_configured(provider: str) -> None:
@@ -187,7 +105,7 @@ def get_llm(
 
     raise ValueError(
         f"Unsupported LLM provider: '{provider}'. "
-        f"Choose from: {list(MODEL_CATALOGUE.keys())}"
+        f"Choose from: {list(SUPPORTED_PROVIDERS)}"
     )
 
 
@@ -201,4 +119,18 @@ def get_task_llm(task: str) -> LLM:
         A configured :class:`crewai.LLM` for the given task.
     """
     cfg = load_runtime_configuration()["defaults"].get(task, TASK_DEFAULTS["optimize"])
-    return get_llm(provider=cfg["provider"], model_name=cfg["model_name"])
+    resolution = get_model_registry().resolve(
+        provider=cfg["provider"],
+        model_id=cfg["model_name"],
+        fallbacks=TASK_FALLBACKS.get(task, TASK_FALLBACKS["optimize"]),
+    )
+    if resolution.used_fallback:
+        logger.warning(
+            "LLM fallback task=%s requested=%s/%s resolved=%s/%s",
+            task,
+            resolution.requested_provider,
+            resolution.requested_model_id,
+            resolution.provider,
+            resolution.model_id,
+        )
+    return get_llm(provider=resolution.provider, model_name=resolution.model_id)

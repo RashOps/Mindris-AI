@@ -79,6 +79,7 @@ export default function TrackerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [mobileStatus, setMobileStatus] = useState<Status>("wishlist");
   const [draft, setDraft] = useState({ company: "", role: "", url: "" });
   const [expandedIds, setExpandedIds] = useState<number[]>([]);
   const [reminderDrafts, setReminderDrafts] = useState<
@@ -283,6 +284,32 @@ export default function TrackerPage() {
             Chargement du tracker...
           </div>
         ) : (
+          <>
+          <div
+            className="mb-4 flex gap-2 overflow-x-auto pb-1 xl:hidden"
+            role="tablist"
+            aria-label="États des candidatures"
+          >
+            {STATUSES.map((status) => (
+              <button
+                key={status.id}
+                type="button"
+                role="tab"
+                aria-selected={mobileStatus === status.id}
+                onClick={() => setMobileStatus(status.id)}
+                className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-xs font-medium transition ${
+                  mobileStatus === status.id
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-card text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                }`}
+              >
+                {status.label}
+                <span className="rounded-full bg-background/20 px-1.5 py-0.5 text-[10px]">
+                  {(filteredColumns[status.id] ?? []).length}
+                </span>
+              </button>
+            ))}
+          </div>
           <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-5">
             {STATUSES.map((status) => {
               const itemsForStatus = filteredColumns[status.id] ?? [];
@@ -290,7 +317,8 @@ export default function TrackerPage() {
               return (
                 <section
                   key={status.id}
-                  className="flex min-h-[72vh] w-full min-w-0 flex-col rounded-lg border border-border bg-card shadow-sm"
+                  role="tabpanel"
+                  className={`${mobileStatus === status.id ? "flex" : "hidden"} min-h-[60vh] w-full min-w-0 flex-col rounded-lg border border-border bg-card shadow-sm xl:flex xl:min-h-[72vh]`}
                 >
                   <div className="min-w-0 border-b border-border px-4 py-4">
                     <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
@@ -532,6 +560,7 @@ export default function TrackerPage() {
               );
             })}
           </div>
+          </>
         )}
       </div>
     </main>

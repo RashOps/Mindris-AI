@@ -1,7 +1,18 @@
 import { describe, expect, test } from "bun:test";
 import { generateHtml } from "./engine";
 
-const builtInTemplateIds = ["modern", "compact", "ats", "student", "creative"];
+const builtInTemplateIds = [
+  "modern",
+  "atlas-sidebar",
+  "compact",
+  "ats",
+  "student",
+  "creative",
+  "ledger",
+  "executive",
+  "signal",
+  "scholar",
+];
 
 const baseCv = {
   global_settings: {
@@ -89,7 +100,104 @@ const baseCv = {
   hobbies: [],
 };
 
+type ContentDensity = "short" | "medium" | "long";
+
+function cvForRenderMatrix(density: ContentDensity, format: "A4" | "Letter") {
+  const entryCounts: Record<ContentDensity, number> = {
+    short: 1,
+    medium: 3,
+    long: 7,
+  };
+  const count = entryCounts[density];
+  return {
+    ...baseCv,
+    global_settings: {
+      ...baseCv.global_settings,
+      page: { format },
+      layout: {
+        columns: 2,
+        sidebar_position: "right",
+        sidebar_width: "35%",
+      },
+    },
+    profile: {
+      ...baseCv.profile,
+      text_markdown: `${density} profile `.repeat(count * 5),
+    },
+    experience: Array.from({ length: count }, (_, index) => ({
+      id: `${density}-experience-${index}`,
+      role: `Engineer ${index + 1}`,
+      company: "Mindris Labs",
+      period: `202${index} - 202${index + 1}`,
+      location: { city: "Paris", country: "France" },
+      description_markdown: `${density} evidence-backed achievement `.repeat(
+        count + 1,
+      ),
+      keywords: ["TypeScript", "Python", "Delivery"],
+    })),
+    projects: Array.from({ length: Math.max(1, count - 1) }, (_, index) => ({
+      id: `${density}-project-${index}`,
+      name: `Project ${index + 1}`,
+      description_markdown: `${density} project outcome `.repeat(count),
+      tech_stack: ["Bun", "FastAPI"],
+    })),
+  };
+}
+
 describe("generateHtml semantic sections", () => {
+  test("renders every template across short, medium, and long A4/Letter content", () => {
+    for (const templateId of builtInTemplateIds) {
+      for (const density of ["short", "medium", "long"] as const) {
+        for (const format of ["A4", "Letter"] as const) {
+          const html = generateHtml(
+            cvForRenderMatrix(density, format),
+            templateId,
+          );
+
+          expect(html).toContain(`template-id: ${templateId}`);
+          expect(html).toContain(
+            `@page { size: ${
+              format === "Letter" ? "216mm 279mm" : "210mm 297mm"
+            }; margin: 0; }`,
+          );
+          expect(html).toContain(`${density} profile`);
+          expect(html).not.toContain("undefined");
+          expect(html).not.toContain("NaN");
+        }
+      }
+    }
+  });
+
+  test("prefers an explicitly requested template over the stored CV template", () => {
+    const html = generateHtml(baseCv, "ats");
+
+    expect(html).toContain("Mindris AI — ATS CV Template");
+    expect(html).not.toContain("Mindris AI — Modern CV Template");
+  });
+
+  test("uses the stored CV template when no template is explicitly requested", () => {
+    const html = generateHtml({
+      ...baseCv,
+      global_settings: {
+        ...baseCv.global_settings,
+        template_id: "creative",
+      },
+    });
+
+    expect(html).toContain("Mindris AI — Creative CV Template");
+  });
+
+  test("loads a distinct stylesheet for every built-in template", () => {
+    const renderedTemplates = builtInTemplateIds.map((templateId) =>
+      generateHtml(baseCv, templateId),
+    );
+
+    expect(new Set(renderedTemplates).size).toBe(builtInTemplateIds.length);
+    for (const [index, templateId] of builtInTemplateIds.entries()) {
+      expect(renderedTemplates[index]).toContain(`template-id: ${templateId}`);
+    }
+  });
+
   test("uses section configuration for label, visibility, order, and placement", () => {
     const html = generateHtml(baseCv, "modern");
 
@@ -145,6 +253,7 @@ describe("generateHtml semantic sections", () => {
     expect(sidebarColumn).toContain('data-section-type="skills"');
     expect(html).toContain(".section-column-main");
     expect(html).toContain(".section-column-sidebar");
+    expect(html).toContain("grid-auto-flow: dense");
   });
 
   test("preserves configured global order for a single-column layout", () => {
@@ -161,6 +270,7 @@ describe("generateHtml semantic sections", () => {
 
     const renderedMarkup = html.slice(html.indexOf("wrapper.innerHTML = `"));
     expect(renderedMarkup).not.toContain("section-column-main");
+    expect(renderedMarkup).not.toContain('data-section-placement="sidebar"');
     expect(renderedMarkup.indexOf("Core Skills")).toBeLessThan(
       renderedMarkup.indexOf("Selected Experience"),
     );
@@ -186,7 +296,11 @@ describe("generateHtml semantic sections", () => {
       expect(html).toContain(".section-display-cards");
       expect(html).toContain(".section-detail-short");
       expect(html).toContain(".section-detail-detailed");
-      expect(html).toContain('data-section-placement="sidebar"');
+      if (templateId === "ats") {
+        expect(html).not.toContain('data-section-placement="sidebar"');
+      } else {
+        expect(html).toContain('data-section-placement="sidebar"');
+      }
       expect(html).toContain('data-section-placement="main"');
       expect(html).toContain('data-section-display-mode="compact"');
       expect(html).toContain('data-section-display-mode="timeline"');
@@ -225,7 +339,11 @@ describe("generateHtml semantic sections", () => {
       expect(html).toContain('data-section-type="skills"');
       expect(html).toContain('data-section-type="experience"');
       expect(html).toContain('data-section-type="certifications"');
-      expect(html).toContain('data-section-placement="sidebar"');
+      if (templateId === "ats") {
+        expect(html).not.toContain('data-section-placement="sidebar"');
+      } else {
+        expect(html).toContain('data-section-placement="sidebar"');
+      }
       expect(html).toContain('data-section-placement="main"');
     }
   });
@@ -320,7 +438,9 @@ describe("generateHtml semantic sections", () => {
         ...baseCv,
         profile: {
           ...baseCv.profile,
-          socials: [{ type: "website", url: "https://example.com", label: "Site" }],
+          socials: [
+            { type: "website", url: "https://example.com", label: "Site" },
+          ],
         },
         global_settings: {
           ...baseCv.global_settings,
@@ -466,7 +586,9 @@ describe("generateHtml semantic sections", () => {
     expect(html).toContain("color: var(--text-color, #334155);");
     expect(html).toContain(".meta");
     expect(html).toContain("--header-text-align: center;");
-    expect(html).toContain("grid-template-columns: var(--grid-template-columns, var(--col-left-width) 1fr);");
+    expect(html).toContain(
+      "grid-template-columns: var(--grid-template-columns, var(--col-left-width) 1fr);",
+    );
   });
 
   test("renders advanced sections through fallback groups", () => {
@@ -601,7 +723,8 @@ describe("generateHtml semantic sections", () => {
           advanced_css: {
             enabled: true,
             mode: "tokens",
-            css_text: ":host { --primary-color: #111827; --heading-scale: 1.12; }",
+            css_text:
+              ":host { --primary-color: #111827; --heading-scale: 1.12; }",
           },
         },
       },
@@ -650,7 +773,8 @@ describe("generateHtml semantic sections", () => {
           advanced_css: {
             enabled: true,
             mode: "css_patch",
-            css_text: ":host { --primary-color: #0f766e; }\nbody { color: red; }\n[data-section-type='experience'] { background: url(https://evil.test/a.png); }",
+            css_text:
+              ":host { --primary-color: #0f766e; }\nbody { color: red; }\n[data-section-type='experience'] { background: url(https://evil.test/a.png); }",
           },
         },
       },
@@ -699,7 +823,10 @@ describe("generateHtml semantic sections", () => {
     const html = generateHtml(
       {
         ...baseCv,
-        profile: { ...baseCv.profile, photo_url: "https://example.com/photo.png" },
+        profile: {
+          ...baseCv.profile,
+          photo_url: "https://example.com/photo.png",
+        },
         global_settings: {
           ...baseCv.global_settings,
           layout: { photo: { enabled: true } },

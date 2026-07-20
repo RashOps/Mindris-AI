@@ -50,7 +50,11 @@ class MindrisTasks:
                 "1. Reply with a SINGLE valid JSON object and nothing else.\n"
                 "2. Use EXACTLY these English keys: "
                 '"title", "company", "location", "hard_skills", "soft_skills", '
-                '"experience_level", "remote_policy", "salary_range".\n'
+                '"responsibilities", "must_have_requirements", '
+                '"nice_to_have_requirements", "differentiators", '
+                '"tools_environments", "language_requirements", "disqualifiers", '
+                '"tone_keywords", "experience_level", "remote_policy", '
+                '"salary_range", "posted_at".\n'
                 '3. NEVER translate keys (use "company", NOT "entreprise").\n'
                 "4. Extract as many hard_skills (technical) and soft_skills "
                 "(interpersonal) as possible — return them as JSON arrays.\n"
@@ -62,8 +66,11 @@ class MindrisTasks:
             ),
             expected_output=(
                 "A single JSON object with English keys: title, company, "
-                "location, hard_skills, soft_skills, experience_level, "
-                "remote_policy, salary_range."
+                "location, hard_skills, soft_skills, responsibilities, "
+                "must_have_requirements, nice_to_have_requirements, "
+                "differentiators, tools_environments, language_requirements, "
+                "disqualifiers, tone_keywords, experience_level, remote_policy, "
+                "salary_range, posted_at."
             ),
             agent=agent,
             output_pydantic=JobOfferExtract,

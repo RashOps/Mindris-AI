@@ -42,5 +42,9 @@ describe("customization catalogue helpers", () => {
     expect(options.skillStyles).toContain("bars");
     expect(templates.find((template) => template.id === "ats")?.compatibleLayouts).toEqual([1]);
     expect(templates.find((template) => template.id === "ats")?.enforced?.layout?.columns).toBe(1);
+    expect(templates.length).toBe(10);
+    expect(templates.find((template) => template.id === "modern")?.label).toBe("Atlas");
+    expect(templates.find((template) => template.id === "signal")?.previewStyle).toBe("signal");
+    expect(templates.find((template) => template.id === "signal")?.accent).toBe("#4f46e5");
   });
 });

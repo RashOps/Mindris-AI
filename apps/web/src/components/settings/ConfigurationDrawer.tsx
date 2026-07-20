@@ -2,7 +2,7 @@
 
 import type { ReactElement } from "react";
 import { useMemo, useState } from "react";
-import { Loader2, Settings2, ShieldCheck } from "lucide-react";
+import { Loader2, RefreshCw, Settings2, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -44,6 +44,7 @@ export function ConfigurationDrawer({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [secretSaving, setSecretSaving] = useState(false);
+  const [refreshingModels, setRefreshingModels] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [catalogue, setCatalogue] = useState<Catalogue>({});
   const [providerStatus, setProviderStatus] = useState<ProviderStatus>({});
@@ -79,25 +80,20 @@ export function ConfigurationDrawer({
     setLoading(true);
     setError(null);
     try {
-      const [catalogueResponse, configResponse, ollamaResponse, diagnosticsResponse] = await Promise.all([
+      const [catalogueResponse, configResponse, diagnosticsResponse] = await Promise.all([
         fetch(apiUrl("/api/v1/llm/catalogue"), { headers: jsonHeaders() }),
         fetch(apiUrl("/api/v1/system/configuration"), { headers: jsonHeaders() }),
-        fetch(apiUrl("/api/v1/system/ollama-models"), { headers: jsonHeaders() }),
         fetch(apiUrl("/api/v1/system/diagnostics"), { headers: jsonHeaders() }),
       ]);
       const catalogueData = catalogueResponse.ok ? await catalogueResponse.json() : null;
       const configData = configResponse.ok
         ? ((await configResponse.json()) as SystemConfigurationPayload)
         : null;
-      const ollamaData = ollamaResponse.ok ? await ollamaResponse.json() : null;
       const diagnosticsData = diagnosticsResponse.ok
         ? ((await diagnosticsResponse.json()) as SystemDiagnosticsPayload)
         : null;
 
       const nextCatalogue: Catalogue = { ...(catalogueData?.catalogue ?? {}) };
-      if (Array.isArray(ollamaData?.items) && ollamaData.items.length > 0) {
-        nextCatalogue.ollama = ollamaData.items;
-      }
       setCatalogue(nextCatalogue);
       setProviderStatus(configData?.item?.llm?.providers ?? catalogueData?.providers ?? {});
       setSecretStatus(configData?.item?.secrets ?? {});
@@ -132,6 +128,7 @@ export function ConfigurationDrawer({
             patch: draftSettings.patch_llm,
           },
           pdf_ingestion_mode: draftSettings.pdf_ingestion_mode,
+          ui_locale: draftSettings.ui_locale,
         }),
       });
       if (!response.ok) {
@@ -168,6 +165,7 @@ export function ConfigurationDrawer({
           }),
         ),
       );
+      await refreshModelCatalogue();
       setSecretInputs({
         groq_api_key: "",
         gemini_api_key: "",
@@ -182,6 +180,27 @@ export function ConfigurationDrawer({
       setError(saveError instanceof Error ? saveError.message : "Secret update failed.");
     } finally {
       setSecretSaving(false);
+    }
+  }
+
+  async function refreshModelCatalogue() {
+    setRefreshingModels(true);
+    setError(null);
+    try {
+      const response = await fetch(apiUrl("/api/v1/llm/catalogue/refresh"), {
+        method: "POST",
+        headers: jsonHeaders(),
+      });
+      if (!response.ok) {
+        throw new Error(`Model catalogue refresh failed (${response.status}).`);
+      }
+      const data = await response.json();
+      setCatalogue(data.catalogue ?? {});
+      setProviderStatus(data.providers ?? {});
+    } catch (refreshError) {
+      setError(refreshError instanceof Error ? refreshError.message : "Model catalogue refresh failed.");
+    } finally {
+      setRefreshingModels(false);
     }
   }
 
@@ -219,10 +238,23 @@ export function ConfigurationDrawer({
       />
       <SheetContent className="w-full border-border bg-card p-0 sm:max-w-2xl">
         <SheetHeader className="border-b border-border">
-          <SheetTitle className="flex items-center gap-2 text-foreground">
-            <ShieldCheck size={18} />
-            Configuration
-          </SheetTitle>
+          <div className="flex items-center justify-between gap-3">
+            <SheetTitle className="flex items-center gap-2 text-foreground">
+              <ShieldCheck size={18} />
+              Configuration
+            </SheetTitle>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={refreshingModels}
+              onClick={() => void refreshModelCatalogue()}
+              className="gap-2"
+            >
+              <RefreshCw size={14} className={refreshingModels ? "animate-spin" : ""} />
+              Actualiser les modèles
+            </Button>
+          </div>
           <SheetDescription className="text-muted-foreground">
             Backend-owned runtime settings, provider defaults and write-only secret slots.
           </SheetDescription>

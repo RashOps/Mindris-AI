@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 
 export type ToolbarSelectOption = {
@@ -9,6 +9,17 @@ export type ToolbarSelectOption = {
   hint?: string;
   disabled?: boolean;
 };
+
+export function deduplicateToolbarSelectOptions(
+  options: ToolbarSelectOption[],
+): ToolbarSelectOption[] {
+  const seen = new Set<string>();
+  return options.filter((option) => {
+    if (seen.has(option.value)) return false;
+    seen.add(option.value);
+    return true;
+  });
+}
 
 export function ToolbarSelect({
   value,
@@ -31,7 +42,11 @@ export function ToolbarSelect({
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
-  const current = options.find((option) => option.value === value);
+  const uniqueOptions = useMemo(
+    () => deduplicateToolbarSelectOptions(options),
+    [options],
+  );
+  const current = uniqueOptions.find((option) => option.value === value);
   const label = current?.label ?? placeholder;
 
   useEffect(() => {
@@ -71,7 +86,7 @@ export function ToolbarSelect({
           aria-label={ariaLabel}
           className={`absolute left-0 top-11 z-50 overflow-hidden rounded-xl border border-border bg-card p-1.5 shadow-xl ${menuClassName}`}
         >
-          {options.map((option) => (
+          {uniqueOptions.map((option) => (
             <button
               key={option.value}
               type="button"

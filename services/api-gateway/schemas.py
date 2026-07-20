@@ -1,7 +1,6 @@
 """API Gateway request and response schemas."""
 
 from schemas_domain.common import (
-    MODEL_CATALOGUE,
     AtsMode,
     LLMRequest,
     OpportunityState,
@@ -102,7 +101,6 @@ __all__ = [
     "Provider",
     "AtsMode",
     "OpportunityState",
-    "MODEL_CATALOGUE",
     "validate_llm_selection",
     "LLMRequest",
     "APIMessage",

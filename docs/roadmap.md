@@ -202,8 +202,9 @@ ADR : [016](adr/016-ghcr-one-command-self-hosting.md).
 
 ## 🔵 Phase 31 : I18n & Guide Experience
 - [ ] **Textes UI centralises :** Sortir progressivement les strings produit des composants.
-- [ ] **Francais-first canonique :** Garder le francais comme langue produit par defaut.
-- [ ] **Traduction utilisateur :** Preparer une couche EN sans deplacer la logique metier dans le frontend.
+- [x] **Francais-first canonique :** Garder le francais comme langue produit par defaut.
+- [x] **Infrastructure de traduction :** Fournir des dictionnaires FR/EN types et une locale backend-owned sans deplacer la logique metier dans le frontend.
+- [ ] **Migration des surfaces :** Remplacer les strings restantes et traduire les contenus metier dynamiques.
 - [x] **Guide contextualise :** Ajouter des parcours/checklists relies aux pages et actions critiques.
 
 ## ⚪ Phase 32 : Desktop/Tauri (Reportée)
@@ -211,12 +212,12 @@ ADR : [016](adr/016-ghcr-one-command-self-hosting.md).
 - [ ] **Supervision services locaux :** Decider native binaries vs Docker containers.
 - [ ] **Installateurs Linux/Windows :** Priorite apres one-command Docker et guide utilisateur mature.
 
-## 🔵 Phase 33 : Release v0.4.0
+## 🟢 Phase 33 : Release v0.4.0 (Terminée)
 
 - [x] **Version et changelog candidat :** Synchroniser les manifests et les notes `Unreleased` sur `0.4.0`.
 - [x] **Gates CI complets :** Ajouter les tests Bun frontend/renderer et les validations pre-publication Docker.
-- [ ] **Candidat GHCR :** Publier `v0.4.0-rc.1` avec smoke et navigateur E2E post-publication.
-- [ ] **Fresh install Debian :** Valider installation, RuntimeGate, CV Builder et exports depuis les images RC.
-- [ ] **Release stable :** Finaliser le changelog, taguer `v0.4.0` et publier la GitHub Release.
+- [x] **Candidat GHCR :** Publier et valider le candidat final avec smoke et navigateur E2E post-publication.
+- [x] **Fresh install Debian :** Valider installation, RuntimeGate, CV Builder et exports depuis les images candidates.
+- [x] **Release stable :** Finaliser le changelog, taguer `v0.4.0` et publier la GitHub Release.
 
 ADR : [021](adr/021-v0-4-release-gates-and-rc-distribution.md).

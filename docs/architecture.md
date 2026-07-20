@@ -97,6 +97,17 @@ Chaque service est un projet indépendant géré par le workspace `uv`.
 - Le navigateur local utilise la frontière loopback.
 - Les secrets ne doivent pas être exposés dans les réponses API, les logs ou les sorties de commandes.
 
+## Registre des modèles IA
+
+`services/intelligence/model_catalogue.py` compose le catalogue public à partir
+des adaptateurs providers et du cache `storage/model-registry.json`. L'API
+Gateway ne maintient aucune copie des modèles et le frontend consomme
+uniquement `/api/v1/llm/catalogue`.
+
+La découverte réseau est explicite et réservée au backend. Le dernier snapshot
+valide reste disponible hors ligne ou pendant une panne provider. Les defaults
+de tâches et les fallbacks restent des décisions backend journalisées.
+
 ## Distribution
 
 Mindris dispose de deux modes Docker :

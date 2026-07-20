@@ -307,6 +307,8 @@ export interface HistoryLedgerItem {
   provider?: string | null;
   model_name?: string | null;
   status?: string | null;
+  group_id: string;
+  group_label: string;
   links: HistoryLedgerLink[];
   metadata: Record<string, unknown>;
 }
@@ -354,7 +356,46 @@ export interface JobInsights {
   soft_skills: string[];
   drafted_bullets: string[];
   raw_markdown: string;
-  score: number;
+  score: number | null;
+  evidence_ledger: Array<{
+    id: string;
+    section_type: string;
+    source_id?: string | null;
+    text: string;
+    relevance?: number | null;
+  }>;
+  evidence_matrix: Array<{
+    requirement_id: string;
+    requirement: string;
+    requirement_type:
+      | "hard_skill"
+      | "soft_skill"
+      | "responsibility"
+      | "must_have";
+    matched_fact_ids: string[];
+    status: "matched" | "partial" | "missing";
+    rationale: string;
+  }>;
+  proposed_changes: Array<{
+    section_id: string;
+    entry_id?: string | null;
+    before: string;
+    after: string;
+    reason: string;
+    source_fact_ids: string[];
+    confidence: number;
+  }>;
+  evaluation?: {
+    score: number;
+    keyword_match: number;
+    evidence_quality: number;
+    clarity: number;
+    missing_skills: string[];
+    revision_instructions: string[];
+    warnings: string[];
+  } | null;
+  warnings: string[];
+  requires_user_review: boolean;
   ats_report?: AtsReport;
   company_insight?: CompanyInsight;
 }
@@ -374,6 +415,7 @@ export interface AppSettings {
   ats_llm: LLMConfig;
   patch_llm: LLMConfig;
   pdf_ingestion_mode: PdfIngestionMode;
+  ui_locale: "fr" | "en";
 }
 
 export interface CVData {

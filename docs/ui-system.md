@@ -112,6 +112,12 @@ Le CV Builder expose trois modes :
 Regles :
 
 - la section Style est une tab voisine de Structure, pas un overlay bloquant ;
+- sur desktop, les commandes sont réparties dans un ruban réductible avec les
+  tabs Principal, Adapter et Document ;
+- sur mobile, les actions essentielles restent dans une barre compacte et les
+  outils secondaires utilisent une bottom sheet scrollable ;
+- les modes Simple, Normal et Avancé contrôlent la disponibilité, pas
+  l'affichage simultané de tous les réglages ;
 - aucun choix metier ne doit etre resolu dans le frontend ;
 - les dropdowns toolbar utilisent les primitives centralisees ;
 - les zones avancees doivent occuper l'espace sans creer de vide structurel ;
@@ -124,9 +130,12 @@ La langue produit prioritaire est le francais.
 Etat actuel :
 
 - Dashboard, CV Builder, Guide et History sont francais-first ;
-- ATS Score, Markdown PDF, Tracker et Workflow peuvent encore contenir des
-  libelles anglais ;
-- la centralisation i18n reste a faire avant une traduction utilisateur propre.
+- l'AppShell utilise des dictionnaires FR/EN types et la locale persistée par le
+  backend ;
+- ATS Score, Markdown PDF, Tracker, Workflow et Configuration peuvent encore
+  contenir des libelles anglais ;
+- les nouvelles surfaces doivent utiliser `useI18n()` ; la migration des
+  strings historiques reste progressive avant une traduction complète.
 
 ## Configuration
 
@@ -138,6 +147,10 @@ La surface `Configuration` doit rester backend-owned et etre organisee par inten
 - `Secret slots` pour les cles write-only
 
 Les secrets, diagnostics et defaults ne doivent plus etre presentes comme un seul bloc uniforme.
+
+Le catalogue des modèles est également backend-owned. La configuration peut
+le rafraîchir explicitement ; l'UI affiche le dernier snapshot valide et ses
+diagnostics de fraîcheur sans appeler directement les providers.
 
 ## Verification
 

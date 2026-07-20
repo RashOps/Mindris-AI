@@ -3,8 +3,7 @@
 import { useState, useCallback } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { useCVStore } from "@/store/useCVStore";
-import type { LLMProvider } from "@/store/useCVStore";
-import { ToolbarSelect } from "@/components/ToolbarSelect";
+import { LLMSelector } from "@/components/LLMSelector";
 import { AtsScoreWidget } from "@/components/ats/AtsScoreWidget";
 import { apiUrl, jsonHeaders } from "@/lib/api";
 import { saveDraft } from "@/lib/drafts";
@@ -13,12 +12,16 @@ import {
   BriefcaseBusiness,
   Building2,
   Clipboard,
+  GripVertical,
   MessageCircle,
   Medal,
   PenLine,
+  ShieldCheck,
   Target,
+  TriangleAlert,
+  CircleCheck,
+  CircleDashed,
   X,
-  Zap,
 } from "lucide-react";
 
 
@@ -45,7 +48,7 @@ function DraggableSkill({ skill, type }: { skill: string; type: "hard" | "soft" 
       `}
       style={transform ? { transform: `translate(${transform.x}px, ${transform.y}px)`, zIndex: 999 } : undefined}
     >
-      ⠿ {skill}
+      <GripVertical className="h-3 w-3" aria-hidden="true" /> {skill}
     </span>
   );
 }
@@ -68,26 +71,11 @@ function DraggableBullet({ bullet, index }: { bullet: string; index: number }) {
       `}
       style={transform ? { transform: `translate(${transform.x}px, ${transform.y}px)`, zIndex: 999 } : undefined}
     >
-      <span style={{ color: '#475569' }} className="shrink-0 mt-0.5">⠿</span>
+      <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden="true" />
       <span className="leading-relaxed" style={{ color: '#94a3b8' }}>{bullet}</span>
     </div>
   );
 }
-
-// ── LLM Selector ──────────────────────────────────────────────────────────────
-
-const PROVIDERS = [
-  { id: "groq",    label: "Groq" },
-  { id: "gemini",  label: "Gemini" },
-  { id: "openai",  label: "OpenAI" },
-  { id: "mistral", label: "Mistral" },
-];
-const MODELS: Record<string, { id: string; label: string }[]> = {
-  groq:    [{ id: "llama-3.3-70b-versatile", label: "Llama 3.3 70B" }, { id: "llama-3.1-8b-instant", label: "Llama 3.1 8B" }],
-  gemini:  [{ id: "gemini-2.0-flash", label: "Gemini Flash" }, { id: "gemini-1.5-pro", label: "Gemini Pro" }],
-  openai:  [{ id: "gpt-4o", label: "GPT-4o" }, { id: "gpt-4o-mini", label: "GPT-4o Mini" }],
-  mistral: [{ id: "mistral-large-latest", label: "Mistral Large" }, { id: "mistral-small-latest", label: "Mistral Small" }],
-};
 
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
@@ -115,24 +103,19 @@ interface JobInsightsPanelProps {
 export function JobInsightsPanel({ open, onClose, variant = "drawer" }: JobInsightsPanelProps) {
   const {
     jobInsights, clearJobInsights,
-    autoInjectMode, setAutoInjectMode,
-    applyPatch, cvData, appSettings, setAppSettings,
+    applyPatch, cvData, appSettings,
     calculateAtsScore,
   } = useCVStore();
 
   const [isPatchLoading, setIsPatchLoading] = useState(false);
   const [patchStatus, setPatchStatus] = useState<string | null>(null);
   const [isScoring, setIsScoring] = useState(false);
-  const [provider, setProvider] = useState(appSettings.patch_llm.provider);
-  const [modelName, setModelName] = useState(appSettings.patch_llm.model_name);
+  const [reviewedChanges, setReviewedChanges] = useState<
+    Record<string, "applied" | "ignored">
+  >({});
 
-  const handleAutoInjectToggle = (v: boolean) => {
-    setAutoInjectMode(v);
-    setAppSettings({ patch_llm: { provider, model_name: modelName } });
-  };
-
-  const triggerPatch = useCallback(async (bullets: string[]) => {
-    if (!bullets.length) return;
+  const triggerPatch = useCallback(async (bullets: string[]): Promise<boolean> => {
+    if (!bullets.length) return false;
     setIsPatchLoading(true);
     setPatchStatus(null);
     try {
@@ -142,23 +125,25 @@ export function JobInsightsPanel({ open, onClose, variant = "drawer" }: JobInsig
         body: JSON.stringify({
           drafted_bullets: bullets,
           cv_data: cvData,
-          provider,
-          model_name: modelName,
+          provider: appSettings.patch_llm.provider,
+          model_name: appSettings.patch_llm.model_name,
         }),
       });
       if (!res.ok) throw new Error("Patch failed");
       const data = await res.json();
       if (data.patch) {
         applyPatch(data.patch);
-        setPatchStatus("CV patched successfully!");
+        setPatchStatus("Modification appliquée au CV.");
+        return true;
       }
     } catch (err: unknown) {
-      setPatchStatus(errorMessage(err, "Patch failed"));
+      setPatchStatus(errorMessage(err, "La modification n’a pas pu être appliquée."));
     } finally {
       setIsPatchLoading(false);
       setTimeout(() => setPatchStatus(null), 4000);
     }
-  }, [cvData, provider, modelName, applyPatch]);
+    return false;
+  }, [cvData, appSettings.patch_llm, applyPatch]);
 
   const copyToClipboard = () => {
     if (!jobInsights) return;
@@ -180,6 +165,13 @@ export function JobInsightsPanel({ open, onClose, variant = "drawer" }: JobInsig
   if (!open) return null;
 
   const isEmbedded = variant === "embedded";
+  const evidenceSummary = jobInsights?.evidence_matrix.reduce(
+    (summary, match) => {
+      summary[match.status] += 1;
+      return summary;
+    },
+    { matched: 0, partial: 0, missing: 0 },
+  );
 
   return (
     <>
@@ -225,19 +217,26 @@ export function JobInsightsPanel({ open, onClose, variant = "drawer" }: JobInsig
                 <p className="text-xs text-slate-400">{jobInsights.company}</p>
               </div>
               {/* ATS Score widget */}
-              <AtsScoreWidget
-                score={jobInsights.score}
-                onClick={() => {
-                  void (async () => {
-                    if (jobInsights.ats_report) {
-                      await saveDraft("ats-report", {
-                        report: jobInsights.ats_report,
-                      });
-                    }
-                    window.open("/tools/ats-score", "_blank");
-                  })();
-                }}
-              />
+              {jobInsights.score !== null ? (
+                <AtsScoreWidget
+                  score={jobInsights.score}
+                  onClick={() => {
+                    void (async () => {
+                      if (jobInsights.ats_report) {
+                        await saveDraft("ats-report", {
+                          report: jobInsights.ats_report,
+                        });
+                      }
+                      window.open("/tools/ats-score", "_blank");
+                    })();
+                  }}
+                />
+              ) : (
+                <div className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 p-2 text-xs text-amber-200">
+                  <TriangleAlert className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  Score indisponible. Les propositions restent à vérifier.
+                </div>
+              )}
               {/* Score my CV button */}
               <button
                 onClick={async () => {
@@ -257,58 +256,154 @@ export function JobInsightsPanel({ open, onClose, variant = "drawer" }: JobInsig
               </button>
             </div>
 
-            {/* Auto-inject mode */}
-            <div className="border-b border-white/10 px-4 py-3">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <p className="text-xs font-semibold text-slate-200">Mode Auto</p>
-                  <p className="text-[10px] text-slate-500">LLM patch directly into editor</p>
+            {(jobInsights.proposed_changes?.length ?? 0) > 0 ? (
+              <div className="border-b border-white/10 px-4 py-3">
+                <p className="mb-2 flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-emerald-300">
+                  <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                  Modifications à valider
+                </p>
+                <div className="space-y-2">
+                  {(jobInsights.proposed_changes ?? []).map((change, index) => {
+                    const changeKey = `${jobInsights.job_record_id ?? "draft"}-${change.section_id}-${change.entry_id ?? index}`;
+                    const reviewStatus = reviewedChanges[changeKey];
+                    return (
+                      <div
+                        key={changeKey}
+                        className="rounded-lg border border-white/10 bg-white/5 p-2.5"
+                      >
+                        <p className="text-xs leading-relaxed text-slate-200">
+                          {change.after}
+                        </p>
+                        <p className="mt-1 text-[10px] leading-relaxed text-slate-400">
+                          {change.reason}
+                        </p>
+                        <p className="mt-1 text-[10px] text-slate-500">
+                          Sources {change.source_fact_ids.join(", ")} - confiance{" "}
+                          {Math.round(change.confidence * 100)}%
+                        </p>
+                        <div className="mt-2 flex items-center gap-2">
+                          <button
+                            type="button"
+                            disabled={isPatchLoading || reviewStatus !== undefined}
+                            onClick={() => {
+                              void triggerPatch([change.after]).then((applied) => {
+                                if (applied) {
+                                  setReviewedChanges((current) => ({
+                                    ...current,
+                                    [changeKey]: "applied",
+                                  }));
+                                }
+                              });
+                            }}
+                            className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 px-2 py-1 text-[10px] font-medium text-emerald-200 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <CircleCheck className="h-3 w-3" aria-hidden="true" />
+                            {reviewStatus === "applied" ? "Appliquée" : "Appliquer"}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={reviewStatus !== undefined}
+                            onClick={() => {
+                              setReviewedChanges((current) => ({
+                                ...current,
+                                [changeKey]: "ignored",
+                              }));
+                            }}
+                            className="rounded-md px-2 py-1 text-[10px] font-medium text-slate-400 transition hover:bg-white/5 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {reviewStatus === "ignored" ? "Ignorée" : "Ignorer"}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                <button
-                  onClick={() => handleAutoInjectToggle(!autoInjectMode)}
-                  className="relative w-10 h-5 rounded-full transition-colors"
-                  style={{ background: autoInjectMode ? '#7c3aed' : 'rgba(255,255,255,0.12)' }}
-                >
-                  <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-                    autoInjectMode ? "translate-x-5" : "translate-x-0.5"
-                  }`} />
-                </button>
               </div>
-              {/* LLM selector for patch */}
-              <div className="flex gap-1.5 mt-2">
-                <ToolbarSelect
-                  value={provider}
-                  ariaLabel="Patch provider"
-                  options={PROVIDERS.map((p) => ({ value: p.id, label: p.label }))}
-                  onChange={(value) => {
-                    const nextProvider = value as LLMProvider;
-                    setProvider(nextProvider);
-                    setModelName(MODELS[nextProvider]?.[0]?.id ?? modelName);
-                  }}
-                  triggerClassName="flex-1 rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 focus:outline-none"
-                />
-                <ToolbarSelect
-                  value={modelName}
-                  ariaLabel="Patch model"
-                  options={(MODELS[provider] ?? []).map((m) => ({ value: m.id, label: m.label }))}
-                  onChange={setModelName}
-                  triggerClassName="flex-1 rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 focus:outline-none"
-                  menuClassName="min-w-56"
-                />
-              </div>
+            ) : null}
 
-              <button
-                onClick={() => triggerPatch(jobInsights.drafted_bullets)}
-                disabled={isPatchLoading}
-                className="w-full mt-2 py-1.5 text-xs font-semibold rounded-lg disabled:opacity-50 transition-all flex items-center justify-center gap-2"
-                style={{ background: 'linear-gradient(135deg, #1d4ed8, #2563eb)', color: '#fff', boxShadow: '0 0 12px rgba(37,99,235,0.25)' }}
-              >
-                {isPatchLoading ? (
-                  <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Patching…</>
-                ) : (
-                  <><Zap className="h-3.5 w-3.5" aria-hidden="true" /> Apply to CV</>
-                )}
-              </button>
+            {(jobInsights.evidence_matrix?.length ?? 0) > 0 ? (
+              <section className="border-b border-white/10 px-4 py-3">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-300">
+                    <Target className="h-3.5 w-3.5" aria-hidden="true" />
+                    Exigences et preuves
+                  </p>
+                  <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                    <span>{evidenceSummary?.matched ?? 0} couvertes</span>
+                    <span>{evidenceSummary?.partial ?? 0} partielles</span>
+                    <span>{evidenceSummary?.missing ?? 0} manquantes</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {jobInsights.evidence_matrix.map((match) => {
+                    const StatusIcon =
+                      match.status === "matched"
+                        ? CircleCheck
+                        : match.status === "partial"
+                          ? CircleDashed
+                          : TriangleAlert;
+                    const tone =
+                      match.status === "matched"
+                        ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
+                        : match.status === "partial"
+                          ? "border-amber-500/20 bg-amber-500/10 text-amber-200"
+                          : "border-rose-500/20 bg-rose-500/10 text-rose-200";
+                    return (
+                      <div
+                        key={match.requirement_id}
+                        className={`rounded-lg border p-2.5 ${tone}`}
+                      >
+                        <div className="flex items-start gap-2">
+                          <StatusIcon
+                            className="mt-0.5 h-3.5 w-3.5 shrink-0"
+                            aria-hidden="true"
+                          />
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium leading-relaxed">
+                              {match.requirement}
+                            </p>
+                            <p className="mt-1 text-[10px] leading-relaxed opacity-80">
+                              {match.rationale}
+                            </p>
+                            {match.matched_fact_ids.length > 0 ? (
+                              <p className="mt-1 text-[10px] opacity-60">
+                                Preuves : {match.matched_fact_ids.join(", ")}
+                              </p>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            ) : null}
+
+            {(jobInsights.warnings?.length ?? 0) > 0 ? (
+              <div className="border-b border-amber-500/20 bg-amber-500/10 px-4 py-3">
+                <p className="mb-1 flex items-center gap-1 text-xs font-semibold text-amber-200">
+                  <TriangleAlert className="h-3.5 w-3.5" aria-hidden="true" />
+                  Points à vérifier
+                </p>
+                {(jobInsights.warnings ?? []).map((warning) => (
+                  <p key={warning} className="text-[10px] text-amber-100/80">
+                    {warning}
+                  </p>
+                ))}
+              </div>
+            ) : null}
+
+            {/* Backend-owned patch configuration */}
+            <div className="border-b border-white/10 px-4 py-3">
+              <p className="text-xs font-semibold text-slate-200">
+                Modèle d’application
+              </p>
+              <p className="mt-0.5 text-[10px] text-slate-500">
+                Utilisé uniquement après validation explicite d’une proposition.
+              </p>
+              <div className="mt-2">
+                <LLMSelector taskKey="patch_llm" label="Modèle de correction" />
+              </div>
               {patchStatus && <p className="mt-1.5 text-center text-xs text-slate-400">{patchStatus}</p>}
             </div>
 

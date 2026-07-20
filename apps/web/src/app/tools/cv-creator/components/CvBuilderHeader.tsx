@@ -1,12 +1,22 @@
 "use client";
 
-import type { ReactNode, RefObject } from "react";
+import { useState, type ReactNode, type RefObject } from "react";
+import {
+  Bot,
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  SlidersHorizontal,
+  Sparkles,
+  X,
+} from "lucide-react";
 
 import { LLMSelector } from "@/components/LLMSelector";
 import { PdfIngestionModeSelect } from "@/components/PdfIngestionModeSelect";
 import { ToolbarSelect } from "@/components/ToolbarSelect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ContextualGuideLink } from "@/components/help/ContextualGuideLink";
 
 import type { HeaderMenuAction } from "./HeaderActionMenu";
 import { HeaderActionMenu } from "./HeaderActionMenu";
@@ -120,6 +130,11 @@ export function CvBuilderHeader(props: {
   const isSimple = uiMode === "simple";
   const isNormal = uiMode === "normal";
   const isAdvanced = uiMode === "advanced";
+  const [ribbonOpen, setRibbonOpen] = useState(true);
+  const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
+  const [ribbonTab, setRibbonTab] = useState<"main" | "adapt" | "document">(
+    "main",
+  );
 
   const resumeSelector = (
     <ToolbarSelect
@@ -218,7 +233,7 @@ export function CvBuilderHeader(props: {
   );
 
   const optimizeControl = (
-    <div className="flex min-w-[260px] flex-1 items-center gap-2">
+    <div className="flex min-w-0 flex-1 items-center gap-2 md:min-w-[260px]">
       <Input
         value={jobUrl}
         onChange={(e) => onChangeJobUrl(e.target.value)}
@@ -229,7 +244,7 @@ export function CvBuilderHeader(props: {
       <Button
         onClick={onOptimize}
         disabled={isOptimizing || !jobUrl.trim()}
-        className="h-9 shrink-0 cursor-pointer bg-primary px-4 text-sm text-primary-foreground hover:bg-primary/90"
+        className="h-9 shrink-0 cursor-pointer bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90 md:px-4"
       >
         {isOptimizing ? (
           <span className="flex items-center gap-2">
@@ -243,179 +258,180 @@ export function CvBuilderHeader(props: {
     </div>
   );
 
+  const actionControls = (
+    <>
+      {importExportControls}
+      {!isSimple ? (
+        <>
+          <button
+            onClick={onToggleInsights}
+            className={showInsights ? TOOLBAR_BUTTON_ACTIVE_CLASS : TOOLBAR_BUTTON_CLASS}
+          >
+            Conseils{insightsBadge ? " ·" : ""}
+          </button>
+          <button onClick={onOpenCoverLetter} className={TOOLBAR_BUTTON_CLASS}>
+            Lettre
+          </button>
+        </>
+      ) : null}
+      {isAdvanced ? (
+        <button
+          onClick={onToggleGhost}
+          className={showGhost ? TOOLBAR_BUTTON_ACTIVE_CLASS : TOOLBAR_BUTTON_CLASS}
+        >
+          Journal
+        </button>
+      ) : null}
+    </>
+  );
+
+  const tabs = [
+    { id: "main" as const, label: "Principal", icon: FileText },
+    { id: "adapt" as const, label: "Adapter", icon: Sparkles },
+    { id: "document" as const, label: "Document", icon: SlidersHorizontal },
+  ];
+
   return (
-    <header className="app-header-surface z-30 flex shrink-0 flex-col gap-3 px-4 py-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex shrink-0 items-center gap-3">
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+    <header ref={headerMenuRef} className="app-header-surface z-30 shrink-0">
+      <div className="hidden md:block">
+        <div className="flex h-12 items-center gap-3 border-b border-border px-4">
+          <p className="shrink-0 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             CV Builder
           </p>
-          <CvBuilderModeToggle value={uiMode} onChange={onChangeUiMode} />
+          <div className="min-w-0">{resumeSelector}</div>
+          <div className="ml-auto flex items-center gap-2">
+            <ContextualGuideLink tool="cv-creator" />
+            <CvBuilderModeToggle value={uiMode} onChange={onChangeUiMode} />
+            <button
+              onClick={onRetrySave}
+              className="app-toolbar-button h-8 px-2.5 text-xs font-medium"
+              style={{
+                borderColor: resumeSaveStatus === "error" ? "#fecaca" : undefined,
+                color: saveStatusColor,
+                cursor: resumeSaveStatus === "error" ? "pointer" : "default",
+              }}
+              title={resumeSaveError ?? "Statut de sauvegarde backend"}
+            >
+              {saveStatusText}
+            </button>
+            <button
+              type="button"
+              onClick={() => setRibbonOpen((open) => !open)}
+              className="app-toolbar-button flex h-8 items-center gap-1 px-2.5 text-xs"
+              aria-expanded={ribbonOpen}
+              aria-controls="cv-builder-ribbon"
+            >
+              {ribbonOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              {ribbonOpen ? "Réduire" : "Ouvrir"}
+            </button>
+          </div>
         </div>
 
+        {ribbonOpen ? (
+          <div id="cv-builder-ribbon" className="px-4 pb-3">
+            <div className="flex h-9 items-end gap-1" role="tablist" aria-label="Outils du CV Builder">
+              {tabs.map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  aria-selected={ribbonTab === id}
+                  onClick={() => setRibbonTab(id)}
+                  className={`flex h-8 items-center gap-1.5 rounded-t-md px-3 text-xs font-medium ${
+                    ribbonTab === id
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Icon size={14} aria-hidden="true" />
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="flex min-h-14 items-center gap-2 rounded-lg rounded-tl-none border border-border bg-muted/30 p-2">
+              {ribbonTab === "main" ? (
+                <>
+                  {resumeNameInput}
+                  {!isSimple ? (
+                    <>
+                      <button onClick={onCreateResume} className={TOOLBAR_BUTTON_CLASS}>Nouveau</button>
+                      <button onClick={onDuplicateResume} className={TOOLBAR_BUTTON_CLASS}>Dupliquer</button>
+                    </>
+                  ) : null}
+                  {(isNormal || isAdvanced) ? localeControls : null}
+                </>
+              ) : null}
+              {ribbonTab === "adapt" ? (
+                <>
+                  {optimizeControl}
+                  {!isSimple ? <PdfIngestionModeSelect label="Lecture PDF" variant="toolbar" /> : null}
+                  {isAdvanced ? <LLMSelector taskKey="optimize_llm" label="Moteur IA" variant="toolbar" /> : null}
+                  {!isSimple ? (
+                    <button onClick={onToggleInsights} className={showInsights ? TOOLBAR_BUTTON_ACTIVE_CLASS : TOOLBAR_BUTTON_CLASS}>
+                      Conseils{insightsBadge ? " ·" : ""}
+                    </button>
+                  ) : null}
+                </>
+              ) : null}
+              {ribbonTab === "document" ? (
+                <>
+                  {actionControls}
+                  {isAdvanced ? (
+                    <button onClick={onDeleteResume} className="h-9 rounded-lg border border-destructive/30 bg-destructive/10 px-3 text-xs font-medium text-destructive hover:bg-destructive/15">
+                      Supprimer le CV
+                    </button>
+                  ) : null}
+                </>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="flex flex-col gap-2 p-3 md:hidden">
         <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">{resumeSelector}</div>
           <button
             onClick={onRetrySave}
-            className="app-toolbar-button h-9 px-3 text-xs font-medium"
-            style={{
-              borderColor: resumeSaveStatus === "error" ? "#fecaca" : undefined,
-              color: saveStatusColor,
-              cursor: resumeSaveStatus === "error" ? "pointer" : "default",
-            }}
+            className="h-8 shrink-0 px-1 text-[10px] text-muted-foreground"
             title={resumeSaveError ?? "Statut de sauvegarde backend"}
           >
             {saveStatusText}
           </button>
         </div>
+        <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">{optimizeControl}</div>
+          <button
+            type="button"
+            onClick={() => setMobileToolsOpen(true)}
+            className="app-toolbar-button flex h-9 shrink-0 items-center gap-1.5 px-3 text-xs font-medium"
+          >
+            <SlidersHorizontal size={14} aria-hidden="true" />
+            Outils
+          </button>
+        </div>
       </div>
 
-      {isAdvanced ? (
-        <div className="grid w-full gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(430px,0.72fr)]">
-          <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/25 p-2 max-sm:w-full">
-            <span className="px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              CV
-            </span>
-            {resumeSelector}
-            {resumeNameInput}
-            <button
-              onClick={onCreateResume}
-              className="app-toolbar-button h-9 cursor-pointer px-3 text-xs font-medium"
-            >
-              Nouveau
-            </button>
-            <button
-              onClick={onDuplicateResume}
-              className="app-toolbar-button h-9 cursor-pointer px-3 text-xs font-medium"
-            >
-              Dupliquer
-            </button>
-            <button
-              onClick={onDeleteResume}
-              className="h-9 cursor-pointer rounded-lg border border-destructive/30 bg-destructive/10 px-3 text-xs font-medium text-destructive hover:bg-destructive/15"
-            >
-              Supprimer
-            </button>
-            {localeControls}
-          </div>
-
-          <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/25 p-2">
-            <span className="px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              IA
-            </span>
-            <PdfIngestionModeSelect label="Lecture PDF" variant="toolbar" />
-            <LLMSelector
-              taskKey="optimize_llm"
-              label="Moteur IA"
-              variant="toolbar"
-            />
-          </div>
-
-          <div className="flex min-w-0 items-center gap-2 rounded-xl border border-border bg-muted/25 p-2 max-sm:flex-wrap">
-            <span className="px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Offre
-            </span>
-            {optimizeControl}
-          </div>
-
-          <div
-            ref={headerMenuRef}
-            className="flex min-w-0 flex-wrap items-center gap-1.5 rounded-xl border border-border bg-muted/25 p-2"
-          >
-            <span className="px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Actions
-            </span>
-            {importExportControls}
-            <button
-              onClick={onToggleInsights}
-              className={
-                showInsights
-                  ? `relative ${TOOLBAR_BUTTON_ACTIVE_CLASS}`
-                  : `relative ${TOOLBAR_BUTTON_CLASS}`
-              }
-            >
-              Conseils
-              {insightsBadge ? (
-                <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-green-500" />
-              ) : null}
-            </button>
-            <button
-              onClick={onOpenCoverLetter}
-              className={TOOLBAR_BUTTON_CLASS}
-            >
-              Lettre
-            </button>
-            <button
-              onClick={onToggleGhost}
-              className={
-                showGhost ? TOOLBAR_BUTTON_ACTIVE_CLASS : TOOLBAR_BUTTON_CLASS
-              }
-            >
-              Journal
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/25 p-2">
-            {resumeSelector}
-            {resumeNameInput}
-            {!isSimple ? (
-              <>
-                <button
-                  onClick={onCreateResume}
-                  className="app-toolbar-button h-9 cursor-pointer px-3 text-xs font-medium"
-                >
-                  Nouveau
-                </button>
-                <button
-                  onClick={onDuplicateResume}
-                  className="app-toolbar-button h-9 cursor-pointer px-3 text-xs font-medium"
-                >
-                  Dupliquer
-                </button>
-              </>
-            ) : null}
-          </div>
-
-          {optimizeControl}
-
-          <div
-            ref={headerMenuRef}
-            className="flex flex-wrap items-center gap-1.5 rounded-xl border border-border bg-muted/25 p-2"
-          >
-            {importExportControls}
-            {!isSimple ? (
-              <>
-                <button
-                  onClick={onToggleInsights}
-                  className={
-                    showInsights
-                      ? `relative ${TOOLBAR_BUTTON_ACTIVE_CLASS}`
-                      : `relative ${TOOLBAR_BUTTON_CLASS}`
-                  }
-                >
-                  Conseils
-                  {insightsBadge ? (
-                    <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-green-500" />
-                  ) : null}
-                </button>
-                <button
-                  onClick={onOpenCoverLetter}
-                  className={TOOLBAR_BUTTON_CLASS}
-                >
-                  Lettre
-                </button>
-              </>
-            ) : null}
-          </div>
-
-          {isNormal ? (
-            <div className="flex flex-wrap items-center gap-2">
-              {localeControls}
+      {mobileToolsOpen ? (
+        <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true" aria-label="Outils du CV Builder">
+          <button className="absolute inset-0 bg-black/50" onClick={() => setMobileToolsOpen(false)} aria-label="Fermer les outils" />
+          <div className="absolute inset-x-0 bottom-0 max-h-[78vh] overflow-y-auto rounded-t-2xl border border-border bg-background p-4 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2"><Bot size={16} /><h2 className="text-sm font-semibold">Outils du CV</h2></div>
+              <button onClick={() => setMobileToolsOpen(false)} className="app-toolbar-button flex h-8 w-8 items-center justify-center" aria-label="Fermer"><X size={16} /></button>
             </div>
-          ) : null}
+            <div className="space-y-4">
+              <ContextualGuideLink tool="cv-creator" />
+              <CvBuilderModeToggle value={uiMode} onChange={onChangeUiMode} />
+              <div className="flex flex-wrap gap-2">{resumeNameInput}{!isSimple ? <><button onClick={onCreateResume} className={TOOLBAR_BUTTON_CLASS}>Nouveau</button><button onClick={onDuplicateResume} className={TOOLBAR_BUTTON_CLASS}>Dupliquer</button></> : null}</div>
+              {(isNormal || isAdvanced) ? localeControls : null}
+              {!isSimple ? <PdfIngestionModeSelect label="Lecture PDF" variant="toolbar" /> : null}
+              {isAdvanced ? <LLMSelector taskKey="optimize_llm" label="Moteur IA" variant="toolbar" /> : null}
+              <div className="flex flex-wrap gap-2">{actionControls}</div>
+            </div>
+          </div>
         </div>
-      )}
+      ) : null}
     </header>
   );
 }

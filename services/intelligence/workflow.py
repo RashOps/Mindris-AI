@@ -7,18 +7,54 @@ Each node emits SSE events via the event_bus so the frontend Ghost Mode
 terminal can display real-time progress.
 """
 
-from typing import TypedDict
+import json
+from typing import Any, TypedDict
 
 from crewai import Agent, Crew, Process, Task
 from database.models import JobOffer
 from database.vector_store import MindrisVectorStore
 from langgraph.graph import END, StateGraph
+from pydantic import BaseModel, ValidationError
 from utils.logger import get_logger
 
 from intelligence.agents import MindrisAgents
 from intelligence.event_bus import emit
+from intelligence.workflow_models import (
+    DraftResponse,
+    EvidenceFact,
+    ScoreFeedback,
+    validate_evidence_matrix,
+    validate_grounded_changes,
+)
 
 logger = get_logger(__name__, service_name="intelligence")
+
+
+def _parse_model_output[ModelT: BaseModel](raw: str, model: type[ModelT]) -> ModelT:
+    """Parse one strict JSON object, tolerating only a surrounding code fence."""
+    candidate = raw.strip()
+    if candidate.startswith("```") and candidate.endswith("```"):
+        lines = candidate.splitlines()
+        candidate = "\n".join(lines[1:-1]).strip()
+    return model.model_validate_json(candidate)
+
+
+def _result_model[ModelT: BaseModel](result: Any, model: type[ModelT]) -> ModelT:
+    structured = getattr(result, "pydantic", None)
+    if isinstance(structured, model):
+        return structured
+    if structured is not None:
+        return model.model_validate(structured)
+    return _parse_model_output(str(getattr(result, "raw", result)), model)
+
+
+def parse_score_output(raw: str) -> tuple[ScoreFeedback | None, str]:
+    """Parse evaluator output without inventing a fallback business score."""
+    try:
+        return _parse_model_output(raw, ScoreFeedback), ""
+    except (ValidationError, ValueError, json.JSONDecodeError):
+        return None, "The evaluator returned an invalid structured score."
+
 
 # ── State Definition ─────────────────────────────────────────────────────────
 
@@ -31,11 +67,18 @@ class GraphState(TypedDict):
     model_name: str  # LLM Model name
     retrieved_context: str  # Relevant chunks from the CV
     drafted_cv: str  # The drafted/tailored CV sections
-    score: int  # ATS/Matching score (0-100)
+    score: int | None  # ATS/Matching score (0-100), or unavailable
     iterations: int  # Number of drafting iterations
     job_id: str  # SSE job identifier
     job_record_id: int | None  # Persisted scraped job ID
     source_url: str | None  # Persisted job source URL
+    evidence_ledger: list[dict[str, Any]]
+    evidence_matrix: list[dict[str, Any]]
+    proposed_changes: list[dict[str, Any]]
+    evaluation: dict[str, Any] | None
+    warnings: list[str]
+    resume_id: int | str | None
+    resume_locale: str
 
 
 # ── Node factory (receives job_id via closure) ────────────────────────────────
@@ -51,23 +94,57 @@ def make_nodes(job_id: str) -> tuple:
             "node_start",
             {
                 "node": "retrieve",
-                "icon": "🔍",
                 "message": "Searching ChromaDB for relevant CV experiences…",
             },
         )
 
         job = state["job_offer"]
         skills_str = ", ".join(job.hard_skills)
-        query = f"{job.title} {skills_str}"
+        soft_skills = ", ".join(job.soft_skills)
+        responsibilities = ", ".join(getattr(job, "responsibilities", []))
+        requirements = ", ".join(getattr(job, "must_have_requirements", []))
+        query = (
+            f"Role: {job.title}. Required technical skills: {skills_str}. "
+            f"Expected interpersonal skills: {soft_skills}. "
+            f"Responsibilities: {responsibilities}. Mandatory requirements: {requirements}."
+        )
 
         store = MindrisVectorStore()
-        results = store.search(query=query, k=5)
+        resume_namespace = str(state.get("resume_id") or "current")
+        resume_locale = state.get("resume_locale") or "fr"
+        results = store.search(
+            query=query,
+            k=8,
+            filter_dict={
+                "$and": [
+                    {"resume_id": {"$eq": resume_namespace}},
+                    {"locale": {"$eq": resume_locale}},
+                ]
+            },
+        )
 
-        context = ""
-        for r in results:
-            context += f"- {r['document']}\n"
+        evidence_ledger = [
+            EvidenceFact(
+                id=f"fact_{index}",
+                section_type=str(result.get("metadata", {}).get("type", "unknown")),
+                source_id=str(result.get("metadata", {}).get("id") or result["id"]),
+                text=result["document"],
+                relevance=(
+                    1 - float(result["distance"])
+                    if result.get("distance") is not None
+                    else None
+                ),
+            )
+            for index, result in enumerate(results, start=1)
+        ]
+        context = "\n".join(
+            f"[{fact.id}] ({fact.section_type}) {fact.text}" for fact in evidence_ledger
+        )
 
         state["retrieved_context"] = context
+        state["evidence_ledger"] = [
+            fact.model_dump(mode="json") for fact in evidence_ledger
+        ]
         n = len(results)
 
         emit(
@@ -75,7 +152,6 @@ def make_nodes(job_id: str) -> tuple:
             "node_done",
             {
                 "node": "retrieve",
-                "icon": "✅",
                 "message": f"Found {n} relevant CV chunk{'s' if n != 1 else ''}.",
             },
         )
@@ -89,7 +165,6 @@ def make_nodes(job_id: str) -> tuple:
             "node_start",
             {
                 "node": "draft",
-                "icon": "✍️",
                 "message": f"Tailoring CV — Iteration {iteration}…",
             },
         )
@@ -99,34 +174,78 @@ def make_nodes(job_id: str) -> tuple:
         )
 
         copywriter = Agent(
-            role="Expert CV Copywriter",
-            goal="Adapt the user's experiences to perfectly match the target job description.",
+            role="Evidence-grounded resume strategist",
+            goal="Propose precise CV changes supported by candidate facts.",
             backstory=(
-                "You are a top-tier tech recruiter. Your job is to take a user's raw experiences "
-                "and rewrite them into impactful bullet points tailored for a specific job offer."
+                "You improve resumes across job families without fabricating skills, dates, "
+                "employers, metrics, or responsibilities. Every change must cite source facts."
             ),
             llm=agents_factory.llm,
             allow_delegation=False,
             verbose=False,
         )
 
+        previous_evaluation = state.get("evaluation") or {}
+        revision_feedback = previous_evaluation.get("revision_instructions", [])
         task = Task(
             description=(
                 f"Job Offer Details:\nTitle: {state['job_offer'].title}\n"
-                f"Required Skills: {', '.join(state['job_offer'].hard_skills)}\n\n"
-                f"User's Relevant Experiences:\n{state['retrieved_context']}\n\n"
-                "Task: Write 3 to 5 highly impactful bullet points for the user's CV that "
-                "highlight their relevant skills for this specific job offer. "
-                "Do not invent facts. Use only the provided user experiences."
+                f"Company: {state['job_offer'].company}\n"
+                f"Required Skills: {', '.join(state['job_offer'].hard_skills)}\n"
+                f"Soft Skills: {', '.join(state['job_offer'].soft_skills)}\n\n"
+                f"Responsibilities: {json.dumps(getattr(state['job_offer'], 'responsibilities', []))}\n"
+                f"Mandatory requirements: {json.dumps(getattr(state['job_offer'], 'must_have_requirements', []))}\n\n"
+                f"Candidate fact ledger:\n{state['retrieved_context']}\n\n"
+                f"Evaluator feedback from the previous iteration: {json.dumps(revision_feedback)}\n\n"
+                "Return a JSON object matching the requested schema. Propose 3 to 5 targeted "
+                "changes and build an evidence_matrix covering every hard skill and mandatory "
+                "requirement. Mark requirements as missing rather than inventing evidence. "
+                "Each change must identify its target section, preserve the original "
+                "meaning, cite one or more fact IDs, and explain why it helps. Never invent "
+                "facts or metrics. Put uncertainty in warnings."
             ),
-            expected_output="A list of 3-5 tailored bullet points in Markdown format.",
+            expected_output=(
+                "A DraftResponse JSON object containing evidence_matrix, "
+                "proposed_changes, and warnings."
+            ),
             agent=copywriter,
+            output_pydantic=DraftResponse,
         )
 
         crew = Crew(agents=[copywriter], tasks=[task], process=Process.sequential)
         result = crew.kickoff()
 
-        state["drafted_cv"] = str(result.raw)
+        warnings = list(state.get("warnings", []))
+        try:
+            draft = _result_model(result, DraftResponse)
+        except (ValidationError, ValueError, json.JSONDecodeError):
+            draft = DraftResponse()
+            warnings.append("The writer returned an invalid structured draft.")
+
+        evidence = [
+            EvidenceFact.model_validate(fact)
+            for fact in state.get("evidence_ledger", [])
+        ]
+        valid_changes, grounding_warnings = validate_grounded_changes(
+            draft.proposed_changes,
+            evidence,
+        )
+        valid_matches, matrix_warnings = validate_evidence_matrix(
+            draft.evidence_matrix,
+            evidence,
+        )
+
+        warnings.extend(grounding_warnings)
+        warnings.extend(matrix_warnings)
+        warnings.extend(draft.warnings)
+        state["proposed_changes"] = [
+            change.model_dump(mode="json") for change in valid_changes
+        ]
+        state["evidence_matrix"] = [
+            match.model_dump(mode="json") for match in valid_matches
+        ]
+        state["drafted_cv"] = "\n".join(f"- {change.after}" for change in valid_changes)
+        state["warnings"] = warnings
         state["iterations"] = iteration
 
         emit(
@@ -134,9 +253,8 @@ def make_nodes(job_id: str) -> tuple:
             "node_done",
             {
                 "node": "draft",
-                "icon": "✅",
                 "message": f"Draft ready (iteration {iteration}).",
-                "content": str(result.raw)[:300],  # snippet for terminal
+                "content": state["drafted_cv"][:300],
             },
         )
         return state
@@ -148,7 +266,6 @@ def make_nodes(job_id: str) -> tuple:
             "node_start",
             {
                 "node": "score",
-                "icon": "⚖️",
                 "message": "Evaluating ATS compatibility…",
             },
         )
@@ -158,9 +275,12 @@ def make_nodes(job_id: str) -> tuple:
         )
 
         ats_scorer = Agent(
-            role="ATS Scoring System",
-            goal="Score the drafted CV bullet points against the job requirements.",
-            backstory="You are an Applicant Tracking System. You only care about keyword matching and impact.",
+            role="Resume evidence evaluator",
+            goal="Evaluate job alignment, evidence quality, and writing clarity.",
+            backstory=(
+                "You evaluate proposed resume changes conservatively. Missing candidate "
+                "evidence lowers the score and must be reported, never fabricated."
+            ),
             llm=agents_factory.llm,
             allow_delegation=False,
             verbose=False,
@@ -169,33 +289,47 @@ def make_nodes(job_id: str) -> tuple:
         task = Task(
             description=(
                 f"Job Required Skills: {', '.join(state['job_offer'].hard_skills)}\n"
-                f"Drafted CV:\n{state['drafted_cv']}\n\n"
-                "Task: Evaluate how well the drafted CV matches the required skills. "
-                "Return ONLY a single integer between 0 and 100 representing the score."
+                f"Proposed changes: {json.dumps(state.get('proposed_changes', []))}\n"
+                f"Evidence matrix: {json.dumps(state.get('evidence_matrix', []))}\n"
+                f"Evidence ledger: {json.dumps(state.get('evidence_ledger', []))}\n\n"
+                "Return a JSON object matching ScoreFeedback. Score keyword alignment, "
+                "evidence quality, and clarity separately. Give actionable revision "
+                "instructions when the overall score is below 80."
             ),
-            expected_output="A single integer between 0 and 100.",
+            expected_output="A ScoreFeedback JSON object.",
             agent=ats_scorer,
+            output_pydantic=ScoreFeedback,
         )
 
         crew = Crew(agents=[ats_scorer], tasks=[task], process=Process.sequential)
         result = crew.kickoff()
 
+        warning = ""
         try:
-            score_text = str(result.raw).strip()
-            score = int("".join(filter(str.isdigit, score_text)))
-            score = min(max(score, 0), 100)
-        except Exception:
-            score = 50
+            evaluation = _result_model(result, ScoreFeedback)
+        except (ValidationError, ValueError, json.JSONDecodeError):
+            evaluation, warning = parse_score_output(
+                str(getattr(result, "raw", result))
+            )
 
+        score = evaluation.score if evaluation is not None else None
         state["score"] = score
+        state["evaluation"] = (
+            evaluation.model_dump(mode="json") if evaluation is not None else None
+        )
+        if warning:
+            state.setdefault("warnings", []).append(warning)
 
         emit(
             job_id,
             "node_done",
             {
                 "node": "score",
-                "icon": "🏅",
-                "message": f"ATS Score: {score}/100",
+                "message": (
+                    f"ATS Score: {score}/100"
+                    if score is not None
+                    else "ATS score unavailable: invalid evaluator output."
+                ),
                 "score": score,
             },
         )
@@ -218,9 +352,19 @@ def make_nodes(job_id: str) -> tuple:
                 "source_url": state.get("source_url"),
                 "hard_skills": state["job_offer"].hard_skills,
                 "soft_skills": state["job_offer"].soft_skills,
+                "responsibilities": getattr(state["job_offer"], "responsibilities", []),
+                "must_have_requirements": getattr(
+                    state["job_offer"], "must_have_requirements", []
+                ),
                 "drafted_bullets": bullets,
                 "raw_markdown": drafted_markdown,
                 "score": score,
+                "evidence_ledger": state.get("evidence_ledger", []),
+                "evidence_matrix": state.get("evidence_matrix", []),
+                "proposed_changes": state.get("proposed_changes", []),
+                "evaluation": state.get("evaluation"),
+                "warnings": state.get("warnings", []),
+                "requires_user_review": True,
             },
         )
 
@@ -234,6 +378,8 @@ def make_nodes(job_id: str) -> tuple:
 
 def decide_next_step(state: GraphState) -> str:
     """Decide whether to finish or revise the draft."""
+    if state.get("score") is None:
+        return "end"
     if state["score"] >= 80 or state["iterations"] >= 3:
         return "end"
     return "revise"

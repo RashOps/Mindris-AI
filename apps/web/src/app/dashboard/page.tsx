@@ -36,6 +36,7 @@ import {
   type ResumeTemplate,
 } from "@/lib/templates";
 import { DashboardActions, ResumeCard, TemplatePreview } from "./dashboard-components";
+import { ContextualGuideLink } from "@/components/help/ContextualGuideLink";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -330,7 +331,9 @@ export default function DashboardPage() {
       title="Bibliothèque de CV"
       description="Créer, importer, dupliquer et exporter des CV persistés par le backend."
       actions={
-        <DashboardActions
+        <div className="flex flex-wrap items-center gap-2">
+          <ContextualGuideLink tool="dashboard" />
+          <DashboardActions
           saveStatusText={saveStatusText}
           resumeSaveStatus={resumeSaveStatus}
           resumeSaveError={resumeSaveError}
@@ -344,7 +347,8 @@ export default function DashboardPage() {
           handleTemplatePackageImport={handleTemplatePackageImport}
           isImportingPdf={isImportingPdf}
           createFromTemplate={createFromTemplate}
-        />
+          />
+        </div>
       }
     >
           <PageBody>

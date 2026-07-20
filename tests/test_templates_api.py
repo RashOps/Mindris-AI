@@ -63,7 +63,18 @@ def _cv_payload(template_id: str = "modern") -> dict:
 def test_template_catalog_lists_ready_templates() -> None:
     items = list_templates()["items"]
     ready_ids = {item["id"] for item in items if item["status"] == "ready"}
-    assert {"modern", "compact", "ats", "student", "creative"} <= ready_ids
+    assert {
+        "modern",
+        "atlas-sidebar",
+        "compact",
+        "ats",
+        "student",
+        "creative",
+        "ledger",
+        "executive",
+        "signal",
+        "scholar",
+    } <= ready_ids
     community_ids = {item["id"] for item in items if item["status"] == "community"}
     assert {"opensource", "bilingual"} <= community_ids
 
@@ -133,6 +144,11 @@ def test_customization_catalogue_exposes_backend_owned_options() -> None:
         "MMMM YYYY",
     ]
     assert options["templates"]["ats"]["enforced"]["layout"]["columns"] == 1
+    assert len(options["templates"]) == 10
+    assert options["templates"]["modern"]["label"] == "Atlas"
+    assert options["templates"]["scholar"]["category"] == "Académique"
+    assert options["templates"]["executive"]["previewStyle"] == "executive"
+    assert options["templates"]["signal"]["accent"] == "#4f46e5"
 
 
 def test_resolve_render_payload_applies_backend_template_defaults() -> None:
@@ -150,6 +166,73 @@ def test_resolve_render_payload_applies_backend_template_defaults() -> None:
     assert item["cv_data"]["global_settings"]["template_id"] == "modern"
     assert item["cv_data"]["global_settings"]["colors"]["palette_preset"] == "tech"
     assert item["cv_data"]["global_settings"]["locale"]["label_language"] == "en"
+
+
+def test_explicit_builtin_template_replaces_the_persisted_template() -> None:
+    with _session() as session:
+        response = resolve_template_render_payload_route(
+            TemplateRenderPayloadRequest(
+                template_id="ats",
+                cv_data=_cv_payload("modern"),
+            ),
+            session,
+        )
+
+    item = response["item"]
+    assert item["template_id"] == "ats"
+    assert item["cv_data"]["global_settings"]["template_id"] == "ats"
+
+
+def test_template_preset_can_be_explicitly_applied_to_visual_settings() -> None:
+    with _session() as session:
+        response = resolve_template_render_payload_route(
+            TemplateRenderPayloadRequest(
+                template_id="creative",
+                apply_preset=True,
+                cv_data=_cv_payload("modern"),
+            ),
+            session,
+        )
+
+    settings = response["item"]["cv_data"]["global_settings"]
+    assert settings["template_id"] == "creative"
+    assert settings["layout"]["sidebar_position"] == "left"
+    assert settings["typography"]["heading_font"] == "Merriweather"
+    assert settings["colors"]["primary"] == "#e11d48"
+
+
+@pytest.mark.parametrize(
+    "template_id",
+    [
+        "modern",
+        "atlas-sidebar",
+        "compact",
+        "ats",
+        "student",
+        "creative",
+        "ledger",
+        "executive",
+        "signal",
+        "scholar",
+    ],
+)
+def test_builtin_templates_expose_backend_owned_presets(template_id: str) -> None:
+    defaults = resolve_template_defaults(template_id)
+
+    assert defaults["global_settings"]["template_id"] == template_id
+    assert "layout" in defaults["global_settings"]
+    assert "typography" in defaults["global_settings"]
+    assert "colors" in defaults["global_settings"]
+    assert "header_alignment" in defaults["global_settings"]["layout"]
+    assert {
+        "primary",
+        "secondary",
+        "text",
+        "heading",
+        "sidebar_background",
+        "separators",
+        "monochrome",
+    } <= defaults["global_settings"]["colors"].keys()
 
 
 def _template_package_bytes(

@@ -127,3 +127,7 @@ class MindrisVectorStore:
         result = self.collection.get()
         if result and result["ids"]:
             self.collection.delete(ids=result["ids"])
+
+    def delete_where(self, filter_dict: dict[str, Any]) -> None:
+        """Delete vectors belonging to one backend-owned profile namespace."""
+        self.collection.delete(where=filter_dict)

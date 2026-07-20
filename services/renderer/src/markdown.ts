@@ -37,27 +37,17 @@ function buildShell(css: string, body: string, title: string): string {
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; background: #f3f4f6; }
-    #shadow-host { width: 210mm; min-height: 297mm; background: white;
+    #document-root { width: 210mm; max-width: calc(100% - 40px); min-height: 297mm; background: white;
       margin: 20px auto; box-shadow: 0 4px 20px rgba(0,0,0,0.12); }
     @media print {
       html, body { background: none; }
-      #shadow-host { margin: 0; box-shadow: none; width: 100%; }
+      #document-root { margin: 0; box-shadow: none; width: 100%; max-width: none; }
     }
+    ${css}
   </style>
 </head>
 <body>
-  <div id="shadow-host"></div>
-  <script>
-    const host = document.getElementById('shadow-host');
-    const shadow = host.attachShadow({ mode: 'open' });
-    const style = document.createElement('style');
-    style.textContent = ${JSON.stringify(css)};
-    shadow.appendChild(style);
-    const wrapper = document.createElement('div');
-    wrapper.className = 'md-wrapper';
-    wrapper.innerHTML = ${JSON.stringify(body)};
-    shadow.appendChild(wrapper);
-  </script>
+  <div id="document-root"><div class="md-wrapper">${body}</div></div>
 </body>
 </html>`;
 }
@@ -67,7 +57,7 @@ function escapeHtml(str: string): string {
 }
 
 const DOCUMENT_CSS = `
-:host { display: block; font-family: 'Inter', sans-serif; color: #1e293b; line-height: 1.7; }
+#document-root { display: block; font-family: 'Inter', sans-serif; color: #1e293b; line-height: 1.7; }
 .md-wrapper { padding: 52px 64px; max-width: 100%; }
 h1 { font-size: 26px; font-weight: 700; color: #0f172a; margin: 0 0 8px; letter-spacing: -0.3px; }
 h2 { font-size: 18px; font-weight: 600; color: #0f172a; margin: 32px 0 12px; padding-bottom: 6px; border-bottom: 2px solid #e2e8f0; }
@@ -94,7 +84,7 @@ em { color: #475569; }
 `;
 
 const LETTER_CSS = `
-:host { display: block; font-family: 'Inter', sans-serif; color: #1e293b; line-height: 1.75; }
+#document-root { display: block; font-family: 'Inter', sans-serif; color: #1e293b; line-height: 1.75; }
 .md-wrapper { padding: 60px 72px; max-width: 100%; }
 h1 { font-size: 20px; font-weight: 600; color: #0f172a; margin: 0 0 4px; letter-spacing: 0; }
 h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin: 32px 0 10px; padding-bottom: 4px; border-bottom: 1px solid #e2e8f0; }

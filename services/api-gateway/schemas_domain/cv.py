@@ -352,19 +352,36 @@ class CVGlobalSettings(CVBaseModel):
     @model_validator(mode="after")
     def migrate_legacy_settings(self) -> "CVGlobalSettings":
         """Mirror legacy flat settings into the versioned customization contract."""
-        self.colors.primary = self.primary_color or self.colors.primary
-        self.typography.body_font = self.font_family or self.typography.body_font
+        fields = self.model_fields_set
+        color_fields = self.colors.model_fields_set
+        typography_fields = self.typography.model_fields_set
+        page_fields = self.page.model_fields_set
+        margin_fields = self.page.margins.model_fields_set
+        layout_fields = self.layout.model_fields_set
+
+        if "primary" not in color_fields and "primary_color" in fields:
+            self.colors.primary = self.primary_color
+        if "body_font" not in typography_fields and "font_family" in fields:
+            self.typography.body_font = self.font_family
         self.typography.heading_font = (
             self.typography.heading_font or self.typography.body_font
         )
-        self.typography.base_size = self.font_size or self.typography.base_size
-        self.typography.line_height = self.line_height or self.typography.line_height
-        self.page.margins.horizontal = self.margin_h or self.page.margins.horizontal
-        self.page.margins.vertical = self.margin_v or self.page.margins.vertical
-        if self.col_left_width:
+        if "base_size" not in typography_fields and "font_size" in fields:
+            self.typography.base_size = self.font_size
+        if "line_height" not in typography_fields and "line_height" in fields:
+            self.typography.line_height = self.line_height
+        if (
+            "margins" not in page_fields or "horizontal" not in margin_fields
+        ) and "margin_h" in fields:
+            self.page.margins.horizontal = self.margin_h
+        if (
+            "margins" not in page_fields or "vertical" not in margin_fields
+        ) and "margin_v" in fields:
+            self.page.margins.vertical = self.margin_v
+        if "sidebar_width" not in layout_fields and "col_left_width" in fields:
             width = self.col_left_width.strip()
             self.layout.sidebar_width = width if width.endswith("%") else f"{width}%"
-        if self.col_swap == "true":
+        if "sidebar_position" not in layout_fields and self.col_swap == "true":
             self.layout.sidebar_position = "right"
 
         if self.template_id == "ats":
@@ -401,10 +418,13 @@ class CVGlobalSettings(CVBaseModel):
             )
             self.entry_spacing = _min_css_size(self.entry_spacing, "10px")
 
+        self.primary_color = self.colors.primary
+        self.font_family = self.typography.body_font
         self.font_size = self.typography.base_size
         self.line_height = self.typography.line_height
         self.margin_h = self.page.margins.horizontal
         self.margin_v = self.page.margins.vertical
+        self.col_left_width = self.layout.sidebar_width.removesuffix("%")
 
         return self
 
@@ -554,6 +574,7 @@ class TemplateRenderPayloadRequest(BaseModel):
 
     cv_data: CVDataModel
     template_id: str | None = None
+    apply_preset: bool = False
 
 
 class MarkdownDocumentRequest(BaseModel):

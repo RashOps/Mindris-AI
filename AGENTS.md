@@ -50,6 +50,19 @@
 - Frontend: `cd apps/web && bun run lint && bun run typecheck`
 - Renderer: `cd services/renderer && bun run typecheck && bun run build`
 
+## Release policy
+
+- Pull requests run validation only and must never publish packages or images.
+- Docker images are built and published only from tags matching `v*-rc.*`.
+- A stable tag must already be contained in `main` and have the exact same Git
+  tree as an ancestor release-candidate tag for the same version.
+- Stable and `latest` GHCR tags are promoted from the validated RC manifest
+  digest; stable releases must never rebuild Docker images.
+- Do not create, move, reuse, or delete release tags to retrigger CI. Fix the
+  source, create the next RC tag, and preserve the release audit trail.
+- Run `scripts/verify_release_promotion.sh <stable-tag>` before a stable tag.
+- See `docs/releases.md` and ADR 025 for the canonical procedure.
+
 ## Agent efficiency
 
 - Make the smallest safe change needed for the task.

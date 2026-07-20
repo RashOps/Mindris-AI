@@ -17,26 +17,17 @@ logger = get_logger(__name__, service_name="utils")
 CONFIG_PATH = settings.storage_dir / "runtime-config.json"
 SECRETS_PATH = settings.storage_dir / "runtime-secrets.json"
 
+DEFAULT_TASK_CONFIGURATION: dict[str, dict[str, str]] = {
+    "optimize": {"provider": "groq", "model_name": "llama-3.3-70b-versatile"},
+    "cover_letter": {"provider": "groq", "model_name": "llama-3.3-70b-versatile"},
+    "ats_score": {"provider": "groq", "model_name": "llama-3.1-8b-instant"},
+    "patch": {"provider": "groq", "model_name": "llama-3.3-70b-versatile"},
+}
+
 DEFAULT_APP_CONFIGURATION: dict[str, Any] = {
-    "defaults": {
-        "optimize": {
-            "provider": "groq",
-            "model_name": "llama-3.3-70b-versatile",
-        },
-        "cover_letter": {
-            "provider": "groq",
-            "model_name": "llama-3.3-70b-versatile",
-        },
-        "ats_score": {
-            "provider": "groq",
-            "model_name": "llama-3.1-8b-instant",
-        },
-        "patch": {
-            "provider": "groq",
-            "model_name": "llama-3.3-70b-versatile",
-        },
-    },
+    "defaults": DEFAULT_TASK_CONFIGURATION,
     "pdf_ingestion_mode": "auto",
+    "ui_locale": "fr",
 }
 
 SECRET_SLOTS = {
@@ -92,6 +83,8 @@ def load_runtime_configuration() -> dict[str, Any]:
                 )
     if current.get("pdf_ingestion_mode") in {"auto", "llama_parse", "local_text"}:
         merged["pdf_ingestion_mode"] = current["pdf_ingestion_mode"]
+    if current.get("ui_locale") in {"fr", "en"}:
+        merged["ui_locale"] = current["ui_locale"]
     return merged
 
 
@@ -110,6 +103,8 @@ def save_runtime_configuration(config: dict[str, Any]) -> dict[str, Any]:
                     current["defaults"][task]["model_name"] = model_name
     if config.get("pdf_ingestion_mode") in {"auto", "llama_parse", "local_text"}:
         current["pdf_ingestion_mode"] = config["pdf_ingestion_mode"]
+    if config.get("ui_locale") in {"fr", "en"}:
+        current["ui_locale"] = config["ui_locale"]
     _write_json(CONFIG_PATH, current)
     return current
 

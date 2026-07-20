@@ -4,7 +4,10 @@ Date : 18 juillet 2026
 
 ## Statut
 
-Accepté
+Remplacé par l'ADR 025
+
+Cette décision décrit le processus utilisé pour v0.4.0. La politique courante
+interdit désormais les builds sur `main` et les rebuilds au tag stable.
 
 ## Contexte
 

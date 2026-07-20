@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import type { CSSProperties } from "react";
+import type { TemplatePreviewStyle } from "@/lib/customization-catalogue";
 
 import { Slider } from "./controls";
 
@@ -88,6 +90,58 @@ export function LayoutPreview({
       </span>
       {showSidebar && sidebar === "right" ? (
         <span className="ml-1 w-2 rounded-sm bg-primary/70" />
+      ) : null}
+    </span>
+  );
+}
+
+export function TemplatePreview({
+  style,
+  accent,
+}: {
+  style: TemplatePreviewStyle;
+  accent: string;
+}) {
+  const sidebar = ["atlas", "sidebar", "terminal", "studio", "executive", "signal"].includes(style);
+  const sidebarLeft = style === "sidebar" || style === "studio";
+  const headerBand = style === "executive";
+  const centered = style === "ledger" || style === "scholar";
+  const cards = style === "signal";
+  const compact = style === "terminal";
+  const visualStyle = { "--template-accent": accent } as CSSProperties;
+
+  return (
+    <span
+      aria-hidden="true"
+      style={visualStyle}
+      className={`relative flex h-20 w-14 overflow-hidden rounded-sm border border-slate-300 bg-white p-1 shadow-sm ${
+        sidebarLeft ? "flex-row-reverse" : ""
+      }`}
+    >
+      {headerBand ? (
+        <span className="absolute inset-x-0 top-0 h-3 bg-[var(--template-accent)]" />
+      ) : null}
+      <span className={`min-w-0 flex-1 ${headerBand ? "pt-3" : ""}`}>
+        <span className={`mb-1 flex flex-col gap-0.5 ${centered ? "items-center" : "items-start"}`}>
+          <span className="h-1 w-7 rounded-sm bg-slate-700" />
+          <span className="h-0.5 w-5 rounded-sm bg-[var(--template-accent)]" />
+        </span>
+        <span className={`block h-0.5 bg-[var(--template-accent)] ${centered ? "mx-auto w-8" : "w-6"}`} />
+        <span className={`mt-1 grid gap-0.5 ${cards ? "grid-cols-2" : "grid-cols-1"}`}>
+          {[0, 1, 2, 3, 4].map((line) => (
+            <span
+              key={line}
+              className={`block rounded-sm bg-slate-300 ${cards ? "h-2" : compact ? "h-px" : "h-0.5"}`}
+            />
+          ))}
+        </span>
+      </span>
+      {sidebar ? (
+        <span className="mx-0.5 w-3 shrink-0 rounded-[1px] bg-[color-mix(in_srgb,var(--template-accent)_16%,white)] pt-2">
+          <span className="mx-auto block h-3 w-3/5 rounded-full bg-[var(--template-accent)]/70" />
+          <span className="mx-auto mt-1 block h-px w-2/3 bg-[var(--template-accent)]/50" />
+          <span className="mx-auto mt-1 block h-px w-2/3 bg-[var(--template-accent)]/30" />
+        </span>
       ) : null}
     </span>
   );

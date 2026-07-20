@@ -25,6 +25,8 @@ sont utilisés en CI.
 | Vérifier une release installée | [`smoke_release.sh`](./smoke_release.sh) |
 | Arrêter/désinstaller une release | [`uninstall_self_hosted.sh`](./uninstall_self_hosted.sh) |
 | Nettoyer un test self-hosted Docker | [`clean_self_hosted_test.sh`](./clean_self_hosted_test.sh) |
+| Vérifier qu'un tag stable peut être promu | [`verify_release_promotion.sh`](./verify_release_promotion.sh) |
+| Tester localement la politique de promotion | [`test_release_policy.sh`](./test_release_policy.sh) |
 
 ## Scripts locaux sans Docker
 
@@ -427,6 +429,37 @@ Avec suppression du dossier local :
 ```bash
 REMOVE_DATA=true ./scripts/clean_self_hosted_test.sh
 ```
+
+## Contrôles de release
+
+### [`verify_release_promotion.sh`](./verify_release_promotion.sh)
+
+Bloque une promotion stable si l'une des garanties manque :
+
+- le tag suit strictement `vX.Y.Z` ;
+- son commit appartient à `origin/main` ;
+- un tag `vX.Y.Z-rc.N` est son ancêtre ;
+- l'arbre Git du RC et du stable est identique.
+
+Le RC le plus récent qui satisfait toutes les garanties est retourné dans
+`GITHUB_OUTPUT` en CI.
+
+```bash
+git fetch origin main --tags
+./scripts/verify_release_promotion.sh v0.5.0
+```
+
+### [`test_release_policy.sh`](./test_release_policy.sh)
+
+Crée un dépôt Git temporaire, valide un cas de promotion conforme et vérifie
+qu'une différence d'arbre est refusée. Il ne modifie pas le dépôt courant.
+
+```bash
+./scripts/test_release_policy.sh
+```
+
+Le détail des workflows et de l'ordre des tags est dans
+[`docs/releases.md`](../docs/releases.md).
 
 À utiliser pour repartir d’un test Debian/WSL propre.
 

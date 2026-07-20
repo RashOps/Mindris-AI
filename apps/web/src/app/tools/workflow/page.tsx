@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowLeft, Plus, X } from "lucide-react";
 
 import { openCoverLetterInMarkdown } from "@/lib/cover-letters";
 import { WorkflowActionsPanel } from "./components/WorkflowActionsPanel";
@@ -47,6 +48,11 @@ export default function WorkflowPage() {
   const [atsReportId, setAtsReportId] = useState("");
   const [coverLetterId, setCoverLetterId] = useState("");
   const [applicationId, setApplicationId] = useState("");
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [mobilePane, setMobilePane] = useState<"list" | "detail">("list");
+  const [detailTab, setDetailTab] = useState<
+    "overview" | "artifacts" | "diagnostic"
+  >("overview");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -188,9 +194,24 @@ export default function WorkflowPage() {
           </div>
         )}
 
-        <div className="mt-4 grid min-w-0 grid-cols-1 gap-4 2xl:grid-cols-[360px,minmax(0,1fr)]">
-          <aside className="min-w-0 space-y-4">
-            <WorkflowCreatePanel
+        <div className="mt-4 grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
+          <aside
+            className={`${mobilePane === "list" ? "block" : "hidden"} min-w-0 space-y-4 xl:block`}
+          >
+            <button
+              type="button"
+              onClick={() => setIsCreateOpen((current) => !current)}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground transition hover:bg-accent"
+              aria-expanded={isCreateOpen}
+            >
+              {isCreateOpen ? (
+                <X className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <Plus className="h-4 w-4" aria-hidden="true" />
+              )}
+              {isCreateOpen ? "Fermer la création" : "Nouvelle opportunité"}
+            </button>
+            {isCreateOpen ? <WorkflowCreatePanel
               busyAction={busyAction}
               canCreate={canCreate}
               createMode={createMode}
@@ -207,16 +228,30 @@ export default function WorkflowPage() {
               onManualUrlChange={setManualUrl}
               onNotesChange={setNotes}
               onSelectedJobIdChange={setSelectedJobId}
-            />
+            /> : null}
             <WorkflowOpportunityList
               loading={loading}
               opportunities={opportunities}
               selectedId={selected?.id}
-              onSelect={setSelectedId}
+              onSelect={(id) => {
+                setSelectedId(id);
+                setDetailTab("overview");
+                setMobilePane("detail");
+              }}
             />
           </aside>
 
-          <section className="min-w-0 space-y-4">
+          <section
+            className={`${mobilePane === "detail" ? "block" : "hidden"} min-w-0 space-y-4 xl:block`}
+          >
+            <button
+              type="button"
+              onClick={() => setMobilePane("list")}
+              className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-foreground xl:hidden"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+              Opportunités
+            </button>
             {!selected ? (
               <div className="rounded-2xl border border-border bg-card px-5 py-8 text-sm text-muted-foreground shadow-sm">
                 Sélectionnez une opportunité pour piloter les prochaines étapes.
@@ -224,9 +259,46 @@ export default function WorkflowPage() {
             ) : (
               <>
                 <WorkflowOpportunitySummary integrity={integrity} selected={selected} />
-                <WorkflowReadinessChecklist selected={selected} />
-                <WorkflowStateTimeline selected={selected} />
-                <WorkflowIntegrityPanel
+
+                <div
+                  className="grid grid-cols-3 rounded-xl border border-border bg-card p-1"
+                  role="tablist"
+                  aria-label="Détails de l’opportunité"
+                >
+                  {(
+                    [
+                      ["overview", "Préparation"],
+                      ["artifacts", "Documents"],
+                      ["diagnostic", "Diagnostic"],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      role="tab"
+                      aria-selected={detailTab === value}
+                      onClick={() => setDetailTab(value)}
+                      className={`rounded-lg px-2 py-2 text-xs font-semibold transition ${
+                        detailTab === value
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {detailTab === "overview" ? (
+                  <div className="space-y-4" role="tabpanel">
+                    <WorkflowReadinessChecklist selected={selected} />
+                    <WorkflowStateTimeline selected={selected} />
+                  </div>
+                ) : null}
+
+                {detailTab === "diagnostic" ? (
+                  <div role="tabpanel">
+                    <WorkflowIntegrityPanel
                   busyAction={busyAction}
                   integrity={integrity}
                   onRepair={(action) =>
@@ -238,8 +310,14 @@ export default function WorkflowPage() {
                     })
                   }
                 />
+                  </div>
+                ) : null}
 
-                <section className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-2">
+                {detailTab === "artifacts" ? (
+                <section
+                  className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-2"
+                  role="tabpanel"
+                >
                   <WorkflowActionsPanel
                     activeCoverLetterId={activeCoverLetterId}
                     applicationId={applicationId}
@@ -315,6 +393,7 @@ export default function WorkflowPage() {
                     }
                   />
                 </section>
+                ) : null}
               </>
             )}
           </section>

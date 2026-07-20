@@ -3,6 +3,19 @@ import { describe, expect, test } from "bun:test";
 import { renderMarkdownToHtml } from "./markdown";
 
 describe("markdown renderer sanitization", () => {
+  test("renders a static preview without requiring iframe scripts", () => {
+    const html = renderMarkdownToHtml({
+      markdown: "# Visible preview\n\nRendered content",
+      title: "Preview",
+    });
+
+    expect(html).toContain('<div id="document-root">');
+    expect(html).toContain("<h1>Visible preview</h1>");
+    expect(html).toContain("<p>Rendered content</p>");
+    expect(html).not.toContain("<script");
+    expect(html).not.toContain("attachShadow");
+  });
+
   test("removes active content and unsafe link schemes", () => {
     const html = renderMarkdownToHtml({
       markdown: [

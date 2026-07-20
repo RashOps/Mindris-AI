@@ -10,6 +10,11 @@ from database.records import CommunityTemplateRecord
 from database.session import Session, get_session
 from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
 from pydantic import ValidationError
+from routers.template_catalogue import (
+    COMMUNITY_TEMPLATES,
+    CUSTOMIZATION_CATALOGUE,
+    TEMPLATE_CATALOG,
+)
 from schemas import (
     CommunityTemplateConfig,
     CommunityTemplateManifest,
@@ -26,106 +31,6 @@ SUPPORTED_TEMPLATE_ENGINE_VERSION = "1"
 MAX_TEMPLATE_STYLESHEET_BYTES = 8000
 TEMPLATE_IMPORT_FILE = File(...)
 SessionDep = Annotated[Session, Depends(get_session)]
-
-
-READY_TEMPLATES = [
-    TemplateCatalogItem(
-        id="modern",
-        name="Modern",
-        description=(
-            "Balanced two-column layout for tech, product, and business profiles."
-        ),
-        status="ready",
-        category="tech",
-        accent="#2563eb",
-        layout="two-column",
-    ),
-    TemplateCatalogItem(
-        id="compact",
-        name="Compact",
-        description=(
-            "Dense one-page format for experienced profiles and long histories."
-        ),
-        status="ready",
-        category="senior",
-        accent="#0f766e",
-        layout="two-column",
-    ),
-    TemplateCatalogItem(
-        id="ats",
-        name="ATS Strict",
-        description="Single-column, low-decoration template for ATS-friendly CVs.",
-        status="ready",
-        category="ats",
-        accent="#475569",
-        layout="single",
-    ),
-    TemplateCatalogItem(
-        id="student",
-        name="Student",
-        description="Education-first template for internships and first roles.",
-        status="ready",
-        category="student",
-        accent="#7c3aed",
-        layout="single",
-    ),
-    TemplateCatalogItem(
-        id="creative",
-        name="Creative",
-        description="Editorial template for marketing, design, and content roles.",
-        status="ready",
-        category="creative",
-        accent="#e11d48",
-        layout="two-column",
-    ),
-]
-
-COMMUNITY_TEMPLATES = [
-    TemplateCatalogItem(
-        id="opensource",
-        name="Open Source",
-        description=(
-            "Community-made template for developers, GitHub links, "
-            "and OSS contributions."
-        ),
-        status="community",
-        category="developer",
-        accent="#0f766e",
-        layout="two-column",
-        base_template_id="modern",
-        author="Mindris Community",
-        preset_settings={
-            "global_settings": {
-                "template_id": "modern",
-                "typography": {"heading_scale": "1.1"},
-                "colors": {"palette_preset": "tech"},
-                "locale": {"label_language": "en"},
-            }
-        },
-    ),
-    TemplateCatalogItem(
-        id="bilingual",
-        name="Bilingual FR/EN",
-        description=(
-            "Community template tuned for bilingual CVs and international applications."
-        ),
-        status="community",
-        category="international",
-        accent="#7c3aed",
-        layout="two-column",
-        base_template_id="compact",
-        author="Mindris Community",
-        preset_settings={
-            "global_settings": {
-                "template_id": "compact",
-                "layout": {"density": "compact"},
-                "locale": {"label_language": "en"},
-            }
-        },
-    ),
-]
-
-TEMPLATE_CATALOG = [*READY_TEMPLATES, *COMMUNITY_TEMPLATES]
 
 
 def _catalog_template_item(template_id: str) -> TemplateCatalogItem | None:
@@ -431,17 +336,24 @@ def resolve_template_defaults(
 
 
 def apply_template_defaults(
-    cv_data: dict[str, Any], template_id: str, session: Session | None = None
+    cv_data: dict[str, Any],
+    template_id: str,
+    session: Session | None = None,
+    *,
+    apply_preset: bool = False,
 ) -> dict[str, Any]:
-    """Overlay template defaults on top of a CV payload."""
+    """Resolve template defaults or explicitly apply its visual preset."""
     defaults = resolve_template_defaults(template_id, session=session)
     if not defaults:
-        return cv_data
-    merged = _deep_merge(defaults, cv_data)
+        merged = deepcopy(cv_data)
+    elif apply_preset:
+        merged = _deep_merge(cv_data, defaults)
+    else:
+        merged = _deep_merge(defaults, cv_data)
     template = _catalog_template_item(template_id)
-    if template is not None and template.base_template_id:
+    if template is not None:
         global_settings = merged.setdefault("global_settings", {})
-        global_settings["template_id"] = template.base_template_id
+        global_settings["template_id"] = template.base_template_id or template.id
     if session is not None:
         record = session.exec(
             select(CommunityTemplateRecord).where(
@@ -452,167 +364,6 @@ def apply_template_defaults(
             global_settings = merged.setdefault("global_settings", {})
             global_settings["template_id"] = record.base_template_id
     return merged
-
-
-CUSTOMIZATION_CATALOGUE = {
-    "schemaVersion": "2",
-    "page": {
-        "formats": ["A4", "Letter"],
-        "pageBreakModes": ["auto", "manual"],
-        "margins": {
-            "presets": {
-                "small": {"horizontal": "32px", "vertical": "28px"},
-                "normal": {"horizontal": "64px", "vertical": "48px"},
-                "large": {"horizontal": "80px", "vertical": "64px"},
-            },
-            "range": {"min": 16, "max": 96, "unit": "px"},
-        },
-    },
-    "layout": {
-        "columns": [1, 2],
-        "sidebarPositions": ["none", "left", "right"],
-        "sidebarWidth": {
-            "presets": ["25%", "30%", "35%"],
-            "range": {"min": 20, "max": 70, "unit": "%"},
-        },
-        "densities": ["student", "compact", "normal", "senior"],
-        "headerAlignments": ["left", "center", "right"],
-        "headerPositions": ["top", "left", "right"],
-        "headerDetailsArrangements": ["inline", "grid", "bullet", "bar", "icons"],
-        "headerIconStyles": ["none", "outline", "filled"],
-        "photo": {
-            "enabled": [True, False],
-            "grayscale": [True, False],
-            "positions": ["left", "top", "right"],
-            "sizes": ["xs", "s", "m", "l", "xl"],
-            "shapes": ["round", "square", "rounded", "portrait"],
-        },
-        "placements": ["main", "sidebar"],
-    },
-    "typography": {
-        "bodyFonts": ["Inter", "Roboto", "Lato", "Merriweather", "DM Sans"],
-        "headingFonts": ["Inter", "Roboto", "Lato", "Merriweather", "DM Sans"],
-        "baseSize": {"min": 9, "max": 14, "unit": "px"},
-        "bodySize": {"min": 9, "max": 14, "unit": "px"},
-        "nameSize": {"min": 20, "max": 40, "unit": "px"},
-        "titleSize": {"min": 11, "max": 22, "unit": "px"},
-        "sectionHeadingSize": {"min": 9, "max": 18, "unit": "px"},
-        "entryHeadingSize": {"min": 10, "max": 20, "unit": "px"},
-        "headingScale": {"min": 1.0, "max": 1.6, "step": 0.05},
-        "weights": ["regular", "medium", "bold"],
-        "capitalization": ["normal", "uppercase"],
-        "lineHeights": ["1.25", "1.35", "1.5", "1.65"],
-        "dateStyles": ["normal", "italic", "small", "right"],
-        "bulletStyles": ["bullets", "dash", "dots", "icons"],
-    },
-    "colors": {
-        "palettePresets": ["corporate", "tech", "minimal", "creative", "custom"],
-        "editable": [
-            "primary",
-            "secondary",
-            "text",
-            "heading",
-            "sidebar_background",
-            "separators",
-        ],
-        "accentTargets": [
-            "name",
-            "title",
-            "headings",
-            "heading_lines",
-            "dates",
-            "links",
-            "icons",
-            "skills",
-        ],
-        "monochrome": [True, False],
-        "minimumContrast": 4.5,
-    },
-    "links": {
-        "underline": [True, False],
-        "colors": ["accent", "blue", "inherit"],
-        "showIcon": [True, False],
-    },
-    "sections": {
-        "types": [
-            "experience",
-            "education",
-            "projects",
-            "skills",
-            "languages",
-            "certifications",
-            "volunteering",
-            "interests",
-            "publications",
-            "references",
-            "custom",
-        ],
-        "displayModes": ["list", "timeline", "cards", "compact"],
-        "detailLevels": ["short", "normal", "detailed"],
-        "headingStyles": ["line", "plain", "box", "accent"],
-        "headingCapitalization": ["normal", "uppercase"],
-        "titleSubtitleOrders": ["title_first", "subtitle_first"],
-        "dateLocationPositions": ["inline", "right", "below"],
-        "skillStyles": [
-            "tags",
-            "plain",
-            "bars",
-            "grid",
-            "rows",
-            "compact",
-            "bubble",
-            "level",
-            "dots",
-        ],
-        "iconStyles": ["none", "outline", "filled"],
-        "toggles": [
-            "visible",
-            "show_dates",
-            "show_locations",
-            "page_break_before",
-            "heading_line",
-        ],
-        "placements": ["main", "sidebar"],
-    },
-    "locale": {
-        "languages": ["fr", "en", "de", "es"],
-        "directions": ["ltr", "rtl"],
-        "dateFormats": ["MM/YYYY", "YYYY-MM", "MMM YYYY", "MMMM YYYY"],
-    },
-    "advancedCss": {
-        "enabled": True,
-        "maxLength": 8000,
-        "modes": ["off", "tokens", "css_patch"],
-        "allowedScopes": [
-            ":host",
-            ".cv-shell",
-            "[data-section]",
-            "[data-section-type]",
-            "[data-section-placement]",
-        ],
-        "blockedAtRules": ["@import"],
-        "blockedFunctions": ["expression(", "javascript:", "url("],
-        "examples": [
-            ":host { --primary-color: #0f172a; --heading-scale: 1.1; }",
-            "[data-section-type='experience'] h2 { color: #0f766e; }",
-        ],
-    },
-    "templates": {
-        "modern": {"compatibleLayouts": [1, 2]},
-        "compact": {"compatibleLayouts": [1, 2]},
-        "ats": {
-            "compatibleLayouts": [1],
-            "enforced": {
-                "layout": {"columns": 1, "sidebar_position": "none"},
-                "photo": {"enabled": False},
-                "colors": {"monochrome": True},
-                "typography": {"bullet_style": "dash"},
-            },
-        },
-        "student": {"compatibleLayouts": [1]},
-        "creative": {"compatibleLayouts": [1, 2]},
-    },
-}
 
 
 def list_templates(session: Session | None = None) -> dict:
@@ -667,7 +418,10 @@ def resolve_template_render_payload_route(
             requested_template_id = settings_template_id
     requested_template_id = requested_template_id or "modern"
     resolved_cv_data = apply_template_defaults(
-        cv_data, requested_template_id, session=session
+        cv_data,
+        requested_template_id,
+        session=session,
+        apply_preset=request.apply_preset,
     )
     resolved_settings = resolved_cv_data.setdefault("global_settings", {})
     resolved_template_id = resolved_settings.get("template_id")

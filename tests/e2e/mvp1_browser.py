@@ -444,11 +444,12 @@ def run(args: argparse.Namespace) -> None:
         )
         expect(page.get_by_role("tab", name="Style", exact=True)).to_be_visible()
         page.get_by_role("tab", name="Style", exact=True).click()
-        expect(page.get_by_label("Style panel")).to_be_visible()
-        page.get_by_role("button", name="Template ATS Strict").click()
-        page.get_by_role("tab", name="Document").click()
+        style_panel = page.get_by_label("Style panel")
+        expect(style_panel).to_be_visible()
+        page.get_by_role("button", name="Template Mono ATS").click()
+        style_panel.get_by_role("tab", name="Document").click()
         page.get_by_label("Toggle one page challenge").check()
-        page.get_by_role("tab", name="Sections").click()
+        style_panel.get_by_role("tab", name="Sections").click()
         page.get_by_role(
             "button", name=re.compile(r"^(Expériences|Experience)")
         ).click()
@@ -465,8 +466,13 @@ def run(args: argparse.Namespace) -> None:
         expect(page.get_by_label("Libellé section experience")).to_have_value(
             "Parcours professionnel"
         )
-        expect(page.get_by_text("Sauvegardé", exact=True)).to_be_visible(timeout=20_000)
+        expect(
+            page.locator("button:visible", has_text="Sauvegardé").first
+        ).to_be_visible(timeout=20_000)
 
+        page.get_by_label("Outils du CV Builder").get_by_role(
+            "tab", name="Document"
+        ).click()
         assert_pdf_download(page)
         assert_download(page, "Exporter", "DOCX", ".docx")
         assert_download(page, "Exporter", "LaTeX", ".tex")

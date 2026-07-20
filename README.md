@@ -1,5 +1,8 @@
 # Mindris AI
 
+> Un cockpit local-first pour transformer une offre en candidature complète,
+> vérifiable et exportable — sans disperser vos données entre six outils.
+
 Mindris AI est un studio local-first pour préparer une candidature complète :
 importer un CV, analyser une offre, adapter le contenu, générer les artefacts
 utiles, exporter un PDF propre et suivre l’opportunité.
@@ -41,12 +44,27 @@ API       http://localhost:8000
 Renderer  http://localhost:4000
 ```
 
+Si le port `3000` est déjà utilisé, choisissez `3100` dès l’installation :
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/RashOps/Mindris-AI/main/scripts/install_self_hosted.sh \
+  | MINDRIS_WEB_PORT=3100 sh
+```
+
+L’interface sera disponible sur `http://localhost:3100`.
+
 Commandes utiles :
 
 ```bash
 ~/.mindris-ai/update.sh
 ~/.mindris-ai/smoke.sh
 ~/.mindris-ai/uninstall.sh
+```
+
+Nettoyage complet d’un environnement de test depuis un clone :
+
+```bash
+REMOVE_DATA=true ./scripts/clean_self_hosted_test.sh
 ```
 
 Guide détaillé : [docs/install.md](docs/install.md).
@@ -217,7 +235,8 @@ La distribution self-hosted utilise :
 - `scripts/update_self_hosted.sh`
 - `scripts/uninstall_self_hosted.sh`
 - `scripts/smoke_release.sh`
-- `.github/workflows/docker-release.yml`
+- `.github/workflows/release-candidate.yml`
+- `.github/workflows/release-promote.yml`
 
 Les images attendues sont publiées sur GHCR :
 
@@ -232,15 +251,16 @@ ghcr.io/rashops/mindris-ai-web
 - [Installation self-hosted](docs/install.md)
 - [Développement local](docs/local-development.md)
 - [Self-hosting Docker](docs/self-hosting.md)
+- [Politique de release](docs/releases.md)
 - [Runtime agent](docs/agent-runtime.md)
 - [ADRs](docs/adr/)
 - [Politique marque](TRADEMARKS.md)
 
 ## Roadmap courte
 
-- Stabiliser les pages secondaires après CV Builder, Guide et Dashboard.
-- Finaliser l’i18n français-first puis ajouter la traduction utilisateur.
-- Continuer à simplifier les surfaces trop chargées.
+- Étendre progressivement la traduction anglaise à toutes les surfaces produit.
+- Continuer le polish des dix templates CV et leurs tests visuels longs.
+- Élargir le jeu d’évaluation du pipeline d’adaptation fondé sur les preuves.
 - Garder Workflow en Beta jusqu’à maturité complète des liens et historiques.
 - Ajouter une option one-command encore plus guidée pour utilisateurs non techniques.
 - Reporter Tauri/Desktop à une phase dédiée.

@@ -11,6 +11,8 @@ class OptimizeRequest(LLMRequest):
     """Request body for POST /api/v1/optimize."""
 
     job_url: AnyHttpUrl
+    resume_id: int | None = None
+    resume_locale: str = "fr"
 
 
 class OptimizationResponse(BaseModel):
