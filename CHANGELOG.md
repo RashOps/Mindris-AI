@@ -4,6 +4,33 @@ All notable changes to Mindris AI are documented here.
 
 ## Unreleased
 
+### Added
+
+- Ten backend-driven CV templates with distinct visual families, filterable
+  gallery previews, deterministic preset resolution, and A4/Letter coverage.
+- Evidence-led resume adaptation contracts with a fact ledger, requirement
+  matrix, structured evaluator feedback, and explicit human approval.
+- Backend-owned `ui_locale` with typed FR/EN dictionaries and contextual Guide
+  paths whose checklist progress is persisted by the API.
+- Dynamic provider model discovery with cached registry snapshots and duplicate
+  model normalization.
+
+### Changed
+
+- Simplified Markdown PDF, ATS Score, Tracker, History, and Workflow Beta using
+  progressive tabs, mobile-specific views, and backend-owned artifact groups.
+- Split the template catalogue from its API routes and extracted renderer style
+  assets/registry to keep complex modules within the agreed size guardrails.
+- Expanded renderer validation to all ten templates across short, medium, and
+  long A4/Letter content, plus real Chromium PDF exports for five families.
+
+### Fixed
+
+- Letter exports now emit an explicit Letter-sized PDF page instead of relying
+  on an A4 Puppeteer default.
+- Invalid or unsupported AI evidence links are rejected instead of being
+  presented as grounded CV changes.
+
 ## v0.4.0 - 2026-07-18
 
 ### Added

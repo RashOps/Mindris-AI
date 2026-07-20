@@ -1,6 +1,6 @@
 # Etat MVP1 - Mindris AI
 
-Date : 18 juillet 2026
+Date : 20 juillet 2026
 
 ## Statut global
 
@@ -16,7 +16,9 @@ Le principe architectural reste respecte : le frontend n'est pas un service meti
 
 - Bibliotheque de CV backend : creation, import JSON, duplication, suppression, exports JSON/Markdown/HTML.
 - Autosave backend des CV actifs.
-- Catalogue backend de 5 templates prets : `modern`, `compact`, `ats`, `student`, `creative`.
+- Catalogue backend de 10 templates prêts avec presets et directions visuelles
+  distinctes : Atlas, Atlas Sidebar, Terminal, Mono ATS, Graduate, Studio,
+  Ledger, Executive, Signal et Scholar.
 - Builder CV structure avec preview temps reel via renderer.
 - Export PDF sans watermark via renderer.
 - Exports ouverts backend : Markdown GitHub-readable et HTML autonome sans script.
@@ -43,7 +45,8 @@ Le principe architectural reste respecte : le frontend n'est pas un service meti
 - Score ATS et generation de lettre : fonctionnels dans le flow, mais dependants du provider LLM selectionne.
 - Workflow Beta : filtrage job-aware, checklist et recovery paths sont presents,
   mais la promotion hors Beta reste une decision produit ulterieure.
-- i18n : francais-first applique aux surfaces prioritaires, pas encore centralise dans un systeme de traduction complet.
+- i18n : locale backend-owned et dictionnaires FR/EN types disponibles ; la
+  migration des strings produit restantes demeure partielle.
 - Tests end-to-end navigateur : parcours Playwright disponibles et executes
   manuellement en CI ; la release Docker les execute apres publication des images.
 
@@ -274,23 +277,23 @@ Validation externe effectuee dans une distro Debian WSL propre :
 - `/api/v1/system/ready` retourne `ready` ;
 - `/ready` renderer retourne `ready`.
 
-## Candidat release v0.4.0 - 18 juillet 2026
+## Release stable v0.4.0 - 18 juillet 2026
 
-Le candidat `v0.4.0` consolide les runs Runtime, UI, artefact lineage,
-self-hosting et personnalisation avancee du CV Builder. La release stable reste
-conditionnee par :
+`v0.4.0` consolide les runs Runtime, UI, artefact lineage, self-hosting et
+personnalisation avancée du CV Builder. La release a été publiée après :
 
-- les checks Python, frontend et renderer ;
-- le navigateur E2E sur les images GHCR candidates ;
-- un fresh install Debian du tag RC ;
-- la validation explicite des endpoints RuntimeGate et des exports CV.
+- checks Python, frontend et renderer verts ;
+- navigateur E2E sur les images GHCR candidates ;
+- fresh install Debian depuis GHCR ;
+- validation des endpoints RuntimeGate et des exports CV ;
+- validation de l'override `MINDRIS_WEB_PORT=3100`.
 
 ## Prochaine phase recommandee actuelle - juillet 2026
 
 Priorites recommandees hors Tauri/Desktop :
 
 1. Conserver Workflow en Beta jusqu'a une decision de promotion explicite.
-2. Centraliser l'i18n francais-first pour preparer une traduction utilisateur.
+2. Migrer progressivement les strings restantes vers l'i18n FR/EN déjà en place.
 3. Observer le comportement de la release self-hosted `v0.4.0`.
 4. Reporter Desktop/Tauri apres stabilisation de cette release.
 

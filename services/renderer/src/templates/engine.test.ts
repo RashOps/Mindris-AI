@@ -100,7 +100,74 @@ const baseCv = {
   hobbies: [],
 };
 
+type ContentDensity = "short" | "medium" | "long";
+
+function cvForRenderMatrix(density: ContentDensity, format: "A4" | "Letter") {
+  const entryCounts: Record<ContentDensity, number> = {
+    short: 1,
+    medium: 3,
+    long: 7,
+  };
+  const count = entryCounts[density];
+  return {
+    ...baseCv,
+    global_settings: {
+      ...baseCv.global_settings,
+      page: { format },
+      layout: {
+        columns: 2,
+        sidebar_position: "right",
+        sidebar_width: "35%",
+      },
+    },
+    profile: {
+      ...baseCv.profile,
+      text_markdown: `${density} profile `.repeat(count * 5),
+    },
+    experience: Array.from({ length: count }, (_, index) => ({
+      id: `${density}-experience-${index}`,
+      role: `Engineer ${index + 1}`,
+      company: "Mindris Labs",
+      period: `202${index} - 202${index + 1}`,
+      location: { city: "Paris", country: "France" },
+      description_markdown: `${density} evidence-backed achievement `.repeat(
+        count + 1,
+      ),
+      keywords: ["TypeScript", "Python", "Delivery"],
+    })),
+    projects: Array.from({ length: Math.max(1, count - 1) }, (_, index) => ({
+      id: `${density}-project-${index}`,
+      name: `Project ${index + 1}`,
+      description_markdown: `${density} project outcome `.repeat(count),
+      tech_stack: ["Bun", "FastAPI"],
+    })),
+  };
+}
+
 describe("generateHtml semantic sections", () => {
+  test("renders every template across short, medium, and long A4/Letter content", () => {
+    for (const templateId of builtInTemplateIds) {
+      for (const density of ["short", "medium", "long"] as const) {
+        for (const format of ["A4", "Letter"] as const) {
+          const html = generateHtml(
+            cvForRenderMatrix(density, format),
+            templateId,
+          );
+
+          expect(html).toContain(`template-id: ${templateId}`);
+          expect(html).toContain(
+            `@page { size: ${
+              format === "Letter" ? "216mm 279mm" : "210mm 297mm"
+            }; margin: 0; }`,
+          );
+          expect(html).toContain(`${density} profile`);
+          expect(html).not.toContain("undefined");
+          expect(html).not.toContain("NaN");
+        }
+      }
+    }
+  });
+
   test("prefers an explicitly requested template over the stored CV template", () => {
     const html = generateHtml(baseCv, "ats");
 
@@ -371,7 +438,9 @@ describe("generateHtml semantic sections", () => {
         ...baseCv,
         profile: {
           ...baseCv.profile,
-          socials: [{ type: "website", url: "https://example.com", label: "Site" }],
+          socials: [
+            { type: "website", url: "https://example.com", label: "Site" },
+          ],
         },
         global_settings: {
           ...baseCv.global_settings,
@@ -517,7 +586,9 @@ describe("generateHtml semantic sections", () => {
     expect(html).toContain("color: var(--text-color, #334155);");
     expect(html).toContain(".meta");
     expect(html).toContain("--header-text-align: center;");
-    expect(html).toContain("grid-template-columns: var(--grid-template-columns, var(--col-left-width) 1fr);");
+    expect(html).toContain(
+      "grid-template-columns: var(--grid-template-columns, var(--col-left-width) 1fr);",
+    );
   });
 
   test("renders advanced sections through fallback groups", () => {
@@ -652,7 +723,8 @@ describe("generateHtml semantic sections", () => {
           advanced_css: {
             enabled: true,
             mode: "tokens",
-            css_text: ":host { --primary-color: #111827; --heading-scale: 1.12; }",
+            css_text:
+              ":host { --primary-color: #111827; --heading-scale: 1.12; }",
           },
         },
       },
@@ -701,7 +773,8 @@ describe("generateHtml semantic sections", () => {
           advanced_css: {
             enabled: true,
             mode: "css_patch",
-            css_text: ":host { --primary-color: #0f766e; }\nbody { color: red; }\n[data-section-type='experience'] { background: url(https://evil.test/a.png); }",
+            css_text:
+              ":host { --primary-color: #0f766e; }\nbody { color: red; }\n[data-section-type='experience'] { background: url(https://evil.test/a.png); }",
           },
         },
       },
@@ -750,7 +823,10 @@ describe("generateHtml semantic sections", () => {
     const html = generateHtml(
       {
         ...baseCv,
-        profile: { ...baseCv.profile, photo_url: "https://example.com/photo.png" },
+        profile: {
+          ...baseCv.profile,
+          photo_url: "https://example.com/photo.png",
+        },
         global_settings: {
           ...baseCv.global_settings,
           layout: { photo: { enabled: true } },

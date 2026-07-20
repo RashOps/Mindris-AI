@@ -130,9 +130,12 @@ La langue produit prioritaire est le francais.
 Etat actuel :
 
 - Dashboard, CV Builder, Guide et History sont francais-first ;
-- ATS Score, Markdown PDF, Tracker et Workflow peuvent encore contenir des
-  libelles anglais ;
-- la centralisation i18n reste a faire avant une traduction utilisateur propre.
+- l'AppShell utilise des dictionnaires FR/EN types et la locale persistée par le
+  backend ;
+- ATS Score, Markdown PDF, Tracker, Workflow et Configuration peuvent encore
+  contenir des libelles anglais ;
+- les nouvelles surfaces doivent utiliser `useI18n()` ; la migration des
+  strings historiques reste progressive avant une traduction complète.
 
 ## Configuration
 
