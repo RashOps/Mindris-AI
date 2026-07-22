@@ -9,6 +9,14 @@ Registry :
 - `ghcr.io/rashops/mindris-ai-renderer`
 - `ghcr.io/rashops/mindris-ai-web`
 
+Sous Windows PowerShell avec Docker Desktop :
+
+```powershell
+irm https://raw.githubusercontent.com/RashOps/Mindris-AI/main/scripts/install_self_hosted.ps1 | iex
+```
+
+Cet installateur ne requiert ni Python, ni `uv`, ni Bun.
+
 ## Prérequis
 
 - Docker Engine
