@@ -32,8 +32,12 @@
 
 - Python workspace: `uv`
 - Frontend and renderer: `bun`
+- Contributor CLI: `./mindris <command>` on Unix, `.\mindris.ps1 <command>` on
+  PowerShell, and `mindris.cmd <command>` on CMD
 - Local full stack: `./scripts/dev_local.sh`
 - Renderer dev mode must use watch reload in development only.
+- `uv` is mandatory for every CLI command that touches the Python workspace;
+  do not add pip, Poetry, or Conda fallbacks.
 
 ## Files to avoid editing casually
 
