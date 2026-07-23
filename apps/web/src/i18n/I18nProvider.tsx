@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, type ReactNode } from "react";
 
 import { useCVStore } from "@/store/useCVStore";
-import { MESSAGES, type Messages, type UiLocale } from "./messages";
+import { MESSAGES, resolveMessages, type Messages, type UiLocale } from "./messages";
 
 type I18nValue = {
   locale: UiLocale;
@@ -18,7 +18,7 @@ const I18nContext = createContext<I18nValue>({
 export function I18nProvider({ children }: { children: ReactNode }) {
   const locale = useCVStore((state) => state.appSettings.ui_locale);
   const value = useMemo(
-    () => ({ locale, messages: MESSAGES[locale] }),
+    () => ({ locale, messages: resolveMessages(locale) }),
     [locale],
   );
 
