@@ -20,7 +20,7 @@ Depuis la racine du projet :
 Pour repartir d'une installation propre sans supprimer les lockfiles :
 
 ```bash
-./scripts/reset_local_deps.sh
+./mindris reset-deps
 ```
 
 ### Backend Python
@@ -53,7 +53,7 @@ Ouvre un terminal par service.
 Depuis la racine du projet :
 
 ```bash
-./scripts/dev_local.sh
+./mindris dev
 ```
 
 Services exposés :
@@ -67,7 +67,7 @@ Renderer  http://localhost:4000
 Smoke check :
 
 ```bash
-./scripts/smoke_local.sh
+./mindris smoke
 ```
 
 Guide détaillé :
@@ -84,6 +84,10 @@ Le renderer produit des lignes JSON structurees dans
 Les reponses API incluent `X-Request-Id`, `X-Content-Type-Options`, `X-Frame-Options` et `Referrer-Policy`.
 En debug d'une erreur 500, conserve le `X-Request-Id` et cherche-le dans
 `.logs/services/api-gateway.log`.
+
+```bash
+./mindris logs api-gateway --since 30m --request-id <request-id>
+```
 
 ### API Gateway FastAPI
 

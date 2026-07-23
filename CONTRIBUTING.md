@@ -41,8 +41,11 @@ Initialisation puis validation :
 
 Sous Windows, utiliser `.\mindris.ps1` dans PowerShell ou `mindris.cmd` dans
 CMD. La CLI démarre avec
-Python standard, mais `setup`, `dev`, `lint`, `test`, `check` et `e2e` refusent
-de continuer si `uv` est absent.
+Python standard, mais `setup`, `reset-deps`, `dev`, `lint`, `test`, `check` et
+`e2e` refusent de continuer si `uv` est absent.
+
+Les scripts historiques ci-dessous sont des wrappers de compatibilité vers la
+CLI. La logique d’orchestration ne doit pas y être dupliquée.
 
 Validation repo-first :
 

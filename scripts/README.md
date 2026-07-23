@@ -60,6 +60,7 @@ Commandes principales :
 | --- | --- | --- |
 | `doctor [--json]` | Vérifier outils, ports et services | Non |
 | `setup [--check]` | Installer le workspace verrouillé | Oui |
+| `reset-deps` | Réinstaller les dépendances sans toucher aux lockfiles | Oui |
 | `dev [--web-port 3100]` | Superviser les trois services | Oui |
 | `stop`, `status`, `logs` | Piloter une stack lancée par la CLI | Non |
 | `lint`, `test`, `check`, `e2e` | Valider le dépôt | Oui |
@@ -75,17 +76,21 @@ Exemples :
 ./mindris test --scope backend
 ./mindris check --with-smoke --with-e2e
 ./mindris logs renderer --follow
+./mindris logs api-gateway --since 30m --request-id <request-id>
 ./mindris docker doctor
 ./mindris release verify v0.5.0
 ```
 
 La CLI n'installe jamais avec `pip` et n'installe pas silencieusement `uv`.
 Quand `uv` manque, elle affiche la commande officielle adaptée à la plateforme.
-Les scripts shell historiques restent disponibles pendant la migration.
+Les scripts shell historiques restent disponibles comme wrappers de
+compatibilité. Ils délèguent à la CLI afin que Linux, macOS et Windows
+partagent une seule implémentation. Les scripts self-hosted et release restent
+natifs, car ils doivent fonctionner sans checkout Python préparé.
 
 ### [`setup_local.sh`](./setup_local.sh)
 
-Prépare l’environnement de développement local.
+Wrapper de compatibilité vers `./mindris setup`.
 
 Actions :
 
@@ -110,7 +115,7 @@ Commande :
 
 ### [`reset_local_deps.sh`](./reset_local_deps.sh)
 
-Réinstalle les dépendances sans toucher aux lockfiles.
+Wrapper de compatibilité vers `./mindris reset-deps`.
 
 Actions :
 
@@ -131,7 +136,8 @@ Commande :
 
 ### [`dev_local.sh`](./dev_local.sh)
 
-Lance la stack locale complète sans Docker :
+Wrapper de compatibilité vers `./mindris dev`. Il lance la stack locale
+complète sans Docker :
 
 - API Gateway sur `8000` ;
 - Renderer Bun sur `4000` ;
@@ -160,7 +166,9 @@ Logs :
 .logs/runtime/mindris-dev.json
 ```
 
-Le script refuse de démarrer si un port requis est déjà occupé.
+La CLI refuse les ports invalides, dupliqués ou occupés. Son fichier d’état
+stocke l’identité de création de chaque processus : `mindris stop` ignore donc
+un PID qui aurait été réutilisé par le système.
 
 ## Validation locale
 
@@ -213,14 +221,10 @@ Précondition pour l’E2E : stack locale déjà démarrée et accessible.
 
 ### [`check_all.sh`](./check_all.sh)
 
-Wrapper de validation.
+Wrapper de compatibilité vers `./mindris check`.
 
-Actions :
-
-1. lance [`lint_all.sh`](./lint_all.sh) ;
-2. lance [`test_all.sh`](./test_all.sh) ;
-3. lance le smoke local si `RUN_LOCAL_SMOKE=1` ;
-4. lance l’E2E navigateur si `RUN_BROWSER_E2E=1`.
+Les variables `RUN_LOCAL_SMOKE=1` et `RUN_BROWSER_E2E=1` sont traduites en
+options `--with-smoke` et `--with-e2e`.
 
 Commande standard :
 

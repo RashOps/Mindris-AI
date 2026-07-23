@@ -214,9 +214,10 @@ mêmes intentions sous Linux, macOS, Windows et WSL.
 | --- | --- |
 | `mindris doctor [--json]` | Vérifie Python, Git, uv, Bun, Docker, ports et services |
 | `mindris setup` | Installe le workspace verrouillé et les navigateurs requis |
+| `mindris reset-deps` | Réinstalle les dépendances sans toucher aux lockfiles |
 | `mindris dev` | Lance et supervise API, renderer et frontend |
 | `mindris status` / `stop` | Inspecte ou arrête la stack supervisée |
-| `mindris logs [service] -f` | Lit les logs canoniques dans `.logs/` |
+| `mindris logs [service]` | Filtre les logs par service, date ou request ID |
 | `mindris lint` / `test` | Lance les contrôles par scope |
 | `mindris check` | Enchaîne la validation complète |
 | `mindris smoke` / `e2e` | Vérifie la stack ou le parcours navigateur |
@@ -235,6 +236,12 @@ python3 scripts/mindris.py Appel direct Unix
 La CLI ne contient aucune logique métier et ne lit jamais les secrets pour les
 afficher. Retrouvez toutes les commandes dans le
 [guide des scripts](scripts/README.md).
+
+Exemple de diagnostic ciblé :
+
+```bash
+./mindris logs api-gateway --since 30m --request-id <request-id>
+```
 
 ## Architecture
 
