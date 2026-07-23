@@ -10,6 +10,7 @@ import subprocess
 import time
 import urllib.error
 import urllib.request
+import uuid
 import webbrowser
 from pathlib import Path
 
@@ -25,6 +26,15 @@ from .context import (
 )
 
 
+def validate_ports(*ports: int) -> None:
+    """Refuse les ports invalides ou dupliqués avant tout lancement."""
+    invalid = [port for port in ports if not 1 <= port <= 65535]
+    if invalid:
+        raise CliError(f"Ports invalides : {', '.join(map(str, invalid))}", 2)
+    if len(set(ports)) != len(ports):
+        raise CliError("Les ports API, renderer et web doivent être distincts.", 2)
+
+
 def port_available(port: int) -> bool:
     """Vérifie qu'un port loopback peut être réservé."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -33,6 +43,25 @@ def port_available(port: int) -> bool:
         except OSError:
             return False
     return True
+
+
+def _process_identity(pid: int) -> str | None:
+    """Retourne une identité de création afin de ne jamais tuer un PID réutilisé."""
+    if os.name != "nt":
+        try:
+            fields = Path(f"/proc/{pid}/stat").read_text(encoding="utf-8").split()
+            return fields[21]
+        except (OSError, IndexError):
+            return None
+    command = [
+        "powershell",
+        "-NoProfile",
+        "-Command",
+        (f'(Get-CimInstance Win32_Process -Filter "ProcessId={pid}").CreationDate'),
+    ]
+    result = subprocess.run(command, capture_output=True, check=False, text=True)
+    identity = result.stdout.strip()
+    return identity or None
 
 
 def _process_flags() -> dict[str, object]:
@@ -72,14 +101,17 @@ def _ready(url: str) -> bool:
         return False
 
 
-def _terminate(pid: int) -> None:
+def _terminate(pid: int, identity: str | None = None) -> bool:
+    if identity is not None and _process_identity(pid) != identity:
+        return False
     try:
         if os.name == "nt":
             subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], check=False)
         else:
             os.killpg(pid, signal.SIGTERM)
     except (OSError, ProcessLookupError):
-        pass
+        return False
+    return True
 
 
 def stop_services() -> int:
@@ -89,17 +121,20 @@ def stop_services() -> int:
         return 0
     try:
         state = json.loads(STATE_FILE.read_text(encoding="utf-8"))
+        stopped = 0
         for service in state.get("services", []):
-            _terminate(int(service["pid"]))
+            if _terminate(int(service["pid"]), service.get("identity")):
+                stopped += 1
     finally:
         STATE_FILE.unlink(missing_ok=True)
-    print("Services Mindris arrêtés.")
+    print(f"Services Mindris arrêtés : {stopped}.")
     return 0
 
 
 def dev(*, api_port: int, renderer_port: int, web_port: int, open_browser: bool) -> int:
     """Lance et supervise API, renderer et frontend."""
     require_contributor_runtime()
+    validate_ports(api_port, renderer_port, web_port)
     if not (ROOT / ".env").exists():
         raise CliError(".env absent. Lancez d'abord : mindris setup", 2)
     occupied = [
@@ -108,6 +143,8 @@ def dev(*, api_port: int, renderer_port: int, web_port: int, open_browser: bool)
     if occupied:
         raise CliError(f"Ports déjà utilisés : {', '.join(map(str, occupied))}", 2)
 
+    session_id = uuid.uuid4().hex
+    shared_env = {"MINDRIS_DEV_SESSION": session_id}
     specs = [
         (
             "api-gateway",
@@ -123,15 +160,20 @@ def dev(*, api_port: int, renderer_port: int, web_port: int, open_browser: bool)
                 str(api_port),
             ],
             ROOT,
-            {"LOGS_DIR": str(LOG_DIR)},
+            {**shared_env, "LOGS_DIR": str(LOG_DIR)},
         ),
         (
             "renderer",
             ["bun", "run", "dev"],
             ROOT / "services/renderer",
-            {"LOGS_DIR": str(LOG_DIR), "PORT": str(renderer_port)},
+            {**shared_env, "LOGS_DIR": str(LOG_DIR), "PORT": str(renderer_port)},
         ),
-        ("web", ["bun", "run", "dev", "--port", str(web_port)], ROOT / "apps/web", {}),
+        (
+            "web",
+            ["bun", "run", "dev", "--port", str(web_port)],
+            ROOT / "apps/web",
+            shared_env,
+        ),
     ]
     processes: list[subprocess.Popen[str]] = []
     streams: list[object] = []
@@ -144,10 +186,15 @@ def dev(*, api_port: int, renderer_port: int, web_port: int, open_browser: bool)
         STATE_FILE.write_text(
             json.dumps(
                 {
+                    "session_id": session_id,
                     "services": [
-                        {"name": spec[0], "pid": process.pid}
+                        {
+                            "name": spec[0],
+                            "pid": process.pid,
+                            "identity": _process_identity(process.pid),
+                        }
                         for spec, process in zip(specs, processes, strict=True)
-                    ]
+                    ],
                 },
                 indent=2,
             ),
@@ -187,6 +234,7 @@ def dev(*, api_port: int, renderer_port: int, web_port: int, open_browser: bool)
 
 def status(api_port: int, renderer_port: int, web_port: int) -> int:
     """Affiche la disponibilité des trois surfaces locales."""
+    validate_ports(api_port, renderer_port, web_port)
     checks = [
         ("API", f"http://127.0.0.1:{api_port}/api/v1/system/ready"),
         ("Renderer", f"http://127.0.0.1:{renderer_port}/ready"),
