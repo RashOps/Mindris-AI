@@ -14,6 +14,10 @@ All notable changes to Mindris AI are documented here.
   paths whose checklist progress is persisted by the API.
 - Dynamic provider model discovery with cached registry snapshots and duplicate
   model normalization.
+- Standard-library contributor CLI with Unix, PowerShell, and CMD launchers,
+  cross-platform diagnostics, local service supervision, quality commands, and
+  release verification.
+- Native PowerShell installer for Docker Desktop self-hosting on Windows.
 
 ### Changed
 
@@ -23,6 +27,11 @@ All notable changes to Mindris AI are documented here.
   assets/registry to keep complex modules within the agreed size guardrails.
 - Expanded renderer validation to all ten templates across short, medium, and
   long A4/Letter content, plus real Chromium PDF exports for five families.
+- Split candidate builds from stable release promotion: pull requests only
+  validate, RC tags build once, and stable GHCR tags reuse the tested manifest
+  digests without rebuilding.
+- Reworked the public README as a complete project, installation, architecture,
+  CLI, contribution, and documentation entry point.
 
 ### Fixed
 
