@@ -10,11 +10,11 @@ services:
       API_KEY: ${API_KEY:-dev-mindris-api-key}
       RENDERER_URL: http://renderer:4000
       STORAGE_DIR: /app/storage
-      LOGS_DIR: /app/logs
+      LOGS_DIR: /app/.logs
       CHROMA_DB_DIR: /app/storage/vectordb
     volumes:
       - ./storage:/app/storage
-      - ./logs:/app/logs
+      - ./.logs:/app/.logs
     depends_on:
       renderer:
         condition: service_healthy
@@ -30,6 +30,10 @@ services:
       context: ./services/renderer
     ports:
       - "4000:4000"
+    environment:
+      LOGS_DIR: /app/.logs
+    volumes:
+      - ./.logs:/app/.logs
     healthcheck:
       test: ["CMD", "bun", "-e", "const r = await fetch('http://127.0.0.1:4000/ready'); if (!r.ok) process.exit(1)"]
       interval: 15s

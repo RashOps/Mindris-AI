@@ -12,7 +12,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 LOG_DIR = ROOT / ".logs"
-STATE_FILE = LOG_DIR / "mindris-dev.json"
+SERVICE_LOG_DIR = LOG_DIR / "services"
+PROCESS_LOG_DIR = LOG_DIR / "process"
+RUNTIME_DIR = LOG_DIR / "runtime"
+STATE_FILE = RUNTIME_DIR / "mindris-dev.json"
 MIN_PYTHON = (3, 12)
 
 

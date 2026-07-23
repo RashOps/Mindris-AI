@@ -30,6 +30,10 @@ services:
     restart: unless-stopped
     ports:
       - "${MINDRIS_RENDERER_PORT:-4000}:4000"
+    environment:
+      LOGS_DIR: /app/logs
+    volumes:
+      - ./logs:/app/logs
     healthcheck:
       test: ["CMD", "bun", "-e", "const r = await fetch('http://127.0.0.1:4000/ready'); if (!r.ok) process.exit(1)"]
       interval: 15s

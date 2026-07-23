@@ -15,7 +15,9 @@ from pathlib import Path
 
 from .context import (
     LOG_DIR,
+    PROCESS_LOG_DIR,
     ROOT,
+    RUNTIME_DIR,
     STATE_FILE,
     CliError,
     require_contributor_runtime,
@@ -45,8 +47,11 @@ def _start(
     cwd: Path,
     env: dict[str, str],
 ) -> tuple[subprocess.Popen[str], object]:
-    LOG_DIR.mkdir(parents=True, exist_ok=True)
-    stream = (LOG_DIR / f"{name}.log").open("a", encoding="utf-8")
+    PROCESS_LOG_DIR.mkdir(parents=True, exist_ok=True)
+    stream = (PROCESS_LOG_DIR / f"{name}.stdout.log").open(
+        "a",
+        encoding="utf-8",
+    )
     process = subprocess.Popen(
         command,
         cwd=cwd,
@@ -118,13 +123,13 @@ def dev(*, api_port: int, renderer_port: int, web_port: int, open_browser: bool)
                 str(api_port),
             ],
             ROOT,
-            {},
+            {"LOGS_DIR": str(LOG_DIR)},
         ),
         (
             "renderer",
             ["bun", "run", "dev"],
             ROOT / "services/renderer",
-            {"PORT": str(renderer_port)},
+            {"LOGS_DIR": str(LOG_DIR), "PORT": str(renderer_port)},
         ),
         ("web", ["bun", "run", "dev", "--port", str(web_port)], ROOT / "apps/web", {}),
     ]
@@ -135,7 +140,7 @@ def dev(*, api_port: int, renderer_port: int, web_port: int, open_browser: bool)
             process, stream = _start(name, command, cwd, env)
             processes.append(process)
             streams.append(stream)
-        LOG_DIR.mkdir(parents=True, exist_ok=True)
+        RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
         STATE_FILE.write_text(
             json.dumps(
                 {

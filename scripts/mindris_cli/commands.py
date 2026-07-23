@@ -134,7 +134,7 @@ def e2e(
 
 def logs(service: str | None = None, *, follow: bool = False) -> int:
     """Affiche les logs canoniques sans commande Unix externe."""
-    candidates = sorted(LOG_DIR.glob("*.log"))
+    candidates = sorted(LOG_DIR.rglob("*.log"))
     if service:
         candidates = [path for path in candidates if service in path.stem]
     if not candidates:

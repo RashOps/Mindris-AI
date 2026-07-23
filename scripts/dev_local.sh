@@ -57,20 +57,24 @@ for port in "$API_PORT" "$RENDERER_PORT" "$WEB_PORT"; do
   fi
 done
 
-mkdir -p "$ROOT_DIR/.logs"
+mkdir -p \
+  "$ROOT_DIR/.logs/services" \
+  "$ROOT_DIR/.logs/process" \
+  "$ROOT_DIR/.logs/runtime"
 pids=""
 trap cleanup INT TERM EXIT
 
 cd "$ROOT_DIR"
-start_service "api" "$ROOT_DIR/.logs/api-gateway.log" \
+start_service "api" "$ROOT_DIR/.logs/process/api-gateway.stdout.log" \
+  env LOGS_DIR="$ROOT_DIR/.logs" \
   uv run uvicorn main:app --app-dir services/api-gateway --reload --port "$API_PORT"
 
 cd "$ROOT_DIR/services/renderer"
-start_service "renderer" "$ROOT_DIR/.logs/renderer.log" \
-  bun run dev
+start_service "renderer" "$ROOT_DIR/.logs/process/renderer.stdout.log" \
+  env LOGS_DIR="$ROOT_DIR/.logs" PORT="$RENDERER_PORT" bun run dev
 
 cd "$ROOT_DIR/apps/web"
-start_service "web" "$ROOT_DIR/.logs/web.log" \
+start_service "web" "$ROOT_DIR/.logs/process/web.stdout.log" \
   bun run dev --port "$WEB_PORT"
 
 cat <<EOF

@@ -11,7 +11,12 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 from mindris_cli.cli import build_parser, main  # noqa: E402
 from mindris_cli.commands import release_verify  # noqa: E402
-from mindris_cli.context import CliError, require_contributor_runtime  # noqa: E402
+from mindris_cli.context import (  # noqa: E402
+    PROCESS_LOG_DIR,
+    RUNTIME_DIR,
+    CliError,
+    require_contributor_runtime,
+)
 from mindris_cli.context import run as run_command  # noqa: E402
 from mindris_cli.services import port_available  # noqa: E402
 
@@ -22,6 +27,12 @@ def test_parser_exposes_expected_commands() -> None:
     assert parser.parse_args(["doctor", "--json"]).json_output is True
     assert parser.parse_args(["test", "--scope", "backend"]).scope == "backend"
     assert parser.parse_args(["release", "verify", "v1.2.3"]).tag == "v1.2.3"
+
+
+def test_cli_uses_separate_process_and_runtime_log_directories() -> None:
+    assert PROCESS_LOG_DIR.name == "process"
+    assert RUNTIME_DIR.name == "runtime"
+    assert PROCESS_LOG_DIR.parent == RUNTIME_DIR.parent
 
 
 def test_contributor_runtime_requires_uv(monkeypatch: pytest.MonkeyPatch) -> None:
