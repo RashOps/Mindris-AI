@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 
 import {
-  GUIDE_SECTIONS,
+  guideSections,
   type GuideSection,
 } from "@/components/help/guide-content";
 import { loadDraft, saveDraft } from "@/lib/drafts";
@@ -24,20 +24,21 @@ import { useI18n } from "@/i18n/I18nProvider";
 
 type GuideProgress = { completed?: string[] };
 
-function progressKey(section: GuideSection, item: string): string {
-  return `${section.title}::${item}`;
+function progressKey(section: GuideSection, itemIndex: number): string {
+  return `${section.id}::${itemIndex}`;
 }
 
 export default function GuidePage() {
-  const { messages } = useI18n();
+  const { locale, messages } = useI18n();
   const copy = messages.pages.guide;
+  const sections = useMemo(() => guideSections(locale), [locale]);
   const paths = useMemo(() => [
     {
       id: "first-cv" as const,
       title: copy.firstCvTitle,
       description: copy.firstCvDescription,
       icon: FilePlus2,
-      sectionTitles: ["Mindris en une boucle", "2. Construire le CV"],
+      sectionIds: ["product-loop", "build-resume"],
       route: "/tools/cv-creator",
       cta: copy.firstCvCta,
     },
@@ -46,7 +47,7 @@ export default function GuidePage() {
       title: copy.tailorTitle,
       description: copy.tailorDescription,
       icon: WandSparkles,
-      sectionTitles: ["1. Démarrer depuis une offre", "2. Construire le CV"],
+      sectionIds: ["start-from-job", "build-resume"],
       route: "/tools/cv-creator",
       cta: copy.tailorCta,
     },
@@ -55,11 +56,7 @@ export default function GuidePage() {
       title: copy.applicationTitle,
       description: copy.applicationDescription,
       icon: Send,
-      sectionTitles: [
-        "3. Piloter le Workflow",
-        "4. Suivre et auditer",
-        "Parcours recommandé quotidien",
-      ],
+      sectionIds: ["workflow", "track-audit", "daily-path"],
       route: "/tools/workflow",
       cta: copy.applicationCta,
     },
@@ -67,8 +64,8 @@ export default function GuidePage() {
   const [activePathId, setActivePathId] = useState<"first-cv" | "tailor" | "application">(
     "first-cv",
   );
-  const [activeSectionTitle, setActiveSectionTitle] = useState<string>(
-    "Mindris en une boucle",
+  const [activeSectionId, setActiveSectionId] = useState<string>(
+    "product-loop",
   );
   const [completed, setCompleted] = useState<string[]>([]);
   const [isProgressLoaded, setIsProgressLoaded] = useState(false);
@@ -76,16 +73,16 @@ export default function GuidePage() {
   const activePath = paths.find((path) => path.id === activePathId) ?? paths[0];
   const pathSections = useMemo(
     () =>
-      activePath.sectionTitles
-        .map((title) => GUIDE_SECTIONS.find((section) => section.title === title))
+      activePath.sectionIds
+        .map((id) => sections.find((section) => section.id === id))
         .filter((section): section is GuideSection => Boolean(section)),
-    [activePath],
+    [activePath, sections],
   );
   const activeSection =
-    pathSections.find((section) => section.title === activeSectionTitle) ??
+    pathSections.find((section) => section.id === activeSectionId) ??
     pathSections[0];
   const pathChecklist = pathSections.flatMap((section) =>
-    section.checklist.map((item) => progressKey(section, item)),
+    section.checklist.map((_, index) => progressKey(section, index)),
   );
   const completedInPath = pathChecklist.filter((key) => completed.includes(key)).length;
   const progress = pathChecklist.length
@@ -111,7 +108,7 @@ export default function GuidePage() {
 
   const selectPath = (path: (typeof paths)[number]) => {
     setActivePathId(path.id);
-    setActiveSectionTitle(path.sectionTitles[0]);
+    setActiveSectionId(path.sectionIds[0]);
   };
 
   const toggleChecklist = (key: string) => {
@@ -208,9 +205,9 @@ export default function GuidePage() {
                   <button
                     key={section.title}
                     type="button"
-                    onClick={() => setActiveSectionTitle(section.title)}
+                    onClick={() => setActiveSectionId(section.id)}
                     className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition ${
-                      section.title === activeSection.title
+                      section.id === activeSection.id
                         ? "bg-accent text-accent-foreground"
                         : "text-muted-foreground hover:bg-muted"
                     }`}
@@ -282,8 +279,8 @@ export default function GuidePage() {
                     {copy.checklist}
                   </p>
                   <div className="mt-3 space-y-2">
-                    {activeSection.checklist.map((item) => {
-                      const key = progressKey(activeSection, item);
+                    {activeSection.checklist.map((item, index) => {
+                      const key = progressKey(activeSection, index);
                       const checked = completed.includes(key);
                       return (
                         <button
