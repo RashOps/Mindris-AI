@@ -3,6 +3,7 @@
 import { Loader2, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/i18n/I18nProvider";
 import {
   integrityTone,
   repairActionLabel,
@@ -20,13 +21,15 @@ export function WorkflowIntegrityPanel({
   integrity,
   onRepair,
 }: WorkflowIntegrityPanelProps) {
+  const { messages } = useI18n();
+  const copy = messages.pages.workflow;
   return (
     <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-foreground">Intégrité</p>
+          <p className="text-sm font-semibold text-foreground">{copy.integrity}</p>
           <p className="text-xs text-muted-foreground">
-            Contrôle backend des liens et actions de réparation limitées.
+            {copy.integrityDescription}
           </p>
         </div>
         <span
@@ -34,13 +37,13 @@ export function WorkflowIntegrityPanel({
             integrityTone(integrity.status)
           }`}
         >
-          {integrity.status === "degraded" ? "dégradé" : "sain"}
+          {integrity.status === "degraded" ? copy.needsRepair : copy.healthy}
         </span>
       </div>
 
       {integrity.issues.length === 0 ? (
         <div className="mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-3 text-sm text-emerald-700 dark:text-emerald-300">
-          Aucun lien dégradé détecté pour cette opportunité.
+          {copy.noIntegrityIssue}
         </div>
       ) : (
         <div className="mt-3 space-y-3">

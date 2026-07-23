@@ -4,6 +4,7 @@ import { ArrowRight, FileBadge2, FileText, ListTodo, Loader2 } from "lucide-reac
 
 import { ToolbarSelect } from "@/components/ToolbarSelect";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/i18n/I18nProvider";
 import {
   formatTimestamp,
   type ApplicationItem,
@@ -63,19 +64,21 @@ export function WorkflowActionsPanel({
   onResumeIdChange,
   onResumeLocaleChange,
 }: WorkflowActionsPanelProps) {
+  const { messages } = useI18n();
+  const copy = messages.pages.workflow;
   return (
     <div className="min-w-0 rounded-2xl border border-border bg-card p-4 shadow-sm">
-      <p className="mb-3 text-sm font-semibold text-foreground">Actions à faire</p>
+      <p className="mb-3 text-sm font-semibold text-foreground">{copy.actions}</p>
       <div className="min-w-0 space-y-3">
         <div className="min-w-0 rounded-xl border border-border bg-muted/40 p-3">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">CV</p>
           <div className="flex min-w-0 flex-col gap-2 xl:flex-row">
             <ToolbarSelect
               value={resumeId}
-              ariaLabel="Sélectionner un CV"
-              placeholder="Sélectionner un CV"
+              ariaLabel={copy.selectResume}
+              placeholder={copy.selectResume}
               options={[
-                { value: "", label: "Sélectionner un CV" },
+                { value: "", label: copy.selectResume },
                 ...resumes.map((resume) => ({
                   value: String(resume.id),
                   label: resume.name,
@@ -86,7 +89,7 @@ export function WorkflowActionsPanel({
             />
             <ToolbarSelect
               value={resumeLocale}
-              ariaLabel="Sélectionner la langue du CV"
+              ariaLabel={copy.selectResumeLocale}
               options={localeOptions.map((locale) => ({
                 value: locale,
                 label: locale.toUpperCase(),
@@ -102,23 +105,23 @@ export function WorkflowActionsPanel({
             onClick={onLinkResume}
           >
             {busyAction === "resume" ? <Loader2 className="animate-spin" /> : <FileText size={16} />}
-            Lier le CV
+            {copy.linkResume}
           </Button>
         </div>
 
         <div className="min-w-0 rounded-xl border border-border bg-muted/40 p-3">
           <div className="mb-2 flex items-center justify-between gap-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Score ATS</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{copy.atsScore}</p>
             <span className="text-[11px] text-muted-foreground">
               {filteredAtsReports.length} rapport{filteredAtsReports.length > 1 ? "s" : ""}
             </span>
           </div>
           <ToolbarSelect
             value={atsReportId}
-            ariaLabel="Sélectionner un rapport ATS"
-            placeholder="Sélectionner un rapport ATS"
+            ariaLabel={copy.selectAts}
+            placeholder={copy.selectAts}
             options={[
-              { value: "", label: "Sélectionner un rapport ATS" },
+              { value: "", label: copy.selectAts },
               ...filteredAtsReports.map((report) => ({
                 value: String(report.id),
                 label: `#${report.id} · ${report.mode} · ${report.score}/100`,
@@ -133,13 +136,13 @@ export function WorkflowActionsPanel({
             onClick={onLinkAtsReport}
           >
             {busyAction === "ats" ? <Loader2 className="animate-spin" /> : <FileBadge2 size={16} />}
-            Lier le rapport ATS
+            {copy.linkAts}
           </Button>
         </div>
 
         <div className="min-w-0 rounded-xl border border-border bg-muted/40 p-3">
           <div className="mb-2 flex items-center justify-between gap-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Lettre</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{copy.letter}</p>
             <span className="ml-auto text-[11px] text-muted-foreground">
               {filteredCoverLetters.length} lettre{filteredCoverLetters.length > 1 ? "s" : ""}
             </span>
@@ -149,16 +152,16 @@ export function WorkflowActionsPanel({
                 onClick={onOpenCoverLetter}
                 className="text-xs font-medium text-primary hover:underline"
               >
-                Ouvrir
+                {copy.open}
               </button>
             ) : null}
           </div>
           <ToolbarSelect
             value={coverLetterId}
-            ariaLabel="Sélectionner une lettre"
-            placeholder="Sélectionner une lettre"
+            ariaLabel={copy.selectLetter}
+            placeholder={copy.selectLetter}
             options={[
-              { value: "", label: "Sélectionner une lettre" },
+              { value: "", label: copy.selectLetter },
               ...filteredCoverLetters.map((letter) => ({
                 value: String(letter.id),
                 label: `#${letter.id} - ${formatTimestamp(letter.generated_at)}`,
@@ -173,23 +176,23 @@ export function WorkflowActionsPanel({
             onClick={onLinkCoverLetter}
           >
             {busyAction === "letter" ? <Loader2 className="animate-spin" /> : <FileText size={16} />}
-            Lier la lettre
+            {copy.linkLetter}
           </Button>
         </div>
 
         <div className="min-w-0 rounded-xl border border-border bg-muted/40 p-3">
           <div className="mb-2 flex items-center justify-between gap-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tracker</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{copy.tracker}</p>
             <span className="text-[11px] text-muted-foreground">
               {filteredApplications.length} entrée{filteredApplications.length > 1 ? "s" : ""}
             </span>
           </div>
           <ToolbarSelect
             value={applicationId}
-            ariaLabel="Sélectionner une candidature"
-            placeholder="Créer une entrée tracker"
+            ariaLabel={copy.selectApplication}
+            placeholder={copy.createTracker}
             options={[
-              { value: "", label: "Créer une entrée tracker" },
+              { value: "", label: copy.createTracker },
               ...filteredApplications.map((application) => ({
                 value: String(application.id),
                 label: `#${application.id} - ${application.company} - ${application.role}`,
@@ -205,7 +208,7 @@ export function WorkflowActionsPanel({
               onClick={onCreateTracker}
             >
               {busyAction === "tracker-create" ? <Loader2 className="animate-spin" /> : <ListTodo size={16} />}
-              Créer le tracker
+              {copy.createTrackerAction}
             </Button>
             <Button
               variant="outline"
@@ -214,7 +217,7 @@ export function WorkflowActionsPanel({
               onClick={onLinkTracker}
             >
               {busyAction === "tracker-attach" ? <Loader2 className="animate-spin" /> : <ArrowRight size={16} />}
-              Lier l’existant
+              {copy.linkExisting}
             </Button>
           </div>
         </div>
