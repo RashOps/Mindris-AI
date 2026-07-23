@@ -20,58 +20,60 @@ import {
   type GuideSection,
 } from "@/components/help/guide-content";
 import { loadDraft, saveDraft } from "@/lib/drafts";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type GuideProgress = { completed?: string[] };
-
-const PATHS = [
-  {
-    id: "first-cv",
-    title: "Créer mon premier CV",
-    description: "Partir d’un profil brut et obtenir un document propre et exportable.",
-    icon: FilePlus2,
-    sectionTitles: ["Mindris en une boucle", "2. Construire le CV"],
-    route: "/tools/cv-creator",
-    cta: "Créer mon CV",
-  },
-  {
-    id: "tailor",
-    title: "Adapter mon CV à une offre",
-    description: "Transformer une offre en exigences vérifiables puis valider les changements.",
-    icon: WandSparkles,
-    sectionTitles: ["1. Démarrer depuis une offre", "2. Construire le CV"],
-    route: "/tools/cv-creator",
-    cta: "Analyser une offre",
-  },
-  {
-    id: "application",
-    title: "Préparer une candidature complète",
-    description: "Relier CV, ATS, lettre et suivi sans perdre la lignée des artefacts.",
-    icon: Send,
-    sectionTitles: [
-      "3. Piloter le Workflow",
-      "4. Suivre et auditer",
-      "Parcours recommandé quotidien",
-    ],
-    route: "/tools/workflow",
-    cta: "Ouvrir le Workflow Beta",
-  },
-] as const;
 
 function progressKey(section: GuideSection, item: string): string {
   return `${section.title}::${item}`;
 }
 
 export default function GuidePage() {
-  const [activePathId, setActivePathId] = useState<(typeof PATHS)[number]["id"]>(
+  const { messages } = useI18n();
+  const copy = messages.pages.guide;
+  const paths = useMemo(() => [
+    {
+      id: "first-cv" as const,
+      title: copy.firstCvTitle,
+      description: copy.firstCvDescription,
+      icon: FilePlus2,
+      sectionTitles: ["Mindris en une boucle", "2. Construire le CV"],
+      route: "/tools/cv-creator",
+      cta: copy.firstCvCta,
+    },
+    {
+      id: "tailor" as const,
+      title: copy.tailorTitle,
+      description: copy.tailorDescription,
+      icon: WandSparkles,
+      sectionTitles: ["1. Démarrer depuis une offre", "2. Construire le CV"],
+      route: "/tools/cv-creator",
+      cta: copy.tailorCta,
+    },
+    {
+      id: "application" as const,
+      title: copy.applicationTitle,
+      description: copy.applicationDescription,
+      icon: Send,
+      sectionTitles: [
+        "3. Piloter le Workflow",
+        "4. Suivre et auditer",
+        "Parcours recommandé quotidien",
+      ],
+      route: "/tools/workflow",
+      cta: copy.applicationCta,
+    },
+  ], [copy]);
+  const [activePathId, setActivePathId] = useState<"first-cv" | "tailor" | "application">(
     "first-cv",
   );
   const [activeSectionTitle, setActiveSectionTitle] = useState<string>(
-    PATHS[0].sectionTitles[0],
+    "Mindris en une boucle",
   );
   const [completed, setCompleted] = useState<string[]>([]);
   const [isProgressLoaded, setIsProgressLoaded] = useState(false);
 
-  const activePath = PATHS.find((path) => path.id === activePathId) ?? PATHS[0];
+  const activePath = paths.find((path) => path.id === activePathId) ?? paths[0];
   const pathSections = useMemo(
     () =>
       activePath.sectionTitles
@@ -107,7 +109,7 @@ export default function GuidePage() {
     };
   }, []);
 
-  const selectPath = (path: (typeof PATHS)[number]) => {
+  const selectPath = (path: (typeof paths)[number]) => {
     setActivePathId(path.id);
     setActiveSectionTitle(path.sectionTitles[0]);
   };
@@ -128,7 +130,7 @@ export default function GuidePage() {
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
                 <Sparkles size={13} className="text-primary" />
-                Guide Mindris
+                {copy.badge}
               </div>
               <div className="mt-4 flex items-start gap-4">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
@@ -136,12 +138,10 @@ export default function GuidePage() {
                 </div>
                 <div>
                   <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-                    Choisissez ce que vous voulez accomplir
+                    {copy.title}
                   </h1>
                   <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                    Trois parcours courts remplacent le long manuel. Chaque étape ouvre
-                    directement la bonne surface et votre progression reste enregistrée
-                    par le backend.
+                    {copy.description}
                   </p>
                 </div>
               </div>
@@ -151,7 +151,7 @@ export default function GuidePage() {
               <div className="flex items-center justify-between gap-3">
                 <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   <Map className="h-4 w-4 text-primary" aria-hidden="true" />
-                  Progression du parcours
+                  {copy.progress}
                 </p>
                 <span className="text-sm font-semibold text-foreground">{progress}%</span>
               </div>
@@ -164,14 +164,14 @@ export default function GuidePage() {
               <p className="mt-3 text-xs text-muted-foreground">
                 {isProgressLoaded
                   ? `${completedInPath} étape${completedInPath > 1 ? "s" : ""} validée${completedInPath > 1 ? "s" : ""} sur ${pathChecklist.length}.`
-                  : "Chargement de votre progression…"}
+                  : copy.progressLoading}
               </p>
             </div>
           </div>
         </header>
 
-        <section className="mt-5 flex gap-3 overflow-x-auto pb-2 md:grid md:grid-cols-3" aria-label="Parcours guidés">
-          {PATHS.map((path) => {
+        <section className="mt-5 flex gap-3 overflow-x-auto pb-2 md:grid md:grid-cols-3" aria-label={copy.pathsLabel}>
+          {paths.map((path) => {
             const Icon = path.icon;
             const active = path.id === activePath.id;
             return (
@@ -201,7 +201,7 @@ export default function GuidePage() {
           <div className="mt-5 grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
             <aside className="rounded-2xl border border-border bg-card p-3 shadow-sm">
               <p className="px-2 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                Étapes du parcours
+                {copy.pathSteps}
               </p>
               <div className="space-y-1">
                 {pathSections.map((section, index) => (
@@ -254,7 +254,7 @@ export default function GuidePage() {
               <div className="mt-6 grid gap-5 xl:grid-cols-2">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                    Déroulé
+                    {copy.flow}
                   </p>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     {activeSection.steps.map((step, index) => (
@@ -279,7 +279,7 @@ export default function GuidePage() {
 
                 <div className="rounded-xl border border-border bg-background p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                    Checklist
+                    {copy.checklist}
                   </p>
                   <div className="mt-3 space-y-2">
                     {activeSection.checklist.map((item) => {

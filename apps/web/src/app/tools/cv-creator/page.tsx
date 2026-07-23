@@ -29,6 +29,7 @@ import {
 } from "@dnd-kit/core";
 import { CvBuilderHeader } from "./components/CvBuilderHeader";
 import type { HeaderMenuAction } from "./components/HeaderActionMenu";
+import { useI18n } from "@/i18n/I18nProvider";
 import {
   RESUME_EXPORTS,
   asDragPayload,
@@ -43,6 +44,8 @@ import {
   type ResumeExportFormat,
 } from "./cv-builder-model";
 export default function AppPage() {
+  const { messages } = useI18n();
+  const copy = messages.pages.cvBuilder;
   const {
     setIsOptimizing,
     replaceCVData,
@@ -238,16 +241,16 @@ export default function AppPage() {
       };
       setJobInsights(insights);
       setShowInsights(true);
-      showToast("Analyse de l’offre prête — voir le panneau");
+      showToast(copy.offerReady);
     },
-    [setJobInsights],
+    [copy.offerReady, setJobInsights],
   );
 
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setIsUploading(true);
-    showToast("Analyse du PDF (10-30s)...", 30000);
+    showToast(copy.pdfAnalyzing, 30000);
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -265,7 +268,7 @@ export default function AppPage() {
       }
       const data = await res.json();
       if (data.cv_data) replaceCVData(data.cv_data);
-      showToast("PDF indexé. Éditeur et RAG mis à jour.");
+      showToast(copy.pdfIndexed);
     } catch (err: unknown) {
       showToast(errorMessage(err, "Upload impossible"), 6000);
     } finally {
@@ -293,7 +296,7 @@ export default function AppPage() {
           source: "json",
         }),
       });
-      showToast("CV JSON indexé.");
+      showToast(copy.jsonIndexed);
     } catch (err: unknown) {
       showToast(errorMessage(err, "Parsing ou upload JSON impossible."), 5000);
     } finally {
@@ -327,7 +330,7 @@ export default function AppPage() {
   };
 
   const handleExportPDF = async () => {
-    showToast("Génération du PDF...", 30000);
+    showToast(copy.pdfGenerating, 30000);
     try {
       await flushResumeSave();
       const resolved = await resolveTemplateRenderPayload(
@@ -349,7 +352,7 @@ export default function AppPage() {
         blob,
         `${cvData.profile.full_name.replace(/\s+/g, "_")}_CV.pdf`,
       );
-      showToast("PDF téléchargé.");
+      showToast(copy.pdfDownloaded);
     } catch (err: unknown) {
       showToast(errorMessage(err, "Rendu impossible"), 5000);
     }
@@ -384,11 +387,11 @@ export default function AppPage() {
 
   const handleGhostDone = () => {
     setIsOptimizing(false);
-    showToast("CV optimisé. Vérifie la preview.");
+    showToast(copy.optimized);
   };
   const handleGhostError = () => {
     setIsOptimizing(false);
-    showToast("Pipeline en échec.", 6000);
+    showToast(copy.pipelineFailed, 6000);
   };
 
   const { isOptimizing } = useCVStore();
@@ -534,15 +537,15 @@ export default function AppPage() {
           onSelectResume={setActiveResume}
           onRenameResume={(name) => renameResume(activeResumeId, name)}
           onCreateResume={() => {
-            void createResume("Nouveau CV")
-              .then(() => showToast("Nouveau CV créé"))
+            void createResume(copy.newResume)
+              .then(() => showToast(copy.newResumeCreated))
               .catch((err: unknown) => {
                 showToast(errorMessage(err, "Création impossible"), 6000);
               });
           }}
           onDuplicateResume={() => {
             void duplicateResume()
-              .then(() => showToast("CV dupliqué"))
+              .then(() => showToast(copy.duplicateCreated))
               .catch((err: unknown) => {
                 showToast(errorMessage(err, "Duplication impossible"), 6000);
               });
@@ -551,7 +554,7 @@ export default function AppPage() {
             void deleteResume(activeResumeId)
               .then(() =>
                 showToast(
-                  resumes.length > 1 ? "CV supprimé" : "Garde au moins un CV",
+                  resumes.length > 1 ? copy.resumeDeleted : copy.keepOneResume,
                 ),
               )
               .catch((err: unknown) => {
@@ -625,7 +628,7 @@ export default function AppPage() {
               <div
                 className="flex rounded-lg border border-border bg-muted/40 p-1"
                 role="tablist"
-                aria-label="Éditeur du CV"
+                aria-label={copy.editorLabel}
                 onKeyDown={(event) => {
                   const tabs = Array.from(
                     event.currentTarget.querySelectorAll<HTMLElement>(
@@ -659,7 +662,7 @@ export default function AppPage() {
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  Structure
+                  {copy.structure}
                 </button>
                 <button
                   type="button"
@@ -675,7 +678,7 @@ export default function AppPage() {
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  Style
+                  {copy.style}
                 </button>
               </div>
             </div>
@@ -728,7 +731,7 @@ export default function AppPage() {
           <div className="flex min-h-0 shrink-0 flex-col overflow-hidden bg-muted/20 max-lg:min-h-[72vh] lg:h-full lg:flex-1">
             <div className="shrink-0 border-b border-border bg-card px-4 py-2">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                Live Preview
+                {copy.preview}
               </p>
             </div>
             <div className="flex-1 p-4 overflow-hidden">

@@ -6,37 +6,32 @@ import { useRouter } from "next/navigation";
 
 import { apiUrl, jsonHeaders } from "@/lib/api";
 import { openCoverLetterInMarkdown } from "@/lib/cover-letters";
+import { useI18n } from "@/i18n/I18nProvider";
 import {
   normalizeHistoryLedgerItem,
   type HistoryLedgerItem,
 } from "@/store/useCVStore";
 
-const SUBJECT_OPTIONS: Array<{
-  id:
-    | "all"
-    | "job_scrape"
-    | "resume_revision"
-    | "cover_letter"
-    | "ats_report"
-    | "opportunity"
-    | "tracker_event"
-    | "llm_run";
-  label: string;
-}> = [
-  { id: "all", label: "Tous" },
-  { id: "job_scrape", label: "Offres" },
-  { id: "resume_revision", label: "Révisions" },
-  { id: "cover_letter", label: "Lettres" },
-  { id: "ats_report", label: "ATS" },
-  { id: "opportunity", label: "Workflow" },
-  { id: "tracker_event", label: "Tracker" },
-  { id: "llm_run", label: "Runs LLM" },
-];
+type SubjectOptionId =
+  | "all"
+  | "job_scrape"
+  | "resume_revision"
+  | "cover_letter"
+  | "ats_report"
+  | "opportunity"
+  | "tracker_event"
+  | "llm_run";
 
-function formatTimestamp(value: string): string {
-  if (!value) return "Inconnu";
+type SubjectOption = {
+  id:
+    SubjectOptionId;
+  label: string;
+};
+
+function formatTimestamp(value: string, locale: string, unknown: string): string {
+  if (!value) return unknown;
   try {
-    return new Intl.DateTimeFormat("fr-FR", {
+    return new Intl.DateTimeFormat(locale === "en" ? "en-US" : "fr-FR", {
       month: "short",
       day: "2-digit",
       hour: "2-digit",
@@ -77,6 +72,18 @@ const SUBJECT_LABELS: Record<HistoryLedgerItem["subject_type"], string> = {
 };
 
 export default function HistoryPage() {
+  const { locale, messages } = useI18n();
+  const copy = messages.pages.history;
+  const subjectOptions: SubjectOption[] = [
+    { id: "all", label: copy.all },
+    { id: "job_scrape", label: copy.jobs },
+    { id: "resume_revision", label: copy.revisions },
+    { id: "cover_letter", label: copy.letters },
+    { id: "ats_report", label: "ATS" },
+    { id: "opportunity", label: "Workflow" },
+    { id: "tracker_event", label: copy.tracker },
+    { id: "llm_run", label: copy.llmRuns },
+  ];
   const router = useRouter();
   const [items, setItems] = useState<HistoryLedgerItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,7 +91,7 @@ export default function HistoryPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [subjectType, setSubjectType] =
-    useState<(typeof SUBJECT_OPTIONS)[number]["id"]>("all");
+    useState<SubjectOptionId>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mobilePane, setMobilePane] = useState<"list" | "detail">("list");
 
@@ -99,7 +106,7 @@ export default function HistoryPage() {
         apiUrl(`/api/v1/history/ledger${params.size ? `?${params.toString()}` : ""}`),
         { headers: jsonHeaders() },
       );
-      if (!res.ok) throw new Error("Unable to load unified history.");
+      if (!res.ok) throw new Error(copy.loadFailed);
       const data = (await res.json()) as { items?: HistoryLedgerItem[] };
       setItems(
         Array.isArray(data.items)
@@ -110,12 +117,12 @@ export default function HistoryPage() {
       setError(
         loadError instanceof Error
           ? loadError.message
-          : "Unable to load unified history.",
+          : copy.loadFailed,
       );
     } finally {
       setLoading(false);
     }
-  }, [subjectType]);
+  }, [copy.loadFailed, subjectType]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -153,7 +160,7 @@ export default function HistoryPage() {
 
   const clearHistory = useCallback(async () => {
     const confirmed = window.confirm(
-      "Supprimer définitivement tout l’historique ? Les offres, rapports ATS, lettres, événements Workflow, éléments Tracker et révisions seront supprimés. Les CV sources restent conservés.",
+      copy.clearConfirm,
     );
     if (!confirmed) return;
 
@@ -166,22 +173,22 @@ export default function HistoryPage() {
         headers: jsonHeaders(),
       });
       if (!response.ok) {
-        throw new Error("Unable to clear unified history.");
+        throw new Error(copy.clearFailed);
       }
       setSelectedId(null);
       setItems([]);
-      setNotice("Historique unifié supprimé définitivement.");
+      setNotice(copy.cleared);
       await load();
     } catch (clearError) {
       setError(
         clearError instanceof Error
           ? clearError.message
-          : "Unable to clear unified history.",
+          : copy.clearFailed,
       );
     } finally {
       setClearing(false);
     }
-  }, [load]);
+  }, [copy.clearConfirm, copy.clearFailed, copy.cleared, load]);
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-background text-foreground">
@@ -190,7 +197,7 @@ export default function HistoryPage() {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-1">
               <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-                Audit
+                {copy.audit}
               </p>
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
@@ -198,11 +205,10 @@ export default function HistoryPage() {
                 </div>
                 <div>
                   <h1 className="text-2xl font-semibold tracking-tight">
-                    Historique d’activité
+                    {copy.activityTitle}
                   </h1>
                   <p className="text-sm text-muted-foreground">
-                    Journal chronologique des offres, rapports ATS, lettres,
-                    révisions, suivis Tracker et exécutions IA.
+                    {copy.activityDescription}
                   </p>
                 </div>
               </div>
@@ -215,14 +221,14 @@ export default function HistoryPage() {
                 disabled={clearing || loading || items.length === 0}
                 className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/15 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {clearing ? "Suppression..." : "Vider l’historique"}
+                {clearing ? copy.clearing : copy.clear}
               </button>
               <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
                 <Filter size={14} />
-                <span>Filtrer</span>
+                <span>{copy.filter}</span>
               </div>
               <div className="flex flex-wrap gap-2">
-                {SUBJECT_OPTIONS.map((option) => (
+                {subjectOptions.map((option) => (
                   <button
                     key={option.id}
                     type="button"
@@ -257,17 +263,17 @@ export default function HistoryPage() {
           <section className={`${mobilePane === "list" ? "block" : "hidden"} overflow-hidden rounded-2xl border border-border bg-card shadow-sm xl:block`}>
             <div className="border-b border-border px-4 py-3">
               <p className="text-sm font-semibold text-foreground">
-                Activité récente · {items.length}
+                {copy.recentActivity} · {items.length}
               </p>
             </div>
             {loading ? (
               <div className="flex items-center gap-2 px-4 py-6 text-sm text-muted-foreground">
                 <Loader2 size={16} className="animate-spin" />
-                Chargement du journal…
+                {copy.loading}
               </div>
             ) : items.length === 0 ? (
               <div className="px-4 py-6 text-sm text-muted-foreground">
-                Aucune activité pour ce filtre.
+                {copy.empty}
               </div>
             ) : (
               <div className="max-h-[calc(100vh-18rem)] overflow-y-auto">
@@ -306,7 +312,7 @@ export default function HistoryPage() {
                         </span>
                       )}
                       <span className="ml-auto text-xs text-muted-foreground">
-                        {formatTimestamp(item.timestamp)}
+                        {formatTimestamp(item.timestamp, locale, messages.common.unknown)}
                       </span>
                     </div>
                     <div>

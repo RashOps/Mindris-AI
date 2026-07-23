@@ -18,6 +18,7 @@ import Link from "next/link";
 import { apiUrl, connectApiEventStream, jsonHeaders } from "@/lib/api";
 import { loadDraft, saveDraft } from "@/lib/drafts";
 import { ArrowRight, ChartNoAxesColumn, FileSearch, RotateCcw } from "lucide-react";
+import { useI18n } from "@/i18n/I18nProvider";
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
@@ -26,6 +27,8 @@ type AtsReportDraft = {
 };
 
 export default function AtsScorePage() {
+  const { messages } = useI18n();
+  const copy = messages.pages.ats;
   const { cvData, appSettings } = useCVStore();
   const [jobUrl, setJobUrl] = useState("");
   const [atsMode, setAtsMode] = useState<"standard" | "strict">("standard");
@@ -75,7 +78,7 @@ export default function AtsScorePage() {
           model_name: appSettings.optimize_llm.model_name,
         }),
       });
-      if (!startRes.ok) throw new Error("Démarrage de l’analyse impossible");
+      if (!startRes.ok) throw new Error(copy.startFailed);
       const { job_id } = await startRes.json();
       jobIdRef.current = job_id;
 
@@ -97,7 +100,7 @@ export default function AtsScorePage() {
                 return;
               }
               if (eventName === "error") {
-                setError(data.message ?? "Erreur du pipeline");
+                setError(data.message ?? copy.pipelineError);
                 setIsAnalyzing(false);
                 controller.abort();
                 return;
@@ -150,10 +153,10 @@ export default function AtsScorePage() {
         controller.signal,
       );
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erreur inconnue");
+      setError(err instanceof Error ? err.message : copy.unknownError);
       setIsAnalyzing(false);
     }
-  }, [cvLoaded, jobUrl, cvData, appSettings, atsMode]);
+  }, [appSettings, atsMode, copy, cvData, cvLoaded, jobUrl]);
 
   // ── Computed stats ──────────────────────────────────────────────────────────
   const foundCount =
@@ -203,13 +206,13 @@ export default function AtsScorePage() {
             <div>
               <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
                 <FileSearch className="h-4 w-4" aria-hidden="true" />
-                Rapport ATS
+                {copy.reportLabel}
                 <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] uppercase text-muted-foreground">
                   {report.mode}
                 </span>
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                {report.context.job_title || "Offre analysée"}
+                {report.context.job_title || copy.analyzedJob}
                 {report.context.job_company
                   ? ` · ${report.context.job_company}`
                   : ""}
@@ -224,20 +227,20 @@ export default function AtsScorePage() {
               className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-3 text-xs font-medium text-foreground transition hover:bg-accent"
             >
               <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
-              Nouvelle analyse
+              {copy.newAnalysis}
             </button>
           </div>
 
           <div
             className="grid grid-cols-3 rounded-xl border border-border bg-card p-1"
             role="tablist"
-            aria-label="Sections du rapport ATS"
+            aria-label={copy.tabsLabel}
           >
             {(
               [
-                ["summary", "Résumé"],
-                ["keywords", "Mots-clés"],
-                ["details", "Détails"],
+                ["summary", copy.summary],
+                ["keywords", copy.keywords],
+                ["details", copy.details],
               ] as const
             ).map(([value, label]) => (
               <button
@@ -315,7 +318,7 @@ export default function AtsScorePage() {
               <div>
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                    Résumé
+                    {copy.summary}
                   </p>
                   <span className="rounded-full bg-muted px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                     mode {report.mode}
@@ -469,21 +472,21 @@ export default function AtsScorePage() {
               </p>
               <div className="space-y-2 text-sm text-muted-foreground">
                 <p>
-                  <span className="font-semibold text-foreground">Offre</span>{" "}
-                  {report.context.job_title || "Inconnue"}
+                  <span className="font-semibold text-foreground">{copy.job}</span>{" "}
+                  {report.context.job_title || copy.unknownJob}
                   {report.context.job_company
                     ? ` · ${report.context.job_company}`
                     : ""}
                 </p>
                 <p>
-                  <span className="font-semibold text-foreground">CV</span>{" "}
+                  <span className="font-semibold text-foreground">{copy.resume}</span>{" "}
                   {report.context.resume_id
                     ? `#${report.context.resume_id}`
-                    : "CV courant"}
+                    : copy.currentResume}
                 </p>
                 <p>
-                  <span className="font-semibold text-foreground">Locale</span>{" "}
-                  {report.context.resume_locale || "défaut"}
+                  <span className="font-semibold text-foreground">{copy.locale}</span>{" "}
+                  {report.context.resume_locale || copy.defaultLocale}
                 </p>
               </div>
             </div>
@@ -499,11 +502,11 @@ export default function AtsScorePage() {
                   {report.context.provider || appSettings.ats_llm.provider}
                 </p>
                 <p>
-                  <span className="font-semibold text-foreground">Modèle</span>{" "}
+                  <span className="font-semibold text-foreground">{copy.model}</span>{" "}
                   {report.context.model_name || appSettings.ats_llm.model_name}
                 </p>
                 <p>
-                  <span className="font-semibold text-foreground">Mode</span>{" "}
+                  <span className="font-semibold text-foreground">{copy.mode}</span>{" "}
                   {report.mode}
                 </p>
               </div>

@@ -15,6 +15,7 @@ import {
   PencilLine,
   Save,
 } from "lucide-react";
+import { useI18n } from "@/i18n/I18nProvider";
 
 // ── Templates ─────────────────────────────────────────────────────────────────
 
@@ -123,6 +124,8 @@ function defaultDraft() {
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function MarkdownToolPage() {
+  const { locale, messages } = useI18n();
+  const copy = messages.pages.markdown;
   const [initialDraft] = useState(defaultDraft);
   const [markdown, setMarkdown] = useState(initialDraft.markdown);
   const [style, setStyle] = useState<"document" | "letter">(initialDraft.style);
@@ -464,12 +467,12 @@ export default function MarkdownToolPage() {
               {isSavingVersion ? (
                 <>
                   <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />{" "}
-                  Sauvegarde...
+                  {copy.saving}
                 </>
               ) : (
                 <>
                   <Save className="h-4 w-4" aria-hidden="true" />
-                  Enregistrer une version
+                  {copy.saveVersion}
                 </>
               )}
             </button>
@@ -552,7 +555,7 @@ export default function MarkdownToolPage() {
               Lettre #{coverLetterId}
             </span>
             <ArrowRight className="h-3 w-3" aria-hidden="true" />
-            <span>Export PDF</span>
+            <span>{copy.exportPdf}</span>
             <span className="ml-auto inline-flex items-center gap-1">
               <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
               {sameJobLetters.length} version{sameJobLetters.length > 1 ? "s" : ""}
@@ -572,7 +575,9 @@ export default function MarkdownToolPage() {
                   }`}
                 >
                   Version #{letter.id} ·{" "}
-                  {new Date(letter.generated_at).toLocaleDateString("fr-FR")}
+                  {new Date(letter.generated_at).toLocaleDateString(
+                    locale === "en" ? "en-US" : "fr-FR",
+                  )}
                 </button>
               ))}
             </div>
@@ -597,7 +602,7 @@ export default function MarkdownToolPage() {
           }`}
         >
           <PencilLine className="h-3.5 w-3.5" aria-hidden="true" />
-          Éditeur
+          {copy.editor}
         </button>
         <button
           type="button"
@@ -611,7 +616,7 @@ export default function MarkdownToolPage() {
           }`}
         >
           <Eye className="h-3.5 w-3.5" aria-hidden="true" />
-          Aperçu
+          {copy.preview}
         </button>
       </div>
 
