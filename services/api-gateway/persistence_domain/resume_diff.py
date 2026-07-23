@@ -26,9 +26,7 @@ def diff_revision_metadata(
             kind = "added"
         elif before not in (None, "") and after in (None, ""):
             kind = "removed"
-        changes.append(
-            {"path": path, "kind": kind, "before": before, "after": after}
-        )
+        changes.append({"path": path, "kind": kind, "before": before, "after": after})
 
 
 def diff_values(

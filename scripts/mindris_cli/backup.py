@@ -42,9 +42,7 @@ def create_backup(archive: Path, *, storage: Path | None = None) -> dict[str, ob
     files = [
         path
         for path in source.rglob("*")
-        if path.is_file()
-        and not path.is_symlink()
-        and path.name not in EXCLUDED_NAMES
+        if path.is_file() and not path.is_symlink() and path.name not in EXCLUDED_NAMES
     ]
     manifest = {**_manifest(), "file_count": len(files)}
     with ZipFile(archive, "w", compression=ZIP_DEFLATED) as bundle:

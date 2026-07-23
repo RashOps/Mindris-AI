@@ -340,7 +340,9 @@ def assert_pdf_download(page: Page) -> None:
         export_button.click()
         expect(export_button).to_have_attribute("aria-expanded", "true", timeout=5_000)
     page.get_by_role("menuitem", name="PDF").click()
-    expect(page.get_by_text("Génération du PDF...", exact=True)).to_be_visible()
+    expect(
+        page.get_by_text(re.compile(r"^Génération du PDF(?:…|\.\.\.)$"))
+    ).to_be_visible()
     for _ in range(240):
         if downloads:
             break

@@ -50,9 +50,7 @@ def test_onboarding_persists_skip_and_completion(
 
     assert skipped.status_code == 200
     assert completed.status_code == 200
-    states = {
-        step["id"]: step["status"] for step in completed.json()["item"]["steps"]
-    }
+    states = {step["id"]: step["status"] for step in completed.json()["item"]["steps"]}
     assert states["provider_tested"] == "skipped"
     assert states["first_export"] == "completed"
     assert state_path.exists()

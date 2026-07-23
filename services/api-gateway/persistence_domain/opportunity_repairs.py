@@ -134,4 +134,3 @@ def apply_opportunity_repair(
         metadata=metadata,
     )
     return record
-

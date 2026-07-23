@@ -42,6 +42,10 @@ Le principe architectural reste respecte : le frontend n'est pas un service meti
 - Racine de logs unique par instance : `.logs/` dans un clone et `logs/` dans
   une installation self-hosted.
 - Format communautaire import/export disponible hors ligne pour les templates.
+- Checklist de premier démarrage persistée par le backend, avec preuves
+  automatiques, étapes réparables et mode local recommandé.
+- Sauvegarde portable via `mindris backup create/inspect/restore`, sans secrets
+  et avec restauration transactionnelle.
 
 ## Partiel
 
@@ -359,3 +363,37 @@ Terminé :
 - `.screenshots/product-simplification-2026-07-20/`
 
 Desktop/Tauri reste explicitement hors de ce run.
+
+## Run 24 - Consolidation, observabilité et reprise - 23 juillet 2026
+
+Terminé :
+
+- baseline CI restaurée et politique PR sans publication vérifiée ;
+- logs centralisés sous une racine canonique par instance ;
+- CLI multiplateforme devenue point d’entrée officiel des contributeurs ;
+- documentation, roadmap, changelog et ADR réconciliés ;
+- surfaces prioritaires migrées vers les catalogues i18n FR/EN ;
+- Workflow Beta durci avec fraîcheur des artefacts et réparations bornées ;
+- gros modules ramenés sous 700 lignes, sauf le store métier à 771 lignes sous
+  le plafond exceptionnel de 800 ;
+- onboarding backend-driven ajouté au dashboard ;
+- archives de sauvegarde versionnées, inspectables et restaurables.
+
+Validation finale :
+
+```text
+161 tests Python réussis, 2 ignorés
+46 tests frontend réussis
+47 tests renderer réussis
+E2E : cv-builder, DOCX, PDF, ATS, tracker et workflow-repair réussis
+Docker compose release, dry-run installateur et politique de promotion réussis
+```
+
+Audit visuel Playwright :
+
+- Dashboard, CV Builder et Guide ;
+- clair et sombre ;
+- 1600 × 900 et 390 × 844 ;
+- aucun overflow horizontal ni erreur console.
+
+Aucun tag de release n’a été créé pendant ce run.

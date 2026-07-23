@@ -107,9 +107,7 @@ def build_parser() -> argparse.ArgumentParser:
         "backup",
         help="Sauvegarder les données locales",
     )
-    backup_commands = backup_parser.add_subparsers(
-        dest="backup_command", required=True
-    )
+    backup_commands = backup_parser.add_subparsers(dest="backup_command", required=True)
     create_parser = backup_commands.add_parser("create", help="Créer une archive")
     create_parser.add_argument("archive", type=Path)
     inspect_parser = backup_commands.add_parser("inspect", help="Inspecter une archive")
