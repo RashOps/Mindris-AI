@@ -18,6 +18,8 @@ All notable changes to Mindris AI are documented here.
   cross-platform diagnostics, local service supervision, quality commands, and
   release verification.
 - Native PowerShell installer for Docker Desktop self-hosting on Windows.
+- Canonical runtime observability tree separating service events, supervised
+  process output, and CLI state under a single per-instance log root.
 
 ### Changed
 
@@ -32,6 +34,9 @@ All notable changes to Mindris AI are documented here.
   digests without rebuilding.
 - Reworked the public README as a complete project, installation, architecture,
   CLI, contribution, and documentation entry point.
+- Delegated local shell workflows to the cross-platform CLI and hardened
+  process supervision against invalid ports, stale PIDs, and reused process
+  identifiers.
 
 ### Fixed
 

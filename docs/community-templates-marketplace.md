@@ -1,6 +1,14 @@
 # Community Templates & Marketplace
 
-Date: 1 July 2026
+Date: 23 July 2026
+
+## Current status
+
+The portable package format, backend validation, offline import/export and
+in-app preview are available. A public hosted marketplace, author publishing,
+remote catalogue, moderation workflow and direct download integration are not
+delivered yet. The marketplace sections below describe the trajectory, not the
+verified product state.
 
 ## Objective
 
@@ -241,4 +249,3 @@ It should not implement:
 - remote fetch by id
 - marketplace auth system
 - advanced moderation platform
-

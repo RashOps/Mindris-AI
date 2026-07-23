@@ -31,7 +31,7 @@
 - [x] **Templates Pro :** Création du premier template CSS (Modern Minimalist).
 - [x] **Conversion PDF :** API de génération haute fidélité (Puppeteer `page.pdf`).
 
-## 🟢 Phase 5 : Interface "Canva-like" (Terminée)
+## 🟢 Phase 5 : Studio CV structuré (Terminée)
 - [x] **Frontend Next.js :** Dashboard principal.
 - [x] **Drag & Drop Engine :** Intégration de `dnd-kit` liée au JSON.
 - [x] **Live Preview :** Rendu en temps réel des modifications IA (Connecté au Shadow DOM Bun).
@@ -96,7 +96,10 @@
 - [x] **Selecteurs UI robustes :** Durcir les affordances et les tests pour eviter les collisions de labels dans Playwright.
 - [x] **Format de template communautaire :** Definir un package import/export avec manifeste, metadonnees, preset settings, CSS autorise et preview.
 - [x] **Import/export de templates :** Permettre de telecharger, installer, exporter et reinstaller un template sans edition manuelle fragile.
-- [x] **Contribution flow & marketplace bootstrap :** Preparer le circuit auteur -> publication -> installation Mindris avec validation et moderation minimales.
+- [x] **Contribution flow :** Préparer le circuit auteur -> validation ->
+  export/import d’un package portable.
+- [ ] **Marketplace publique :** Catalogue distant, publication, modération et
+  téléchargement intégrés non livrés à ce jour.
 
 ## 🔵 Phase 14 : Security & Secret Boundary Hardening
 - [x] **BYOK securise via UI :** Saisie backend-owned, secrets masques, write-only, redaction logs.

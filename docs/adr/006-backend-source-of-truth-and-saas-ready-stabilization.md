@@ -5,6 +5,10 @@
 **Auteur :** Rayhan (Lead Architect), Codex  
 **Projet :** Mindris AI
 
+> La décision 2.8 sur le chemin des logs est remplacée par
+> [ADR 027](027-canonical-runtime-log-root.md). Les autres décisions restent
+> applicables.
+
 ---
 
 ## 1. Contexte et Problématique
@@ -147,7 +151,7 @@ Pondération retenue :
 - Nouvelles routes `/api/v1/tracker/applications*`.
 - Le frontend reste un client d'affichage et d'interaction.
 
-### 2.8 Logger centralisé
+### 2.8 Logger centralisé (remplacé par ADR 027)
 
 **Décision :** Faire utiliser `utils.logger.get_logger(__name__)` par les modules critiques et renforcer la création du dossier `logs/` dans la factory.
 
