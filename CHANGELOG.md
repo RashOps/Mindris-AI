@@ -37,6 +37,9 @@ All notable changes to Mindris AI are documented here.
 - Delegated local shell workflows to the cross-platform CLI and hardened
   process supervision against invalid ports, stale PIDs, and reused process
   identifiers.
+- Workflow Beta now reports artifact dates and resume revisions, detects ATS
+  reports evaluated against stale resume revisions, blocks degraded readiness,
+  and offers bounded replacement actions.
 
 ### Fixed
 

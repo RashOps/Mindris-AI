@@ -11,6 +11,7 @@ Les documents n’ont pas tous le même rôle :
 | [Architecture](architecture.md) | Frontières et flux techniques actuels |
 | [Installation](install.md) | Parcours utilisateur self-hosted |
 | [Développement local](local-development.md) | Parcours contributeur |
+| [Workflow Beta](workflow-beta.md) | Contrat de lignée, réparations et critères de sortie Beta |
 
 Une fonctionnalité décrite comme future dans une spécification ou une roadmap
 ne doit pas être présentée comme livrée dans l’état MVP ou le changelog.
