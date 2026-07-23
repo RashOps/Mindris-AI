@@ -1,8 +1,6 @@
 "use client";
-import { Editor } from "@/components/Editor";
 import { LivePreview } from "@/components/LivePreview";
 import { GhostMode } from "@/components/GhostMode";
-import { StylePanel } from "@/components/StylePanel";
 import { JobInsightsPanel } from "@/components/JobInsightsPanel";
 import { CoverLetterModal } from "@/components/CoverLetterModal";
 import { useCVStore } from "@/store/useCVStore";
@@ -28,6 +26,7 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { CvBuilderHeader } from "./components/CvBuilderHeader";
+import { CvEditorPane } from "./components/CvEditorPane";
 import type { HeaderMenuAction } from "./components/HeaderActionMenu";
 import { useI18n } from "@/i18n/I18nProvider";
 import {
@@ -620,81 +619,17 @@ export default function AppPage() {
 
         {/* ── Body ───────────────────────────────────────────────────────────── */}
         <div className="flex flex-1 overflow-hidden bg-muted/40 max-lg:flex-col max-lg:overflow-y-auto">
-          {/* Editor */}
-          <div
-            className={`flex min-h-0 w-full shrink-0 flex-col overflow-hidden border-b border-border bg-card transition-all duration-300 max-lg:min-h-[58vh] lg:h-full lg:border-b-0 lg:border-r ${showGhost || showInsights ? "lg:w-[32%]" : "lg:w-[45%]"}`}
-          >
-            <div className="shrink-0 border-b border-border bg-card px-4 py-2">
-              <div
-                className="flex rounded-lg border border-border bg-muted/40 p-1"
-                role="tablist"
-                aria-label={copy.editorLabel}
-                onKeyDown={(event) => {
-                  const tabs = Array.from(
-                    event.currentTarget.querySelectorAll<HTMLElement>(
-                      '[role="tab"]',
-                    ),
-                  );
-                  const current = tabs.indexOf(document.activeElement as HTMLElement);
-                  if (current < 0) return;
-                  let next = current;
-                  if (event.key === "ArrowRight") next = (current + 1) % tabs.length;
-                  else if (event.key === "ArrowLeft") next = (current - 1 + tabs.length) % tabs.length;
-                  else if (event.key === "Home") next = 0;
-                  else if (event.key === "End") next = tabs.length - 1;
-                  else return;
-                  event.preventDefault();
-                  tabs[next]?.focus();
-                  tabs[next]?.click();
-                }}
-              >
-                <button
-                  type="button"
-                  id="cv-editor-tab-structure"
-                  role="tab"
-                  aria-selected={editorTab === "structure"}
-                  aria-controls="cv-editor-panel-structure"
-                  tabIndex={editorTab === "structure" ? 0 : -1}
-                  onClick={() => setEditorTab("structure")}
-                  className={`flex-1 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    editorTab === "structure"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {copy.structure}
-                </button>
-                <button
-                  type="button"
-                  id="cv-editor-tab-style"
-                  role="tab"
-                  aria-selected={editorTab === "style"}
-                  aria-controls="cv-editor-panel-style"
-                  tabIndex={editorTab === "style" ? 0 : -1}
-                  onClick={() => setEditorTab("style")}
-                  className={`flex-1 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    editorTab === "style"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {copy.style}
-                </button>
-              </div>
-            </div>
-            <div
-              id={`cv-editor-panel-${editorTab}`}
-              role="tabpanel"
-              aria-labelledby={`cv-editor-tab-${editorTab}`}
-              className="flex-1 overflow-hidden px-3 py-3"
-            >
-              {editorTab === "structure" ? (
-                <Editor />
-              ) : (
-                <StylePanel variant="embedded" uiMode={uiMode} />
-              )}
-            </div>
-          </div>
+          <CvEditorPane
+            activeTab={editorTab}
+            labels={{
+              editor: copy.editorLabel,
+              structure: copy.structure,
+              style: copy.style,
+            }}
+            narrow={showGhost || showInsights}
+            uiMode={uiMode}
+            onChangeTab={setEditorTab}
+          />
 
           {/* Ghost Mode */}
           {showGhost && (

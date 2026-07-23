@@ -19,9 +19,14 @@ describe("renderer local development contract", () => {
         expect(packageJson.scripts?.dev).toContain("src/server.ts");
     });
 
-    test("local dev harness starts the renderer in watch mode", () => {
+    test("local dev harness delegates supervision to the contributor CLI", () => {
         const script = readFileSync(join(ROOT_DIR, "scripts", "dev_local.sh"), "utf8");
+        const services = readFileSync(
+            join(ROOT_DIR, "scripts", "mindris_cli", "services.py"),
+            "utf8",
+        );
 
-        expect(script).toContain("bun run dev");
+        expect(script).toContain('exec "$ROOT_DIR/mindris" dev');
+        expect(services).toContain('["bun", "run", "dev"]');
     });
 });
