@@ -152,9 +152,12 @@ API_PORT=8100 RENDERER_PORT=4100 WEB_PORT=3100 ./scripts/dev_local.sh
 Logs :
 
 ```text
-.logs/api-gateway.log
-.logs/renderer.log
-.logs/web.log
+.logs/services/api-gateway.log
+.logs/services/renderer.log
+.logs/process/api-gateway.stdout.log
+.logs/process/renderer.stdout.log
+.logs/process/web.stdout.log
+.logs/runtime/mindris-dev.json
 ```
 
 Le script refuse de démarrer si un port requis est déjà occupé.

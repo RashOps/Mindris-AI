@@ -126,7 +126,7 @@ curl --max-time 5 http://localhost:8000/api/v1/system/ready
 Logs canoniques :
 
 ```text
-.logs/api-gateway.log
+.logs/services/api-gateway.log
 ```
 
 Données locales :
@@ -139,7 +139,6 @@ Ne pas committer :
 
 - `__pycache__/`
 - `*.egg-info/`
-- `logs/`
 - `.logs/`
 - `storage/`
 - bases SQLite locales.
