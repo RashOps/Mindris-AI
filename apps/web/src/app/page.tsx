@@ -9,6 +9,7 @@ import {
   PackageCheck,
   Upload,
 } from "lucide-react";
+import { InstallCommandTabs } from "@/components/landing/InstallCommandTabs";
 
 const STEPS = [
   {
@@ -146,9 +147,9 @@ export default function LandingPage() {
       </section>
 
       <section className="relative z-10 border-t border-border py-20">
-        <div className="mx-auto grid max-w-6xl gap-8 px-6 md:grid-cols-[0.9fr_1.1fr] md:items-center md:px-8">
-          <div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-500 dark:text-indigo-300">
+        <div className="mx-auto max-w-6xl px-6 md:px-8">
+          <div className="mx-auto mb-8 max-w-3xl text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-500 dark:text-indigo-300">
               <PackageCheck className="h-6 w-6" aria-hidden="true" />
             </div>
             <p className="mt-5 text-xs font-semibold uppercase tracking-widest text-indigo-500 dark:text-indigo-300">
@@ -161,30 +162,7 @@ export default function LandingPage() {
               Le navigateur reste un client. Les secrets, données persistées et décisions métier restent dans les services que vous exécutez.
             </p>
           </div>
-          <div className="rounded-2xl border border-border bg-slate-950 p-5 text-slate-100 shadow-xl">
-            <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-3 text-xs text-slate-400">
-              <span>Installation Docker one-command</span>
-              <span>Linux · WSL · serveur</span>
-            </div>
-            <code className="mt-4 block overflow-x-auto whitespace-nowrap font-mono text-sm text-emerald-300">
-              curl -fsSL https://raw.githubusercontent.com/RashOps/Mindris-AI/main/scripts/install_self_hosted.sh | sh
-            </code>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <a
-                href="https://github.com/RashOps/Mindris-AI"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-slate-950"
-              >
-                Voir le dépôt
-                <ExternalLink className="h-4 w-4" aria-hidden="true" />
-              </a>
-              <Link href="/tools/guide" className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-4 py-2 text-sm font-medium text-slate-200">
-                Lire le guide
-                <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              </Link>
-            </div>
-          </div>
+          <InstallCommandTabs />
         </div>
       </section>
 
