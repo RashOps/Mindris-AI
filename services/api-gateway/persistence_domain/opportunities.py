@@ -19,6 +19,7 @@ from utils.logger import get_logger
 
 from .artifacts import serialize_ats, serialize_cover_letter, serialize_job
 from .resumes import (
+    _latest_resume_revision,
     _normalize_resume_locale,
     _persist_lazy_resume_migration,
     resolve_resume_variant,
@@ -164,6 +165,67 @@ def _opportunity_integrity(
             }
         )
         repair_actions.append("relink_ats_report")
+    elif ats_report is not None and resume is not None:
+        ats_context = load_json(ats_report.context_json, {})
+        ats_resume_id = ats_context.get("resume_id")
+        ats_resume_locale = ats_context.get("resume_locale")
+        ats_resume_revision = ats_context.get("resume_revision")
+        current_revision = _latest_resume_revision(session, resume.id)
+        if ats_resume_id is not None and ats_resume_id != resume.id:
+            issues.append(
+                {
+                    "code": "mismatched_ats_resume",
+                    "severity": "warning",
+                    "artifact": "ats_report",
+                    "message": "The linked ATS report evaluates another resume.",
+                    "metadata": {
+                        "ats_report_id": ats_report.id,
+                        "opportunity_resume_id": resume.id,
+                        "ats_resume_id": ats_resume_id,
+                    },
+                }
+            )
+            repair_actions.append("relink_ats_report")
+        elif (
+            ats_resume_locale is not None
+            and record.resume_locale is not None
+            and ats_resume_locale != record.resume_locale
+        ):
+            issues.append(
+                {
+                    "code": "mismatched_ats_resume_locale",
+                    "severity": "warning",
+                    "artifact": "ats_report",
+                    "message": "The linked ATS report evaluates another resume locale.",
+                    "metadata": {
+                        "ats_report_id": ats_report.id,
+                        "opportunity_resume_locale": record.resume_locale,
+                        "ats_resume_locale": ats_resume_locale,
+                    },
+                }
+            )
+            repair_actions.append("relink_ats_report")
+        elif (
+            isinstance(ats_resume_revision, int)
+            and ats_resume_revision < current_revision
+        ):
+            issues.append(
+                {
+                    "code": "stale_ats_resume_revision",
+                    "severity": "warning",
+                    "artifact": "ats_report",
+                    "message": (
+                        "The linked ATS report evaluates an older resume revision."
+                    ),
+                    "metadata": {
+                        "ats_report_id": ats_report.id,
+                        "resume_id": resume.id,
+                        "ats_resume_revision": ats_resume_revision,
+                        "current_resume_revision": current_revision,
+                    },
+                }
+            )
+            repair_actions.append("relink_ats_report")
 
     cover_letter = (
         session.get(CoverLetterRecord, record.cover_letter_id)
@@ -303,6 +365,7 @@ def serialize_opportunity(session: Session, record: OpportunityRecord) -> dict:
                 "name": resume.name,
                 "template_id": resume.template_id,
                 "locale": record.resume_locale or resume.locale,
+                "revision": _latest_resume_revision(session, resume.id),
                 "updated_at": resume.updated_at.isoformat(),
             }
     if record.ats_report_id:
@@ -600,6 +663,10 @@ def mark_opportunity_ready_to_apply(
         raise ValueError(
             f"Opportunity is missing required artifacts: {', '.join(missing)}."
         )
+    integrity = _opportunity_integrity(session, record)
+    if integrity["status"] != "healthy":
+        codes = ", ".join(issue["code"] for issue in integrity["issues"])
+        raise ValueError(f"Opportunity has degraded artifact integrity: {codes}.")
     append_opportunity_transition(
         session,
         record,
@@ -690,6 +757,26 @@ def repair_opportunity_integrity(
         application.updated_at = datetime.now()
         session.add(application)
         metadata["application_id"] = application.id
+    elif normalized_action == "relink_ats_report":
+        integrity = _opportunity_integrity(session, record)
+        if not any(issue["artifact"] == "ats_report" for issue in integrity["issues"]):
+            raise ValueError("The linked ATS report does not need replacement.")
+        metadata["previous_ats_report_id"] = record.ats_report_id
+        record.ats_report_id = None
+    elif normalized_action == "relink_cover_letter":
+        integrity = _opportunity_integrity(session, record)
+        if not any(
+            issue["artifact"] == "cover_letter" for issue in integrity["issues"]
+        ):
+            raise ValueError("The linked cover letter does not need replacement.")
+        metadata["previous_cover_letter_id"] = record.cover_letter_id
+        record.cover_letter_id = None
+    elif normalized_action == "relink_application":
+        integrity = _opportunity_integrity(session, record)
+        if not any(issue["artifact"] == "application" for issue in integrity["issues"]):
+            raise ValueError("The linked tracker entry does not need replacement.")
+        metadata["previous_application_id"] = record.application_id
+        record.application_id = None
     else:
         raise ValueError(f"Unsupported repair action '{normalized_action}'.")
 
