@@ -5,6 +5,7 @@ import { Briefcase, CheckCircle2, CircleDot, Clock3, Plus, Search, X } from "luc
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useI18n } from "@/i18n/I18nProvider";
 
 export function TrackerHeader({
   metrics,
@@ -30,30 +31,32 @@ export function TrackerHeader({
   onQueryChange: (value: string) => void;
   onCreate: () => void;
 }) {
+  const { messages } = useI18n();
+  const copy = messages.pages.tracker;
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   return (
     <header className="mb-4 rounded-2xl border border-border bg-card px-5 py-4 shadow-sm">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div className="space-y-1">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Candidatures</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">{copy.applications}</p>
           <div className="flex items-center gap-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
               <Briefcase size={18} />
             </div>
             <div>
               <h1 className="text-2xl font-semibold tracking-tight">Tracker</h1>
-              <p className="text-sm text-muted-foreground">Suivi backend-owned des candidatures, relances, entretiens et offres.</p>
+              <p className="text-sm text-muted-foreground">{copy.description}</p>
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-4 gap-2 xl:gap-3">
           {[
-            { label: "Total", value: metrics.totalCount, icon: CircleDot },
-            { label: "Envoyées", value: metrics.appliedCount, icon: Clock3 },
-            { label: "Entretiens", value: metrics.interviewCount, icon: Search },
-            { label: "Offres", value: metrics.offerCount, icon: CheckCircle2 },
+            { label: copy.total, value: metrics.totalCount, icon: CircleDot },
+            { label: copy.sentPlural, value: metrics.appliedCount, icon: Clock3 },
+            { label: copy.interviews, value: metrics.interviewCount, icon: Search },
+            { label: copy.offer, value: metrics.offerCount, icon: CheckCircle2 },
           ].map((metric) => {
             const Icon = metric.icon;
             return (
@@ -73,7 +76,7 @@ export function TrackerHeader({
         <Input
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
-          placeholder="Rechercher une candidature"
+          placeholder={copy.searchApplication}
           className="app-input h-10 min-w-0 flex-1 xl:max-w-sm"
         />
         <Button
@@ -84,7 +87,7 @@ export function TrackerHeader({
           aria-expanded={isCreateOpen}
         >
           {isCreateOpen ? <X size={16} /> : <Plus size={16} />}
-          {isCreateOpen ? "Fermer" : "Ajouter"}
+          {isCreateOpen ? copy.close : copy.add}
         </Button>
       </div>
 
@@ -93,21 +96,21 @@ export function TrackerHeader({
           <Input
             value={draft.company}
             onChange={(e) => onDraftChange({ company: e.target.value })}
-            placeholder="Entreprise"
+            placeholder={copy.company}
             data-testid="tracker-company-input"
             className="app-input h-10"
           />
           <Input
             value={draft.role}
             onChange={(e) => onDraftChange({ role: e.target.value })}
-            placeholder="Poste"
+            placeholder={copy.role}
             data-testid="tracker-role-input"
             className="app-input h-10"
           />
           <Input
             value={draft.url}
             onChange={(e) => onDraftChange({ url: e.target.value })}
-            placeholder="URL de l’offre"
+            placeholder={copy.jobUrl}
             data-testid="tracker-url-input"
             className="app-input h-10"
           />
@@ -116,7 +119,7 @@ export function TrackerHeader({
           <Input
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
-            placeholder="Rechercher"
+            placeholder={messages.common.search}
             className="app-input hidden h-10 w-full xl:block xl:min-w-[260px]"
           />
           <Button
@@ -124,10 +127,10 @@ export function TrackerHeader({
             disabled={isSubmitting || !canCreate}
             data-testid="tracker-add-button"
             className="h-10 w-full cursor-pointer px-4 disabled:cursor-not-allowed sm:w-auto"
-            title={!canCreate ? "Entreprise et poste obligatoires" : "Ajouter une candidature"}
+            title={!canCreate ? copy.requiredCompanyRole : copy.newApplication}
           >
             <Plus size={16} />
-            {isSubmitting ? "Ajout..." : "Ajouter"}
+            {isSubmitting ? copy.adding : copy.add}
           </Button>
         </div>
       </div>
