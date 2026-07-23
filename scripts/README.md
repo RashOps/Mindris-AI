@@ -10,6 +10,7 @@ sont utilisés en CI.
 
 | Besoin | Script |
 | --- | --- |
+| CLI contributeur multiplateforme | [`mindris.py`](./mindris.py) |
 | Installer les dépendances locales | [`setup_local.sh`](./setup_local.sh) |
 | Réinstaller proprement les dépendances | [`reset_local_deps.sh`](./reset_local_deps.sh) |
 | Lancer la stack locale sans Docker | [`dev_local.sh`](./dev_local.sh) |
@@ -21,6 +22,7 @@ sont utilisés en CI.
 | Piloter Docker depuis un clone | [`docker_local.sh`](./docker_local.sh) |
 | Vérifier une stack Docker locale | [`smoke_self_hosting.sh`](./smoke_self_hosting.sh) |
 | Installer la release GHCR | [`install_self_hosted.sh`](./install_self_hosted.sh) |
+| Installer la release GHCR sous Windows | [`install_self_hosted.ps1`](./install_self_hosted.ps1) |
 | Mettre à jour une release installée | [`update_self_hosted.sh`](./update_self_hosted.sh) |
 | Vérifier une release installée | [`smoke_release.sh`](./smoke_release.sh) |
 | Arrêter/désinstaller une release | [`uninstall_self_hosted.sh`](./uninstall_self_hosted.sh) |
@@ -29,6 +31,57 @@ sont utilisés en CI.
 | Tester localement la politique de promotion | [`test_release_policy.sh`](./test_release_policy.sh) |
 
 ## Scripts locaux sans Docker
+
+### [`mindris.py`](./mindris.py)
+
+Point d'entrée contributeur compatible Linux, macOS et Windows, écrit
+uniquement avec la bibliothèque standard Python. Il peut diagnostiquer le poste
+sans environnement virtuel, mais impose `uv` pour toute commande qui touche au
+workspace Python.
+
+Lanceurs disponibles depuis la racine :
+
+```bash
+./mindris doctor                 # Linux/macOS
+python3 scripts/mindris.py doctor # Appel direct Unix
+```
+
+```powershell
+.\mindris.ps1 doctor             # PowerShell
+```
+
+```bat
+mindris.cmd doctor               rem Windows CMD
+```
+
+Commandes principales :
+
+| Commande | Rôle | `uv` requis |
+| --- | --- | --- |
+| `doctor [--json]` | Vérifier outils, ports et services | Non |
+| `setup [--check]` | Installer le workspace verrouillé | Oui |
+| `dev [--web-port 3100]` | Superviser les trois services | Oui |
+| `stop`, `status`, `logs` | Piloter une stack lancée par la CLI | Non |
+| `lint`, `test`, `check`, `e2e` | Valider le dépôt | Oui |
+| `smoke` | Vérifier les endpoints sans `curl` | Non |
+| `docker ...` | Piloter Docker Compose | Non |
+| `release verify vX.Y.Z` | Vérifier une promotion stable | Non |
+
+Exemples :
+
+```bash
+./mindris setup
+./mindris dev --web-port 3100 --no-open
+./mindris test --scope backend
+./mindris check --with-smoke --with-e2e
+./mindris logs renderer --follow
+./mindris docker doctor
+./mindris release verify v0.5.0
+```
+
+La CLI n'installe jamais avec `pip` et n'installe pas silencieusement `uv`.
+Quand `uv` manque, elle affiche la commande officielle adaptée à la plateforme.
+Les scripts shell historiques restent disponibles pendant la migration.
 
 ### [`setup_local.sh`](./setup_local.sh)
 
@@ -341,6 +394,22 @@ Variables utiles :
   fichiers release.
 - `MINDRIS_RAW_BASE` : base URL raw GitHub, utile en CI.
 - `MINDRIS_INSTALL_DRY_RUN` : valide les fichiers sans pull/up.
+
+### [`install_self_hosted.ps1`](./install_self_hosted.ps1)
+
+Équivalent Windows PowerShell de l'installateur self-hosted. Il ne nécessite ni
+Python, ni `uv`, ni Bun : Docker Desktop avec Compose v2 suffit.
+
+```powershell
+irm https://raw.githubusercontent.com/RashOps/Mindris-AI/main/scripts/install_self_hosted.ps1 | iex
+```
+
+Avec un port frontend alternatif :
+
+```powershell
+$env:MINDRIS_WEB_PORT = "3100"
+irm https://raw.githubusercontent.com/RashOps/Mindris-AI/main/scripts/install_self_hosted.ps1 | iex
+```
 
 ### [`update_self_hosted.sh`](./update_self_hosted.sh)
 

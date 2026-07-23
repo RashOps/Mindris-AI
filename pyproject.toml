@@ -43,6 +43,8 @@ convention = "google"
 "run_pipeline.py" = ["T201", "T203", "ANN"]
 "test_*.py" = ["T201", "ANN", "D"]
 "*/__main__.py" = ["T201", "ANN"]
+"scripts/mindris.py" = ["T201"]
+"scripts/mindris_cli/*.py" = ["T201"]
 # Long log format strings and print messages are acceptable
 "packages/utils/config.py" = ["E501"]
 "packages/utils/logger.py" = ["E501"]

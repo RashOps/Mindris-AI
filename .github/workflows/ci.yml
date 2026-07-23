@@ -8,6 +8,32 @@ permissions:
   contents: read
 
 jobs:
+  cli-cross-platform:
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: uv sync --all-packages --frozen
+      - run: uv run pytest tests/test_mindris_cli.py -q
+      - run: python scripts/mindris.py --help
+      - if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          [scriptblock]::Create((Get-Content scripts/install_self_hosted.ps1 -Raw)) | Out-Null
+          .\mindris.ps1 doctor --json
+          cmd /c "mindris.cmd doctor --json"
+      - if: runner.os != 'Windows'
+        run: sh -n mindris
+
   backend:
     runs-on: ubuntu-latest
     steps:

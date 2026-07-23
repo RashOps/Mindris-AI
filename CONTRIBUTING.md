@@ -21,6 +21,29 @@ See [AGENTS.md](AGENTS.md) for the contributor operating rules used in this repo
 
 ## Local validation
 
+Le workspace Python Mindris est géré exclusivement avec `uv`. Les
+environnements installés via `pip`, Poetry ou Conda ne sont pas supportés pour
+valider une contribution. Cette règle évite les résolutions divergentes du
+workspace et garantit la parité avec la CI.
+
+Diagnostic multiplateforme :
+
+```bash
+./mindris doctor
+```
+
+Initialisation puis validation :
+
+```bash
+./mindris setup
+./mindris check
+```
+
+Sous Windows, utiliser `.\mindris.ps1` dans PowerShell ou `mindris.cmd` dans
+CMD. La CLI démarre avec
+Python standard, mais `setup`, `dev`, `lint`, `test`, `check` et `e2e` refusent
+de continuer si `uv` est absent.
+
 Validation repo-first :
 
 ```bash
