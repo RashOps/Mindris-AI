@@ -223,14 +223,14 @@ export default function MarkdownToolPage() {
           msg:
             err instanceof Error
               ? err.message
-              : "Chargement de la lettre impossible.",
+              : copy.letterLoadFailed,
         });
       } finally {
         setIsLoadingLetter(false);
         setTimeout(() => setStatus(null), 4000);
       }
     },
-    [],
+    [copy.letterLoadFailed],
   );
 
   // ── Preview (debounced) ───────────────────────────────────────────────────
@@ -286,11 +286,11 @@ export default function MarkdownToolPage() {
       a.download = `${title.replace(/\s+/g, "_") || "document"}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
-      setStatus({ type: "success", msg: "PDF téléchargé." });
+      setStatus({ type: "success", msg: copy.pdfDownloaded });
     } catch (err: unknown) {
       setStatus({
         type: "error",
-        msg: err instanceof Error ? err.message : "Export PDF impossible",
+        msg: err instanceof Error ? err.message : copy.pdfExportFailed,
       });
     } finally {
       setIsExporting(false);
@@ -316,11 +316,11 @@ export default function MarkdownToolPage() {
       a.download = `${title.replace(/\s+/g, "_") || "document"}.docx`;
       a.click();
       URL.revokeObjectURL(url);
-      setStatus({ type: "success", msg: "DOCX téléchargé." });
+      setStatus({ type: "success", msg: copy.docxDownloaded });
     } catch (err: unknown) {
       setStatus({
         type: "error",
-        msg: err instanceof Error ? err.message : "Export DOCX impossible",
+        msg: err instanceof Error ? err.message : copy.docxExportFailed,
       });
     } finally {
       setIsExportingDocx(false);
@@ -349,11 +349,11 @@ export default function MarkdownToolPage() {
       if (typeof data.id === "number") setCoverLetterId(data.id);
       if (typeof data.job_id === "number") setCoverLetterJobId(data.job_id);
       await refreshCoverLetters();
-      setStatus({ type: "success", msg: "Nouvelle version de lettre sauvegardée." });
+      setStatus({ type: "success", msg: copy.versionSaved });
     } catch (err: unknown) {
       setStatus({
         type: "error",
-        msg: err instanceof Error ? err.message : "Sauvegarde impossible",
+        msg: err instanceof Error ? err.message : copy.saveFailed,
       });
     } finally {
       setIsSavingVersion(false);
@@ -408,14 +408,14 @@ export default function MarkdownToolPage() {
           {coverLetters.length > 0 ? (
             <ToolbarSelect
               value={coverLetterId ? String(coverLetterId) : ""}
-              ariaLabel="Charger une lettre persistée"
-              placeholder="Charger une lettre"
+              ariaLabel={copy.loadLetterLabel}
+              placeholder={copy.loadLetter}
               options={[
-                { value: "", label: "Charger une lettre" },
+                { value: "", label: copy.loadLetter },
                 ...coverLetters.map((letter) => ({
                   value: String(letter.id),
                   label: `Lettre #${letter.id}`,
-                  hint: letter.job_id ? `Job #${letter.job_id}` : "Sans job",
+                  hint: letter.job_id ? `Job #${letter.job_id}` : copy.withoutJob,
                 })),
               ]}
               onChange={(value) => {
@@ -436,7 +436,7 @@ export default function MarkdownToolPage() {
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Titre du document..."
+            placeholder={copy.documentTitle}
             className="app-input h-9 w-44 px-3 text-sm"
           />
 
@@ -452,7 +452,7 @@ export default function MarkdownToolPage() {
                     : "bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 }`}
               >
-                {s === "document" ? "Document" : "Lettre"}
+                {s === "document" ? copy.document : copy.letter}
               </button>
             ))}
           </div>
@@ -519,7 +519,7 @@ export default function MarkdownToolPage() {
       {/* ── Template bar ─────────────────────────────────────────────────────────── */}
       <div className="flex shrink-0 items-center gap-2 border-b border-border bg-card px-4 py-2">
         <span className="mr-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-          Template :
+          {copy.template} :
         </span>
         {(Object.keys(TEMPLATES) as Array<keyof typeof TEMPLATES>).map(
           (key) => (
@@ -532,9 +532,9 @@ export default function MarkdownToolPage() {
                   : "border-border bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               }`}
             >
-              {key === "blank" && "Vide"}
-              {key === "cover_letter" && "Lettre"}
-              {key === "technical_doc" && "Doc technique"}
+              {key === "blank" && copy.blank}
+              {key === "cover_letter" && copy.letter}
+              {key === "technical_doc" && copy.technicalDocument}
             </button>
           ),
         )}
@@ -548,7 +548,7 @@ export default function MarkdownToolPage() {
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1 font-medium text-foreground">
               <BriefcaseBusiness className="h-3.5 w-3.5" aria-hidden="true" />
-              {coverLetterJobId ? `Offre #${coverLetterJobId}` : "Offre non liée"}
+              {coverLetterJobId ? `Job #${coverLetterJobId}` : copy.unlinkedJob}
             </span>
             <ArrowRight className="h-3 w-3" aria-hidden="true" />
             <span className="font-medium text-foreground">
@@ -588,7 +588,7 @@ export default function MarkdownToolPage() {
       <div
         className="grid shrink-0 grid-cols-2 border-b border-border bg-card md:hidden"
         role="tablist"
-        aria-label="Vue Markdown"
+        aria-label={copy.markdownView}
       >
         <button
           type="button"

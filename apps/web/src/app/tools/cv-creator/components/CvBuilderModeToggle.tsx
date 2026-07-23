@@ -1,15 +1,10 @@
 "use client";
 
+import { useI18n } from "@/i18n/I18nProvider";
+
 export type CvBuilderUiMode = "simple" | "normal" | "advanced";
 
 export const CV_BUILDER_UI_MODE_STORAGE_KEY = "mindris.cvBuilder.uiMode";
-
-const MODES: { value: CvBuilderUiMode; label: string; description: string }[] =
-  [
-    { value: "simple", label: "Simple", description: "Contrôles essentiels" },
-    { value: "normal", label: "Normal", description: "Usage courant" },
-    { value: "advanced", label: "Avancé", description: "Tous les réglages" },
-  ];
 
 export function isCvBuilderUiMode(
   value: string | null,
@@ -24,13 +19,20 @@ export function CvBuilderModeToggle({
   value: CvBuilderUiMode;
   onChange: (mode: CvBuilderUiMode) => void;
 }) {
+  const { messages } = useI18n();
+  const copy = messages.pages.cvBuilder;
+  const modes: { value: CvBuilderUiMode; label: string; description: string }[] = [
+    { value: "simple", label: copy.simple, description: copy.simpleDescription },
+    { value: "normal", label: copy.normal, description: copy.normalDescription },
+    { value: "advanced", label: copy.advanced, description: copy.advancedDescription },
+  ];
   return (
     <div
       className="inline-flex rounded-lg border border-border bg-muted/40 p-1"
       role="radiogroup"
-      aria-label="Mode d'interface CV Builder"
+      aria-label={copy.modeLabel}
     >
-      {MODES.map((mode) => (
+      {modes.map((mode) => (
         <button
           key={mode.value}
           type="button"

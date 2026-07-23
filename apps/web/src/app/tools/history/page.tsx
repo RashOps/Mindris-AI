@@ -61,16 +61,6 @@ function subjectTone(subjectType: HistoryLedgerItem["subject_type"]): string {
   }
 }
 
-const SUBJECT_LABELS: Record<HistoryLedgerItem["subject_type"], string> = {
-  job_scrape: "Offre",
-  resume_revision: "Révision du CV",
-  cover_letter: "Lettre",
-  ats_report: "Rapport ATS",
-  opportunity: "Workflow",
-  tracker_event: "Suivi",
-  llm_run: "Exécution IA",
-};
-
 export default function HistoryPage() {
   const { locale, messages } = useI18n();
   const copy = messages.pages.history;
@@ -304,7 +294,7 @@ export default function HistoryPage() {
                       <span
                         className={`rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wider ${subjectTone(item.subject_type)}`}
                       >
-                        {SUBJECT_LABELS[item.subject_type]}
+                        {copy.subjects[item.subject_type]}
                       </span>
                       {item.status && (
                         <span className="text-[11px] font-medium text-muted-foreground">
@@ -378,7 +368,7 @@ export default function HistoryPage() {
                             setError(
                               openError instanceof Error
                                 ? openError.message
-                                : "Ouverture de la lettre impossible.",
+                                : copy.openLetterFailed,
                             );
                           });
                       }}
@@ -444,7 +434,7 @@ export default function HistoryPage() {
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium text-foreground">
-                              {SUBJECT_LABELS[link.subject_type as HistoryLedgerItem["subject_type"]] ?? link.subject_type} #{link.subject_id}
+                              {copy.subjects[link.subject_type as HistoryLedgerItem["subject_type"]] ?? link.subject_type} #{link.subject_id}
                             </p>
                             <p className="text-xs text-muted-foreground">{link.relation}</p>
                           </div>
