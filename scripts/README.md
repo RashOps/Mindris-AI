@@ -29,6 +29,7 @@ sont utilisés en CI.
 | Nettoyer un test self-hosted Docker | [`clean_self_hosted_test.sh`](./clean_self_hosted_test.sh) |
 | Vérifier qu'un tag stable peut être promu | [`verify_release_promotion.sh`](./verify_release_promotion.sh) |
 | Tester localement la politique de promotion | [`test_release_policy.sh`](./test_release_policy.sh) |
+| Vérifier les liens Markdown locaux | [`check_markdown_links.py`](./check_markdown_links.py) |
 
 ## Scripts locaux sans Docker
 

@@ -7,6 +7,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import time
 from datetime import datetime
 from pathlib import Path
@@ -65,6 +66,8 @@ def reset_dependencies() -> int:
 def lint(scope: str = "all") -> int:
     """Lance les validations statiques sélectionnées."""
     require_contributor_runtime()
+    if scope == "all":
+        run([sys.executable, "scripts/check_markdown_links.py"])
     if scope in {"all", "backend"}:
         run(["uv", "run", "--no-sync", "ruff", "check", "."])
         run(["uv", "run", "--no-sync", "ruff", "format", "--check", "."])
