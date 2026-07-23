@@ -2,7 +2,7 @@
 
 import { FileBadge2, FileText, ListTodo } from "lucide-react";
 
-import { type OpportunityItem } from "../workflow-model";
+import { formatTimestamp, type OpportunityItem } from "../workflow-model";
 import { useI18n } from "@/i18n/I18nProvider";
 
 interface WorkflowReadinessChecklistProps {
@@ -19,26 +19,32 @@ export function WorkflowReadinessChecklist({
       label: copy.tailoredResume,
       done: Boolean(selected.resume_id),
       detail: selected.resume_id
-        ? `CV #${selected.resume_id}${selected.resume_locale ? ` · ${selected.resume_locale.toUpperCase()}` : ""}`
+        ? `CV #${selected.resume_id}${selected.linked_artifacts?.resume?.revision ? ` · r${selected.linked_artifacts.resume.revision}` : ""}${selected.resume_locale ? ` · ${selected.resume_locale.toUpperCase()}` : ""}`
         : copy.linkResumeBeforeApply,
       icon: FileText,
     },
     {
       label: copy.atsScore,
       done: Boolean(selected.ats_report_id),
-      detail: selected.ats_report_id ? `ATS #${selected.ats_report_id}` : copy.analyzeResume,
+      detail: selected.ats_report_id
+        ? `ATS #${selected.ats_report_id}${selected.linked_artifacts?.ats_report?.generated_at ? ` · ${formatTimestamp(selected.linked_artifacts.ats_report.generated_at)}` : ""}`
+        : copy.analyzeResume,
       icon: FileBadge2,
     },
     {
       label: copy.letter,
       done: Boolean(selected.cover_letter_id),
-      detail: selected.cover_letter_id ? `#${selected.cover_letter_id}` : copy.generateLetter,
+      detail: selected.cover_letter_id
+        ? `#${selected.cover_letter_id}${selected.linked_artifacts?.cover_letter?.generated_at ? ` · ${formatTimestamp(selected.linked_artifacts.cover_letter.generated_at)}` : ""}`
+        : copy.generateLetter,
       icon: FileText,
     },
     {
       label: copy.tracker,
       done: Boolean(selected.application_id),
-      detail: selected.application_id ? `Tracker #${selected.application_id}` : copy.createTrackerEntry,
+      detail: selected.application_id
+        ? `Tracker #${selected.application_id}${selected.linked_artifacts?.application?.updated_at ? ` · ${formatTimestamp(selected.linked_artifacts.application.updated_at)}` : ""}`
+        : copy.createTrackerEntry,
       icon: ListTodo,
     },
   ];
