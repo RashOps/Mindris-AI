@@ -9,6 +9,11 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
+from mindris_cli.backup import (  # noqa: E402
+    create_backup,
+    inspect_backup,
+    restore_backup,
+)
 from mindris_cli.cli import build_parser, main  # noqa: E402
 from mindris_cli.commands import logs, release_verify  # noqa: E402
 from mindris_cli.context import (  # noqa: E402
@@ -31,6 +36,9 @@ def test_parser_exposes_expected_commands() -> None:
     assert parser.parse_args(["doctor", "--json"]).json_output is True
     assert parser.parse_args(["test", "--scope", "backend"]).scope == "backend"
     assert parser.parse_args(["release", "verify", "v1.2.3"]).tag == "v1.2.3"
+    assert parser.parse_args(["backup", "create", "backup.zip"]).archive == Path(
+        "backup.zip"
+    )
     parsed_logs = parser.parse_args(
         ["logs", "api-gateway", "--since", "10m", "--request-id", "request-1"]
     )
@@ -87,6 +95,45 @@ def test_runner_supports_a_working_directory_with_spaces(tmp_path: Path) -> None
     )
 
     assert result.returncode == 0
+
+
+def test_backup_round_trip_excludes_runtime_secrets(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "mindris.db").write_bytes(b"sqlite-data")
+    (source / "vectordb").mkdir()
+    (source / "vectordb" / "index.bin").write_bytes(b"vector-data")
+    (source / "runtime-secrets.json").write_text('{"token":"secret"}')
+    archive = tmp_path / "mindris-backup.zip"
+
+    created = create_backup(archive, storage=source)
+    inspected = inspect_backup(archive)
+    target = tmp_path / "restored"
+    restored = restore_backup(archive, storage=target)
+
+    assert created["secrets_included"] is False
+    assert inspected["file_count"] == 2
+    assert restored["restored_to"] == str(target.resolve())
+    assert (target / "mindris.db").read_bytes() == b"sqlite-data"
+    assert (target / "vectordb" / "index.bin").read_bytes() == b"vector-data"
+    assert not (target / "runtime-secrets.json").exists()
+
+
+def test_backup_restore_replaces_existing_storage(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "mindris.db").write_bytes(b"new")
+    archive = tmp_path / "mindris-backup.zip"
+    create_backup(archive, storage=source)
+    target = tmp_path / "target"
+    target.mkdir()
+    (target / "mindris.db").write_bytes(b"old")
+    (target / "obsolete.txt").write_text("obsolete")
+
+    restore_backup(archive, storage=target)
+
+    assert (target / "mindris.db").read_bytes() == b"new"
+    assert not (target / "obsolete.txt").exists()
 
 
 def test_port_available_detects_a_reserved_port() -> None:

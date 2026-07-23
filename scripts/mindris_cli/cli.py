@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
+from pathlib import Path
 
 from . import __version__
+from .backup import create_backup, inspect_backup, restore_backup
 from .commands import (
     check,
     docker,
@@ -99,6 +102,22 @@ def build_parser() -> argparse.ArgumentParser:
     verify_parser = release_commands.add_parser("verify", help="Vérifier un tag stable")
     verify_parser.add_argument("tag")
     verify_parser.add_argument("--main-ref", default="origin/main")
+
+    backup_parser = commands.add_parser(
+        "backup",
+        help="Sauvegarder les données locales",
+    )
+    backup_commands = backup_parser.add_subparsers(
+        dest="backup_command", required=True
+    )
+    create_parser = backup_commands.add_parser("create", help="Créer une archive")
+    create_parser.add_argument("archive", type=Path)
+    inspect_parser = backup_commands.add_parser("inspect", help="Inspecter une archive")
+    inspect_parser.add_argument("archive", type=Path)
+    restore_parser = backup_commands.add_parser(
+        "restore", help="Restaurer une archive validée"
+    )
+    restore_parser.add_argument("archive", type=Path)
     return parser
 
 
@@ -133,8 +152,19 @@ def dispatch(args: argparse.Namespace) -> int:
         ),
         "docker": lambda: docker(args.action),
         "release": lambda: release_verify(args.tag, main_ref=args.main_ref),
+        "backup": lambda: _backup(args),
     }
     return handlers[args.command]()
+
+
+def _backup(args: argparse.Namespace) -> int:
+    operation = {
+        "create": create_backup,
+        "inspect": inspect_backup,
+        "restore": restore_backup,
+    }[args.backup_command]
+    print(json.dumps(operation(args.archive), ensure_ascii=False, indent=2))
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -68,6 +68,7 @@ Commandes principales :
 | `smoke` | Vérifier les endpoints sans `curl` | Non |
 | `docker ...` | Piloter Docker Compose | Non |
 | `release verify vX.Y.Z` | Vérifier une promotion stable | Non |
+| `backup create/inspect/restore` | Sauvegarder ou restaurer `storage/` | Non |
 
 Exemples :
 
@@ -80,6 +81,9 @@ Exemples :
 ./mindris logs api-gateway --since 30m --request-id <request-id>
 ./mindris docker doctor
 ./mindris release verify v0.5.0
+./mindris backup create ./backups/mindris.zip
+./mindris backup inspect ./backups/mindris.zip
+./mindris backup restore ./backups/mindris.zip
 ```
 
 La CLI n'installe jamais avec `pip` et n'installe pas silencieusement `uv`.
@@ -88,6 +92,9 @@ Les scripts shell historiques restent disponibles comme wrappers de
 compatibilité. Ils délèguent à la CLI afin que Linux, macOS et Windows
 partagent une seule implémentation. Les scripts self-hosted et release restent
 natifs, car ils doivent fonctionner sans checkout Python préparé.
+
+Le format de sauvegarde, l’exclusion des secrets et le parcours self-hosted
+sont détaillés dans le [guide de sauvegarde](../docs/backup-restore.md).
 
 ### [`setup_local.sh`](./setup_local.sh)
 
