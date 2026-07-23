@@ -12,6 +12,7 @@ import {
 import { useEffect, useState, useRef, useCallback } from "react";
 import { apiUrl, rendererUrl, apiHeaders, jsonHeaders } from "@/lib/api";
 import { resolveTemplateRenderPayload } from "@/lib/templates";
+import { updateOnboardingStep } from "@/lib/onboarding";
 import { Download, Upload } from "lucide-react";
 import {
   CV_BUILDER_UI_MODE_STORAGE_KEY,
@@ -325,6 +326,7 @@ export default function AppPage() {
       blob,
       `${name.replace(/\s+/g, "_") || "mindris_cv"}.${exportConfig.extension}`,
     );
+    void updateOnboardingStep("first_export", "completed").catch(() => undefined);
     showToast(`CV exporté en ${exportConfig.label}`);
   };
 
@@ -350,6 +352,9 @@ export default function AppPage() {
       triggerBlobDownload(
         blob,
         `${cvData.profile.full_name.replace(/\s+/g, "_")}_CV.pdf`,
+      );
+      void updateOnboardingStep("first_export", "completed").catch(
+        () => undefined,
       );
       showToast(copy.pdfDownloaded);
     } catch (err: unknown) {

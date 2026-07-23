@@ -16,6 +16,7 @@ import {
   Save,
 } from "lucide-react";
 import { useI18n } from "@/i18n/I18nProvider";
+import { updateOnboardingStep } from "@/lib/onboarding";
 import {
   MARKDOWN_TEMPLATES,
   type MarkdownTemplateId,
@@ -211,6 +212,9 @@ export default function MarkdownToolPage() {
       a.download = `${title.replace(/\s+/g, "_") || "document"}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
+      void updateOnboardingStep("first_export", "completed").catch(
+        () => undefined,
+      );
       setStatus({ type: "success", msg: copy.pdfDownloaded });
     } catch (err: unknown) {
       setStatus({
@@ -241,6 +245,9 @@ export default function MarkdownToolPage() {
       a.download = `${title.replace(/\s+/g, "_") || "document"}.docx`;
       a.click();
       URL.revokeObjectURL(url);
+      void updateOnboardingStep("first_export", "completed").catch(
+        () => undefined,
+      );
       setStatus({ type: "success", msg: copy.docxDownloaded });
     } catch (err: unknown) {
       setStatus({

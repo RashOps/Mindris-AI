@@ -218,6 +218,7 @@ mêmes intentions sous Linux, macOS, Windows et WSL.
 | `mindris dev` | Lance et supervise API, renderer et frontend |
 | `mindris status` / `stop` | Inspecte ou arrête la stack supervisée |
 | `mindris logs [service]` | Filtre les logs par service, date ou request ID |
+| `mindris backup create/inspect/restore` | Archive ou restaure les données locales sans exporter les secrets |
 | `mindris lint` / `test` | Lance les contrôles par scope |
 | `mindris check` | Enchaîne la validation complète |
 | `mindris smoke` / `e2e` | Vérifie la stack ou le parcours navigateur |
@@ -241,7 +242,16 @@ Exemple de diagnostic ciblé :
 
 ```bash
 ./mindris logs api-gateway --since 30m --request-id <request-id>
+./mindris backup create ./backups/mindris.zip
 ```
+
+Au premier démarrage, le tableau de bord affiche une checklist persistée par
+le backend : runtime, premier CV, moteur IA, test de configuration, première
+offre et premier export. Le mode local est recommandé et les étapes optionnelles
+peuvent être ignorées puis réactivées.
+
+Voir le [guide de sauvegarde et restauration](docs/backup-restore.md) pour le
+format versionné, la restauration transactionnelle et le cas Docker.
 
 ## Architecture
 

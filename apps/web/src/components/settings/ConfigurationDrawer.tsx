@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/sheet";
 import { apiUrl, jsonHeaders } from "@/lib/api";
 import { summarizeSystemDiagnostics, type SystemDiagnosticsPayload } from "@/lib/system-diagnostics";
+import { updateOnboardingStep } from "@/lib/onboarding";
 import {
   type AppSettings,
   systemConfigurationToAppSettings,
@@ -101,6 +102,11 @@ export function ConfigurationDrawer({
       setDiagnosticsCards(diagnostics.cards);
       setDiagnosticsPaths(diagnostics.paths);
       setDiagnosticsRuntime(diagnostics.runtime);
+      if (diagnosticsResponse.ok) {
+        void updateOnboardingStep("provider_tested", "completed").catch(
+          () => undefined,
+        );
+      }
       if (configData?.item) {
         const nextSettings = systemConfigurationToAppSettings(configData.item);
         setDraftSettings(nextSettings);

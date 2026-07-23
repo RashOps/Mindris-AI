@@ -20,6 +20,10 @@ All notable changes to Mindris AI are documented here.
 - Native PowerShell installer for Docker Desktop self-hosting on Windows.
 - Canonical runtime observability tree separating service events, supervised
   process output, and CLI state under a single per-instance log root.
+- Backend-owned first-run checklist with persisted completion/skip decisions
+  and automatic evidence for runtime, resumes, providers, jobs, and exports.
+- Versioned `mindris backup` archives with secret exclusion, validation, and
+  transactional restoration.
 
 ### Changed
 
@@ -40,6 +44,8 @@ All notable changes to Mindris AI are documented here.
 - Workflow Beta now reports artifact dates and resume revisions, detects ATS
   reports evaluated against stale resume revisions, blocks degraded readiness,
   and offers bounded replacement actions.
+- Split CV editor tabs, StylePanel navigation, Markdown templates, resume
+  comparisons, and opportunity repairs into focused module boundaries.
 
 ### Fixed
 

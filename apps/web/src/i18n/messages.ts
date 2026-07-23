@@ -40,6 +40,21 @@ export const fr = {
     retry: "Réessayer",
   },
   pages: {
+    onboarding: {
+      badge: "Premiers pas",
+      title: "Préparer Mindris pour ta première candidature",
+      description: "Le mode local est recommandé. Chaque étape est vérifiée par le backend.",
+      skip: "Ignorer pour le moment",
+      restore: "Réactiver",
+      steps: {
+        runtime_ready: "Services locaux prêts",
+        first_resume: "Créer ou importer un CV",
+        provider_selected: "Choisir un moteur IA",
+        provider_tested: "Tester la configuration",
+        first_job: "Analyser une première offre",
+        first_export: "Exporter un premier document",
+      },
+    },
     cvBuilder: {
       editorLabel: "Éditeur du CV",
       structure: "Structure",
@@ -405,6 +420,21 @@ export const en: Messages = {
     retry: "Retry",
   },
   pages: {
+    onboarding: {
+      badge: "Getting started",
+      title: "Prepare Mindris for your first application",
+      description: "Local mode is recommended. Every step is verified by the backend.",
+      skip: "Skip for now",
+      restore: "Restore",
+      steps: {
+        runtime_ready: "Local services ready",
+        first_resume: "Create or import a resume",
+        provider_selected: "Choose an AI engine",
+        provider_tested: "Test the configuration",
+        first_job: "Analyze a first job",
+        first_export: "Export a first document",
+      },
+    },
     cvBuilder: {
       editorLabel: "Resume editor",
       structure: "Structure",
