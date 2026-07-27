@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   BookOpen,
+  Code2,
   FileText,
   GitBranch,
   History,
@@ -81,6 +82,39 @@ export const GUIDE_SECTIONS: GuideSection[] = [
       "Le PDF exporté correspond à la preview.",
     ],
     tips: ["Pour un utilisateur non technique, commence toujours par Simple puis ouvre Normal seulement si nécessaire."],
+  },
+  {
+    id: "custom-css",
+    title: "3. Créer un style CSS sûr",
+    badge: "Expert",
+    summary:
+      "Personnaliser le CV avec un contrat de sélecteurs stable sans dépendre des classes internes du renderer.",
+    icon: Code2,
+    route: "/tools/cv-creator",
+    items: [
+      "Le mode tokens modifie les variables de design prévues par Mindris. Le mode css_patch applique des règles limitées dans le Shadow DOM après validation par le renderer.",
+      "Utilise les sélecteurs sémantiques data-cv-role, data-section-id, data-section-type et data-placement. Les classes internes peuvent changer entre deux versions.",
+      "Les imports, scripts, URLs CSS et fonctions exécutables sont bloqués. Les règles refusées apparaissent dans les avertissements de l’éditeur.",
+      "Teste toujours la preview, le PDF, les contrastes, les textes longs et les sauts de page avant de partager un template.",
+    ],
+    steps: [
+      "Modifier un token",
+      "Appliquer un exemple",
+      "Inspecter la preview",
+      "Corriger les avertissements",
+      "Sauvegarder une révision",
+      "Exporter le template",
+    ],
+    checklist: [
+      "Le CSS utilise le contrat de sélecteurs affiché par l’éditeur.",
+      "Aucun contenu n’est masqué ou coupé dans la preview.",
+      "Le PDF correspond à la preview.",
+      "Une révision permet de restaurer le style précédent.",
+    ],
+    tips: [
+      "Commence par le mode tokens. Utilise css_patch uniquement quand les variables ne suffisent pas.",
+      "Préfère [data-cv-role='section-heading'] à une classe ou un nth-child fragile.",
+    ],
   },
   {
     id: "workflow",
@@ -251,6 +285,36 @@ const EN_GUIDE_CONTENT: Record<
       "The exported PDF matches the preview.",
     ],
     tips: ["For non-technical users, start with Simple and open Normal only when needed."],
+  },
+  "custom-css": {
+    title: "3. Create safe custom CSS",
+    badge: "Expert",
+    summary:
+      "Customize the resume through a stable selector contract without relying on renderer internals.",
+    items: [
+      "Tokens mode changes supported Mindris design variables. css_patch applies constrained rules inside the Shadow DOM after renderer validation.",
+      "Use the semantic data-cv-role, data-section-id, data-section-type and data-placement selectors. Internal classes may change.",
+      "Imports, scripts, CSS URLs and executable functions are blocked. Rejected rules appear as editor warnings.",
+      "Always verify preview, PDF, contrast, long content and page breaks before sharing a template.",
+    ],
+    steps: [
+      "Change a token",
+      "Apply an example",
+      "Inspect preview",
+      "Fix warnings",
+      "Save a revision",
+      "Export the template",
+    ],
+    checklist: [
+      "CSS uses the selector contract displayed by the editor.",
+      "No content is hidden or clipped in preview.",
+      "PDF matches preview.",
+      "A revision can restore the previous style.",
+    ],
+    tips: [
+      "Start with tokens mode and use css_patch only when variables are insufficient.",
+      "Prefer [data-cv-role='section-heading'] to a fragile class or nth-child selector.",
+    ],
   },
   workflow: {
     title: "3. Drive the Workflow",

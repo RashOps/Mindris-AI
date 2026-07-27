@@ -110,6 +110,40 @@ export const useCVStore = create<CVStore>()((set, get) => ({
     return data.item.id;
   },
 
+  moveResumeSection: async (intent) => {
+    await flushPendingResumeSave();
+    const state = get();
+    const activeResume = state.resumes.find(
+      (resume) => resume.id === state.activeResumeId,
+    );
+    if (!activeResume?.revision) {
+      throw new Error("La révision courante du CV est indisponible.");
+    }
+    const data = await requestJson<{ item: ResumeDocument }>(
+      `/api/v1/resumes/${state.activeResumeId}/sections/move`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          ...intent,
+          base_revision: activeResume.revision,
+        }),
+      },
+    );
+    const normalized = normalizeResumeDocument(data.item);
+    set((current) => ({
+      resumes: current.resumes.map((resume) =>
+        resume.id === normalized.id ? normalized : resume,
+      ),
+      cvData:
+        current.activeResumeId === normalized.id
+          ? normalized.cvData
+          : current.cvData,
+      resumeSaveStatus: "saved",
+      resumeSaveError: null,
+      lastResumeSavedAt: nowIso(),
+    }));
+  },
+
   importResume: async (name, cvData, source = "json") => {
     const data = await requestJson<{ item: ResumeDocument }>(
       "/api/v1/resumes/import-json",

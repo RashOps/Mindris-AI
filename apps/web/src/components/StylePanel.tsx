@@ -106,7 +106,8 @@ export function StylePanel({
   variant = "drawer",
   uiMode = "advanced",
 }: StylePanelProps) {
-  const { cvData, setGlobalSettings, setProfile } = useCVStore();
+  const { cvData, setGlobalSettings, setProfile, moveResumeSection } =
+    useCVStore();
   const [tab, setTab] = useState<Tab>("template");
   const [catalogue, setCatalogue] = useState<CustomizationCatalogue>(
     FALLBACK_CUSTOMIZATION_CATALOGUE,
@@ -187,10 +188,6 @@ export function StylePanel({
       ) ?? [];
     update({ sections: nextSections });
   };
-
-  const replaceSections = (
-    sections: NonNullable<GlobalSettings["sections"]>,
-  ) => update({ sections });
 
   const visibleTabs = STYLE_TABS.filter((item) => {
     if (uiMode === "simple") {
@@ -666,7 +663,7 @@ export function StylePanel({
               iconStyles={options.sectionIconStyles}
               supportsTwoColumns={supportsTwoColumnSections}
               updateSection={updateSection}
-              replaceSections={replaceSections}
+              moveSection={moveResumeSection}
             />
           )}
 

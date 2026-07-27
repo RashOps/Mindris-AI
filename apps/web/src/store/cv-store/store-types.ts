@@ -49,6 +49,13 @@ export interface CVStore {
   exportActiveResume: () => Promise<ResumeDocument>;
   flushResumeSave: () => Promise<void>;
   retryResumeSave: () => Promise<void>;
+  moveResumeSection: (intent: {
+    operation: "move_section" | "swap_sections";
+    section_id: string;
+    placement?: "main" | "sidebar";
+    index?: number;
+    target_section_id?: string;
+  }) => Promise<void>;
 
   // Job Insights
   jobInsights: JobInsights | null;

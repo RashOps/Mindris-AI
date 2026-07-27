@@ -102,6 +102,8 @@ export type CustomizationCatalogue = {
   };
   advancedCss: {
     enabled: boolean;
+    selectorContractVersion: string;
+    guidePath: string;
     maxLength: number;
     modes: string[];
     allowedScopes: string[];
@@ -259,14 +261,16 @@ export const FALLBACK_CUSTOMIZATION_CATALOGUE: CustomizationCatalogue = {
   },
   advancedCss: {
     enabled: true,
+    selectorContractVersion: "1",
+    guidePath: "/tools/guide",
     maxLength: 8000,
     modes: ["off", "tokens", "css_patch"],
     allowedScopes: [
       ":host",
-      ".cv-shell",
-      "[data-section]",
+      "[data-cv-role]",
       "[data-section-type]",
-      "[data-section-placement]",
+      "[data-placement]",
+      "[data-section-id]",
     ],
     blockedAtRules: ["@import"],
     blockedFunctions: ["expression(", "javascript:", "url("],
@@ -564,6 +568,12 @@ export function normalizeCustomizationCatalogue(
       enabled:
         value.advancedCss?.enabled ??
         FALLBACK_CUSTOMIZATION_CATALOGUE.advancedCss.enabled,
+      selectorContractVersion:
+        value.advancedCss?.selectorContractVersion ??
+        FALLBACK_CUSTOMIZATION_CATALOGUE.advancedCss.selectorContractVersion,
+      guidePath:
+        value.advancedCss?.guidePath ??
+        FALLBACK_CUSTOMIZATION_CATALOGUE.advancedCss.guidePath,
       maxLength:
         value.advancedCss?.maxLength ??
         FALLBACK_CUSTOMIZATION_CATALOGUE.advancedCss.maxLength,

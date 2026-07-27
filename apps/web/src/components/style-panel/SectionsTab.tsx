@@ -1,10 +1,18 @@
 /* eslint-disable react-hooks/refs -- dnd-kit exposes ref/listener bindings that are intentionally spread during render. */
 import { useState } from "react";
 import {
+  closestCenter,
   DndContext,
+  DragOverlay,
+  KeyboardSensor,
   PointerSensor,
+  TouchSensor,
+  type KeyboardCoordinateGetter,
   pointerWithin,
+  type CollisionDetection,
   type DragEndEvent,
+  type DragOverEvent,
+  type DragStartEvent,
   useDroppable,
   useSensor,
   useSensors,
@@ -34,8 +42,6 @@ import {
 import { SectionLabel } from "./controls";
 import { VisualOptionGroup } from "./visual-controls";
 import {
-  moveSectionToPlacement,
-  moveSectionWithinPlacement,
   placementOf,
   sectionsForPlacement,
   type SectionPlacement,
@@ -96,7 +102,108 @@ interface SectionsTabProps {
   iconStyles: string[];
   supportsTwoColumns: boolean;
   updateSection: (index: number, patch: Partial<SectionSettings>) => void;
-  replaceSections: (sections: SectionSettings[]) => void;
+  moveSection: (intent: {
+    operation: "move_section" | "swap_sections";
+    section_id: string;
+    placement?: SectionPlacement;
+    index?: number;
+    target_section_id?: string;
+  }) => Promise<void>;
+}
+
+const sectionCollisionDetection: CollisionDetection = (args) => {
+  const pointerCollisions = pointerWithin(args);
+  return pointerCollisions.length > 0 ? pointerCollisions : closestCenter(args);
+};
+
+let keyboardSectionDropIntent: {
+  activeId: string;
+  placement: SectionPlacement;
+  index: number;
+} | null = null;
+
+const sectionKeyboardCoordinates: KeyboardCoordinateGetter = (
+  event,
+  { active, context },
+) => {
+  if (
+    !["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.code)
+  ) {
+    return undefined;
+  }
+  event.preventDefault();
+  const enabled = context.droppableContainers
+    .getEnabled()
+    .filter((container) => !String(container.id).startsWith("section-lane-"));
+  const activeContainer = context.droppableContainers.get(active);
+  const activePlacement = activeContainer?.data.current?.placement as
+    | SectionPlacement
+    | undefined;
+  if (!activePlacement) return undefined;
+
+  const currentId = context.over?.id ?? active;
+  const currentRect =
+    context.droppableRects.get(currentId) ??
+    context.droppableRects.get(active);
+  if (!currentRect) return undefined;
+
+  const targetPlacement =
+    event.code === "ArrowLeft"
+      ? "main"
+      : event.code === "ArrowRight"
+        ? "sidebar"
+        : activePlacement;
+  const candidates = enabled
+    .filter(
+      (container) =>
+        container.data.current?.placement === targetPlacement &&
+        context.droppableRects.has(container.id),
+    )
+    .sort(
+      (left, right) =>
+        context.droppableRects.get(left.id)!.top -
+        context.droppableRects.get(right.id)!.top,
+    );
+  if (candidates.length === 0) return undefined;
+
+  let target = candidates.find((container) => container.id === currentId);
+  if (event.code === "ArrowUp" || event.code === "ArrowDown") {
+    const currentIndex = Math.max(
+      0,
+      candidates.findIndex((container) => container.id === currentId),
+    );
+    const offset = event.code === "ArrowDown" ? 1 : -1;
+    target = candidates[Math.max(0, Math.min(candidates.length - 1, currentIndex + offset))];
+  } else {
+    target = candidates.reduce((closest, candidate) => {
+      const closestRect = context.droppableRects.get(closest.id)!;
+      const candidateRect = context.droppableRects.get(candidate.id)!;
+      return Math.abs(candidateRect.top - currentRect.top) <
+        Math.abs(closestRect.top - currentRect.top)
+        ? candidate
+        : closest;
+    }, candidates[0]!);
+  }
+  if (!target) return undefined;
+  keyboardSectionDropIntent = {
+    activeId: String(active),
+    placement: targetPlacement,
+    index: candidates.findIndex((container) => container.id === target.id),
+  };
+  const targetRect = context.droppableRects.get(target.id);
+  return targetRect ? { x: targetRect.left, y: targetRect.top } : undefined;
+};
+
+function dragVerticalPosition(event: DragOverEvent | DragEndEvent): number | null {
+  const activator = event.activatorEvent;
+  if (activator instanceof MouseEvent) {
+    return activator.clientY + event.delta.y;
+  }
+  if (activator instanceof TouchEvent && activator.touches.length > 0) {
+    return activator.touches[0]!.clientY + event.delta.y;
+  }
+  const translated = event.active.rect.current.translated;
+  return translated ? translated.top + translated.height / 2 : null;
 }
 
 function sectionDisplayModes(section: SectionSettings, sectionModes: string[]) {
@@ -126,6 +233,7 @@ export function SectionCard({
   onMove,
   canMoveUp,
   canMoveDown,
+  insertionEdge,
 }: {
   section: SectionSettings;
   index: number;
@@ -143,6 +251,7 @@ export function SectionCard({
   onMove: (delta: -1 | 1) => void;
   canMoveUp: boolean;
   canMoveDown: boolean;
+  insertionEdge?: "before" | "after";
 }) {
   const [expanded, setExpanded] = useState(false);
   const placement = placementOf(section);
@@ -158,8 +267,16 @@ export function SectionCard({
     <div
       ref={sortable.setNodeRef}
       style={style}
-      className={`${PANEL_MUTED_CARD_CLASS} ${sortable.isDragging ? "opacity-80 shadow-lg" : ""}`}
+      className={`${PANEL_MUTED_CARD_CLASS} relative ${sortable.isDragging ? "opacity-80 shadow-lg" : ""}`}
     >
+      {insertionEdge ? (
+        <span
+          aria-hidden="true"
+          className={`pointer-events-none absolute inset-x-1 h-0.5 rounded-full bg-violet-500 ${
+            insertionEdge === "before" ? "-top-1.5" : "-bottom-1.5"
+          }`}
+        />
+      ) : null}
       <div className="flex items-center gap-2">
         <button
           type="button"
@@ -225,6 +342,20 @@ export function SectionCard({
 
       {expanded && (
         <SectionAdvancedSettings>
+          {canTransfer ? (
+            <ToolbarSelect
+              value={placement}
+              ariaLabel={`Déplacer ${section.label} vers une colonne`}
+              options={[
+                { value: "main", label: "Colonne principale" },
+                { value: "sidebar", label: "Colonne secondaire" },
+              ]}
+              onChange={(value) => {
+                if (value !== placement) onTransfer();
+              }}
+              triggerClassName={PANEL_INPUT_CLASS}
+            />
+          ) : null}
           <input
             value={section.label}
             onChange={(event) =>
@@ -573,7 +704,7 @@ export function SectionsTab({
   iconStyles,
   supportsTwoColumns,
   updateSection,
-  replaceSections,
+  moveSection,
 }: SectionsTabProps) {
   const sections = settings.sections ?? [];
   const twoColumns =
@@ -583,9 +714,62 @@ export function SectionsTab({
     sectionPlacements.includes("sidebar");
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 180, tolerance: 8 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sectionKeyboardCoordinates,
+    }),
   );
+  const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
+  const [dropIndicator, setDropIndicator] = useState<{
+    id: string;
+    edge: "before" | "after";
+  } | null>(null);
+  const [moveError, setMoveError] = useState<string | null>(null);
+
+  const persistMove = async (intent: Parameters<typeof moveSection>[0]) => {
+    setMoveError(null);
+    try {
+      await moveSection(intent);
+    } catch (error: unknown) {
+      setMoveError(
+        error instanceof Error
+          ? error.message
+          : "Le déplacement n’a pas pu être enregistré.",
+      );
+    }
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    keyboardSectionDropIntent = null;
+    setActiveSectionId(String(event.active.id));
+  };
+
+  const handleDragCancel = () => {
+    setActiveSectionId(null);
+    setDropIndicator(null);
+  };
+
+  const handleDragOver = (event: DragOverEvent) => {
+    const over = event.over;
+    const pointerY = dragVerticalPosition(event);
+    if (!over || pointerY === null || String(over.id).startsWith("section-lane-")) {
+      setDropIndicator(null);
+      return;
+    }
+    setDropIndicator({
+      id: String(over.id),
+      edge:
+        pointerY > over.rect.top + over.rect.height / 2
+          ? "after"
+          : "before",
+    });
+  };
 
   const handleDragEnd = (event: DragEndEvent) => {
+    setActiveSectionId(null);
+    setDropIndicator(null);
     const activeId = String(event.active.id);
     const over = event.over;
     if (!over) return;
@@ -596,27 +780,82 @@ export function SectionsTab({
     if (!placement) return;
     const activeSection = sections.find((section) => section.id === activeId);
     if (!activeSection) return;
+    if (
+      event.activatorEvent instanceof KeyboardEvent &&
+      keyboardSectionDropIntent?.activeId === activeId
+    ) {
+      const intent = keyboardSectionDropIntent;
+      keyboardSectionDropIntent = null;
+      void persistMove({
+        operation: "move_section",
+        section_id: activeId,
+        placement: twoColumns
+          ? intent.placement
+          : placementOf(activeSection),
+        index: intent.index,
+      });
+      return;
+    }
     const targetPlacement = twoColumns ? placement : placementOf(activeSection);
-    replaceSections(
-      moveSectionToPlacement(
-        sections,
-        activeId,
-        targetPlacement,
-        overId.startsWith("section-lane-") ? undefined : overId,
-      ),
+    const shiftPressed =
+      event.activatorEvent instanceof KeyboardEvent ||
+      event.activatorEvent instanceof MouseEvent
+        ? event.activatorEvent.shiftKey
+        : false;
+    if (
+      shiftPressed &&
+      !overId.startsWith("section-lane-") &&
+      overId !== activeId
+    ) {
+      void persistMove({
+        operation: "swap_sections",
+        section_id: activeId,
+        target_section_id: overId,
+      });
+      return;
+    }
+
+    const targetLane = sectionsForPlacement(sections, targetPlacement).filter(
+      (section) => section.id !== activeId,
     );
+    let index = targetLane.length;
+    if (!overId.startsWith("section-lane-")) {
+      const overIndex = targetLane.findIndex(
+        (section) => section.id === overId,
+      );
+      if (overIndex >= 0) {
+        const activeCenterY = dragVerticalPosition(event) ?? over.rect.top;
+        const overMiddle = over.rect.top + over.rect.height / 2;
+        index = overIndex + (activeCenterY > overMiddle ? 1 : 0);
+      }
+    }
+    void persistMove({
+      operation: "move_section",
+      section_id: activeId,
+      placement: targetPlacement,
+      index,
+    });
   };
 
   return (
     <section>
       <SectionLabel>Organisation des sections</SectionLabel>
       <p className="mb-3 text-xs text-muted-foreground">
-        Fais glisser les sections pour les ordonner, ou utilise les flèches
-        pour changer de colonne.
+        Fais glisser une section à sa position exacte. Maintiens Maj pendant le
+        dépôt pour permuter deux sections. Le clavier et les boutons restent
+        disponibles.
       </p>
+      {moveError ? (
+        <p role="alert" className="mb-3 text-xs text-destructive">
+          {moveError}
+        </p>
+      ) : null}
       <DndContext
         sensors={sensors}
-        collisionDetection={pointerWithin}
+        collisionDetection={sectionCollisionDetection}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragCancel={handleDragCancel}
         onDragEnd={handleDragEnd}
       >
         <SectionPlacementBoard
@@ -644,26 +883,48 @@ export function SectionsTab({
                 updateSection={updateSection}
                 canTransfer={twoColumns}
                 onTransfer={() =>
-                  replaceSections(
-                    moveSectionToPlacement(
-                      sections,
-                      section.id,
+                  void persistMove({
+                    operation: "move_section",
+                    section_id: section.id,
+                    placement:
                       placementOf(section) === "main" ? "sidebar" : "main",
-                    ),
-                  )
+                  })
                 }
                 onMove={(delta) =>
-                  replaceSections(
-                    moveSectionWithinPlacement(sections, section.id, delta),
-                  )
+                  void persistMove({
+                    operation: "move_section",
+                    section_id: section.id,
+                    placement: placementOf(section),
+                    index: laneIndex + delta,
+                  })
                 }
                 canMoveUp={laneIndex > 0}
                 canMoveDown={laneIndex < lane.length - 1}
+                insertionEdge={
+                  dropIndicator?.id === section.id
+                    ? dropIndicator.edge
+                    : undefined
+                }
               />
             );
           }}
         />
+        <DragOverlay>
+          {activeSectionId ? (
+            <div className="rounded-lg border border-violet-500 bg-background px-3 py-2 text-sm font-semibold text-foreground shadow-xl">
+              {
+                sections.find((section) => section.id === activeSectionId)
+                  ?.label
+              }
+            </div>
+          ) : null}
+        </DragOverlay>
       </DndContext>
+      <p aria-live="polite" className="sr-only">
+        {activeSectionId
+          ? `Déplacement de ${sections.find((section) => section.id === activeSectionId)?.label ?? activeSectionId}.`
+          : ""}
+      </p>
     </section>
   );
 }

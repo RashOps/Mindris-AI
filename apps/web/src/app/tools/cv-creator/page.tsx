@@ -344,6 +344,9 @@ export default function AppPage() {
         body: JSON.stringify({
           cv_data: resolved.cv_data,
           template_id: resolved.template_id,
+          content_hash: resolved.content_hash,
+          resume_id: Number(activeResumeId),
+          resume_revision: activeResume?.revision,
           return_buffer: true,
         }),
       });

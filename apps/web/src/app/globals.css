@@ -451,3 +451,46 @@
   0%, 100% { opacity: 1; transform: scale(1); }
   50%       { opacity: 0.4; transform: scale(1.5); }
 }
+
+@keyframes guideStepEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes guideCheck {
+  0% {
+    transform: scale(0.75);
+  }
+  65% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.guide-step-enter {
+  animation: guideStepEnter 180ms ease-out both;
+}
+
+.guide-flow-step {
+  animation: guideStepEnter 180ms ease-out both;
+}
+
+.guide-check-complete {
+  animation: guideCheck 180ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guide-step-enter,
+  .guide-flow-step,
+  .guide-check-complete {
+    animation: none;
+  }
+}

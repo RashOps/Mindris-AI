@@ -104,6 +104,7 @@ export interface GlobalSettings {
     mode?: "off" | "tokens" | "css_patch";
     css_text?: string;
     preset_id?: string | null;
+    selector_contract_version?: "1";
     warnings?: string[];
   };
   font_family: string;

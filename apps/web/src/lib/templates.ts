@@ -11,6 +11,8 @@ export type ResumeTemplateManifest = {
   category: string;
   tags: string[];
   engine_version: string;
+  template_contract_version: string;
+  selector_contract_version: string;
 };
 
 export type ResumeTemplate = {
@@ -25,6 +27,16 @@ export type ResumeTemplate = {
   author?: string | null;
   previewAvailable?: boolean;
   manifest?: ResumeTemplateManifest;
+  renderer_engine_version?: string;
+  template_contract_version?: string;
+  selector_contract_version?: string;
+  capabilities?: {
+    columns: Array<1 | 2>;
+    photo: boolean;
+    sidebar: boolean;
+    page_breaks: boolean;
+    custom_css: boolean;
+  };
 };
 
 export function templateHandle(templateId: string): string {
@@ -53,7 +65,7 @@ export async function resolveTemplateRenderPayload(
   cvData: CVData,
   templateId?: string,
   applyPreset = false,
-): Promise<{ cv_data: CVData; template_id: string }> {
+): Promise<{ cv_data: CVData; template_id: string; content_hash: string }> {
   const response = await fetch(apiUrl("/api/v1/templates/resolve-render-payload"), {
     method: "POST",
     headers: jsonHeaders(),
@@ -67,14 +79,19 @@ export async function resolveTemplateRenderPayload(
     throw new Error(`Template render payload resolution failed: ${response.status}`);
   }
   const payload = (await response.json()) as {
-    item?: { cv_data?: CVData; template_id?: string };
+    item?: { cv_data?: CVData; template_id?: string; content_hash?: string };
   };
-  if (!payload.item?.cv_data || !payload.item.template_id) {
+  if (
+    !payload.item?.cv_data ||
+    !payload.item.template_id ||
+    !payload.item.content_hash
+  ) {
     throw new Error("Template render payload resolution returned no item");
   }
   return {
     cv_data: payload.item.cv_data,
     template_id: payload.item.template_id,
+    content_hash: payload.item.content_hash,
   };
 }
 
