@@ -47,8 +47,12 @@ graph TD
         G[(SQLite + Vector storage)]
     end
 
+    subgraph "Local inference"
+        J[Ollama]
+    end
+
     subgraph "External / BYOK"
-        H[LLMs - OpenAI/Groq/Gemini/Mistral/Ollama]
+        H[LLMs - OpenAI/Groq/Gemini/Mistral]
         I[LinkedIn / Web]
     end
 
@@ -59,7 +63,9 @@ graph TD
     C --> I
     A --> G
     B --> G
-    B --> H
+    B --> J
+    B --> K[Outbound Privacy Gateway]
+    K --> H
     D --> E
     A & B & C & D -.-> F
 
@@ -96,6 +102,19 @@ Chaque service est un projet indépendant géré par le workspace `uv`.
 - Les scripts et callers externes utilisent `X-API-Key`.
 - Le navigateur local utilise la frontière loopback.
 - Les secrets ne doivent pas être exposés dans les réponses API, les logs ou les sorties de commandes.
+
+## Frontière de confidentialité sortante
+
+Les agents ne construisent pas directement un client provider non contrôlé.
+Tous les appels cloud d'intelligence, de parsing et de proxy passent par le
+gateway de confidentialité backend. Celui-ci applique une politique versionnée,
+demande le consentement, filtre la réponse et écrit uniquement un manifeste
+sans contenu.
+
+En `local_strict`, l'inférence externe est refusée et l'endpoint Ollama
+configuré doit être une destination locale autorisée. Le profil Compose strict
+peut en plus rendre le réseau des conteneurs interne. Voir
+[Confidentialité](privacy.md) et [Scope C](scope-c-privacy.md).
 
 ## Registre des modèles IA
 

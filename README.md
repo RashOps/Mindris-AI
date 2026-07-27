@@ -71,6 +71,20 @@ professionnels et un rendu cohérent entre la preview et le PDF.
 > l'utilisateur le configure explicitement. Le choix et les clés restent sous
 > son contrôle.
 
+### Une confidentialité vérifiable
+
+Mindris distingue trois modes backend-owned :
+
+- **100 % local** : Ollama uniquement, télémétrie désactivée et cloud bloqué ;
+- **Cloud privé** : minimisation, pseudonymisation, consentement par tâche et
+  registre local sans contenu ;
+- **Cloud contexte complet** : activation volontaire et consentement renforcé.
+
+Avant le premier appel, **Ce qui quitte votre machine** présente catégories,
+exemples protégés et politique provider datée. Une clé BYOK ne garantit pas
+l'anonymat du compte et Mindris ne prétend jamais activer le ZDR à votre place.
+Voir le [guide de confidentialité](docs/privacy.md).
+
 ## Un studio de candidature complet
 
 ### CV Builder

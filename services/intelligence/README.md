@@ -28,6 +28,10 @@ lettres et piloter le pipeline RAG/SSE.
 - `ingest_cv.py` : ingestion CV dans le stockage vectoriel.
 - `workflow.py` : pipeline LangGraph/CrewAI avec événements SSE.
 - `resume_context.py` : snapshot immuable, preuves et vues local/cloud.
+- `privacy.py` : classification, politiques, PII et pseudonymisation.
+- `privacy_gateway.py` : frontière obligatoire des clients CrewAI.
+- `provider_privacy.py` : fiches provider datées et indicatives.
+- `network_policy.py` : contrôle egress et télémétrie locale.
 - `resume_patches.py` : opérations typées et garde-fous de révision.
 - `resume_agent_loop.py` : validation, preview et correction unique.
 - `composition_agent.py` : propositions de layout fondées sur le manifeste.
