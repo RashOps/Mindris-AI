@@ -149,6 +149,15 @@ def test_customization_catalogue_exposes_backend_owned_options() -> None:
     assert options["templates"]["scholar"]["category"] == "Académique"
     assert options["templates"]["executive"]["previewStyle"] == "executive"
     assert options["templates"]["signal"]["accent"] == "#4f46e5"
+    assert options["advancedCss"]["selectorContractVersion"] == "1"
+    assert "[data-cv-role]" in options["advancedCss"]["allowedScopes"]
+
+    templates = list_templates()["items"]
+    assert all(item["renderer_engine_version"] == "2" for item in templates)
+    assert all(item["selector_contract_version"] == "1" for item in templates)
+    ats = next(item for item in templates if item["id"] == "ats")
+    assert ats["capabilities"]["columns"] == [1]
+    assert ats["capabilities"]["sidebar"] is False
 
 
 def test_resolve_render_payload_applies_backend_template_defaults() -> None:
@@ -166,6 +175,26 @@ def test_resolve_render_payload_applies_backend_template_defaults() -> None:
     assert item["cv_data"]["global_settings"]["template_id"] == "modern"
     assert item["cv_data"]["global_settings"]["colors"]["palette_preset"] == "tech"
     assert item["cv_data"]["global_settings"]["locale"]["label_language"] == "en"
+    assert len(item["content_hash"]) == 64
+
+
+def test_resolve_render_payload_is_deterministic_and_applies_overrides() -> None:
+    request = TemplateRenderPayloadRequest(
+        template_id="modern",
+        cv_data=_cv_payload("modern"),
+        locale="de",
+        overrides={
+            "global_settings": {"layout": {"columns": 1, "sidebar_position": "none"}}
+        },
+    )
+    with _session() as session:
+        first = resolve_template_render_payload_route(request, session)["item"]
+        second = resolve_template_render_payload_route(request, session)["item"]
+
+    assert first == second
+    assert first["cv_data"]["global_settings"]["locale"]["label_language"] == "de"
+    assert first["cv_data"]["global_settings"]["layout"]["columns"] == 1
+    assert first["cv_data"]["global_settings"]["layout"]["sidebar_position"] == "none"
 
 
 def test_explicit_builtin_template_replaces_the_persisted_template() -> None:
@@ -239,27 +268,32 @@ def _template_package_bytes(
     *,
     include_preview: bool = True,
     engine_version: str = "1",
+    template_contract_version: str | None = None,
+    selector_contract_version: str | None = None,
     preview_bytes: bytes = VALID_PREVIEW_PNG,
     stylesheet: str = ":host { --primary-color: #0f766e; }",
     extra_files: dict[str, bytes] | None = None,
 ) -> bytes:
     buffer = BytesIO()
     with ZipFile(buffer, "w", ZIP_DEFLATED) as archive:
+        manifest = {
+            "id": "mindris/community-open-source",
+            "name": "Community Open Source",
+            "version": "1.0.0",
+            "author": "Mindris Community",
+            "license": "MIT",
+            "description": "Community template for OSS contributors.",
+            "category": "developer",
+            "tags": ["opensource", "developer"],
+            "engine_version": engine_version,
+        }
+        if template_contract_version is not None:
+            manifest["template_contract_version"] = template_contract_version
+        if selector_contract_version is not None:
+            manifest["selector_contract_version"] = selector_contract_version
         archive.writestr(
             "manifest.json",
-            json.dumps(
-                {
-                    "id": "mindris/community-open-source",
-                    "name": "Community Open Source",
-                    "version": "1.0.0",
-                    "author": "Mindris Community",
-                    "license": "MIT",
-                    "description": "Community template for OSS contributors.",
-                    "category": "developer",
-                    "tags": ["opensource", "developer"],
-                    "engine_version": engine_version,
-                }
-            ),
+            json.dumps(manifest),
         )
         archive.writestr(
             "template.json",
@@ -289,6 +323,31 @@ def test_template_package_inspection_accepts_valid_v1_archive() -> None:
     assert package["manifest"]["engine_version"] == "1"
     assert package["template"]["base_template_id"] == "modern"
     assert package["files"]["preview"] == "preview.png"
+
+
+def test_template_package_inspection_accepts_exact_v2_contract() -> None:
+    package = inspect_template_package(
+        _template_package_bytes(
+            engine_version="2",
+            template_contract_version="2",
+            selector_contract_version="1",
+        )
+    )
+    assert package["manifest"]["template_contract_version"] == "2"
+    assert package["manifest"]["selector_contract_version"] == "1"
+
+
+def test_template_package_inspection_rejects_incompatible_v2_contract() -> None:
+    with pytest.raises(HTTPException) as exc_info:
+        inspect_template_package(
+            _template_package_bytes(
+                engine_version="2",
+                template_contract_version="1",
+                selector_contract_version="0",
+            )
+        )
+    assert exc_info.value.status_code == 422
+    assert "incompatible" in str(exc_info.value.detail).lower()
 
 
 def test_template_package_inspection_rejects_missing_preview() -> None:

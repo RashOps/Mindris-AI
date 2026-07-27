@@ -29,6 +29,7 @@ from routers.resumes import (
     import_resume_json,
     list_resume_revisions_route,
     list_resumes,
+    move_resume_section_route,
     restore_resume_revision_route,
     update_resume_route,
 )
@@ -38,6 +39,7 @@ from schemas import (
     ResumeCreateRequest,
     ResumeImportRequest,
     ResumeLocaleCreateRequest,
+    ResumeSectionMoveRequest,
     ResumeUpdateRequest,
 )
 
@@ -125,6 +127,31 @@ def _advanced_cv_payload(template_id: str = "modern") -> dict:
     return payload
 
 
+def _section_cv_payload(template_id: str = "modern") -> dict:
+    payload = _cv_payload(template_id)
+    payload["global_settings"]["sections"] = [
+        {
+            "id": "experience",
+            "type": "experience",
+            "label": "Experience",
+            "placement": "main",
+        },
+        {
+            "id": "skills",
+            "type": "skills",
+            "label": "Skills",
+            "placement": "sidebar",
+        },
+        {
+            "id": "education",
+            "type": "education",
+            "label": "Education",
+            "placement": "main",
+        },
+    ]
+    return payload
+
+
 def _session():
     init_db()
     return SessionLocal()
@@ -138,6 +165,93 @@ def _create_resume_direct(payload: dict, template_id: str = "modern") -> dict:
     )
     with _session() as session:
         return create_resume_route(request, session)["item"]
+
+
+def test_section_move_persists_exact_lane_index_and_new_revision() -> None:
+    created = _create_resume_direct(_section_cv_payload())
+    with _session() as session:
+        moved = move_resume_section_route(
+            int(created["id"]),
+            ResumeSectionMoveRequest(
+                section_id="education",
+                placement="sidebar",
+                index=0,
+                base_revision=created["revision"],
+            ),
+            session,
+        )["item"]
+
+    sections = moved["cvData"]["global_settings"]["sections"]
+    assert [(item["id"], item["placement"]) for item in sections] == [
+        ("experience", "main"),
+        ("education", "sidebar"),
+        ("skills", "sidebar"),
+    ]
+    assert [item["order"] for item in sections] == [0, 1, 2]
+    assert moved["revision"] == created["revision"] + 1
+
+
+def test_section_swap_never_overwrites_section_content() -> None:
+    created = _create_resume_direct(_section_cv_payload())
+    with _session() as session:
+        moved = move_resume_section_route(
+            int(created["id"]),
+            ResumeSectionMoveRequest(
+                operation="swap_sections",
+                section_id="experience",
+                target_section_id="skills",
+                base_revision=created["revision"],
+            ),
+            session,
+        )["item"]
+
+    sections = moved["cvData"]["global_settings"]["sections"]
+    assert [item["id"] for item in sections] == [
+        "skills",
+        "experience",
+        "education",
+    ]
+    assert {item["id"] for item in sections} == {
+        "experience",
+        "skills",
+        "education",
+    }
+
+
+def test_section_move_rejects_stale_revision_and_unsupported_sidebar() -> None:
+    created = _create_resume_direct(_section_cv_payload())
+    with (
+        _session() as session,
+        pytest.raises(HTTPException) as conflict,
+    ):
+        move_resume_section_route(
+            int(created["id"]),
+            ResumeSectionMoveRequest(
+                section_id="experience",
+                placement="main",
+                index=0,
+                base_revision=created["revision"] + 1,
+            ),
+            session,
+        )
+    assert conflict.value.status_code == 409
+
+    ats_created = _create_resume_direct(_section_cv_payload("ats"), "ats")
+    with (
+        _session() as session,
+        pytest.raises(HTTPException) as unsupported,
+    ):
+        move_resume_section_route(
+            int(ats_created["id"]),
+            ResumeSectionMoveRequest(
+                section_id="experience",
+                placement="sidebar",
+                index=0,
+                base_revision=ats_created["revision"],
+            ),
+            session,
+        )
+    assert unsupported.value.status_code == 422
 
 
 def test_resume_crud_duplicate_and_export() -> None:

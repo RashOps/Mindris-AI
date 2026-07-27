@@ -58,6 +58,7 @@ from schemas_domain.resume import (
     ResumeRevisionCompareItem,
     ResumeRevisionItem,
     ResumeRevisionSectionItem,
+    ResumeSectionMoveRequest,
     ResumeUpdateRequest,
     TemplateCatalogItem,
 )
@@ -163,6 +164,7 @@ __all__ = [
     "ResumeRevisionItem",
     "ResumeRevisionChangeItem",
     "ResumeRevisionSectionItem",
+    "ResumeSectionMoveRequest",
     "ResumeRevisionCompareItem",
     "ActivityLedgerLink",
     "ActivityLedgerItem",

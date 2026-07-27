@@ -1,6 +1,6 @@
 """CV document and renderer payload schemas."""
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -193,6 +193,7 @@ class CVSectionSettings(CVBaseModel):
         "custom",
     ]
     label: str = Field(min_length=1)
+    order: int = Field(default=0, ge=0)
     visible: bool = True
     placement: Literal["main", "sidebar"] = "main"
     display_mode: Literal["list", "timeline", "cards", "compact"] = "list"
@@ -241,6 +242,7 @@ class CVAdvancedCssSettings(CVBaseModel):
     mode: Literal["off", "tokens", "css_patch"] = "off"
     css_text: str = ""
     preset_id: str | None = None
+    selector_contract_version: Literal["1"] = "1"
     warnings: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
@@ -263,7 +265,6 @@ class CVAdvancedCssSettings(CVBaseModel):
 def default_cv_sections() -> list[CVSectionSettings]:
     """Return the default semantic section order."""
     return [
-        CVSectionSettings(id="profile", type="profile", label="Profil"),
         CVSectionSettings(id="experience", type="experience", label="Expériences"),
         CVSectionSettings(id="projects", type="projects", label="Projets"),
         CVSectionSettings(
@@ -575,6 +576,8 @@ class TemplateRenderPayloadRequest(BaseModel):
     cv_data: CVDataModel
     template_id: str | None = None
     apply_preset: bool = False
+    overrides: dict[str, Any] = Field(default_factory=dict)
+    locale: Literal["fr", "en", "de", "es"] | None = None
 
 
 class MarkdownDocumentRequest(BaseModel):
