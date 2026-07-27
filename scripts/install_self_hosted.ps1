@@ -25,6 +25,21 @@ $RawBase = Get-Setting "MINDRIS_RAW_BASE" "https://raw.githubusercontent.com/Ras
 $DryRun = (Get-Setting "MINDRIS_INSTALL_DRY_RUN" "false") -eq "true"
 $PullAttempts = [int](Get-Setting "MINDRIS_PULL_ATTEMPTS" "3")
 $ParallelLimit = Get-Setting "MINDRIS_PULL_PARALLEL_LIMIT" "1"
+$PrivacyMode = Get-Setting "MINDRIS_PRIVACY_MODE" "local_strict"
+$DownloadLocalModel = (Get-Setting "MINDRIS_DOWNLOAD_LOCAL_MODEL" "false") -eq "true"
+$LocalModel = Get-Setting "MINDRIS_LOCAL_MODEL" "llama3.2:3b"
+
+function Set-EnvValue([string]$Path, [string]$Name, [string]$Value) {
+    $content = Get-Content $Path -Raw
+    $pattern = "(?m)^$([Regex]::Escape($Name))=.*$"
+    if ($content -match $pattern) {
+        $content = $content -replace $pattern, "$Name=$Value"
+    }
+    else {
+        $content = $content.TrimEnd() + [Environment]::NewLine + "$Name=$Value" + [Environment]::NewLine
+    }
+    [IO.File]::WriteAllText($Path, $content, [Text.UTF8Encoding]::new($false))
+}
 
 Require-Command "docker"
 & docker compose version | Out-Null
@@ -35,14 +50,39 @@ New-Item -ItemType Directory -Force -Path (Join-Path $MindrisHome "storage") | O
 New-Item -ItemType Directory -Force -Path (Join-Path $MindrisHome "logs") | Out-Null
 
 $ComposePath = Join-Path $MindrisHome "docker-compose.yml"
+$StrictComposePath = Join-Path $MindrisHome "docker-compose.privacy-strict.yml"
 $EnvPath = Join-Path $MindrisHome ".env"
 Invoke-WebRequest -UseBasicParsing "$RawBase/docker-compose.release.yml" -OutFile $ComposePath
+Invoke-WebRequest -UseBasicParsing "$RawBase/docker-compose.privacy-strict.yml" -OutFile $StrictComposePath
 
 if (-not (Test-Path $EnvPath)) {
     Invoke-WebRequest -UseBasicParsing "$RawBase/.env.self-hosted.example" -OutFile $EnvPath
     $content = Get-Content $EnvPath -Raw
     $content = $content -replace '(?m)^API_KEY=.*$', "API_KEY=$(New-ApiKey)"
     [IO.File]::WriteAllText($EnvPath, $content, [Text.UTF8Encoding]::new($false))
+}
+
+if ($PrivacyMode -notin @("local_strict", "private_cloud", "full_context_cloud")) {
+    throw "MINDRIS_PRIVACY_MODE invalide : $PrivacyMode"
+}
+Set-EnvValue $EnvPath "MINDRIS_PRIVACY_MODE" $PrivacyMode
+Set-EnvValue $EnvPath "MINDRIS_TELEMETRY_ENABLED" "false"
+Set-EnvValue $EnvPath "MINDRIS_LOCAL_MODEL" $LocalModel
+Set-EnvValue $EnvPath "MINDRIS_DOWNLOAD_LOCAL_MODEL" $DownloadLocalModel.ToString().ToLowerInvariant()
+if ($PrivacyMode -eq "local_strict") {
+    Set-EnvValue $EnvPath "COMPOSE_PROFILES" "local-ai"
+    Set-EnvValue $EnvPath "OLLAMA_API_BASE" "http://ollama:11434"
+    try {
+        $memoryGiB = [Math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB)
+        Write-Host "Mémoire détectée : environ $memoryGiB Gio."
+        Write-Host "Modèle local sélectionné : $LocalModel."
+    }
+    catch {
+        Write-Host "Diagnostic matériel indisponible ; modèle local : $LocalModel."
+    }
+}
+else {
+    Set-EnvValue $EnvPath "COMPOSE_PROFILES" ""
 }
 
 Push-Location $MindrisHome
@@ -70,6 +110,11 @@ try {
 
     & docker compose up -d
     if ($LASTEXITCODE -ne 0) { throw "Le démarrage Docker Compose a échoué." }
+    if ($PrivacyMode -eq "local_strict" -and $DownloadLocalModel) {
+        Write-Host "Téléchargement explicite du modèle local $LocalModel..."
+        & docker compose exec -T ollama ollama pull $LocalModel
+        if ($LASTEXITCODE -ne 0) { throw "Le téléchargement du modèle local a échoué." }
+    }
 }
 finally {
     Pop-Location
@@ -83,3 +128,4 @@ Write-Host "Frontend : http://localhost:$WebPort"
 Write-Host "API      : http://localhost:$ApiPort"
 Write-Host "Renderer : http://localhost:$RendererPort"
 Write-Host "Dossier  : $MindrisHome"
+Write-Host "Privacy  : $PrivacyMode"
