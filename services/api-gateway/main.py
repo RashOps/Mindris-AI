@@ -13,7 +13,18 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from intelligence.event_bus import cleanup_stale_queues
+from intelligence.network_policy import apply_runtime_privacy_environment
+from intelligence.privacy import (
+    DATA_CATEGORY_REASONS,
+    ConsentRequiredError,
+    DataCategory,
+    LocalStrictViolationError,
+    PrivacyMode,
+)
+from intelligence.privacy_gateway import register_gateway_factory
+from intelligence.provider_privacy import provider_privacy_catalogue
 from monitoring import monitor
+from privacy_runtime import create_outbound_privacy_gateway
 from routers import (
     company,
     cv,
@@ -23,6 +34,7 @@ from routers import (
     markdown,
     onboarding,
     optimize,
+    privacy,
     resume_agents,
     resumes,
     system,
@@ -32,8 +44,10 @@ from routers import (
 )
 from utils.config import settings
 from utils.logger import get_logger
+from utils.runtime_config import load_runtime_configuration
 
 logger = get_logger(__name__, service_name="api-gateway")
+register_gateway_factory(create_outbound_privacy_gateway)
 
 SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
@@ -61,6 +75,9 @@ async def lifespan(app: FastAPI):
     """Manage startup/shutdown lifecycle."""
     logger.info("Mindris AI Gateway starting")
     init_db()
+    apply_runtime_privacy_environment(
+        PrivacyMode(load_runtime_configuration()["privacy_mode"])
+    )
 
     async def _queue_cleanup_loop() -> None:
         while True:
@@ -137,6 +154,74 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
     )
 
 
+@app.exception_handler(ConsentRequiredError)
+async def privacy_consent_handler(
+    request: Request,
+    exc: ConsentRequiredError,
+) -> JSONResponse:
+    """Return a safe pre-flight manifest instead of executing a cloud call."""
+    request_id = getattr(request.state, "request_id", _request_id(request))
+    manifest = exc.manifest
+    return _apply_response_hardening(
+        JSONResponse(
+            status_code=428,
+            content={
+                "status": "consent_required",
+                "message": "privacy.consent.required",
+                "detail": {
+                    "provider": manifest.provider,
+                    "model": manifest.model,
+                    "task": manifest.task.value,
+                    "mode": manifest.mode.value,
+                    "categories": list(manifest.categories),
+                    "category_reasons": {
+                        category: DATA_CATEGORY_REASONS[DataCategory(category)]
+                        for category in manifest.categories
+                    },
+                    "character_count": manifest.character_count,
+                    "approximate_tokens": manifest.approximate_tokens,
+                    "policy_version": manifest.policy_version,
+                    "examples": list(exc.examples),
+                    "provider_metadata": provider_privacy_catalogue().get(
+                        manifest.provider
+                    ),
+                },
+                "path": request.url.path,
+                "request_id": request_id,
+            },
+        ),
+        request_id,
+    )
+
+
+@app.exception_handler(LocalStrictViolationError)
+async def local_strict_violation_handler(
+    request: Request,
+    _: LocalStrictViolationError,
+) -> JSONResponse:
+    """Offer a local-safe recovery when an external provider is selected."""
+    request_id = getattr(request.state, "request_id", _request_id(request))
+    return _apply_response_hardening(
+        JSONResponse(
+            status_code=409,
+            content={
+                "status": "blocked",
+                "message": "privacy.local_strict.external_provider_blocked",
+                "detail": {
+                    "actions": [
+                        "use_local",
+                        "switch_to_private_cloud",
+                        "cancel",
+                    ]
+                },
+                "path": request.url.path,
+                "request_id": request_id,
+            },
+        ),
+        request_id,
+    )
+
+
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     """Return normalized JSON for expected HTTP errors."""
@@ -184,6 +269,7 @@ app.include_router(system.router)
 app.include_router(llm.router, dependencies=[Depends(verify_api_key)])
 app.include_router(cv.router, dependencies=[Depends(verify_api_key)])
 app.include_router(optimize.router, dependencies=[Depends(verify_api_key)])
+app.include_router(privacy.router)
 app.include_router(history.router, dependencies=[Depends(verify_api_key)])
 app.include_router(tracker.router, dependencies=[Depends(verify_api_key)])
 app.include_router(workflows.router, dependencies=[Depends(verify_api_key)])

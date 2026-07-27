@@ -136,9 +136,7 @@ class ResumeAgentProposalRecord(Base):
     __tablename__ = "resumeagentproposalrecord"
 
     id: Mapped[int | None] = mapped_column(primary_key=True, default=None)
-    resume_id: Mapped[int] = mapped_column(
-        ForeignKey("resumerecord.id"), index=True
-    )
+    resume_id: Mapped[int] = mapped_column(ForeignKey("resumerecord.id"), index=True)
     source_revision: Mapped[int] = mapped_column(index=True)
     created_revision: Mapped[int | None] = mapped_column(default=None, index=True)
     agent: Mapped[str] = mapped_column(default="resume_agent", index=True)
@@ -170,6 +168,42 @@ class AgentToolAuditRecord(Base):
     message_id: Mapped[str] = mapped_column(default="agent.tool.completed")
     metadata_json: Mapped[str] = mapped_column(Text, default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+
+class ExternalActivityRecord(Base):
+    """Content-free local ledger for one outbound provider request."""
+
+    __tablename__ = "externalactivityrecord"
+
+    id: Mapped[int | None] = mapped_column(primary_key=True, default=None)
+    provider: Mapped[str] = mapped_column(index=True)
+    model_name: Mapped[str] = mapped_column(default="")
+    task_key: Mapped[str] = mapped_column(index=True)
+    privacy_mode: Mapped[str] = mapped_column(index=True)
+    policy_version: Mapped[str]
+    classification_version: Mapped[str]
+    categories_json: Mapped[str] = mapped_column(Text, default="[]")
+    character_count: Mapped[int] = mapped_column(default=0)
+    approximate_tokens: Mapped[int] = mapped_column(default=0)
+    payload_hash: Mapped[str] = mapped_column(index=True)
+    consent_status: Mapped[str] = mapped_column(default="required")
+    status: Mapped[str] = mapped_column(default="success", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+
+class ExternalConsentRecord(Base):
+    """Revocable consent for one provider, task and privacy mode."""
+
+    __tablename__ = "externalconsentrecord"
+
+    id: Mapped[int | None] = mapped_column(primary_key=True, default=None)
+    provider: Mapped[str] = mapped_column(index=True)
+    task_key: Mapped[str] = mapped_column(index=True)
+    privacy_mode: Mapped[str] = mapped_column(index=True)
+    policy_version: Mapped[str]
+    status: Mapped[str] = mapped_column(default="granted", index=True)
+    granted_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime, default=None)
 
 
 class CompanyInsightRecord(Base):

@@ -8,6 +8,12 @@ from auth import auth_boundary_contract, verify_api_key
 from database.session import DB_PATH, engine
 from fastapi import APIRouter, Depends
 from intelligence.llm_config import provider_configuration_status
+from intelligence.network_policy import (
+    EXTERNAL_PROVIDER_HOSTS,
+    apply_runtime_privacy_environment,
+    evaluate_destination,
+)
+from intelligence.privacy import PrivacyMode
 from monitoring import monitor
 from schemas import (
     SystemConfigurationItem,
@@ -86,7 +92,13 @@ async def readiness_checks() -> dict:
     storage = _dir_check(settings.storage_dir)
     vectordb = _dir_check(settings.chroma_db_dir)
     sqlite = _sqlite_check()
-    checks = {"storage": storage, "vectordb": vectordb, "sqlite": sqlite}
+    privacy = _privacy_runtime_check()
+    checks = {
+        "storage": storage,
+        "vectordb": vectordb,
+        "sqlite": sqlite,
+        "privacy": privacy,
+    }
     ready = all(item["ok"] for item in checks.values())
     return {
         "status": "ready" if ready else "degraded",
@@ -126,7 +138,12 @@ async def update_system_configuration(
         payload["pdf_ingestion_mode"] = request.pdf_ingestion_mode
     if request.ui_locale is not None:
         payload["ui_locale"] = request.ui_locale
-    save_runtime_configuration(payload)
+    if request.privacy_mode is not None:
+        payload["privacy_mode"] = request.privacy_mode
+    if request.telemetry_enabled is not None:
+        payload["telemetry_enabled"] = request.telemetry_enabled
+    saved = save_runtime_configuration(payload)
+    apply_runtime_privacy_environment(PrivacyMode(saved["privacy_mode"]))
     return {"status": "success", "item": _configuration_payload()}
 
 
@@ -208,6 +225,36 @@ def _sqlite_check() -> dict:
         "ok": True,
         "path": str(Path(DB_PATH)),
         "exists": Path(DB_PATH).exists(),
+    }
+
+
+def _privacy_runtime_check() -> dict[str, Any]:
+    config = load_runtime_configuration()
+    mode = PrivacyMode(config["privacy_mode"])
+    blocked_hosts = [
+        host
+        for host in sorted(EXTERNAL_PROVIDER_HOSTS)
+        if not evaluate_destination(
+            f"https://{host}",
+            mode=mode,
+        ).allowed
+    ]
+    local_provider = evaluate_destination(settings.ollama_api_base, mode=mode)
+    local_contract_ok = mode != PrivacyMode.LOCAL_STRICT or (
+        len(blocked_hosts) == len(EXTERNAL_PROVIDER_HOSTS)
+        and not config["telemetry_enabled"]
+        and local_provider.allowed
+    )
+    return {
+        "ok": local_contract_ok,
+        "mode": mode.value,
+        "telemetry_enabled": config["telemetry_enabled"],
+        "blocked_external_provider_hosts": blocked_hosts,
+        "local_provider_destination": {
+            "host": local_provider.host,
+            "allowed": local_provider.allowed,
+            "reason": local_provider.reason,
+        },
     }
 
 
