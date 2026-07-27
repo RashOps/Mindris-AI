@@ -1,5 +1,6 @@
 """Resume template catalogue routes."""
 
+import hashlib
 import json
 from copy import deepcopy
 from io import BytesIO
@@ -18,6 +19,8 @@ from routers.template_catalogue import (
 from schemas import (
     CommunityTemplateConfig,
     CommunityTemplateManifest,
+    CVDataModel,
+    CVGlobalSettings,
     TemplateCatalogItem,
     TemplateRenderPayloadRequest,
     _contains_unsafe_css_fragment,
@@ -27,7 +30,7 @@ from utils.logger import get_logger
 
 router = APIRouter(prefix="/api/v1/templates", tags=["templates"])
 logger = get_logger(__name__, service_name="api-gateway")
-SUPPORTED_TEMPLATE_ENGINE_VERSION = "1"
+SUPPORTED_TEMPLATE_ENGINE_VERSIONS = {"1", "2"}
 MAX_TEMPLATE_STYLESHEET_BYTES = 8000
 TEMPLATE_IMPORT_FILE = File(...)
 SessionDep = Annotated[Session, Depends(get_session)]
@@ -161,12 +164,23 @@ def inspect_template_package(package_bytes: bytes) -> dict[str, Any]:
                 status_code=422,
                 detail="Template package preview.png is not a valid PNG file.",
             )
-        if manifest.engine_version != SUPPORTED_TEMPLATE_ENGINE_VERSION:
+        if manifest.engine_version not in SUPPORTED_TEMPLATE_ENGINE_VERSIONS:
             raise HTTPException(
                 status_code=422,
                 detail=(
                     "Unsupported template package engine_version: "
                     f"{manifest.engine_version}"
+                ),
+            )
+        if manifest.engine_version == "2" and (
+            manifest.template_contract_version != "2"
+            or manifest.selector_contract_version != "1"
+        ):
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "Template package declares an incompatible V2 renderer "
+                    "or selector contract."
                 ),
             )
 
@@ -204,6 +218,20 @@ def _serialize_installed_template(record: CommunityTemplateRecord) -> dict[str, 
         base_template_id=record.base_template_id,
         author=record.author,
         preset_settings=template_config.get("preset_settings", {}),
+        renderer_engine_version=manifest.get("engine_version", "1"),
+        template_contract_version=manifest.get("template_contract_version", "1"),
+        selector_contract_version=manifest.get("selector_contract_version", "0"),
+        capabilities=(
+            base.capabilities
+            if base
+            else {
+                "columns": [1, 2],
+                "photo": True,
+                "sidebar": True,
+                "page_breaks": True,
+                "custom_css": True,
+            }
+        ),
     )
     payload = item.model_dump(mode="json")
     payload["manifest"] = manifest
@@ -335,35 +363,70 @@ def resolve_template_defaults(
     return {}
 
 
-def apply_template_defaults(
+def _stable_payload_hash(payload: dict[str, Any]) -> str:
+    encoded = json.dumps(
+        payload,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def resolve_resume_render_state(
     cv_data: dict[str, Any],
     template_id: str,
     session: Session | None = None,
     *,
+    overrides: dict[str, Any] | None = None,
+    locale: str | None = None,
     apply_preset: bool = False,
 ) -> dict[str, Any]:
-    """Resolve template defaults or explicitly apply its visual preset."""
-    defaults = resolve_template_defaults(template_id, session=session)
-    if not defaults:
-        merged = deepcopy(cv_data)
-    elif apply_preset:
-        merged = _deep_merge(cv_data, defaults)
+    """Resolve one deterministic payload for preview, inspection and export.
+
+    Precedence is system defaults, template defaults, persisted resume data,
+    explicit operation overrides, then final schema normalization.
+    """
+    system_defaults = {"global_settings": CVGlobalSettings().model_dump(mode="json")}
+    template_defaults = resolve_template_defaults(template_id, session=session)
+    resolved = _deep_merge(system_defaults, template_defaults)
+    if apply_preset:
+        resolved = _deep_merge(resolved, cv_data)
+        resolved = _deep_merge(resolved, template_defaults)
     else:
-        merged = _deep_merge(defaults, cv_data)
+        resolved = _deep_merge(resolved, cv_data)
+    if overrides:
+        resolved = _deep_merge(resolved, overrides)
+
+    global_settings = resolved.setdefault("global_settings", {})
     template = _catalog_template_item(template_id)
-    if template is not None:
-        global_settings = merged.setdefault("global_settings", {})
-        global_settings["template_id"] = template.base_template_id or template.id
-    if session is not None:
+    renderer_template_id = (
+        template.base_template_id or template.id if template else None
+    )
+    if renderer_template_id is None and session is not None:
         record = session.exec(
             select(CommunityTemplateRecord).where(
                 CommunityTemplateRecord.template_id == template_id
             )
         ).first()
-        if record is not None and record.base_template_id:
-            global_settings = merged.setdefault("global_settings", {})
-            global_settings["template_id"] = record.base_template_id
-    return merged
+        if record is not None:
+            renderer_template_id = record.base_template_id
+    renderer_template_id = renderer_template_id or template_id
+    global_settings["template_id"] = renderer_template_id
+    if locale:
+        locale_settings = global_settings.setdefault("locale", {})
+        locale_settings["label_language"] = locale
+
+    normalized = CVDataModel.model_validate(resolved).model_dump(mode="json")
+    payload_hash = _stable_payload_hash(
+        {"cv_data": normalized, "template_id": renderer_template_id}
+    )
+    return {
+        "cv_data": normalized,
+        "template_id": renderer_template_id,
+        "content_hash": payload_hash,
+        "requested_template_id": template_id,
+    }
 
 
 def list_templates(session: Session | None = None) -> dict:
@@ -417,23 +480,17 @@ def resolve_template_render_payload_route(
         if isinstance(settings_template_id, str):
             requested_template_id = settings_template_id
     requested_template_id = requested_template_id or "modern"
-    resolved_cv_data = apply_template_defaults(
+    resolved = resolve_resume_render_state(
         cv_data,
         requested_template_id,
         session=session,
+        overrides=request.overrides,
+        locale=request.locale,
         apply_preset=request.apply_preset,
     )
-    resolved_settings = resolved_cv_data.setdefault("global_settings", {})
-    resolved_template_id = resolved_settings.get("template_id")
-    if not isinstance(resolved_template_id, str) or not resolved_template_id:
-        resolved_template_id = requested_template_id
-        resolved_settings["template_id"] = resolved_template_id
     return {
         "status": "success",
-        "item": {
-            "cv_data": resolved_cv_data,
-            "template_id": resolved_template_id,
-        },
+        "item": resolved,
     }
 
 

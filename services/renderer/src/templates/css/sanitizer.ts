@@ -32,7 +32,7 @@ export function sanitizeAdvancedCss(settings?: any): SanitizedCssResult {
     for (const rule of rules) {
         const [selectorPart, declarationPart] = rule.split("{");
         if (!selectorPart || !declarationPart) {
-            warnings.push("Dropped malformed CSS rule.");
+            warnings.push("renderer.css.malformed_rule");
             continue;
         }
         const selectors = selectorPart
@@ -41,17 +41,17 @@ export function sanitizeAdvancedCss(settings?: any): SanitizedCssResult {
             .filter(Boolean);
         const safeSelectors = selectors.filter(isSafeShadowSelector);
         if (!safeSelectors.length) {
-            warnings.push("Dropped unsupported selector outside the resume scope.");
+            warnings.push("renderer.css.unsupported_selector");
             continue;
         }
         const safeDeclarations = sanitizeDeclarations(declarationPart);
         if (!safeDeclarations.length) {
-            warnings.push("Dropped unsafe declaration from advanced CSS.");
+            warnings.push("renderer.css.unsafe_declaration");
             continue;
         }
         safeRules.push(`${safeSelectors.join(", ")} {\n${safeDeclarations.join("\n")}\n}`);
         if (safeSelectors.length !== selectors.length) {
-            warnings.push("Dropped unsupported selector outside the resume scope.");
+            warnings.push("renderer.css.unsupported_selector");
         }
     }
 
@@ -69,16 +69,16 @@ function sanitizeTokenCss(cssText: string): SanitizedCssResult {
     for (const rule of rules) {
         const [selectorPart, declarationPart] = rule.split("{");
         if (!selectorPart || !declarationPart) {
-            warnings.push("Dropped malformed CSS rule.");
+            warnings.push("renderer.css.malformed_rule");
             continue;
         }
         if (selectorPart.trim() !== ":host") {
-            warnings.push("Token mode only accepts :host rules.");
+            warnings.push("renderer.css.tokens_host_only");
             continue;
         }
         const safeDeclarations = sanitizeDeclarations(declarationPart);
         if (!safeDeclarations.length) {
-            warnings.push("Dropped unsafe declaration from advanced CSS.");
+            warnings.push("renderer.css.unsafe_declaration");
             continue;
         }
         hostRules.push(`:host {\n${safeDeclarations.join("\n")}\n}`);
@@ -117,11 +117,32 @@ function isSafeShadowSelector(selector: string): boolean {
     ) {
         return false;
     }
-    return (
-        normalized.startsWith(".") ||
-        normalized.startsWith("[data-") ||
-        normalized.startsWith(":host")
+    if (normalized.includes(".") || normalized.includes("#")) return false;
+
+    const publicAttributes = new Set([
+        "data-cv-role",
+        "data-section-id",
+        "data-section-type",
+        "data-placement",
+        "data-order",
+        "data-page-break",
+        "data-display-mode",
+        "data-detail-level",
+    ]);
+    const attributes = Array.from(
+        normalized.matchAll(/\[\s*([a-z0-9-]+)(?:[~|^$*]?=[^\]]+)?\s*\]/g),
+        (match) => match[1]!,
     );
+    if (!attributes.length || attributes.some((name) => !publicAttributes.has(name))) {
+        return false;
+    }
+
+    const structuralRemainder = normalized
+        .replace(/\[\s*[a-z0-9-]+(?:[~|^$*]?=[^\]]+)?\s*\]/g, "")
+        .replace(/:host/g, "")
+        .replace(/::?(before|after|first-child|last-child|hover|focus)/g, "")
+        .replace(/[\s>+~]/g, "");
+    return structuralRemainder.length === 0;
 }
 
 function dedupeWarnings(warnings: string[]): string[] {

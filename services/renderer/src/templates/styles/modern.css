@@ -123,15 +123,6 @@ a { color: inherit; text-decoration: none; }
     border-radius: 12px;
 }
 
-@media print {
-    .main-grid { grid-template-columns: var(--grid-template-columns, var(--col-left-width) 1fr); }
-    .section-placement-sidebar {
-        background: transparent;
-        padding: 0;
-        border-radius: 0;
-    }
-}
-
 /* ── Sections ─────────────────────────────────────────────────────── */
 .section { margin-bottom: 28px; }
 
@@ -259,7 +250,4 @@ a { color: inherit; text-decoration: none; }
 }
 
 /* ── Print ────────────────────────────────────────────────────────── */
-@media print {
-    .cv-wrapper { padding: 20px 28px; }
-    .item { page-break-inside: avoid; }
-}
+.item { break-inside: avoid; page-break-inside: avoid; }

@@ -22,6 +22,7 @@ export function LivePreview() {
           body: JSON.stringify({
             cv_data: resolved.cv_data,
             template_id: resolved.template_id,
+            content_hash: resolved.content_hash,
             return_html: true,
           }),
         });
@@ -48,12 +49,12 @@ export function LivePreview() {
   }, [cvData]);
 
   return (
-    <div className="relative w-full h-full min-h-[800px] bg-slate-100 rounded-lg overflow-hidden border border-slate-200 shadow-inner flex items-center justify-center">
+    <div className="relative flex h-full min-h-[800px] w-full items-center justify-center overflow-hidden rounded-lg border border-border bg-muted/40 shadow-inner">
       {isOptimizing && (
-        <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mb-4"></div>
-          <p className="text-slate-800 font-medium">Ghost Mode Active</p>
-          <p className="text-slate-500 text-sm">AI Agents are rewriting your CV...</p>
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="mb-4 h-16 w-16 animate-spin rounded-full border-b-2 border-primary"></div>
+          <p className="font-medium text-foreground">Ghost Mode Active</p>
+          <p className="text-sm text-muted-foreground">AI Agents are rewriting your CV...</p>
         </div>
       )}
       
@@ -70,7 +71,7 @@ export function LivePreview() {
           srcDoc={htmlContent}
           className="w-full h-full border-none"
           title="CV Live Preview"
-          sandbox="allow-same-origin allow-scripts"
+          sandbox="allow-same-origin"
         />
       )}
     </div>

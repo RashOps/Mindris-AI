@@ -38,7 +38,7 @@ export default function GuidePage() {
       title: copy.firstCvTitle,
       description: copy.firstCvDescription,
       icon: FilePlus2,
-      sectionIds: ["product-loop", "build-resume"],
+      sectionIds: ["product-loop", "build-resume", "custom-css"],
       route: "/tools/cv-creator",
       cta: copy.firstCvCta,
     },
@@ -221,7 +221,10 @@ export default function GuidePage() {
               </div>
             </aside>
 
-            <section className="rounded-2xl border border-border bg-card p-5 shadow-sm lg:p-6">
+            <section
+              key={activeSection.id}
+              className="guide-step-enter rounded-2xl border border-border bg-card p-5 shadow-sm lg:p-6"
+            >
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -255,7 +258,11 @@ export default function GuidePage() {
                   </p>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     {activeSection.steps.map((step, index) => (
-                      <div key={step} className="flex items-center gap-2">
+                      <div
+                        key={step}
+                        className="guide-flow-step flex items-center gap-2"
+                        style={{ animationDelay: `${index * 45}ms` }}
+                      >
                         <span className="rounded-full border border-border bg-muted/40 px-3 py-1.5 text-xs font-medium text-foreground">
                           {step}
                         </span>
@@ -292,7 +299,7 @@ export default function GuidePage() {
                           className="flex w-full items-start gap-3 rounded-lg p-2 text-left text-sm text-foreground transition hover:bg-muted"
                         >
                           {checked ? (
-                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
+                            <span className="guide-check-complete flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
                               <Check className="h-3 w-3" aria-hidden="true" />
                             </span>
                           ) : (

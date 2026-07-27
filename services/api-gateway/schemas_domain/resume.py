@@ -28,6 +28,17 @@ class ResumeUpdateRequest(BaseModel):
     source: str | None = None
 
 
+class ResumeSectionMoveRequest(BaseModel):
+    """Backend-owned intent for deterministic section placement."""
+
+    operation: Literal["move_section", "swap_sections"] = "move_section"
+    section_id: str = Field(min_length=1)
+    placement: Literal["main", "sidebar"] | None = None
+    index: int | None = Field(default=None, ge=0)
+    target_section_id: str | None = None
+    base_revision: int = Field(ge=1)
+
+
 class ResumeLocaleCreateRequest(BaseModel):
     """Create a new locale variant for an existing resume."""
 
@@ -63,6 +74,18 @@ class TemplateCatalogItem(BaseModel):
     base_template_id: str | None = None
     author: str | None = None
     preset_settings: dict[str, Any] = Field(default_factory=dict)
+    renderer_engine_version: str = "2"
+    template_contract_version: str = "2"
+    selector_contract_version: str = "1"
+    capabilities: dict[str, Any] = Field(
+        default_factory=lambda: {
+            "columns": [1, 2],
+            "photo": True,
+            "sidebar": True,
+            "page_breaks": True,
+            "custom_css": True,
+        }
+    )
 
 
 class CommunityTemplateManifest(BaseModel):
@@ -76,7 +99,9 @@ class CommunityTemplateManifest(BaseModel):
     description: str = Field(min_length=1)
     category: str = Field(min_length=1)
     tags: list[str] = Field(default_factory=list)
-    engine_version: Literal["1"]
+    engine_version: Literal["1", "2"]
+    template_contract_version: str = "1"
+    selector_contract_version: str = "0"
 
 
 class CommunityTemplateConfig(BaseModel):

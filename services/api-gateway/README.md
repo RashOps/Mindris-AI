@@ -43,6 +43,10 @@ Routes protégées par `X-API-Key` :
 - `/api/v1/resumes/*` : bibliothèque de CV.
 - `/api/v1/drafts/*` : drafts Markdown/CV.
 - `/api/v1/templates/*` : templates CV.
+- `POST /api/v1/templates/resolve-render-payload` : état de rendu normalisé et
+  hashé pour preview, inspection et export.
+- `POST /api/v1/resumes/{id}/sections/move` : insertion ou permutation
+  révisionnée d'une section.
 - `/api/v1/markdown/*` : sauvegarde/versioning des lettres Markdown.
 - `/api/v1/llm/*` : providers, modèles et tâches IA.
 - `/api/v1/company/*` : analyse entreprise.
@@ -142,3 +146,11 @@ Ne pas committer :
 - `.logs/`
 - `storage/`
 - bases SQLite locales.
+
+## Contrat de rendu CV
+
+Le gateway applique l'ordre de précédence système → template → CV persisté →
+overrides explicites → validation. Le renderer reçoit ce payload résolu ; le
+frontend ne recalcule pas les defaults.
+
+Voir [`docs/cv-renderer-contract.md`](../../docs/cv-renderer-contract.md).

@@ -40,4 +40,11 @@ describe("renderer OpenAPI", () => {
     expect(docsResponse.status).toBe(200);
     expect(await docsResponse.text()).toContain("Renderer API Docs");
   });
+
+  test("documents the observable renderer contract routes", () => {
+    const document = buildOpenApiDocument("http://localhost:4000");
+
+    expect(document.paths["/contracts"]).toBeDefined();
+    expect(document.paths["/render/manifest"]).toBeDefined();
+  });
 });

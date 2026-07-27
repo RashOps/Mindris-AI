@@ -551,14 +551,16 @@ CUSTOMIZATION_CATALOGUE = {
     },
     "advancedCss": {
         "enabled": True,
+        "selectorContractVersion": "1",
+        "guidePath": "/tools/guide",
         "maxLength": 8000,
         "modes": ["off", "tokens", "css_patch"],
         "allowedScopes": [
             ":host",
-            ".cv-shell",
-            "[data-section]",
+            "[data-cv-role]",
             "[data-section-type]",
-            "[data-section-placement]",
+            "[data-placement]",
+            "[data-section-id]",
         ],
         "blockedAtRules": ["@import"],
         "blockedFunctions": ["expression(", "javascript:", "url("],
@@ -646,3 +648,19 @@ CUSTOMIZATION_CATALOGUE = {
         },
     },
 }
+
+# Public renderer contracts are backend-owned and travel with every catalogue
+# entry. Keep them aligned with the compatible layouts exposed above.
+for _template in TEMPLATE_CATALOG:
+    _template_options = CUSTOMIZATION_CATALOGUE["templates"].get(_template.id, {})
+    _columns = _template_options.get(
+        "compatibleLayouts",
+        [1] if _template.layout == "single" else [1, 2],
+    )
+    _template.capabilities = {
+        "columns": _columns,
+        "photo": _template.id != "ats",
+        "sidebar": 2 in _columns,
+        "page_breaks": True,
+        "custom_css": True,
+    }

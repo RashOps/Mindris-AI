@@ -28,12 +28,13 @@ from persistence import (
     update_resume,
 )
 from persistence_lib.json import dump_json, load_json
-from routers.templates import apply_template_defaults
+from routers.templates import _catalog_template_item, resolve_resume_render_state
 from schemas import (
     CVDataModel,
     ResumeCreateRequest,
     ResumeImportRequest,
     ResumeLocaleCreateRequest,
+    ResumeSectionMoveRequest,
     ResumeUpdateRequest,
 )
 from sqlalchemy import select
@@ -56,6 +57,65 @@ def _get_resume(session: Session, resume_id: int) -> ResumeRecord:
     if not record:
         raise HTTPException(status_code=404, detail="Resume not found.")
     return record
+
+
+def _normalize_section_order(sections: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [{**section, "order": index} for index, section in enumerate(sections)]
+
+
+def apply_section_move(
+    sections: list[dict[str, Any]],
+    request: ResumeSectionMoveRequest,
+) -> list[dict[str, Any]]:
+    """Apply one explicit insert or swap operation without touching content."""
+    current = [dict(section) for section in sections]
+    active_index = next(
+        (
+            index
+            for index, section in enumerate(current)
+            if section.get("id") == request.section_id
+        ),
+        -1,
+    )
+    if active_index < 0:
+        raise ValueError(f"Unknown section '{request.section_id}'.")
+
+    if request.operation == "swap_sections":
+        if not request.target_section_id:
+            raise ValueError("target_section_id is required for a swap.")
+        target_index = next(
+            (
+                index
+                for index, section in enumerate(current)
+                if section.get("id") == request.target_section_id
+            ),
+            -1,
+        )
+        if target_index < 0:
+            raise ValueError(f"Unknown section '{request.target_section_id}'.")
+        current[active_index], current[target_index] = (
+            current[target_index],
+            current[active_index],
+        )
+        return _normalize_section_order(current)
+
+    active = current.pop(active_index)
+    placement = request.placement or str(active.get("placement") or "main")
+    active["placement"] = placement
+    lane_indices = [
+        index
+        for index, section in enumerate(current)
+        if section.get("placement", "main") == placement
+    ]
+    lane_index = request.index if request.index is not None else len(lane_indices)
+    lane_index = min(lane_index, len(lane_indices))
+    insertion_index = (
+        lane_indices[lane_index]
+        if lane_index < len(lane_indices)
+        else (lane_indices[-1] + 1 if lane_indices else len(current))
+    )
+    current.insert(insertion_index, active)
+    return _normalize_section_order(current)
 
 
 def _payload_from_import(request: ResumeImportRequest) -> tuple[str, dict[str, Any]]:
@@ -91,11 +151,11 @@ def create_resume_route(request: ResumeCreateRequest, session: SessionDep) -> di
     """Create a new persisted resume."""
     logger.info("Creating resume '%s'", request.name)
     cv_data = request.cv_data.model_dump(mode="json")
-    cv_data = apply_template_defaults(
+    cv_data = resolve_resume_render_state(
         cv_data,
         request.template_id or _template_id(cv_data),
         session=session,
-    )
+    )["cv_data"]
     record = create_resume(
         session,
         name=request.name,
@@ -126,11 +186,11 @@ def update_resume_route(
     logger.info("Updating resume %s", resume_id)
     cv_data = request.cv_data.model_dump(mode="json") if request.cv_data else None
     if cv_data is not None and request.template_id:
-        cv_data = apply_template_defaults(
+        cv_data = resolve_resume_render_state(
             cv_data,
             request.template_id,
             session=session,
-        )
+        )["cv_data"]
     record = update_resume(
         session,
         _get_resume(session, resume_id),
@@ -142,6 +202,59 @@ def update_resume_route(
         source=request.source,
     )
     return {"status": "success", "item": serialize_resume(session, record)}
+
+
+@router.post("/{resume_id}/sections/move")
+def move_resume_section_route(
+    resume_id: int,
+    request: ResumeSectionMoveRequest,
+    session: SessionDep,
+) -> dict:
+    """Persist an accessible section move with optimistic concurrency."""
+    record = _get_resume(session, resume_id)
+    serialized = serialize_resume(session, record)
+    current_revision = int(serialized["revision"])
+    if request.base_revision != current_revision:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message_id": "resume.revision_conflict",
+                "expected_revision": current_revision,
+                "received_revision": request.base_revision,
+            },
+        )
+    if request.placement == "sidebar":
+        template = _catalog_template_item(record.template_id)
+        if template is not None and not template.capabilities.get("sidebar", False):
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "message_id": "resume.sidebar_not_supported",
+                    "template_id": record.template_id,
+                },
+            )
+
+    cv_data = serialized["cvData"]
+    global_settings = cv_data.setdefault("global_settings", {})
+    sections = global_settings.get("sections")
+    if not isinstance(sections, list):
+        raise HTTPException(
+            status_code=422,
+            detail={"message_id": "resume.sections_missing"},
+        )
+    try:
+        global_settings["sections"] = apply_section_move(sections, request)
+        validated = CVDataModel.model_validate(cv_data).model_dump(mode="json")
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    updated = update_resume(
+        session,
+        record,
+        cv_data=validated,
+        template_id=record.template_id,
+        source="section-placement",
+    )
+    return {"status": "success", "item": serialize_resume(session, updated)}
 
 
 @router.delete("/{resume_id}")

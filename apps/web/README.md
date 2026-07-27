@@ -15,6 +15,8 @@ de service cachée.
 - Lire/écrire l’état produit via `services/api-gateway`.
 - Demander les previews/exports au backend ou au renderer via contrats API.
 - Respecter les defaults et décisions métier fournis par le backend.
+- Envoyer les déplacements de sections comme intentions révisionnées au
+  gateway, sans remplacer silencieusement le document local.
 
 ## Frontières à respecter
 
@@ -95,6 +97,10 @@ utilisées par le navigateur de l’utilisateur, pas par le réseau interne Dock
 - `/tools/history` : ledger et lignée des artefacts.
 - `/tools/guide` : guide visuel et parcours recommandés.
 - `/tools/markdown` : édition Markdown, lettres persistées et export PDF.
+
+Le parcours Guide contient aussi une introduction au CSS CV expert. La
+référence complète reste dans
+[`docs/custom-cv-css.md`](../../docs/custom-cv-css.md).
 
 ## Dossiers importants
 

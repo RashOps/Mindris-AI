@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import { createHash } from "node:crypto";
 import { generateHtml } from "./engine";
+import { shortCvFixture } from "./fixtures";
 
 const builtInTemplateIds = [
   "modern",
@@ -145,6 +147,33 @@ function cvForRenderMatrix(density: ContentDensity, format: "A4" | "Letter") {
 }
 
 describe("generateHtml semantic sections", () => {
+  test("keeps a visual stylesheet snapshot for all ten templates", () => {
+    const expected: Record<string, string> = {
+      modern: "9fd3eff021088a77b3e38757a6762074a28ee96fb94fd333cccfc61629a7a74e",
+      "atlas-sidebar":
+        "7b1528f67447a1bcbf6f65ef4cabc77ee2a79f44e373ae663b72643d2262309a",
+      compact: "e41384562fdeb2155a9f58d4c87639908363820718596f52a4d56a8eda23c0c3",
+      ats: "9fe4e4b78c4fcab4838bcb0bb5d0abf6ac96ca7db369a616f0b02a46e0358cdf",
+      student: "103a1b041d872c503e7a3ffe7d4b8d2f35b1e8bc87c57978ada84865f33347a1",
+      creative: "d70c9e7297fbc71b8a2ae543fd4a0bccd930ac573393f14d8b2c51786bc0fe79",
+      ledger: "655f5f18ee29f1cd52f1b6011507276b8cb49ef29b634653473fa1669c2bb82a",
+      executive: "c45511e73584f162c1db36817b44be83585bdb14f113dc8b6ecfb424630ed229",
+      signal: "43a8c8818b1686872054f3d095174c32da763ba32961c4cc70fe6549420b9851",
+      scholar: "9207a2ebcb0dc94a00f625485057c386380621b3940acc0f1a4d2476e1f2ae11",
+    };
+
+    for (const templateId of builtInTemplateIds) {
+      const rendered = generateHtml(shortCvFixture, templateId);
+      const stylesheet =
+        rendered.match(
+          /<template shadowrootmode="open">\s*<style>([\s\S]*?)<\/style>/,
+        )?.[1] ?? "";
+      expect(createHash("sha256").update(stylesheet).digest("hex")).toBe(
+        expected[templateId]!,
+      );
+    }
+  });
+
   test("renders every template across short, medium, and long A4/Letter content", () => {
     for (const templateId of builtInTemplateIds) {
       for (const density of ["short", "medium", "long"] as const) {
@@ -238,8 +267,10 @@ describe("generateHtml semantic sections", () => {
 
   test("stacks two-column sections independently without implicit grid gaps", () => {
     const html = generateHtml(baseCv, "modern");
-    const mainMarker = '<div class="section-column section-column-main">';
-    const sidebarMarker = '<div class="section-column section-column-sidebar">';
+    const mainMarker =
+      '<div class="section-column section-column-main" data-cv-role="column" data-placement="main">';
+    const sidebarMarker =
+      '<div class="section-column section-column-sidebar" data-cv-role="column" data-placement="sidebar">';
     const mainStart = html.indexOf(mainMarker);
     const sidebarStart = html.indexOf(sidebarMarker);
     const mainColumn = html.slice(mainStart, sidebarStart);
@@ -268,7 +299,7 @@ describe("generateHtml semantic sections", () => {
       "modern",
     );
 
-    const renderedMarkup = html.slice(html.indexOf("wrapper.innerHTML = `"));
+    const renderedMarkup = html.slice(html.indexOf("<article"));
     expect(renderedMarkup).not.toContain("section-column-main");
     expect(renderedMarkup).not.toContain('data-section-placement="sidebar"');
     expect(renderedMarkup.indexOf("Core Skills")).toBeLessThan(
@@ -296,7 +327,7 @@ describe("generateHtml semantic sections", () => {
       expect(html).toContain(".section-display-cards");
       expect(html).toContain(".section-detail-short");
       expect(html).toContain(".section-detail-detailed");
-      if (templateId === "ats") {
+      if (["ats", "student", "ledger", "scholar"].includes(templateId)) {
         expect(html).not.toContain('data-section-placement="sidebar"');
       } else {
         expect(html).toContain('data-section-placement="sidebar"');
@@ -324,9 +355,8 @@ describe("generateHtml semantic sections", () => {
       );
 
       expect(html).toContain("<!DOCTYPE html>");
-      expect(html).toContain(
-        "const shadow = host.attachShadow({ mode: 'open' })",
-      );
+      expect(html).toContain('<template shadowrootmode="open">');
+      expect(html).not.toContain("<script>");
       expect(html).toContain("#cv-container");
       expect(html).toContain("Ada Lovelace");
       expect(html).toContain("AI Engineer");
@@ -339,7 +369,7 @@ describe("generateHtml semantic sections", () => {
       expect(html).toContain('data-section-type="skills"');
       expect(html).toContain('data-section-type="experience"');
       expect(html).toContain('data-section-type="certifications"');
-      if (templateId === "ats") {
+      if (["ats", "student", "ledger", "scholar"].includes(templateId)) {
         expect(html).not.toContain('data-section-placement="sidebar"');
       } else {
         expect(html).toContain('data-section-placement="sidebar"');
@@ -425,7 +455,7 @@ describe("generateHtml semantic sections", () => {
     expect(html).toContain("section-heading-no-line");
     expect(html).toContain("section-icon-filled");
     expect(html).toContain(
-      '<span class="company">Analytical Engines</span><h3>Engineer</h3>',
+      '<span class="company" data-cv-role="entry-subtitle">Analytical Engines</span><h3 data-cv-role="entry-title">Engineer</h3>',
     );
     expect(html).toContain(".section-heading-accent .section-title");
     expect(html).toContain(".section-meta-right .item-header");
@@ -481,6 +511,34 @@ describe("generateHtml semantic sections", () => {
     );
 
     expect(html).toContain("septembre 2025 - juillet 2026");
+
+    const german = generateHtml(
+      {
+        ...baseCv,
+        global_settings: {
+          ...baseCv.global_settings,
+          locale: { label_language: "de", date_format: "MMMM YYYY" },
+        },
+        experience: [{ ...baseCv.experience[0], period: "2025-09" }],
+      },
+      "modern",
+    );
+    const spanish = generateHtml(
+      {
+        ...baseCv,
+        global_settings: {
+          ...baseCv.global_settings,
+          locale: { label_language: "es", date_format: "MMMM YYYY" },
+        },
+        experience: [{ ...baseCv.experience[0], period: "2025-09" }],
+      },
+      "modern",
+    );
+
+    expect(german).toContain('<html lang="de">');
+    expect(german).toContain("September 2025");
+    expect(spanish).toContain('<html lang="es">');
+    expect(spanish).toContain("septiembre 2025");
   });
 
   test("renders manual page breaks as renderer-owned section metadata", () => {
@@ -650,11 +708,11 @@ describe("generateHtml semantic sections", () => {
 
     expect(html).toContain("Certifications");
     expect(html).toContain("AWS Certified");
-    expect(html).toContain("Volunteering");
+    expect(html).toContain("Bénévolat");
     expect(html).toContain("Open Source Org");
     expect(html).toContain("Publications");
     expect(html).toContain("Open Resume Formats");
-    expect(html).toContain("References");
+    expect(html).toContain("Références");
     expect(html).toContain("Grace Hopper");
     expect(html).toContain("Awards");
     expect(html).toContain("Hackathon winner");
@@ -711,7 +769,7 @@ describe("generateHtml semantic sections", () => {
     expect(html).toContain("--entry-spacing: 10px;");
     expect(html).toContain("--resume-density: compact;");
     expect(html).toContain('data-overflow-risk="high"');
-    expect(html).toContain("likely to overflow one page");
+    expect(html).toContain("ce CV risque de déborder");
   });
 
   test("applies advanced css token overrides inside the shadow tree", () => {
@@ -747,7 +805,8 @@ describe("generateHtml semantic sections", () => {
             mode: "css_patch",
             css_text: [
               "body { background: red; }",
-              ".section-title { color: #0f766e; }",
+              "[data-cv-role='section-heading'] { color: #0f766e; }",
+              ".section-title { color: hotpink; }",
               ".tag { background-image: url('https://evil.test/tag.png'); }",
             ].join("\n"),
           },
@@ -756,12 +815,15 @@ describe("generateHtml semantic sections", () => {
       "modern",
     );
 
-    expect(html).toContain(".section-title {");
+    expect(html).toContain("[data-cv-role='section-heading'] {");
     expect(html).toContain("color: #0f766e;");
+    expect(html).not.toContain("color: hotpink;");
     expect(html).not.toContain("body { background: red; }");
     expect(html).not.toContain("evil.test");
     expect(html).toContain("advanced-css-warning");
-    expect(html).toContain("Advanced CSS dropped unsupported rules");
+    expect(html).toContain(
+      'data-message-id="renderer.advanced_css_rules_dropped"',
+    );
   });
 
   test("sanitizes community-template css passed through advanced css defaults", () => {
@@ -784,7 +846,9 @@ describe("generateHtml semantic sections", () => {
     expect(html).toContain("--primary-color: #0f766e;");
     expect(html).not.toContain("body { color: red; }");
     expect(html).not.toContain("url(https://evil.test/a.png)");
-    expect(html).toContain("Advanced CSS dropped unsupported rules.");
+    expect(html).toContain(
+      'data-message-id="renderer.advanced_css_rules_dropped"',
+    );
   });
 
   test("renders an enabled profile photo with all renderer-backed options", () => {

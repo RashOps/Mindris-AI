@@ -143,6 +143,20 @@ Carries renderer-safe template configuration:
 
 Carries custom renderer-side styling for the template.
 
+V2 packages must declare the renderer compatibility contract in
+`manifest.json`:
+
+```json
+{
+  "engine_version": "2",
+  "template_contract_version": "2",
+  "selector_contract_version": "1"
+}
+```
+
+V1 packages remain importable as legacy packages. New packages must target the
+published semantic selector contract and avoid renderer-internal classes.
+
 This file is never trusted client-side. It is validated and sanitized by Mindris renderer rules.
 
 ### `preview.png`
