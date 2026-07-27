@@ -10,7 +10,7 @@ Implémenté sur `feature/outbound-privacy-gateway`.
 | --- | --- | --- |
 | Classification | `services/intelligence/privacy.py` | registre CV et catégories versionnés |
 | Politiques | `TASK_PRIVACY_POLICIES` | minimum autorisé par tâche |
-| Gateway | `OutboundPrivacyGateway` | filtrage, consentement, réponse et audit |
+| Gateway | `outbound_privacy.py` | filtrage, consentement, réponse et audit |
 | Pseudonymisation | `EphemeralPseudonymizer` | mapping mémoire, TTL et destruction |
 | Providers | `provider_privacy.py` | informations datées, indicatives et sourcées |
 | Consentements | `/api/v1/privacy/consents` | scope exact et révocation |

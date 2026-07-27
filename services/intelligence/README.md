@@ -29,6 +29,7 @@ lettres et piloter le pipeline RAG/SSE.
 - `workflow.py` : pipeline LangGraph/CrewAI avec événements SSE.
 - `resume_context.py` : snapshot immuable, preuves et vues local/cloud.
 - `privacy.py` : classification, politiques, PII et pseudonymisation.
+- `outbound_privacy.py` : exécution, consentement et manifeste provider.
 - `privacy_gateway.py` : frontière obligatoire des clients CrewAI.
 - `provider_privacy.py` : fiches provider datées et indicatives.
 - `network_policy.py` : contrôle egress et télémétrie locale.
