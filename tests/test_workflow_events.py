@@ -1,8 +1,10 @@
 """Pipeline event contract tests."""
 
+import json
 from types import SimpleNamespace
 
 from intelligence import workflow
+from intelligence.resume_context import build_resume_context_snapshot
 
 
 def test_job_result_event_includes_persisted_job_identity(monkeypatch) -> None:
@@ -91,6 +93,31 @@ def test_revision_uses_evaluator_feedback_and_rejects_unknown_evidence(
     monkeypatch,
 ) -> None:
     task_descriptions: list[str] = []
+    snapshot = build_resume_context_snapshot(
+        resume_id=1,
+        revision=1,
+        locale="en",
+        template_id="modern",
+        cv_data={
+            "profile": {"title": "Platform Engineer"},
+            "experience": [
+                {
+                    "id": "exp-1",
+                    "role": "Engineer",
+                    "bullets": ["Built systems"],
+                }
+            ],
+            "global_settings": {
+                "sections": [
+                    {
+                        "id": "experience",
+                        "type": "experience",
+                        "placement": "main",
+                    }
+                ]
+            },
+        },
+    )
 
     class FakeAgents:
         def __init__(self, *args, **kwargs) -> None:
@@ -109,28 +136,33 @@ def test_revision_uses_evaluator_feedback_and_rejects_unknown_evidence(
             pass
 
         def kickoff(self) -> SimpleNamespace:
+            known_evidence = next(
+                fact.id
+                for fact in snapshot.evidence_registry
+                if fact.path.endswith(".bullets[0]")
+            )
             return SimpleNamespace(
-                raw="""{
-                  "proposed_changes": [
+                raw=json.dumps(
                     {
-                      "section_id": "experience",
-                      "entry_id": "exp-1",
-                      "before": "Built systems",
-                      "after": "Built reliable workflow systems",
-                      "reason": "Matches the platform requirement",
-                      "source_fact_ids": ["fact_1"],
-                      "confidence": 0.9
-                    },
-                    {
-                      "section_id": "experience",
-                      "after": "Invented unsupported claim",
-                      "reason": "Keyword match",
-                      "source_fact_ids": ["fact_404"],
-                      "confidence": 0.2
+                        "evidence_matrix": [],
+                        "patch": {
+                            "base_revision": 1,
+                            "reason": "Matches the platform requirement",
+                            "evidence_ids": [known_evidence],
+                            "operations": [
+                                {
+                                    "type": "rewrite_bullet",
+                                    "section": "experience",
+                                    "item_index": 0,
+                                    "bullet_index": 0,
+                                    "value": "Built reliable workflow systems",
+                                    "evidence_ids": ["fact_404"],
+                                }
+                            ],
+                        },
+                        "warnings": [],
                     }
-                  ],
-                  "warnings": []
-                }"""
+                )
             )
 
     monkeypatch.setattr(workflow, "MindrisAgents", FakeAgents)
@@ -159,18 +191,27 @@ def test_revision_uses_evaluator_feedback_and_rejects_unknown_evidence(
         "job_record_id": 123,
         "source_url": None,
         "evidence_ledger": [
-            {"id": "fact_1", "section_type": "experience", "text": "Built systems"}
+            {
+                "id": fact.id,
+                "section_type": "experience",
+                "source_id": fact.path,
+                "text": fact.value,
+            }
+            for fact in snapshot.evidence_registry
         ],
         "proposed_changes": [],
         "evaluation": {"revision_instructions": ["Use stronger evidence wording"]},
         "warnings": [],
         "resume_id": 1,
         "resume_locale": "en",
+        "resume_snapshot": snapshot.model_dump(mode="json"),
+        "resume_patch": None,
+        "max_iterations": 3,
     }
 
     draft_cv(state)
 
-    assert len(state["proposed_changes"]) == 1
-    assert state["proposed_changes"][0]["source_fact_ids"] == ["fact_1"]
-    assert "fact_404" in state["warnings"][0]
+    assert state["proposed_changes"] == []
+    assert state["resume_patch"] is None
+    assert "agent.patch.invalid_evidence" in state["warnings"]
     assert "Use stronger evidence wording" in task_descriptions[0]

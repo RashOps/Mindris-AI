@@ -13,50 +13,22 @@ from crewai import Agent, Crew, Process, Task
 from utils.logger import get_logger
 
 from intelligence.llm_config import get_llm
+from intelligence.resume_context import ResumeContextSnapshot, ResumeIdentity
 
 logger = get_logger(__name__, service_name="intelligence")
 
-# ── Prompt builders ───────────────────────────────────────────────────────────
-
-
-def _build_cv_summary(cv_data: dict) -> str:
-    """Extract a concise candidate summary from CVData."""
-    profile = cv_data.get("profile", {})
-    name = profile.get("full_name", "Candidate")
-    title = profile.get("title", "")
-    email = profile.get("email", "")
-    summary = profile.get("text_markdown", "")
-
-    exp_items = cv_data.get("experience", [])
-    exp_text = "\n".join(
-        f"  - {e.get('role')} @ {e.get('company')} ({e.get('period', '')})"
-        for e in exp_items[:4]
-    )
-
-    skills_groups = cv_data.get("skills", [])
-    skills_text = ", ".join(s for g in skills_groups for s in g.get("skills", [])[:5])
-
-    return (
-        f"Candidate: {name} — {title}\n"
-        f"Email: {email}\n"
-        f"Summary: {summary[:400]}\n"
-        f"Key experiences:\n{exp_text}\n"
-        f"Top skills: {skills_text}"
-    )
-
-
-def _build_job_summary(job_insights: dict) -> str:
+def _build_job_summary(snapshot: ResumeContextSnapshot) -> str:
     """Format job insights for the agent prompt."""
-    title = job_insights.get("job_title", "Unknown Role")
-    company = job_insights.get("company", "the company")
-    hard = ", ".join(job_insights.get("hard_skills", [])[:10])
-    soft = ", ".join(job_insights.get("soft_skills", [])[:5])
-    bullets = "\n".join(f"  - {b}" for b in job_insights.get("drafted_bullets", [])[:6])
+    job = snapshot.job_context
+    if job is None:
+        return "Target position: Unknown role\nCompany: Unknown"
+    hard = ", ".join(job.hard_skills[:10])
+    soft = ", ".join(job.soft_skills[:5])
     return (
-        f"Target position: {title} at {company}\n"
+        f"Target position: {job.title} at {job.company}\n"
         f"Required hard skills: {hard}\n"
         f"Valued soft skills: {soft}\n"
-        f"Tailored highlights:\n{bullets}"
+        f"Source description:\n{job.description[:3000]}"
     )
 
 
@@ -83,22 +55,22 @@ def _build_style_guidance(example_letter: str | None) -> str:
 
 
 async def generate_cover_letter(
-    cv_data: dict,
-    job_insights: dict,
+    snapshot: ResumeContextSnapshot,
     instructions: str,
     example_letter: str | None,
     provider: str,
     model_name: str,
+    rehydration_identity: ResumeIdentity | None = None,
 ) -> str:
     """Generate a tailored cover letter in Markdown.
 
     Args:
-        cv_data:        Full CVData JSON from the frontend store.
-        job_insights:   Structured job data (title, company, skills, bullets).
+        snapshot:       Canonical, task-filtered resume and job context.
         instructions:   Free-form user instructions (tone, emphasis, language…).
         example_letter: Optional existing letter to use as a style guide.
         provider:       LLM provider identifier.
         model_name:     Model name for the selected provider.
+        rehydration_identity: Local identity restored after cloud generation.
 
     Returns:
         Markdown string — the generated cover letter.
@@ -106,8 +78,17 @@ async def generate_cover_letter(
     llm = get_llm(provider=provider, model_name=model_name)
     logger.info("📝 Generating cover letter via %s/%s", provider, model_name)
 
-    cv_summary = _build_cv_summary(cv_data)
-    job_summary = _build_job_summary(job_insights)
+    identity = snapshot.identity
+    candidate_name = identity.full_name or "{{candidate_name}}"
+    candidate_email = identity.email or "{{candidate_email}}"
+    cv_summary = (
+        f"Candidate: {candidate_name}\n"
+        f"Email: {candidate_email}\n"
+        f"Document language: {snapshot.locale}\n"
+        f"Source revision: {snapshot.revision}\n"
+        f"Evidence registry:\n{snapshot.evidence_text()}"
+    )
+    job_summary = _build_job_summary(snapshot)
     style_guidance = _build_style_guidance(example_letter)
     extra_instr = instructions.strip() if instructions else "None provided."
 
@@ -147,9 +128,8 @@ async def generate_cover_letter(
             "3. MANDATORY: naturally weave in at least 3 of the hard "
             "skills listed in "
             "the TARGET JOB section.\n"
-            "4. MANDATORY: transform the 'Tailored highlights' bullets "
-            "into 1\u20132 concrete "
-            "achievement sentences in the body paragraphs.\n"
+            "4. Use only facts from the evidence registry for achievements. "
+            "Never invent a skill, diploma, employer, date, or metric.\n"
             "5. Structure: Markdown header (name + contact) → date → salutation → "
             "3–4 body paragraphs → professional closing.\n"
             "6. Write in the same language as the job posting (default: French)."
@@ -176,4 +156,9 @@ async def generate_cover_letter(
         if first_newline != -1 and last_fence > first_newline:
             raw = raw[first_newline + 1 : last_fence].strip()
 
+    if rehydration_identity is not None:
+        raw = raw.replace("{{candidate_name}}", rehydration_identity.full_name)
+        raw = raw.replace("{{candidate_email}}", rehydration_identity.email)
+        raw = raw.replace("{{candidate_phone}}", rehydration_identity.phone)
+        raw = raw.replace("{{candidate_address}}", rehydration_identity.address)
     return raw

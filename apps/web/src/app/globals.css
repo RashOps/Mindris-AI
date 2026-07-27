@@ -487,10 +487,20 @@
   animation: guideCheck 180ms ease-out both;
 }
 
+.guide-agent-stage {
+  animation: guideStepEnter 260ms ease-out both;
+}
+
+.guide-agent-highlight {
+  animation: guideCheck 360ms ease-out both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .guide-step-enter,
   .guide-flow-step,
-  .guide-check-complete {
+  .guide-check-complete,
+  .guide-agent-stage,
+  .guide-agent-highlight {
     animation: none;
   }
 }

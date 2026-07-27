@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { useCVStore } from "@/store/useCVStore";
-import { LLMSelector } from "@/components/LLMSelector";
 import { AtsScoreWidget } from "@/components/ats/AtsScoreWidget";
 import { apiUrl, jsonHeaders } from "@/lib/api";
 import { saveDraft } from "@/lib/drafts";
+import { useI18n } from "@/i18n/I18nProvider";
 import {
   ArrowRight,
   BriefcaseBusiness,
@@ -101,49 +101,133 @@ interface JobInsightsPanelProps {
 }
 
 export function JobInsightsPanel({ open, onClose, variant = "drawer" }: JobInsightsPanelProps) {
+  const { messages } = useI18n();
+  const reviewCopy = messages.agent.review;
   const {
     jobInsights, clearJobInsights,
-    applyPatch, cvData, appSettings,
+    loadResumes,
     calculateAtsScore,
   } = useCVStore();
 
   const [isPatchLoading, setIsPatchLoading] = useState(false);
   const [patchStatus, setPatchStatus] = useState<string | null>(null);
   const [isScoring, setIsScoring] = useState(false);
-  const [reviewedChanges, setReviewedChanges] = useState<
-    Record<string, "applied" | "ignored">
-  >({});
+  const [excludedOperations, setExcludedOperations] = useState<Set<string>>(
+    new Set(),
+  );
+  const selectedOperations = new Set(
+    jobInsights?.resume_patch?.operations
+      .map((operation) => operation.operation_id)
+      .filter((operationId) => !excludedOperations.has(operationId)) ?? [],
+  );
+  const [previewImpact, setPreviewImpact] = useState<{
+    diff: Array<{ path: string; kind: string; before: unknown; after: unknown }>;
+    manifest: {
+      document?: { pageCount?: number; overflow?: boolean };
+      warnings?: Array<{ messageId?: string; severity?: string }>;
+    };
+  } | null>(null);
 
-  const triggerPatch = useCallback(async (bullets: string[]): Promise<boolean> => {
-    if (!bullets.length) return false;
+  const invokeProposalTool = async (
+    toolName: "render_resume_preview" | "commit_resume_revision",
+  ) => {
+    if (
+      !jobInsights?.proposal_id ||
+      !jobInsights.resume_revision ||
+      !jobInsights.resume_patch
+    ) {
+      throw new Error(reviewCopy.persistedUnavailable);
+    }
+    const argumentsPayload =
+      toolName === "render_resume_preview"
+        ? {
+            resume_id: Number(useCVStore.getState().activeResumeId),
+            revision: jobInsights.resume_revision,
+            proposal_id: jobInsights.proposal_id,
+            proposal: jobInsights.resume_patch,
+            accepted_operation_ids: [...selectedOperations],
+          }
+        : {
+            resume_id: Number(useCVStore.getState().activeResumeId),
+            proposal_id: jobInsights.proposal_id,
+            base_revision: jobInsights.resume_revision,
+            accepted_operation_ids: [...selectedOperations],
+            human_approved: true,
+          };
+    const response = await fetch(
+      apiUrl(`/api/v1/resume-agents/tools/${toolName}`),
+      {
+        method: "POST",
+        headers: jsonHeaders(),
+        body: JSON.stringify({ arguments: argumentsPayload, actor: "user" }),
+      },
+    );
+    if (!response.ok) {
+      throw new Error(reviewCopy.processingFailed);
+    }
+    return response.json();
+  };
+
+  const previewProposal = async () => {
     setIsPatchLoading(true);
     setPatchStatus(null);
     try {
-      const res = await fetch(apiUrl("/api/v1/cv/patch-from-bullets"), {
-        method: "POST",
-        headers: jsonHeaders(),
-        body: JSON.stringify({
-          drafted_bullets: bullets,
-          cv_data: cvData,
-          provider: appSettings.patch_llm.provider,
-          model_name: appSettings.patch_llm.model_name,
-        }),
+      const data = await invokeProposalTool("render_resume_preview");
+      setPreviewImpact({
+        diff: data.item?.diff ?? [],
+        manifest: data.item?.manifest ?? {},
       });
-      if (!res.ok) throw new Error("Patch failed");
-      const data = await res.json();
-      if (data.patch) {
-        applyPatch(data.patch);
-        setPatchStatus("Modification appliquée au CV.");
-        return true;
-      }
-    } catch (err: unknown) {
-      setPatchStatus(errorMessage(err, "La modification n’a pas pu être appliquée."));
+    } catch (error) {
+      setPatchStatus(errorMessage(error, reviewCopy.previewUnavailable));
     } finally {
       setIsPatchLoading(false);
-      setTimeout(() => setPatchStatus(null), 4000);
     }
-    return false;
-  }, [cvData, appSettings.patch_llm, applyPatch]);
+  };
+
+  const commitProposal = async () => {
+    if (selectedOperations.size === 0) return;
+    setIsPatchLoading(true);
+    setPatchStatus(null);
+    try {
+      await invokeProposalTool("commit_resume_revision");
+      await loadResumes();
+      setPatchStatus(reviewCopy.revisionSaved);
+    } catch (error) {
+      setPatchStatus(errorMessage(error, reviewCopy.applyFailed));
+    } finally {
+      setIsPatchLoading(false);
+    }
+  };
+
+  const rejectProposal = async () => {
+    if (!jobInsights?.proposal_id) return;
+    setIsPatchLoading(true);
+    try {
+      const response = await fetch(
+        apiUrl(
+          `/api/v1/resume-agents/proposals/${jobInsights.proposal_id}/reject`,
+        ),
+        {
+          method: "POST",
+          headers: jsonHeaders(),
+          body: JSON.stringify({ reason: "user_rejected" }),
+        },
+      );
+      if (!response.ok) throw new Error("Rejet impossible.");
+      setExcludedOperations(
+        new Set(
+          jobInsights.resume_patch?.operations.map(
+            (operation) => operation.operation_id,
+          ) ?? [],
+        ),
+      );
+      setPatchStatus(reviewCopy.rejected);
+    } catch (error) {
+      setPatchStatus(errorMessage(error, reviewCopy.rejectFailed));
+    } finally {
+      setIsPatchLoading(false);
+    }
+  };
 
   const copyToClipboard = () => {
     if (!jobInsights) return;
@@ -252,73 +336,121 @@ export function JobInsightsPanel({ open, onClose, variant = "drawer" }: JobInsig
                 ) : (
                   <Medal className="h-3.5 w-3.5" aria-hidden="true" />
                 )}
-                Deep Score my CV
+                {reviewCopy.scoreResume}
               </button>
             </div>
 
             {(jobInsights.proposed_changes?.length ?? 0) > 0 ? (
-              <div className="border-b border-white/10 px-4 py-3">
-                <p className="mb-2 flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-emerald-300">
+              <section className="border-b border-border px-4 py-3">
+                <p className="mb-1 flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-emerald-300">
                   <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
-                  Modifications à valider
+                  {reviewCopy.title}
+                </p>
+                <p className="mb-3 text-[10px] leading-relaxed text-muted-foreground">
+                  {reviewCopy.sourceRevision} #
+                  {jobInsights.resume_revision ?? "—"}.{" "}
+                  {reviewCopy.noImplicitCommit}
                 </p>
                 <div className="space-y-2">
-                  {(jobInsights.proposed_changes ?? []).map((change, index) => {
-                    const changeKey = `${jobInsights.job_record_id ?? "draft"}-${change.section_id}-${change.entry_id ?? index}`;
-                    const reviewStatus = reviewedChanges[changeKey];
+                  {(jobInsights.proposed_changes ?? []).map((change) => {
+                    const selected = selectedOperations.has(change.operation_id);
                     return (
-                      <div
-                        key={changeKey}
-                        className="rounded-lg border border-white/10 bg-white/5 p-2.5"
+                      <label
+                        key={change.operation_id}
+                        className="flex cursor-pointer gap-2 rounded-lg border border-border bg-muted/30 p-2.5"
                       >
-                        <p className="text-xs leading-relaxed text-slate-200">
-                          {change.after}
-                        </p>
-                        <p className="mt-1 text-[10px] leading-relaxed text-slate-400">
-                          {change.reason}
-                        </p>
-                        <p className="mt-1 text-[10px] text-slate-500">
-                          Sources {change.source_fact_ids.join(", ")} - confiance{" "}
-                          {Math.round(change.confidence * 100)}%
-                        </p>
-                        <div className="mt-2 flex items-center gap-2">
-                          <button
-                            type="button"
-                            disabled={isPatchLoading || reviewStatus !== undefined}
-                            onClick={() => {
-                              void triggerPatch([change.after]).then((applied) => {
-                                if (applied) {
-                                  setReviewedChanges((current) => ({
-                                    ...current,
-                                    [changeKey]: "applied",
-                                  }));
-                                }
-                              });
-                            }}
-                            className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 px-2 py-1 text-[10px] font-medium text-emerald-200 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            <CircleCheck className="h-3 w-3" aria-hidden="true" />
-                            {reviewStatus === "applied" ? "Appliquée" : "Appliquer"}
-                          </button>
-                          <button
-                            type="button"
-                            disabled={reviewStatus !== undefined}
-                            onClick={() => {
-                              setReviewedChanges((current) => ({
-                                ...current,
-                                [changeKey]: "ignored",
-                              }));
-                            }}
-                            className="rounded-md px-2 py-1 text-[10px] font-medium text-slate-400 transition hover:bg-white/5 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            {reviewStatus === "ignored" ? "Ignorée" : "Ignorer"}
-                          </button>
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={() => {
+                            setExcludedOperations((current) => {
+                              const next = new Set(current);
+                              if (selected) {
+                                next.add(change.operation_id);
+                              } else {
+                                next.delete(change.operation_id);
+                              }
+                              return next;
+                            });
+                          }}
+                          className="mt-0.5 h-3.5 w-3.5 accent-emerald-500"
+                        />
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium text-foreground">
+                            {change.type.replaceAll("_", " ")}
+                          </p>
+                          <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
+                            {change.reason}
+                          </p>
+                          <p className="mt-1 truncate text-[10px] text-muted-foreground/70">
+                            {reviewCopy.evidence} :{" "}
+                            {change.source_fact_ids.join(", ") ||
+                              reviewCopy.noNewFact}
+                          </p>
                         </div>
-                      </div>
+                      </label>
                     );
                   })}
                 </div>
-              </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={isPatchLoading || selectedOperations.size === 0}
+                    onClick={() => void previewProposal()}
+                    className="rounded-md border border-border bg-background px-2.5 py-1.5 text-[10px] font-medium text-foreground disabled:opacity-50"
+                  >
+                    {reviewCopy.inspectImpact}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isPatchLoading || selectedOperations.size === 0}
+                    onClick={() => void commitProposal()}
+                    className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2.5 py-1.5 text-[10px] font-medium text-white disabled:opacity-50"
+                  >
+                    <CircleCheck className="h-3 w-3" aria-hidden="true" />
+                    {reviewCopy.applySelection}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isPatchLoading}
+                    onClick={() => void rejectProposal()}
+                    className="rounded-md px-2.5 py-1.5 text-[10px] font-medium text-muted-foreground disabled:opacity-50"
+                  >
+                    {reviewCopy.reject}
+                  </button>
+                </div>
+                {previewImpact ? (
+                  <div className="mt-3 rounded-lg border border-border bg-background p-2.5">
+                    <div className="flex justify-between gap-2 text-[10px] text-muted-foreground">
+                      <span>
+                        {previewImpact.diff.length} {reviewCopy.changes}
+                      </span>
+                      <span>
+                        {previewImpact.manifest.document?.pageCount ?? "—"}{" "}
+                        {reviewCopy.pages}
+                      </span>
+                    </div>
+                    {previewImpact.manifest.document?.overflow ? (
+                      <p className="mt-1 text-[10px] text-amber-600">
+                        {reviewCopy.overflow}
+                      </p>
+                    ) : null}
+                    <div className="mt-2 max-h-28 space-y-1 overflow-y-auto">
+                      {previewImpact.diff.slice(0, 12).map((change) => (
+                        <p
+                          key={`${change.kind}-${change.path}`}
+                          className="truncate text-[10px] text-foreground"
+                        >
+                          <span className="text-muted-foreground">
+                            {change.kind}
+                          </span>{" "}
+                          {change.path}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </section>
             ) : null}
 
             {(jobInsights.evidence_matrix?.length ?? 0) > 0 ? (
@@ -393,19 +525,11 @@ export function JobInsightsPanel({ open, onClose, variant = "drawer" }: JobInsig
               </div>
             ) : null}
 
-            {/* Backend-owned patch configuration */}
-            <div className="border-b border-white/10 px-4 py-3">
-              <p className="text-xs font-semibold text-slate-200">
-                Modèle d’application
+            {patchStatus ? (
+              <p className="border-b border-border px-4 py-2 text-center text-xs text-muted-foreground">
+                {patchStatus}
               </p>
-              <p className="mt-0.5 text-[10px] text-slate-500">
-                Utilisé uniquement après validation explicite d’une proposition.
-              </p>
-              <div className="mt-2">
-                <LLMSelector taskKey="patch_llm" label="Modèle de correction" />
-              </div>
-              {patchStatus && <p className="mt-1.5 text-center text-xs text-slate-400">{patchStatus}</p>}
-            </div>
+            ) : null}
 
 
             {/* Company Intel */}

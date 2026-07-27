@@ -8,6 +8,7 @@ terminal can display real-time progress.
 """
 
 import json
+from collections.abc import Callable
 from typing import Any, TypedDict
 
 from crewai import Agent, Crew, Process, Task
@@ -19,12 +20,13 @@ from utils.logger import get_logger
 
 from intelligence.agents import MindrisAgents
 from intelligence.event_bus import emit
+from intelligence.resume_context import ResumeContextSnapshot
+from intelligence.resume_patches import validate_resume_patch
 from intelligence.workflow_models import (
-    DraftResponse,
     EvidenceFact,
+    ResumeStrategyResponse,
     ScoreFeedback,
     validate_evidence_matrix,
-    validate_grounded_changes,
 )
 
 logger = get_logger(__name__, service_name="intelligence")
@@ -79,12 +81,18 @@ class GraphState(TypedDict):
     warnings: list[str]
     resume_id: int | str | None
     resume_locale: str
+    resume_snapshot: dict[str, Any] | None
+    resume_patch: dict[str, Any] | None
+    max_iterations: int
 
 
 # ── Node factory (receives job_id via closure) ────────────────────────────────
 
 
-def make_nodes(job_id: str) -> tuple:
+def make_nodes(
+    job_id: str,
+    proposal_sink: Callable[[dict[str, Any]], int | None] | None = None,
+) -> tuple:
     """Return node functions bound to a specific SSE job_id."""
 
     def retrieve_context(state: GraphState) -> GraphState:
@@ -95,6 +103,7 @@ def make_nodes(job_id: str) -> tuple:
             {
                 "node": "retrieve",
                 "message": "Searching ChromaDB for relevant CV experiences…",
+                "message_id": "agent.workflow.searching_evidence",
             },
         )
 
@@ -109,34 +118,64 @@ def make_nodes(job_id: str) -> tuple:
             f"Responsibilities: {responsibilities}. Mandatory requirements: {requirements}."
         )
 
-        store = MindrisVectorStore()
-        resume_namespace = str(state.get("resume_id") or "current")
-        resume_locale = state.get("resume_locale") or "fr"
-        results = store.search(
-            query=query,
-            k=8,
-            filter_dict={
-                "$and": [
-                    {"resume_id": {"$eq": resume_namespace}},
-                    {"locale": {"$eq": resume_locale}},
-                ]
-            },
-        )
-
-        evidence_ledger = [
-            EvidenceFact(
-                id=f"fact_{index}",
-                section_type=str(result.get("metadata", {}).get("type", "unknown")),
-                source_id=str(result.get("metadata", {}).get("id") or result["id"]),
-                text=result["document"],
-                relevance=(
-                    1 - float(result["distance"])
-                    if result.get("distance") is not None
-                    else None
+        snapshot_payload = state.get("resume_snapshot")
+        if snapshot_payload:
+            snapshot = ResumeContextSnapshot.model_validate(snapshot_payload)
+            query_terms = {
+                term.casefold().strip(".,:;()")
+                for term in query.split()
+                if len(term) > 2
+            }
+            ranked = sorted(
+                snapshot.evidence_registry,
+                key=lambda fact: sum(
+                    term in f"{fact.path} {fact.value}".casefold()
+                    for term in query_terms
                 ),
+                reverse=True,
             )
-            for index, result in enumerate(results, start=1)
-        ]
+            evidence_ledger = [
+                EvidenceFact(
+                    id=fact.id,
+                    section_type=fact.path.split(".", 2)[1].split("[", 1)[0],
+                    source_id=fact.path,
+                    text=fact.value,
+                    relevance=None,
+                )
+                for fact in ranked[:40]
+            ]
+        else:
+            store = MindrisVectorStore()
+            resume_namespace = str(state.get("resume_id") or "current")
+            resume_locale = state.get("resume_locale") or "fr"
+            results = store.search(
+                query=query,
+                k=8,
+                filter_dict={
+                    "$and": [
+                        {"resume_id": {"$eq": resume_namespace}},
+                        {"locale": {"$eq": resume_locale}},
+                    ]
+                },
+            )
+            evidence_ledger = [
+                EvidenceFact(
+                    id=f"fact_{index}",
+                    section_type=str(
+                        result.get("metadata", {}).get("type", "unknown")
+                    ),
+                    source_id=str(
+                        result.get("metadata", {}).get("id") or result["id"]
+                    ),
+                    text=result["document"],
+                    relevance=(
+                        1 - float(result["distance"])
+                        if result.get("distance") is not None
+                        else None
+                    ),
+                )
+                for index, result in enumerate(results, start=1)
+            ]
         context = "\n".join(
             f"[{fact.id}] ({fact.section_type}) {fact.text}" for fact in evidence_ledger
         )
@@ -153,6 +192,8 @@ def make_nodes(job_id: str) -> tuple:
             {
                 "node": "retrieve",
                 "message": f"Found {n} relevant CV chunk{'s' if n != 1 else ''}.",
+                "message_id": "agent.workflow.evidence_found",
+                "params": {"count": n},
             },
         )
         return state
@@ -166,6 +207,8 @@ def make_nodes(job_id: str) -> tuple:
             {
                 "node": "draft",
                 "message": f"Tailoring CV — Iteration {iteration}…",
+                "message_id": "agent.workflow.drafting",
+                "params": {"iteration": iteration},
             },
         )
 
@@ -197,19 +240,20 @@ def make_nodes(job_id: str) -> tuple:
                 f"Mandatory requirements: {json.dumps(getattr(state['job_offer'], 'must_have_requirements', []))}\n\n"
                 f"Candidate fact ledger:\n{state['retrieved_context']}\n\n"
                 f"Evaluator feedback from the previous iteration: {json.dumps(revision_feedback)}\n\n"
-                "Return a JSON object matching the requested schema. Propose 3 to 5 targeted "
-                "changes and build an evidence_matrix covering every hard skill and mandatory "
-                "requirement. Mark requirements as missing rather than inventing evidence. "
-                "Each change must identify its target section, preserve the original "
-                "meaning, cite one or more fact IDs, and explain why it helps. Never invent "
-                "facts or metrics. Put uncertainty in warnings."
+                "Return a ResumeStrategyResponse JSON object. Its patch must target "
+                "base_revision="
+                f"{(state.get('resume_snapshot') or {}).get('revision', 0)} "
+                "and contain only typed operations supported by the schema. Propose "
+                "3 to 5 targeted operations and build an evidence_matrix covering "
+                "every hard skill and mandatory requirement. Mark requirements as "
+                "missing rather than inventing evidence. Every factual operation "
+                "must cite source fact IDs. Never emit CSS or mutate arbitrary JSON."
             ),
             expected_output=(
-                "A DraftResponse JSON object containing evidence_matrix, "
-                "proposed_changes, and warnings."
+                "A ResumeStrategyResponse containing evidence_matrix, patch, and warnings."
             ),
             agent=copywriter,
-            output_pydantic=DraftResponse,
+            output_pydantic=ResumeStrategyResponse,
         )
 
         crew = Crew(agents=[copywriter], tasks=[task], process=Process.sequential)
@@ -217,34 +261,58 @@ def make_nodes(job_id: str) -> tuple:
 
         warnings = list(state.get("warnings", []))
         try:
-            draft = _result_model(result, DraftResponse)
+            draft = _result_model(result, ResumeStrategyResponse)
         except (ValidationError, ValueError, json.JSONDecodeError):
-            draft = DraftResponse()
-            warnings.append("The writer returned an invalid structured draft.")
+            draft = ResumeStrategyResponse()
+            warnings.append("agent.workflow.invalid_strategy_output")
 
         evidence = [
             EvidenceFact.model_validate(fact)
             for fact in state.get("evidence_ledger", [])
         ]
-        valid_changes, grounding_warnings = validate_grounded_changes(
-            draft.proposed_changes,
-            evidence,
-        )
         valid_matches, matrix_warnings = validate_evidence_matrix(
             draft.evidence_matrix,
             evidence,
         )
 
-        warnings.extend(grounding_warnings)
         warnings.extend(matrix_warnings)
         warnings.extend(draft.warnings)
-        state["proposed_changes"] = [
-            change.model_dump(mode="json") for change in valid_changes
-        ]
+        state["resume_patch"] = None
+        state["proposed_changes"] = []
+        snapshot_payload = state.get("resume_snapshot")
+        if draft.patch is not None and snapshot_payload is not None:
+            snapshot = ResumeContextSnapshot.model_validate(snapshot_payload)
+            try:
+                patch_validation = validate_resume_patch(snapshot, draft.patch)
+            except ValueError:
+                warnings.append("agent.patch.revision_conflict")
+            else:
+                if patch_validation.valid:
+                    state["resume_patch"] = draft.patch.model_dump(mode="json")
+                    state["proposed_changes"] = [
+                        {
+                            "operation_id": operation.operation_id,
+                            "type": operation.type,
+                            "reason": draft.patch.reason,
+                            "source_fact_ids": (
+                                operation.evidence_ids
+                                or draft.patch.evidence_ids
+                            ),
+                            "operation": operation.model_dump(mode="json"),
+                        }
+                        for operation in draft.patch.operations
+                    ]
+                else:
+                    warnings.extend(
+                        issue.message_id for issue in patch_validation.issues
+                    )
         state["evidence_matrix"] = [
             match.model_dump(mode="json") for match in valid_matches
         ]
-        state["drafted_cv"] = "\n".join(f"- {change.after}" for change in valid_changes)
+        state["drafted_cv"] = json.dumps(
+            state["resume_patch"] or {},
+            ensure_ascii=False,
+        )
         state["warnings"] = warnings
         state["iterations"] = iteration
 
@@ -254,6 +322,8 @@ def make_nodes(job_id: str) -> tuple:
             {
                 "node": "draft",
                 "message": f"Draft ready (iteration {iteration}).",
+                "message_id": "agent.workflow.draft_ready",
+                "params": {"iteration": iteration},
                 "content": state["drafted_cv"][:300],
             },
         )
@@ -267,6 +337,7 @@ def make_nodes(job_id: str) -> tuple:
             {
                 "node": "score",
                 "message": "Evaluating ATS compatibility…",
+                "message_id": "agent.workflow.evaluating",
             },
         )
 
@@ -330,12 +401,23 @@ def make_nodes(job_id: str) -> tuple:
                     if score is not None
                     else "ATS score unavailable: invalid evaluator output."
                 ),
+                "message_id": (
+                    "agent.workflow.score_ready"
+                    if score is not None
+                    else "agent.workflow.score_unavailable"
+                ),
+                "params": {"score": score} if score is not None else {},
                 "score": score,
             },
         )
 
         # ── Emit full structured result for Job Insights Panel ────────────────
         drafted_markdown = state.get("drafted_cv", "")
+        terminal_iteration = (
+            score is None
+            or score >= 80
+            or state["iterations"] >= state.get("max_iterations", 3)
+        )
         bullets = [
             line.lstrip("•-* ").strip()
             for line in drafted_markdown.splitlines()
@@ -362,6 +444,21 @@ def make_nodes(job_id: str) -> tuple:
                 "evidence_ledger": state.get("evidence_ledger", []),
                 "evidence_matrix": state.get("evidence_matrix", []),
                 "proposed_changes": state.get("proposed_changes", []),
+                "resume_patch": state.get("resume_patch"),
+                "resume_revision": (
+                    state.get("resume_snapshot", {}).get("revision")
+                    if state.get("resume_snapshot")
+                    else None
+                ),
+                "proposal_id": (
+                    proposal_sink(state["resume_patch"])
+                    if (
+                        proposal_sink
+                        and state.get("resume_patch")
+                        and terminal_iteration
+                    )
+                    else None
+                ),
                 "evaluation": state.get("evaluation"),
                 "warnings": state.get("warnings", []),
                 "requires_user_review": True,
@@ -380,7 +477,7 @@ def decide_next_step(state: GraphState) -> str:
     """Decide whether to finish or revise the draft."""
     if state.get("score") is None:
         return "end"
-    if state["score"] >= 80 or state["iterations"] >= 3:
+    if state["score"] >= 80 or state["iterations"] >= state.get("max_iterations", 3):
         return "end"
     return "revise"
 
@@ -388,17 +485,21 @@ def decide_next_step(state: GraphState) -> str:
 # ── Workflow Setup ───────────────────────────────────────────────────────────
 
 
-def create_rag_workflow(job_id: str = "") -> StateGraph:
+def create_rag_workflow(
+    job_id: str = "",
+    proposal_sink: Callable[[dict[str, Any]], int | None] | None = None,
+) -> StateGraph:
     """Build and compile the LangGraph workflow.
 
     Args:
         job_id: SSE job identifier. If provided, each node will emit
                 real-time events to the frontend Ghost Mode terminal.
+        proposal_sink: Backend callback persisting only a terminal proposal.
 
     Returns:
         A compiled :class:`langgraph.graph.StateGraph` ready to be invoked.
     """
-    retrieve_context, draft_cv, score_cv = make_nodes(job_id)
+    retrieve_context, draft_cv, score_cv = make_nodes(job_id, proposal_sink)
 
     workflow = StateGraph(GraphState)
     workflow.add_node("retrieve", retrieve_context)

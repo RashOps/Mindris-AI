@@ -15,6 +15,8 @@ lettres et piloter le pipeline RAG/SSE.
 - Parser des CV PDF avec stratégie locale ou LlamaCloud.
 - Ingestion CV vers la vector DB.
 - Orchestration RAG avec événements SSE pour Ghost Mode.
+- Construire le snapshot CV canonique et valider les patches métier prouvés.
+- Inspecter une proposition avec une boucle renderer bornée et sans commit.
 
 ## Modules principaux
 
@@ -25,6 +27,11 @@ lettres et piloter le pipeline RAG/SSE.
 - `pdf_parser.py` : parsing PDF local/LlamaCloud.
 - `ingest_cv.py` : ingestion CV dans le stockage vectoriel.
 - `workflow.py` : pipeline LangGraph/CrewAI avec événements SSE.
+- `resume_context.py` : snapshot immuable, preuves et vues local/cloud.
+- `resume_patches.py` : opérations typées et garde-fous de révision.
+- `resume_agent_loop.py` : validation, preview et correction unique.
+- `composition_agent.py` : propositions de layout fondées sur le manifeste.
+- `resume_agent_evaluation.py` : métriques provider-neutral du Scope B.
 - `event_bus.py` : files d’événements SSE utilisées par le gateway.
 - `agents.py`, `tasks.py`, `crew.py`, `agents.yaml` : agents et tâches IA.
 
@@ -36,6 +43,9 @@ lettres et piloter le pipeline RAG/SSE.
   loggés ou renvoyés.
 - Les prompts peuvent produire des artefacts, mais les décisions de stockage et
   de liaison job/CV/ATS/lettre restent côté API.
+- Un agent ne reçoit ni SQL, ni secret, ni mutation libre, ni génération CSS.
+- Toute modification durable exige une révision de base et une validation
+  humaine via les outils du gateway.
 
 ## Développement local
 
@@ -89,6 +99,7 @@ Tests ciblés :
 ```bash
 uv run pytest tests/test_ats_score.py tests/test_llm_runs.py -q
 uv run pytest tests/test_workflow_events.py tests/test_history_api.py -q
+uv run pytest tests/test_resume_agent_contracts.py tests/test_resume_agent_loop.py -q
 ```
 
 Lint ciblé :
@@ -103,4 +114,6 @@ uv run ruff check services/intelligence tests/test_ats_score.py tests/test_workf
 - Les tests doivent mocker les providers quand ils vérifient un contrat métier.
 - Les événements SSE utilisent un `job_id` volatile ; quand un job est persisté,
   les payloads doivent aussi exposer l’identifiant DB (`job_record_id`).
+- Le contrat complet des agents CV est documenté dans
+  [`docs/scope-b-resume-agents.md`](../../docs/scope-b-resume-agents.md).
 - Ne pas committer `__pycache__/`, `*.egg-info/` ou fichiers runtime générés.

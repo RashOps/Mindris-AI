@@ -10,7 +10,9 @@ import {
   Circle,
   FilePlus2,
   Map,
+  ScanSearch,
   Send,
+  ShieldCheck,
   Sparkles,
   WandSparkles,
 } from "lucide-react";
@@ -23,6 +25,54 @@ import { loadDraft, saveDraft } from "@/lib/drafts";
 import { useI18n } from "@/i18n/I18nProvider";
 
 type GuideProgress = { completed?: string[] };
+
+function AgentReviewDemo({ locale }: { locale: "fr" | "en" }) {
+  const french = locale === "fr";
+  const stages = french
+    ? ["Révision figée", "Preuves", "Proposition", "Preview", "Validation"]
+    : ["Frozen revision", "Evidence", "Proposal", "Preview", "Approval"];
+  return (
+    <div className="mt-6 overflow-hidden rounded-xl border border-primary/20 bg-primary/5 p-4">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+        <ScanSearch className="h-4 w-4" aria-hidden="true" />
+        {french ? "Démonstration du contrôle agent" : "Agent control demo"}
+      </div>
+      <div className="mt-4 grid grid-cols-5 gap-1" aria-label="Agent pipeline">
+        {stages.map((stage, index) => (
+          <div
+            key={stage}
+            className="guide-agent-stage rounded-lg border border-border bg-card px-2 py-2 text-center text-[10px] font-medium text-foreground"
+            style={{ animationDelay: `${index * 120}ms` }}
+          >
+            {stage}
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-lg border border-border bg-card p-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            {french ? "Avant" : "Before"}
+          </p>
+          <p className="mt-2 text-xs text-muted-foreground line-through">
+            {french ? "Participation au projet." : "Contributed to the project."}
+          </p>
+        </div>
+        <div className="guide-agent-highlight rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3">
+          <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+            <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+            {french ? "Après, preuve liée" : "After, evidence linked"}
+          </p>
+          <p className="mt-2 text-xs text-foreground">
+            {french
+              ? "Réduction du temps de traitement de 30 %."
+              : "Reduced processing time by 30%."}
+          </p>
+          <p className="mt-1 text-[10px] text-muted-foreground">fact_a8f4…</p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function progressKey(section: GuideSection, itemIndex: number): string {
   return `${section.id}::${itemIndex}`;
@@ -47,7 +97,7 @@ export default function GuidePage() {
       title: copy.tailorTitle,
       description: copy.tailorDescription,
       icon: WandSparkles,
-      sectionIds: ["start-from-job", "build-resume"],
+      sectionIds: ["start-from-job", "agent-review", "build-resume"],
       route: "/tools/cv-creator",
       cta: copy.tailorCta,
     },
@@ -279,6 +329,9 @@ export default function GuidePage() {
                       </p>
                     ))}
                   </div>
+                  {activeSection.id === "agent-review" ? (
+                    <AgentReviewDemo locale={locale} />
+                  ) : null}
                 </div>
 
                 <div className="rounded-xl border border-border bg-background p-4">

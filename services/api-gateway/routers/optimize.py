@@ -40,14 +40,21 @@ async def run_intelligence_pipeline(
     emit(
         job_id,
         "pipeline_start",
-        {"message": f"Pipeline started for {job_url}"},
+        {
+            "message": f"Pipeline started for {job_url}",
+            "message_id": "agent.pipeline.started",
+        },
     )
 
     try:
         emit(
             job_id,
             "node_start",
-            {"node": "scrape", "message": "Scraping job offer page…"},
+            {
+                "node": "scrape",
+                "message": "Scraping job offer page…",
+                "message_id": "agent.pipeline.scraping",
+            },
         )
         try:
             async with SmartScraper() as scraper:
@@ -57,16 +64,37 @@ async def run_intelligence_pipeline(
                 )
         except ScraperExhaustedError as exc:
             monitor.increment_pipeline_failure("optimize")
-            emit(job_id, "error", {"message": f"All scraping providers failed: {exc}"})
+            emit(
+                job_id,
+                "error",
+                {
+                    "message": f"All scraping providers failed: {exc}",
+                    "message_id": "agent.pipeline.scraping_failed",
+                },
+            )
             return
         except TimeoutError:
             monitor.increment_pipeline_failure("optimize")
-            emit(job_id, "error", {"message": "Scraping timed out."})
+            emit(
+                job_id,
+                "error",
+                {
+                    "message": "Scraping timed out.",
+                    "message_id": "agent.pipeline.scraping_timeout",
+                },
+            )
             return
 
         if not markdown_content:
             monitor.increment_pipeline_failure("optimize")
-            emit(job_id, "error", {"message": "Scraping returned empty content."})
+            emit(
+                job_id,
+                "error",
+                {
+                    "message": "Scraping returned empty content.",
+                    "message_id": "agent.pipeline.empty_source",
+                },
+            )
             return
 
         emit(
@@ -75,6 +103,8 @@ async def run_intelligence_pipeline(
             {
                 "node": "scrape",
                 "message": f"Job page scraped ({len(markdown_content)} chars).",
+                "message_id": "agent.pipeline.scraped",
+                "params": {"characters": len(markdown_content)},
             },
         )
         emit(
@@ -83,6 +113,7 @@ async def run_intelligence_pipeline(
             {
                 "node": "analyze",
                 "message": "Extracting job requirements with AI…",
+                "message_id": "agent.pipeline.analyzing_job",
             },
         )
 
@@ -98,7 +129,14 @@ async def run_intelligence_pipeline(
             )
         except TimeoutError:
             monitor.increment_pipeline_failure("optimize")
-            emit(job_id, "error", {"message": "Job offer analysis timed out."})
+            emit(
+                job_id,
+                "error",
+                {
+                    "message": "Job offer analysis timed out.",
+                    "message_id": "agent.pipeline.job_analysis_timeout",
+                },
+            )
             return
         if not job_offer:
             monitor.increment_pipeline_failure("optimize")
@@ -109,7 +147,8 @@ async def run_intelligence_pipeline(
                     "message": (
                         "Job offer analysis failed - LLM could not extract "
                         "structured data."
-                    )
+                    ),
+                    "message_id": "agent.pipeline.job_analysis_failed",
                 },
             )
             return
@@ -117,6 +156,7 @@ async def run_intelligence_pipeline(
         company_insight = None
         job_record_id: int | None = None
         resume_payload: dict | None = None
+        resume_snapshot: dict | None = None
         resolved_resume_locale = resume_locale
         with Session(engine) as session:
             job_record = save_job_offer(session, job_offer)
@@ -124,7 +164,14 @@ async def run_intelligence_pipeline(
             if resume_id is not None:
                 resume_record = session.get(ResumeRecord, resume_id)
                 if resume_record is None:
-                    emit(job_id, "error", {"message": "Selected resume not found."})
+                    emit(
+                        job_id,
+                        "error",
+                        {
+                            "message": "Selected resume not found.",
+                            "message_id": "agent.resume_not_found",
+                        },
+                    )
                     return
                 try:
                     resume_payload, resolved_resume_locale = resolve_resume_variant(
@@ -132,8 +179,28 @@ async def run_intelligence_pipeline(
                         locale=resume_locale,
                     )
                 except ValueError as exc:
-                    emit(job_id, "error", {"message": str(exc)})
+                    emit(
+                        job_id,
+                        "error",
+                        {
+                            "message": str(exc),
+                            "message_id": "agent.resume_locale_invalid",
+                        },
+                    )
                     return
+                from intelligence.resume_context import AgentTask
+                from resume_agent_runtime import build_persisted_resume_snapshot
+
+                canonical_snapshot = build_persisted_resume_snapshot(
+                    session,
+                    resume_id=resume_id,
+                    locale=resolved_resume_locale,
+                    job_id=job_record_id,
+                )
+                resume_snapshot = canonical_snapshot.for_task(
+                    AgentTask.STRATEGY,
+                    external_provider=provider if provider != "ollama" else None,
+                ).model_dump(mode="json")
             try:
                 company_insight = await asyncio.wait_for(
                     analyze_company(
@@ -162,6 +229,12 @@ async def run_intelligence_pipeline(
                     f"Extracted: '{job_offer.title}' @ {job_offer.company} - "
                     f"{len(job_offer.hard_skills)} skills."
                 ),
+                "message_id": "agent.pipeline.job_ready",
+                "params": {
+                    "title": job_offer.title,
+                    "company": job_offer.company,
+                    "skills": len(job_offer.hard_skills),
+                },
             },
         )
 
@@ -179,7 +252,42 @@ async def run_intelligence_pipeline(
                 ),
             )
 
-        workflow = create_rag_workflow(job_id=job_id)
+        def _persist_workflow_proposal(proposal_payload: dict) -> int | None:
+            if resume_id is None:
+                return None
+            from intelligence.resume_patches import ResumePatchProposal
+            from resume_agent_tools import ProposalArguments, save_agent_proposal
+
+            with Session(engine) as proposal_session:
+                record = save_agent_proposal(
+                    proposal_session,
+                    ProposalArguments(
+                        resume_id=resume_id,
+                        revision=(
+                            int(resume_snapshot["revision"])
+                            if resume_snapshot
+                            else None
+                        ),
+                        locale=resolved_resume_locale,
+                        job_id=job_record_id,
+                        task="strategy",
+                        external_provider=(
+                            provider if provider != "ollama" else None
+                        ),
+                        proposal=ResumePatchProposal.model_validate(
+                            proposal_payload
+                        ),
+                        agent="resume_strategist",
+                        provider=provider,
+                        model_name=model_name,
+                    ),
+                )
+                return record.id
+
+        workflow = create_rag_workflow(
+            job_id=job_id,
+            proposal_sink=_persist_workflow_proposal,
+        )
         initial_state = {
             "job_offer": job_offer,
             "provider": provider,
@@ -198,6 +306,9 @@ async def run_intelligence_pipeline(
             "warnings": [],
             "resume_id": resume_id,
             "resume_locale": resolved_resume_locale,
+            "resume_snapshot": resume_snapshot,
+            "resume_patch": None,
+            "max_iterations": settings.agent_max_iterations,
         }
         loop = asyncio.get_running_loop()
         try:
@@ -207,7 +318,14 @@ async def run_intelligence_pipeline(
             )
         except TimeoutError:
             monitor.increment_pipeline_failure("optimize")
-            emit(job_id, "error", {"message": "CV optimization workflow timed out."})
+            emit(
+                job_id,
+                "error",
+                {
+                    "message": "CV optimization workflow timed out.",
+                    "message_id": "agent.pipeline.workflow_timeout",
+                },
+            )
             return
 
         if company_insight:
@@ -216,7 +334,10 @@ async def run_intelligence_pipeline(
         emit(
             job_id,
             "done",
-            {"message": "Pipeline complete! Your CV has been tailored."},
+            {
+                "message": "Pipeline complete! Your CV has been tailored.",
+                "message_id": "agent.pipeline.completed",
+            },
         )
         logger.info("[%s] Pipeline completed.", job_id)
     except Exception as exc:

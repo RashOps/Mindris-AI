@@ -23,6 +23,7 @@ from routers import (
     markdown,
     onboarding,
     optimize,
+    resume_agents,
     resumes,
     system,
     templates,
@@ -188,6 +189,7 @@ app.include_router(tracker.router, dependencies=[Depends(verify_api_key)])
 app.include_router(workflows.router, dependencies=[Depends(verify_api_key)])
 app.include_router(company.router, dependencies=[Depends(verify_api_key)])
 app.include_router(resumes.router, dependencies=[Depends(verify_api_key)])
+app.include_router(resume_agents.router, dependencies=[Depends(verify_api_key)])
 app.include_router(drafts.router, dependencies=[Depends(verify_api_key)])
 app.include_router(templates.router, dependencies=[Depends(verify_api_key)])
 app.include_router(markdown.router, dependencies=[Depends(verify_api_key)])

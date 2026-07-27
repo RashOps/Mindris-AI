@@ -11,6 +11,7 @@ from uuid import uuid4
 from database.records import CoverLetterRecord
 from database.session import Session, get_session
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, UploadFile, status
+from intelligence.resume_context import AgentTask
 from llm_runs import save_llm_run
 from monitoring import monitor
 from persistence import (
@@ -19,7 +20,7 @@ from persistence import (
     save_cover_letter,
     save_current_cv,
 )
-from persistence_domain.resumes import _latest_resume_revision
+from resume_agent_runtime import build_request_resume_snapshot
 from schemas import (
     CoverLetterRequest,
     CoverLetterVersionRequest,
@@ -204,11 +205,26 @@ async def calculate_ats_score_route(request: ScoreRequest, session: SessionDep) 
     from intelligence.ats_score import calculate_ats_score
 
     started_at = perf_counter()
+    canonical_snapshot = build_request_resume_snapshot(
+        session,
+        cv_data=request.cv_data,
+        resume_id=request.resume_id,
+        revision=None,
+        locale=request.resume_locale,
+        template_id=None,
+        job_id=request.job_id,
+        job_context=request.job_insights,
+    )
+    ats_snapshot = canonical_snapshot.for_task(
+        AgentTask.ATS,
+        external_provider=(
+            request.provider if request.provider != "ollama" else None
+        ),
+    )
     try:
         report = await asyncio.wait_for(
             calculate_ats_score(
-                cv_data=request.cv_data,
-                job_insights=request.job_insights,
+                snapshot=ats_snapshot,
                 provider=request.provider,
                 model_name=request.model_name,
                 mode=request.ats_mode,
@@ -235,12 +251,8 @@ async def calculate_ats_score_route(request: ScoreRequest, session: SessionDep) 
     report_context = dict(report.get("context", {}))
     report_context.setdefault("job_id", request.job_id)
     report_context.setdefault("resume_id", request.resume_id)
-    report_context.setdefault(
-        "resume_revision",
-        _latest_resume_revision(session, request.resume_id)
-        if request.resume_id is not None
-        else None,
-    )
+    report_context.setdefault("resume_revision", canonical_snapshot.revision)
+    report_context.setdefault("resume_content_hash", canonical_snapshot.content_hash)
     report_context.setdefault(
         "resume_locale",
         request.resume_locale
@@ -255,6 +267,8 @@ async def calculate_ats_score_route(request: ScoreRequest, session: SessionDep) 
         request.provider,
         request.model_name,
         job_id=request.job_id,
+        resume_id=request.resume_id,
+        resume_revision=canonical_snapshot.revision,
     )
     llm_run = save_llm_run(
         session,
@@ -297,17 +311,33 @@ async def generate_cover_letter_route(
 ) -> dict:
     """Generate and persist a tailored cover letter in Markdown."""
     from intelligence.cover_letter import generate_cover_letter
-
     started_at = perf_counter()
+    canonical_snapshot = build_request_resume_snapshot(
+        session,
+        cv_data=request.cv_data,
+        resume_id=request.resume_id,
+        revision=None,
+        locale=None,
+        template_id=None,
+        job_id=request.job_id,
+        job_context=request.job_insights,
+    )
+    cloud_provider = request.provider if request.provider != "ollama" else None
+    letter_snapshot = canonical_snapshot.for_task(
+        AgentTask.COVER_LETTER,
+        external_provider=cloud_provider,
+    )
     try:
         markdown = await asyncio.wait_for(
             generate_cover_letter(
-                cv_data=request.cv_data,
-                job_insights=request.job_insights,
+                snapshot=letter_snapshot,
                 instructions=request.instructions,
                 example_letter=request.example_letter,
                 provider=request.provider,
                 model_name=request.model_name,
+                rehydration_identity=(
+                    canonical_snapshot.identity if cloud_provider else None
+                ),
             ),
             timeout=settings.pipeline_timeout_seconds,
         )
@@ -337,6 +367,8 @@ async def generate_cover_letter_route(
         request.provider,
         request.model_name,
         job_id=request.job_id,
+        resume_id=request.resume_id,
+        resume_revision=canonical_snapshot.revision,
     )
     llm_run = save_llm_run(
         session,
@@ -358,6 +390,8 @@ async def generate_cover_letter_route(
         "status": "success",
         "id": record.id,
         "job_id": record.job_id,
+        "resume_id": record.resume_id,
+        "resume_revision": record.resume_revision,
         "llm_run_id": llm_run.id,
         "markdown": markdown,
         "generated_at": record.generated_at.isoformat(),
@@ -380,6 +414,8 @@ async def save_cover_letter_version(
         request.provider if request.provider is not None else previous.provider,
         request.model_name if request.model_name is not None else previous.model_name,
         job_id=request.job_id if request.job_id is not None else previous.job_id,
+        resume_id=previous.resume_id,
+        resume_revision=previous.resume_revision,
     )
     return {
         "status": "success",

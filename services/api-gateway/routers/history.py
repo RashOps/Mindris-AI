@@ -25,6 +25,7 @@ from persistence import (
     serialize_opportunity_transition,
     serialize_resume_revision,
 )
+from persistence_domain.resumes import _latest_resume_revision
 from schemas import ActivityLedgerItem, ActivityLedgerLink
 from sqlalchemy import select
 from utils.logger import get_logger
@@ -40,6 +41,14 @@ def _link(subject_type: str, subject_id: int | str, relation: str) -> dict:
         subject_id=str(subject_id),
         relation=relation,
     ).model_dump(mode="json")
+
+
+def _current_revision(session: Session, resume_id: int | None) -> int | None:
+    return (
+        _latest_resume_revision(session, resume_id)
+        if resume_id is not None
+        else None
+    )
 
 
 def _ledger_item(
@@ -134,14 +143,20 @@ def _job_ledger_item(row: ScrapedJobRecord) -> dict:
     )
 
 
-def _ats_ledger_item(row: AtsReportRecord) -> dict:
-    item = serialize_ats(row)
+def _ats_ledger_item(
+    row: AtsReportRecord,
+    current_resume_revision: int | None = None,
+) -> dict:
+    item = serialize_ats(row, current_resume_revision)
     context = item.get("context", {})
     links = []
     if row.job_id:
         links.append(_link("job_scrape", row.job_id, "evaluated_against"))
-    if context.get("resume_id") is not None:
-        links.append(_link("resume_revision", context["resume_id"], "evaluated_resume"))
+    linked_resume_id = row.resume_id or context.get("resume_id")
+    if linked_resume_id is not None:
+        links.append(
+            _link("resume_revision", linked_resume_id, "evaluated_resume")
+        )
     return _ledger_item(
         id=f"ats_report:{row.id}",
         subject_type="ats_report",
@@ -157,16 +172,23 @@ def _ats_ledger_item(row: AtsReportRecord) -> dict:
             "score": item.get("score", 0),
             "mode": item.get("mode", "standard"),
             "job_id": row.job_id,
-            "resume_id": context.get("resume_id"),
+            "resume_id": linked_resume_id,
             "resume_locale": context.get("resume_locale"),
+            "resume_revision": row.resume_revision,
+            "stale": item["stale"],
         },
     )
 
 
-def _cover_letter_ledger_item(row: CoverLetterRecord) -> dict:
+def _cover_letter_ledger_item(
+    row: CoverLetterRecord,
+    current_resume_revision: int | None = None,
+) -> dict:
     links = []
     if row.job_id:
         links.append(_link("job_scrape", row.job_id, "written_for"))
+    if row.resume_id:
+        links.append(_link("resume_revision", row.resume_id, "used_resume"))
     return _ledger_item(
         id=f"cover_letter:{row.id}",
         subject_type="cover_letter",
@@ -177,7 +199,15 @@ def _cover_letter_ledger_item(row: CoverLetterRecord) -> dict:
         provider=row.provider,
         model_name=row.model_name,
         links=links,
-        metadata={"job_id": row.job_id},
+        metadata={
+            "job_id": row.job_id,
+            "resume_id": row.resume_id,
+            "resume_revision": row.resume_revision,
+            "stale": serialize_cover_letter(
+                row,
+                current_resume_revision,
+            )["stale"],
+        },
     )
 
 
@@ -324,8 +354,17 @@ def _build_history_ledger(session: Session) -> list[dict]:
 
     items = [
         *[_job_ledger_item(row) for row in jobs],
-        *[_ats_ledger_item(row) for row in ats_reports],
-        *[_cover_letter_ledger_item(row) for row in cover_letters],
+        *[
+            _ats_ledger_item(row, _current_revision(session, row.resume_id))
+            for row in ats_reports
+        ],
+        *[
+            _cover_letter_ledger_item(
+                row,
+                _current_revision(session, row.resume_id),
+            )
+            for row in cover_letters
+        ],
         *[_resume_revision_ledger_item(row) for row in revisions],
         *[_tracker_ledger_item(row) for row in tracker_rows],
         *[_opportunity_ledger_item(session, row) for row in opportunities],
@@ -370,8 +409,17 @@ async def get_job(job_id: int, session: SessionDep) -> dict:
     return {
         "status": "success",
         "job": serialize_job(job),
-        "ats_reports": [serialize_ats(row) for row in ats_reports],
-        "cover_letters": [serialize_cover_letter(row) for row in letters],
+        "ats_reports": [
+            serialize_ats(row, _current_revision(session, row.resume_id))
+            for row in ats_reports
+        ],
+        "cover_letters": [
+            serialize_cover_letter(
+                row,
+                _current_revision(session, row.resume_id),
+            )
+            for row in letters
+        ],
     }
 
 
@@ -381,7 +429,16 @@ async def list_cover_letters(session: SessionDep) -> dict:
     rows = session.exec(
         select(CoverLetterRecord).order_by(CoverLetterRecord.generated_at.desc())
     ).all()
-    return {"status": "success", "items": [serialize_cover_letter(row) for row in rows]}
+    return {
+        "status": "success",
+        "items": [
+            serialize_cover_letter(
+                row,
+                _current_revision(session, row.resume_id),
+            )
+            for row in rows
+        ],
+    }
 
 
 @router.get("/cover-letters/{letter_id}")
@@ -391,7 +448,13 @@ async def get_cover_letter(letter_id: int, session: SessionDep) -> dict:
     if not row:
         logger.warning("Cover letter %s not found", letter_id)
         raise HTTPException(status_code=404, detail="Cover letter not found.")
-    return {"status": "success", "item": serialize_cover_letter(row)}
+    return {
+        "status": "success",
+        "item": serialize_cover_letter(
+            row,
+            _current_revision(session, row.resume_id),
+        ),
+    }
 
 
 @router.get("/ats-reports")
@@ -400,7 +463,13 @@ async def list_ats_reports(session: SessionDep) -> dict:
     rows = session.exec(
         select(AtsReportRecord).order_by(AtsReportRecord.generated_at.desc())
     ).all()
-    return {"status": "success", "items": [serialize_ats(row) for row in rows]}
+    return {
+        "status": "success",
+        "items": [
+            serialize_ats(row, _current_revision(session, row.resume_id))
+            for row in rows
+        ],
+    }
 
 
 @router.get("/ledger")

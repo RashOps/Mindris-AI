@@ -35,6 +35,9 @@ export interface AtsReportItem {
   mode: "standard" | "strict";
   summary: string;
   generated_at: string;
+  resume_id?: number | null;
+  resume_revision?: number | null;
+  stale?: boolean;
 }
 
 export interface CoverLetterItem {
@@ -42,6 +45,9 @@ export interface CoverLetterItem {
   job_id?: number | null;
   markdown_content: string;
   generated_at: string;
+  resume_id?: number | null;
+  resume_revision?: number | null;
+  stale?: boolean;
 }
 
 export interface ApplicationItem {

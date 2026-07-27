@@ -6,6 +6,7 @@ import {
   GitBranch,
   History,
   LockKeyhole,
+  ScanSearch,
   Search,
   Settings2,
   ShieldCheck,
@@ -63,6 +64,40 @@ export const GUIDE_SECTIONS: GuideSection[] = [
       "L’offre est liée aux rapports ATS ou lettres générés.",
     ],
     tips: ["Ne modifie pas le CV à l’aveugle : commence par identifier les écarts avec l’offre."],
+  },
+  {
+    id: "agent-review",
+    title: "Comprendre et valider une adaptation IA",
+    badge: "Agents contrôlés",
+    summary:
+      "L’agent prépare une proposition prouvée et une preview, mais vous décidez des opérations réellement appliquées.",
+    icon: ScanSearch,
+    route: "/tools/cv-creator",
+    items: [
+      "Mindris fige une révision du CV, recherche des preuves, propose des opérations typées puis inspecte le rendu. Une suggestion ne devient jamais une révision sans validation humaine.",
+      "Chaque fait ajouté ou reformulé cite une preuve du CV. Une compétence, une date ou un résultat sans preuve est refusé avant la preview.",
+      "Le diff permet d’accepter seulement certaines opérations, de tout refuser ou de restaurer ensuite une révision depuis l’historique.",
+      "Le manifeste explique l’impact sur les pages, les débordements et les sections. En mode cloud, l’identité est pseudonymisée ; en local, elle ne quitte pas la machine.",
+    ],
+    steps: [
+      "Snapshot",
+      "Preuves",
+      "Patch typé",
+      "Preview",
+      "Votre validation",
+      "Révision",
+    ],
+    checklist: [
+      "Le job et la révision source sont corrects.",
+      "Chaque affirmation factuelle possède une preuve.",
+      "Le diff conserve le sens de l’expérience.",
+      "Le nombre de pages et les avertissements sont acceptables.",
+      "Les opérations inutiles sont décochées ou la proposition est refusée.",
+      "Le mode local ou cloud correspond au niveau de confidentialité attendu.",
+    ],
+    tips: [
+      "Refuser une suggestion ne modifie jamais le CV. Une acceptation crée une nouvelle révision restaurable.",
+    ],
   },
   {
     id: "build-resume",
@@ -285,6 +320,37 @@ const EN_GUIDE_CONTENT: Record<
       "The exported PDF matches the preview.",
     ],
     tips: ["For non-technical users, start with Simple and open Normal only when needed."],
+  },
+  "agent-review": {
+    title: "Understand and approve an AI-tailored resume",
+    badge: "Controlled agents",
+    summary:
+      "The agent prepares an evidence-backed proposal and preview, but you choose which operations are applied.",
+    items: [
+      "Mindris freezes one resume revision, searches evidence, proposes typed operations, then inspects the render. A suggestion never becomes a revision without human approval.",
+      "Every added or rewritten fact cites resume evidence. An unsupported skill, date, or metric is rejected before preview.",
+      "The diff lets you accept selected operations, reject everything, or later restore a revision from History.",
+      "The manifest explains page, overflow, and section impact. In cloud mode, identity is pseudonymized; in local mode, it stays on your machine.",
+    ],
+    steps: [
+      "Snapshot",
+      "Evidence",
+      "Typed patch",
+      "Preview",
+      "Your approval",
+      "Revision",
+    ],
+    checklist: [
+      "The job and source revision are correct.",
+      "Every factual claim has evidence.",
+      "The diff preserves the meaning of the experience.",
+      "The page count and warnings are acceptable.",
+      "Unwanted operations are unchecked or the proposal is rejected.",
+      "Local or cloud mode matches the expected privacy level.",
+    ],
+    tips: [
+      "Rejecting a suggestion never changes the resume. Approval creates a restorable revision.",
+    ],
   },
   "custom-css": {
     title: "3. Create safe custom CSS",

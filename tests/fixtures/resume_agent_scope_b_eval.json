@@ -1,0 +1,92 @@
+[
+  {
+    "id": "fr-student-tech-aligned",
+    "locale": "fr",
+    "seniority": "student",
+    "job_family": "technical",
+    "alignment": "aligned",
+    "resume_shape": "normal",
+    "risk": "none"
+  },
+  {
+    "id": "en-student-marketing-gap",
+    "locale": "en",
+    "seniority": "student",
+    "job_family": "non_technical",
+    "alignment": "unaligned",
+    "resume_shape": "normal",
+    "risk": "invented_skill"
+  },
+  {
+    "id": "fr-senior-platform-overloaded",
+    "locale": "fr",
+    "seniority": "senior",
+    "job_family": "technical",
+    "alignment": "aligned",
+    "resume_shape": "overloaded",
+    "risk": "visual_overflow"
+  },
+  {
+    "id": "en-senior-legal-ambiguous",
+    "locale": "en",
+    "seniority": "senior",
+    "job_family": "non_technical",
+    "alignment": "partial",
+    "resume_shape": "normal",
+    "risk": "ambiguous_fact"
+  },
+  {
+    "id": "fr-student-data-invention",
+    "locale": "fr",
+    "seniority": "student",
+    "job_family": "technical",
+    "alignment": "unaligned",
+    "resume_shape": "sparse",
+    "risk": "invented_diploma"
+  },
+  {
+    "id": "en-senior-sales-metric",
+    "locale": "en",
+    "seniority": "senior",
+    "job_family": "non_technical",
+    "alignment": "partial",
+    "resume_shape": "normal",
+    "risk": "invented_metric"
+  },
+  {
+    "id": "fr-senior-security-deletion",
+    "locale": "fr",
+    "seniority": "senior",
+    "job_family": "technical",
+    "alignment": "aligned",
+    "resume_shape": "overloaded",
+    "risk": "significant_deletion"
+  },
+  {
+    "id": "en-student-hr-cloud-privacy",
+    "locale": "en",
+    "seniority": "student",
+    "job_family": "non_technical",
+    "alignment": "aligned",
+    "resume_shape": "normal",
+    "risk": "cloud_identity"
+  },
+  {
+    "id": "fr-senior-product-stale",
+    "locale": "fr",
+    "seniority": "senior",
+    "job_family": "non_technical",
+    "alignment": "partial",
+    "resume_shape": "normal",
+    "risk": "stale_revision"
+  },
+  {
+    "id": "en-senior-ml-hallucination",
+    "locale": "en",
+    "seniority": "senior",
+    "job_family": "technical",
+    "alignment": "unaligned",
+    "resume_shape": "overloaded",
+    "risk": "invented_experience"
+  }
+]

@@ -233,6 +233,16 @@ export default function AppPage() {
         proposed_changes: Array.isArray(data.proposed_changes)
           ? data.proposed_changes
           : [],
+        proposal_id:
+          typeof data.proposal_id === "number" ? data.proposal_id : null,
+        resume_revision:
+          typeof data.resume_revision === "number"
+            ? data.resume_revision
+            : null,
+        resume_patch:
+          data.resume_patch && typeof data.resume_patch === "object"
+            ? data.resume_patch
+            : null,
         evaluation: data.evaluation ?? null,
         warnings: stringArray(data.warnings),
         requires_user_review: data.requires_user_review !== false,
@@ -394,6 +404,7 @@ export default function AppPage() {
 
   const handleGhostDone = () => {
     setIsOptimizing(false);
+    setShowGhost(false);
     showToast(copy.optimized);
   };
   const handleGhostError = () => {
@@ -641,7 +652,11 @@ export default function AppPage() {
 
           {/* Ghost Mode */}
           {showGhost && (
-            <div className="flex min-h-64 w-full shrink-0 flex-col overflow-hidden border-b border-border bg-card lg:h-full lg:w-[34%] lg:border-b-0 lg:border-r">
+            <div
+              className={`min-h-64 w-full shrink-0 flex-col overflow-hidden border-b border-border bg-card lg:h-full lg:w-[34%] lg:border-b-0 lg:border-r ${
+                showInsights ? "hidden" : "flex"
+              }`}
+            >
               <div className="shrink-0 border-b border-border bg-card px-4 py-2">
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                   Ghost Mode
