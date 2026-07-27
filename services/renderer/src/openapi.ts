@@ -3,8 +3,12 @@ import { t } from "elysia";
 export const renderPdfBodySchema = t.Object({
     cv_data: t.Any(),
     template_id: t.Optional(t.String()),
+    resume_id: t.Optional(t.Union([t.String(), t.Number()])),
+    resume_revision: t.Optional(t.Number()),
+    content_hash: t.Optional(t.String({ pattern: "^[a-f0-9]{64}$" })),
     return_buffer: t.Optional(t.Boolean()),
     return_html: t.Optional(t.Boolean()),
+    return_manifest: t.Optional(t.Boolean()),
 });
 
 export const renderMarkdownBodySchema = t.Object({
@@ -125,6 +129,16 @@ export function buildOpenApiDocument(serverUrl: string): OpenApiDocument {
                     },
                 },
             },
+            "/contracts": {
+                get: {
+                    summary: "Public renderer, template and selector contracts",
+                    responses: {
+                        200: {
+                            description: "Versioned renderer contracts",
+                        },
+                    },
+                },
+            },
             "/render/pdf": {
                 post: {
                     summary: "Render CV as PDF or HTML",
@@ -139,6 +153,27 @@ export function buildOpenApiDocument(serverUrl: string): OpenApiDocument {
                     responses: {
                         200: {
                             description: "Rendered PDF buffer, HTML, or success payload",
+                        },
+                    },
+                },
+            },
+            "/render/manifest": {
+                post: {
+                    summary: "Inspect a CV render without persisting geometry",
+                    requestBody: {
+                        required: true,
+                        content: {
+                            "application/json": {
+                                schema: renderPdfBodySchema,
+                            },
+                        },
+                    },
+                    responses: {
+                        200: {
+                            description: "Versioned render manifest",
+                        },
+                        422: {
+                            description: "Incompatible template contract",
                         },
                     },
                 },

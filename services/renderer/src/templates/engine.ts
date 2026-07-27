@@ -1,11 +1,17 @@
 import Handlebars from "handlebars";
+import { createHash } from "node:crypto";
 
 import { sanitizeAdvancedCss } from "./css/sanitizer";
 import { buildTokenOverrides } from "./css/tokens";
+import {
+    resolveTemplateContract,
+    TemplateContractError,
+    type TemplateContract,
+} from "./contracts";
 import { dynamicSectionCss, resolveTemplateAssets } from "./template-registry";
 
 const shellTemplate = Handlebars.compile(`<!DOCTYPE html>
-<html lang="fr">
+<html lang="{{language}}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -29,18 +35,13 @@ const shellTemplate = Handlebars.compile(`<!DOCTYPE html>
 </head>
 <body>
     <div id="cv-container">
-        <div id="shadow-host"></div>
+        <div id="shadow-host">
+            <template shadowrootmode="open">
+                <style>{{{css}}}</style>
+                <div>{{{content}}}</div>
+            </template>
+        </div>
     </div>
-    <script>
-        const host = document.getElementById('shadow-host');
-        const shadow = host.attachShadow({ mode: 'open' });
-        const style = document.createElement('style');
-        style.textContent = \`{{{css}}}\`;
-        shadow.appendChild(style);
-        const wrapper = document.createElement('div');
-        wrapper.innerHTML = \`{{{content}}}\`;
-        shadow.appendChild(wrapper);
-    </script>
 </body>
 </html>`);
 
@@ -71,6 +72,7 @@ type SectionConfig = {
         | "dots";
     heading_line?: boolean;
     icon_style?: "none" | "outline" | "filled";
+    order?: number;
 };
 
 const DEFAULT_SECTIONS: SectionConfig[] = [
@@ -90,6 +92,28 @@ function items(value: unknown): any[] {
     return Array.isArray(value) ? value : [];
 }
 
+function documentLanguage(cvData: any): "fr" | "en" | "de" | "es" {
+    const language = cvData?.global_settings?.locale?.label_language;
+    return ["fr", "en", "de", "es"].includes(language) ? language : "fr";
+}
+
+const LUCIDE_PATHS: Record<string, string> = {
+    email: '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+    phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.69 2.8a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.33 1.84.56 2.8.69A2 2 0 0 1 22 16.92z"/>',
+    location: '<path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
+    social: '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
+    experience: '<rect width="20" height="14" x="2" y="7" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
+    education: '<path d="m22 10-10-5L2 10l10 5 10-5Z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>',
+    projects: '<path d="M3 7V5a2 2 0 0 1 2-2h6l2 4h6a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/>',
+    skills: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94Z"/>',
+    default: '<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>',
+};
+
+function lucideSvg(name: string): string {
+    const paths = LUCIDE_PATHS[name] ?? LUCIDE_PATHS.default;
+    return `<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+}
+
 const MONTH_NAMES: Record<string, { short: string[]; long: string[] }> = {
     fr: {
         short: ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."],
@@ -99,12 +123,23 @@ const MONTH_NAMES: Record<string, { short: string[]; long: string[] }> = {
         short: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
         long: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
     },
+    de: {
+        short: ["Jan.", "Feb.", "März", "Apr.", "Mai", "Juni", "Juli", "Aug.", "Sept.", "Okt.", "Nov.", "Dez."],
+        long: ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"],
+    },
+    es: {
+        short: ["ene.", "feb.", "mar.", "abr.", "may.", "jun.", "jul.", "ago.", "sept.", "oct.", "nov.", "dic."],
+        long: ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"],
+    },
 };
 
 function formatDateText(value: unknown, locale: any): string {
     const source = String(value ?? "");
     const format = locale?.date_format ?? "MM/YYYY";
-    const language = locale?.label_language === "fr" ? "fr" : "en";
+    const requestedLanguage = String(locale?.label_language ?? "fr");
+    const language = Object.hasOwn(MONTH_NAMES, requestedLanguage)
+        ? requestedLanguage
+        : "en";
     const names = MONTH_NAMES[language] ?? MONTH_NAMES.en!;
     return source.replace(/\b(\d{4})[-/](0?[1-9]|1[0-2])\b|\b(0?[1-9]|1[0-2])\/(\d{4})\b/g, (match, yearFirst, monthFirst, monthSecond, yearSecond) => {
         const year = yearFirst || yearSecond;
@@ -120,9 +155,21 @@ function formatDateText(value: unknown, locale: any): string {
 
 function configuredSections(cvData: any): SectionConfig[] {
     const configured = cvData?.global_settings?.sections;
-    return Array.isArray(configured) && configured.length > 0
+    const sections: SectionConfig[] = Array.isArray(configured) && configured.length > 0
         ? configured
         : DEFAULT_SECTIONS;
+    const usedIds = new Set<string>();
+    return sections.map((section, order) => {
+        const baseId = String(section.id || section.type || `section-${order}`);
+        let id = baseId;
+        let suffix = 2;
+        while (usedIds.has(id)) {
+            id = `${baseId}-${suffix}`;
+            suffix += 1;
+        }
+        usedIds.add(id);
+        return { ...section, id, order };
+    });
 }
 
 function renderContact(profile: any, settings: any): string {
@@ -134,21 +181,25 @@ function renderContact(profile: any, settings: any): string {
     const iconStyle = ["none", "outline", "filled"].includes(settings?.header_icon_style)
         ? settings.header_icon_style
         : "outline";
-    const contact = (icon: string, content: string) =>
-        `<span class="contact-item"><span class="contact-icon" aria-hidden="true">${icon}</span>${content}</span>`;
+    const contact = (kind: string, content: string) =>
+        `<span class="contact-item" data-cv-role="contact-item" data-contact-type="${kind}">${
+            iconStyle === "none"
+                ? ""
+                : `<span class="contact-icon" aria-hidden="true">${lucideSvg(kind)}</span>`
+        }${content}</span>`;
     const contacts = [
-        profile?.email ? contact("✉", html(profile.email)) : "",
-        profile?.phone ? contact("☎", html(profile.phone)) : "",
+        profile?.email ? contact("email", html(profile.email)) : "",
+        profile?.phone ? contact("phone", html(profile.phone)) : "",
         profile?.location?.city
-            ? contact("⌖", `${html(profile.location.city)}, ${html(profile.location.country)}`)
+            ? contact("location", `${html(profile.location.city)}, ${html(profile.location.country)}`)
             : "",
         ...items(profile?.socials).map((social) => {
             const label = social.label || social.type || social.url;
-            return contact("↗", `<a href="${html(social.url)}" class="contact-link">${html(label)}</a>`);
+            return contact("social", `<a href="${html(social.url)}" class="contact-link">${html(label)}</a>`);
         }),
     ].filter(Boolean);
     return contacts.length
-        ? `<div class="contact-bar contact-layout-${arrangement} contact-icon-${iconStyle}">${contacts.join("")}</div>`
+        ? `<div class="contact-bar contact-layout-${arrangement} contact-icon-${iconStyle}" data-cv-role="contact-list">${contacts.join("")}</div>`
         : "";
 }
 
@@ -163,11 +214,11 @@ function renderHeader(cvData: any): string {
         ? `<p class="summary">${html(profile.text_markdown)}</p>`
         : "";
     return `
-  <header class="header${photo ? ` header-with-photo header-photo-${photoPosition}` : ""}">
+  <header class="header${photo ? ` header-with-photo header-photo-${photoPosition}` : ""}" data-cv-role="header">
     <div class="header-accent"></div>
     ${photo}
     <div class="header-body">
-      <h1>${html(profile.full_name)}</h1>
+      <h1 data-cv-role="profile-name">${html(profile.full_name)}</h1>
       <p class="tagline">${html(profile.title)}</p>
       ${renderContact(profile, cvData?.global_settings?.layout)}
       ${summary}
@@ -189,7 +240,7 @@ function renderProfilePhoto(profile: any, settings: any): string {
         ? settings.shape
         : "round";
     const grayscale = settings.grayscale === true ? " profile-photo-grayscale" : "";
-    return `<img class="profile-photo profile-photo-${position} profile-photo-${size} profile-photo-${shape}${grayscale}" src="${html(source)}" alt="" />`;
+    return `<img class="profile-photo profile-photo-${position} profile-photo-${size} profile-photo-${shape}${grayscale}" data-cv-role="profile-photo" src="${html(source)}" alt="" />`;
 }
 
 function sectionShell(section: SectionConfig, content: string): string {
@@ -207,8 +258,8 @@ function sectionShell(section: SectionConfig, content: string): string {
     const pageBreakAttribute = section.page_break_before
         ? ' data-section-page-break-before="true"'
         : "";
-    return `<section class="section section-placement-${placement} section-display-${html(displayMode)} section-detail-${html(detailLevel)} section-heading-${html(headingStyle)} section-heading-${html(headingCapitalization)} section-heading-${headingLine} section-icon-${html(iconStyle)} section-meta-${html(dateLocationPosition)} section-skill-style-${html(skillStyle)}${pageBreakClass}" data-section-type="${html(section.type)}" data-section-placement="${html(placement)}" data-section-display-mode="${html(displayMode)}" data-section-detail-level="${html(detailLevel)}" data-section-heading-style="${html(headingStyle)}" data-section-heading-capitalization="${html(headingCapitalization)}" data-section-date-location-position="${html(dateLocationPosition)}" data-section-skill-style="${html(skillStyle)}"${pageBreakAttribute}>
-      <h2 class="section-title"><span class="section-heading-icon" aria-hidden="true">•</span>${html(section.label)}</h2>
+    return `<section class="section section-placement-${placement} section-display-${html(displayMode)} section-detail-${html(detailLevel)} section-heading-${html(headingStyle)} section-heading-${html(headingCapitalization)} section-heading-${headingLine} section-icon-${html(iconStyle)} section-meta-${html(dateLocationPosition)} section-skill-style-${html(skillStyle)}${pageBreakClass}" data-cv-role="section" data-section-id="${html(section.id || section.type)}" data-section-type="${html(section.type)}" data-placement="${html(placement)}" data-section-placement="${html(placement)}" data-order="${html(section.order ?? 0)}" data-page-break="${section.page_break_before === true ? "before" : "none"}" data-display-mode="${html(displayMode)}" data-detail-level="${html(detailLevel)}" data-section-display-mode="${html(displayMode)}" data-section-detail-level="${html(detailLevel)}" data-section-heading-style="${html(headingStyle)}" data-section-heading-capitalization="${html(headingCapitalization)}" data-section-date-location-position="${html(dateLocationPosition)}" data-section-skill-style="${html(skillStyle)}"${pageBreakAttribute}>
+      <h2 class="section-title" data-cv-role="section-heading"><span class="section-heading-icon" aria-hidden="true">${iconStyle === "none" ? "" : lucideSvg(section.type)}</span>${html(section.label)}</h2>
       ${content}
     </section>`;
 }
@@ -218,8 +269,8 @@ function renderTitleSubtitle(
     title: unknown,
     subtitle: unknown,
 ): string {
-    const titleMarkup = title ? `<h3>${html(title)}</h3>` : "";
-    const subtitleMarkup = subtitle ? `<span class="company">${html(subtitle)}</span>` : "";
+    const titleMarkup = title ? `<h3 data-cv-role="entry-title">${html(title)}</h3>` : "";
+    const subtitleMarkup = subtitle ? `<span class="company" data-cv-role="entry-subtitle">${html(subtitle)}</span>` : "";
     return section.title_subtitle_order === "subtitle_first"
         ? `${subtitleMarkup}${titleMarkup}`
         : `${titleMarkup}${subtitleMarkup}`;
@@ -238,14 +289,14 @@ function renderExperience(cvData: any, section: SectionConfig): string {
                 showLocations ? entry.location?.city : "",
             ].filter(Boolean).map(html).join(" · ");
             const keywords = items(entry.keywords).length
-                ? `<div class="keyword-tags">${items(entry.keywords).map((kw) => `<span class="kw-tag">${html(kw)}</span>`).join("")}</div>`
+                ? `<div class="keyword-tags" data-cv-role="tag-list">${items(entry.keywords).map((kw) => `<span class="kw-tag" data-cv-role="tag">${html(kw)}</span>`).join("")}</div>`
                 : "";
-            return `<div class="item">
+            return `<div class="item" data-cv-role="entry">
           <div class="item-header">
             ${renderTitleSubtitle(section, entry.role, entry.company)}
-            ${meta ? `<span class="meta">${meta}</span>` : ""}
+            ${meta ? `<span class="meta" data-cv-role="entry-date">${meta}</span>` : ""}
           </div>
-          ${entry.description_markdown ? `<p class="description">${html(entry.description_markdown)}</p>` : ""}
+          ${entry.description_markdown ? `<p class="description" data-cv-role="entry-description">${html(entry.description_markdown)}</p>` : ""}
           ${keywords}
         </div>`;
         }).join(""),
@@ -258,15 +309,21 @@ function renderProjects(cvData: any, section: SectionConfig): string {
     return sectionShell(
         section,
         rows.map((project) => {
+            const linkLabels = {
+                fr: "Lien du projet",
+                en: "Project link",
+                de: "Projektlink",
+                es: "Enlace del proyecto",
+            };
             const url = project.url
-                ? ` <a href="${html(project.url)}" class="proj-link">↗</a>`
+                ? ` <a href="${html(project.url)}" class="proj-link" data-cv-role="entry-link" aria-label="${linkLabels[documentLanguage(cvData)]}">${html(project.url)}</a>`
                 : "";
             const stack = items(project.tech_stack).length
-                ? `<div class="keyword-tags">${items(project.tech_stack).map((tech) => `<span class="kw-tag">${html(tech)}</span>`).join("")}</div>`
+                ? `<div class="keyword-tags" data-cv-role="tag-list">${items(project.tech_stack).map((tech) => `<span class="kw-tag" data-cv-role="tag">${html(tech)}</span>`).join("")}</div>`
                 : "";
-            return `<div class="item">
-          <div class="item-header"><h3>${html(project.name)}${url}</h3></div>
-          ${project.description_markdown ? `<p class="description">${html(project.description_markdown)}</p>` : ""}
+            return `<div class="item" data-cv-role="entry">
+          <div class="item-header"><h3 data-cv-role="entry-title">${html(project.name)}${url}</h3></div>
+          ${project.description_markdown ? `<p class="description" data-cv-role="entry-description">${html(project.description_markdown)}</p>` : ""}
           ${stack}
         </div>`;
         }).join(""),
@@ -283,9 +340,9 @@ function renderCertifications(cvData: any, section: SectionConfig): string {
                 formatDateText(item.date, cvData?.global_settings?.locale),
                 item.url,
             ].filter(Boolean).map(html).join(" · ");
-            return `<div class="item item--compact">
-          <div class="item-header"><h3>${html(item.name)}</h3><span class="company">${html(item.issuer)}</span>${meta ? `<span class="meta">${meta}</span>` : ""}</div>
-          ${item.description_markdown ? `<p class="description description--sm">${html(item.description_markdown)}</p>` : ""}
+            return `<div class="item item--compact" data-cv-role="entry">
+          <div class="item-header"><h3 data-cv-role="entry-title">${html(item.name)}</h3><span class="company" data-cv-role="entry-subtitle">${html(item.issuer)}</span>${meta ? `<span class="meta" data-cv-role="entry-date">${meta}</span>` : ""}</div>
+          ${item.description_markdown ? `<p class="description description--sm" data-cv-role="entry-description">${html(item.description_markdown)}</p>` : ""}
         </div>`;
         }).join(""),
     );
@@ -301,9 +358,9 @@ function renderVolunteering(cvData: any, section: SectionConfig): string {
                 formatDateText(item.period, cvData?.global_settings?.locale),
                 item.location,
             ].filter(Boolean).map(html).join(" · ");
-            return `<div class="item item--compact">
-          <div class="item-header"><h3>${html(item.role)}</h3><span class="company">${html(item.organization)}</span>${meta ? `<span class="meta">${meta}</span>` : ""}</div>
-          ${item.description_markdown ? `<p class="description description--sm">${html(item.description_markdown)}</p>` : ""}
+            return `<div class="item item--compact" data-cv-role="entry">
+          <div class="item-header"><h3 data-cv-role="entry-title">${html(item.role)}</h3><span class="company" data-cv-role="entry-subtitle">${html(item.organization)}</span>${meta ? `<span class="meta" data-cv-role="entry-date">${meta}</span>` : ""}</div>
+          ${item.description_markdown ? `<p class="description description--sm" data-cv-role="entry-description">${html(item.description_markdown)}</p>` : ""}
         </div>`;
         }).join(""),
     );
@@ -319,10 +376,10 @@ function renderPublications(cvData: any, section: SectionConfig): string {
                 item.publisher,
                 formatDateText(item.date, cvData?.global_settings?.locale),
             ].filter(Boolean).map(html).join(" · ");
-            const url = item.url ? `<span class="meta">${html(item.url)}</span>` : "";
-            return `<div class="item item--compact">
-          <div class="item-header"><h3>${html(item.title)}</h3>${meta ? `<span class="company">${meta}</span>` : ""}${url}</div>
-          ${item.description_markdown ? `<p class="description description--sm">${html(item.description_markdown)}</p>` : ""}
+            const url = item.url ? `<span class="meta" data-cv-role="entry-link">${html(item.url)}</span>` : "";
+            return `<div class="item item--compact" data-cv-role="entry">
+          <div class="item-header"><h3 data-cv-role="entry-title">${html(item.title)}</h3>${meta ? `<span class="company" data-cv-role="entry-subtitle">${meta}</span>` : ""}${url}</div>
+          ${item.description_markdown ? `<p class="description description--sm" data-cv-role="entry-description">${html(item.description_markdown)}</p>` : ""}
         </div>`;
         }).join(""),
     );
@@ -335,9 +392,9 @@ function renderReferences(cvData: any, section: SectionConfig): string {
         section,
         rows.map((item) => {
             const meta = [item.role, item.company].filter(Boolean).map(html).join(" · ");
-            return `<div class="item item--compact">
-          <div class="item-header"><h3>${html(item.name)}</h3>${meta ? `<span class="company">${meta}</span>` : ""}${item.contact ? `<span class="meta">${html(item.contact)}</span>` : ""}</div>
-          ${item.description_markdown ? `<p class="description description--sm">${html(item.description_markdown)}</p>` : ""}
+            return `<div class="item item--compact" data-cv-role="entry">
+          <div class="item-header"><h3 data-cv-role="entry-title">${html(item.name)}</h3>${meta ? `<span class="company" data-cv-role="entry-subtitle">${meta}</span>` : ""}${item.contact ? `<span class="meta">${html(item.contact)}</span>` : ""}</div>
+          ${item.description_markdown ? `<p class="description description--sm" data-cv-role="entry-description">${html(item.description_markdown)}</p>` : ""}
         </div>`;
         }).join(""),
     );
@@ -347,14 +404,19 @@ function renderCustomSections(cvData: any, section: SectionConfig): string {
     const rows = items(cvData?.custom_sections);
     if (!rows.length) return "";
     return rows
-        .map((item) => {
+        .map((item, index) => {
             const bullets = items(item.items).length
-                ? `<div class="skill-tags">${items(item.items).map((bullet) => `<span class="tag">${html(bullet)}</span>`).join("")}</div>`
+                ? `<div class="skill-tags" data-cv-role="tag-list">${items(item.items).map((bullet) => `<span class="tag" data-cv-role="tag">${html(bullet)}</span>`).join("")}</div>`
                 : "";
             return sectionShell(
-                { ...section, label: item.title },
-                `<div class="item item--compact">
-          ${item.content_markdown ? `<p class="description description--sm">${html(item.content_markdown)}</p>` : ""}
+                {
+                    ...section,
+                    id: String(item.id || `${section.id || "custom"}-${index}`),
+                    label: item.title,
+                    order: (section.order ?? 0) + index,
+                },
+                `<div class="item item--compact" data-cv-role="entry">
+          ${item.content_markdown ? `<p class="description description--sm" data-cv-role="entry-description">${html(item.content_markdown)}</p>` : ""}
           ${bullets}
         </div>`,
             );
@@ -363,17 +425,32 @@ function renderCustomSections(cvData: any, section: SectionConfig): string {
 }
 
 function renderFallbackSections(cvData: any, usedTypes: Set<string>): string {
-    const fallbacks: Array<{ type: string; label: string; render: (data: any, section: SectionConfig) => string }> = [
-        { type: "certifications", label: "Certifications", render: renderCertifications },
-        { type: "volunteering", label: "Volunteering", render: renderVolunteering },
-        { type: "publications", label: "Publications", render: renderPublications },
-        { type: "references", label: "References", render: renderReferences },
-        { type: "custom", label: "Custom sections", render: renderCustomSections },
+    const labels: Record<string, Record<string, string>> = {
+        certifications: { fr: "Certifications", en: "Certifications", de: "Zertifikate", es: "Certificaciones" },
+        volunteering: { fr: "Bénévolat", en: "Volunteering", de: "Ehrenamt", es: "Voluntariado" },
+        publications: { fr: "Publications", en: "Publications", de: "Veröffentlichungen", es: "Publicaciones" },
+        references: { fr: "Références", en: "References", de: "Referenzen", es: "Referencias" },
+        custom: { fr: "Sections personnalisées", en: "Custom sections", de: "Eigene Abschnitte", es: "Secciones personalizadas" },
+    };
+    const language = documentLanguage(cvData);
+    const fallbacks: Array<{ type: string; render: (data: any, section: SectionConfig) => string }> = [
+        { type: "certifications", render: renderCertifications },
+        { type: "volunteering", render: renderVolunteering },
+        { type: "publications", render: renderPublications },
+        { type: "references", render: renderReferences },
+        { type: "custom", render: renderCustomSections },
     ];
     return fallbacks
         .filter(({ type }) => !usedTypes.has(type))
-        .map(({ type, label, render }) =>
-            render(cvData, { type, label, placement: "main", visible: true }),
+        .map(({ type, render }, index) =>
+            render(cvData, {
+                id: type,
+                type,
+                label: labels[type]?.[language] ?? labels[type]?.en ?? type,
+                placement: "main",
+                visible: true,
+                order: configuredSections(cvData).length + index,
+            }),
         )
         .filter(Boolean)
         .join("");
@@ -386,7 +463,7 @@ function renderSkills(cvData: any, section: SectionConfig): string {
         section,
         rows.map((group) => `<div class="skill-group">
           <h4 class="skill-category">${html(group.category)}</h4>
-          <div class="skill-tags">${items(group.skills).map((skill) => `<span class="tag">${html(skill)}</span>`).join("")}</div>
+          <div class="skill-tags" data-cv-role="tag-list">${items(group.skills).map((skill) => `<span class="tag" data-cv-role="tag">${html(skill)}</span>`).join("")}</div>
         </div>`).join(""),
     );
 }
@@ -403,12 +480,12 @@ function renderEducation(cvData: any, section: SectionConfig): string {
                 showDates ? formatDateText(entry.period, cvData?.global_settings?.locale) : "",
                 showLocations ? entry.location : "",
             ].filter(Boolean).map(html).join(" · ");
-            return `<div class="item item--compact">
+            return `<div class="item item--compact" data-cv-role="entry">
           <div class="item-header">
             ${renderTitleSubtitle(section, entry.degree, entry.institution)}
-          ${meta ? `<span class="meta">${meta}</span>` : ""}
+          ${meta ? `<span class="meta" data-cv-role="entry-date">${meta}</span>` : ""}
           </div>
-          ${entry.description_markdown ? `<p class="description description--sm">${html(entry.description_markdown)}</p>` : ""}
+          ${entry.description_markdown ? `<p class="description description--sm" data-cv-role="entry-description">${html(entry.description_markdown)}</p>` : ""}
         </div>`;
         }).join(""),
     );
@@ -431,7 +508,7 @@ function renderInterests(cvData: any, section: SectionConfig): string {
     if (!rows.length) return "";
     return sectionShell(
         section,
-        `<div class="skill-tags">${rows.map((interest) => `<span class="tag">${html(interest)}</span>`).join("")}</div>`,
+        `<div class="skill-tags" data-cv-role="tag-list">${rows.map((interest) => `<span class="tag" data-cv-role="tag">${html(interest)}</span>`).join("")}</div>`,
     );
 }
 
@@ -467,7 +544,9 @@ function renderSection(cvData: any, section: SectionConfig): string {
 
 function usesTwoColumnLayout(cvData: any, templateId: string): boolean {
     const layout = cvData?.global_settings?.layout;
-    if (templateId === "ats") return false;
+    if (!resolveTemplateContract(templateId).capabilities.columns.includes(2)) {
+        return false;
+    }
     return layout?.columns !== 1 && layout?.sidebar_position !== "none";
 }
 
@@ -489,10 +568,10 @@ function renderCvContent(cvData: any, templateId: string): string {
         .filter((section) => Boolean(section.content));
     const fallbackSections = renderFallbackSections(cvData, usedTypes);
     const sections = twoColumns
-        ? `<div class="section-column section-column-main">${renderedSections
+        ? `<div class="section-column section-column-main" data-cv-role="column" data-placement="main">${renderedSections
             .filter((section) => section.placement === "main")
             .map((section) => section.content)
-            .join("")}${fallbackSections}</div><div class="section-column section-column-sidebar">${renderedSections
+            .join("")}${fallbackSections}</div><div class="section-column section-column-sidebar" data-cv-role="column" data-placement="sidebar">${renderedSections
             .filter((section) => section.placement === "sidebar")
             .map((section) => section.content)
             .join("")}</div>`
@@ -502,32 +581,61 @@ function renderCvContent(cvData: any, templateId: string): string {
     )
         ? cvData.global_settings.layout.header_position
         : "top";
-    return `<div class="cv-wrapper header-position-${headerPosition}">
+    return `<article class="cv-wrapper header-position-${headerPosition}" data-cv-role="document" data-template-id="${html(templateId)}">
       ${renderHeader(cvData)}
-      <div class="cv-content">
+      <div class="cv-content" data-cv-role="content">
       ${warning}
       ${cssWarning}
       <div class="main-grid">${sections}</div>
       </div>
-    </div>`;
+    </article>`;
 }
 
 function renderOnePageWarning(cvData: any): string {
     if (cvData?.global_settings?.page?.one_page_challenge !== true) return "";
     const risk = onePageOverflowRisk(cvData);
     if (risk === "fit") return "";
-    const message =
-        risk === "high"
-            ? "One-page challenge is active, but this resume is likely to overflow one page. Reduce content or switch to a denser template."
-            : "One-page challenge is active. This resume is close to the one-page limit.";
-    return `<aside class="one-page-warning" data-overflow-risk="${risk}">${html(message)}</aside>`;
+    const language = String(
+        cvData?.global_settings?.locale?.label_language ?? "fr",
+    );
+    const messages: Record<string, Record<"high" | "medium", string>> = {
+        fr: {
+            high: "Le défi une page est actif, mais ce CV risque de déborder. Réduisez le contenu ou choisissez un modèle plus dense.",
+            medium: "Le défi une page est actif. Ce CV approche de la limite.",
+        },
+        en: {
+            high: "One-page challenge is active, but this resume is likely to overflow. Reduce content or choose a denser template.",
+            medium: "One-page challenge is active. This resume is close to the limit.",
+        },
+        de: {
+            high: "Die Ein-Seiten-Option ist aktiv, aber dieser Lebenslauf könnte überlaufen. Kürzen Sie den Inhalt oder wählen Sie eine kompaktere Vorlage.",
+            medium: "Die Ein-Seiten-Option ist aktiv. Dieser Lebenslauf nähert sich dem Limit.",
+        },
+        es: {
+            high: "El reto de una página está activo, pero este currículum podría desbordarse. Reduzca el contenido o elija una plantilla más compacta.",
+            medium: "El reto de una página está activo. Este currículum se acerca al límite.",
+        },
+    };
+    const level = risk === "high" ? "high" : "medium";
+    const messageId = `renderer.one_page_overflow_${level}`;
+    const message = (messages[language] ?? messages.en!)[level];
+    return `<aside class="one-page-warning" data-message-id="${messageId}" data-overflow-risk="${risk}">${html(message)}</aside>`;
 }
 
 function renderAdvancedCssWarning(cvData: any): string {
     const warnings = items(cvData?.global_settings?.advanced_css?.warnings);
     if (!warnings.length) return "";
-    return `<aside class="advanced-css-warning">${html(
-        "Advanced CSS dropped unsupported rules.",
+    const language = String(
+        cvData?.global_settings?.locale?.label_language ?? "fr",
+    );
+    const labels: Record<string, string> = {
+        fr: "Le CSS avancé contenait des règles non prises en charge.",
+        en: "Advanced CSS contained unsupported rules.",
+        de: "Das erweiterte CSS enthielt nicht unterstützte Regeln.",
+        es: "El CSS avanzado contenía reglas no compatibles.",
+    };
+    return `<aside class="advanced-css-warning" data-message-id="renderer.advanced_css_rules_dropped">${html(
+        labels[language] ?? labels.en,
     )}</aside>`;
 }
 
@@ -568,35 +676,93 @@ function pageSize(settings?: any): { pageWidth: string; pageHeight: string } {
 
 // ── Engine Entry Point ────────────────────────────────────────────────────────
 
-export function generateHtml(cvData: any, templateId?: string): string {
+export type RenderedDocument = {
+    html: string;
+    contentHash: string;
+    template: TemplateContract;
+    format: "A4" | "Letter";
+};
+
+function stableJson(value: unknown): string {
+    if (Array.isArray(value)) {
+        return `[${value.map(stableJson).join(",")}]`;
+    }
+    if (value && typeof value === "object") {
+        const record = value as Record<string, unknown>;
+        return `{${Object.keys(record)
+            .sort()
+            .map((key) => `${JSON.stringify(key)}:${stableJson(record[key])}`)
+            .join(",")}}`;
+    }
+    return JSON.stringify(value);
+}
+
+export function renderDocument(cvData: any, templateId?: string): RenderedDocument {
     // An operation-level selection must win over the CV's persisted default.
     const resolvedTemplate =
         templateId ??
         (cvData?.global_settings?.template_id as string | undefined) ??
         "modern";
 
+    const contract = resolveTemplateContract(resolvedTemplate);
     const { activeTemplate, css: templateCss } =
         resolveTemplateAssets(resolvedTemplate);
     let css = templateCss;
 
-    const advancedCss = sanitizeAdvancedCss(cvData?.global_settings);
-    if (!cvData.global_settings) {
-        cvData.global_settings = {};
+    const normalizedCvData = structuredClone(cvData ?? {});
+    const cssSelectorVersion =
+        normalizedCvData?.global_settings?.advanced_css
+            ?.selector_contract_version;
+    if (
+        cssSelectorVersion !== undefined &&
+        cssSelectorVersion !== contract.selectorContractVersion
+    ) {
+        throw new TemplateContractError(
+            `Advanced CSS selector contract "${cssSelectorVersion}" is incompatible with renderer contract "${contract.selectorContractVersion}".`,
+        );
     }
-    cvData.global_settings.advanced_css = {
-        ...(cvData.global_settings.advanced_css ?? {}),
+    const contentHash = createHash("sha256")
+        .update(
+            stableJson({
+                cv_data: normalizedCvData,
+                template_id: activeTemplate,
+            }),
+        )
+        .digest("hex");
+    const advancedCss = sanitizeAdvancedCss(normalizedCvData?.global_settings);
+    normalizedCvData.global_settings = normalizedCvData.global_settings ?? {};
+    normalizedCvData.global_settings.advanced_css = {
+        ...(normalizedCvData.global_settings.advanced_css ?? {}),
         warnings: advancedCss.warnings,
     };
 
-    const content = renderCvContent(cvData, activeTemplate);
+    const content = renderCvContent(normalizedCvData, activeTemplate);
 
     // Append user token overrides — these win the cascade inside Shadow DOM
-    const tokenOverrides = buildTokenOverrides(cvData?.global_settings);
+    const tokenOverrides = buildTokenOverrides(normalizedCvData?.global_settings);
     css += `\n\n/* ── Dynamic Section Layout Contract ── */\n${dynamicSectionCss}`;
     if (tokenOverrides) css += `\n\n/* ── User Design Tokens ── */\n${tokenOverrides}`;
     if (advancedCss.css) {
         css += `\n\n/* ── Advanced CSS Patch ── */\n${advancedCss.css}`;
     }
 
-    return shellTemplate({ css, content, ...pageSize(cvData?.global_settings) });
+    const format: "A4" | "Letter" =
+        normalizedCvData?.global_settings?.page?.format === "Letter"
+            ? "Letter"
+            : "A4";
+    return {
+        html: shellTemplate({
+            css,
+            content,
+            language: documentLanguage(normalizedCvData),
+            ...pageSize(normalizedCvData?.global_settings),
+        }),
+        contentHash,
+        template: contract,
+        format,
+    };
+}
+
+export function generateHtml(cvData: any, templateId?: string): string {
+    return renderDocument(cvData, templateId).html;
 }

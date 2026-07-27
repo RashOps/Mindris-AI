@@ -143,7 +143,11 @@
 }
 
 .contact-bar.contact-layout-bullet .contact-item:not(:last-child)::after {
-  content: "•";
+  content: "";
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: currentColor;
   margin-left: 12px;
   color: var(--separator-color, #cbd5e1);
 }
@@ -156,6 +160,19 @@
 
 .contact-icon-none .contact-icon {
   display: none;
+}
+.contact-icon {
+  display: inline-flex;
+  width: 1.1em;
+  height: 1.1em;
+  align-items: center;
+  justify-content: center;
+}
+.contact-icon svg,
+.section-heading-icon svg {
+  display: block;
+  width: 1em;
+  height: 1em;
 }
 .contact-icon-filled .contact-icon {
   display: inline-flex;
@@ -211,11 +228,19 @@
 }
 .section-skill-style-level .tag::after,
 .section-skill-style-dots .tag::after {
-  content: "••••";
+  content: "";
+  display: inline-block;
+  width: 28px;
+  height: 5px;
   float: right;
   margin-left: 8px;
-  letter-spacing: 1px;
-  color: var(--primary-color, #2563eb);
+  background-image: radial-gradient(
+    circle,
+    var(--primary-color, #2563eb) 0 2px,
+    transparent 2.2px
+  );
+  background-position: left center;
+  background-size: 7px 5px;
 }
 
 .main-grid {

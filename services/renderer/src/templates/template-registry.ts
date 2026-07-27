@@ -1,6 +1,8 @@
 import { readFileSync } from "fs";
 import { join } from "path";
 
+import { resolveTemplateContract } from "./contracts";
+
 const TEMPLATE_STYLES: Record<string, string[]> = {
   modern: ["modern"],
   "atlas-sidebar": ["modern", "atlas-sidebar"],
@@ -23,9 +25,8 @@ export function resolveTemplateAssets(requestedTemplate: string): {
   activeTemplate: string;
   css: string;
 } {
-  const activeTemplate = Object.hasOwn(TEMPLATE_STYLES, requestedTemplate)
-    ? requestedTemplate
-    : "modern";
+  resolveTemplateContract(requestedTemplate);
+  const activeTemplate = requestedTemplate;
   const activeStyles = TEMPLATE_STYLES[activeTemplate] ?? ["modern"];
 
   try {
@@ -41,10 +42,11 @@ export function resolveTemplateAssets(requestedTemplate: string): {
       activeTemplate,
       css: `${css}\n\n/* template-id: ${activeTemplate} */`,
     };
-  } catch {
-    console.warn(
-      `CSS not found for template "${activeTemplate}", using fallback.`,
+  } catch (error) {
+    throw new Error(
+      `Stylesheet for registered template "${activeTemplate}" could not be loaded: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
     );
-    return { activeTemplate, css: ":host { font-family: sans-serif; }" };
   }
 }
