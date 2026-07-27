@@ -12,6 +12,7 @@ Les documents n’ont pas tous le même rôle :
 | [Installation](install.md) | Parcours utilisateur self-hosted |
 | [Développement local](local-development.md) | Parcours contributeur |
 | [Workflow Beta](workflow-beta.md) | Contrat de lignée, réparations et critères de sortie Beta |
+| [Agents CV](scope-b-resume-agents.md) | Snapshots, preuves, patches, outils et validation humaine |
 | [Sauvegarde et restauration](backup-restore.md) | Archive locale portable, validation et reprise |
 
 Une fonctionnalité décrite comme future dans une spécification ou une roadmap

@@ -50,6 +50,8 @@ Routes protégées par `X-API-Key` :
 - `/api/v1/markdown/*` : sauvegarde/versioning des lettres Markdown.
 - `/api/v1/llm/*` : providers, modèles et tâches IA.
 - `/api/v1/company/*` : analyse entreprise.
+- `/api/v1/resume-agents/*` : outils CV permissionnés, propositions, previews,
+  validation humaine et historique d'audit.
 
 Documentation interactive locale :
 
@@ -87,6 +89,8 @@ Variables courantes :
 - `STORAGE_DIR` : stockage local SQLite, vectordb, browser profile.
 - `LOGS_DIR` : dossier de logs applicatifs.
 - `RENDERER_URL` : URL du renderer Bun, par défaut `http://localhost:4000`.
+- `AGENT_MAX_ITERATIONS` : maximum d'itérations strategist/evaluator, `3` par
+  défaut.
 - `CHROMA_DB_DIR` : chemin vector DB.
 - `OPENAI_API_KEY`, `GROQ_API_KEY`, `GEMINI_API_KEY`, `MISTRAL_API_KEY`,
   `CEREBRAS_API_KEY`, `OPENROUTER_API_KEY`, `LLAMA_CLOUD_API_KEY` :
@@ -154,3 +158,14 @@ overrides explicites → validation. Le renderer reçoit ce payload résolu ; le
 frontend ne recalcule pas les defaults.
 
 Voir [`docs/cv-renderer-contract.md`](../../docs/cv-renderer-contract.md).
+
+## Contrat des agents CV
+
+Le gateway construit les snapshots depuis les révisions persistées, expose les
+dix outils autorisés et conserve propositions, preuves, manifests, décisions
+humaines et nouvelles révisions. Aucun outil ne commit sans
+`human_approved=true` et `base_revision`.
+
+Voir
+[`docs/scope-b-resume-agents.md`](../../docs/scope-b-resume-agents.md) et
+[`ADR 030`](../../docs/adr/030-human-gated-resume-agent-context-and-tools.md).
