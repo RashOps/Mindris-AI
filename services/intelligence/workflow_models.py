@@ -4,6 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from intelligence.resume_patches import ResumePatchProposal
+
 
 class EvidenceFact(BaseModel):
     """A candidate fact retrieved from the backend-owned profile index."""
@@ -43,6 +45,14 @@ class DraftResponse(BaseModel):
 
     evidence_matrix: list[EvidenceMatch] = Field(default_factory=list)
     proposed_changes: list[ProposedChange] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+
+
+class ResumeStrategyResponse(BaseModel):
+    """Typed strategist output grounded in the canonical evidence registry."""
+
+    evidence_matrix: list[EvidenceMatch] = Field(default_factory=list)
+    patch: ResumePatchProposal | None = None
     warnings: list[str] = Field(default_factory=list)
 
 

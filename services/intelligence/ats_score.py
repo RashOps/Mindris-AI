@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from utils.logger import get_logger
 
 from intelligence.llm_config import get_llm
+from intelligence.resume_context import ResumeContextSnapshot
 
 logger = get_logger(__name__, service_name="intelligence")
 
@@ -108,6 +109,12 @@ class AtsReportContext(BaseModel):
     resume_locale: str | None = Field(
         default=None, description="Active locale or variant used for scoring"
     )
+    resume_revision: int = Field(default=0, description="Scored source revision")
+    resume_content_hash: str = Field(default="", description="Scored content hash")
+    evidence_ids: list[str] = Field(
+        default_factory=list,
+        description="Source facts available to the scorer",
+    )
     provider: str = Field(default="", description="LLM provider used")
     model_name: str = Field(default="", description="LLM model used")
 
@@ -140,36 +147,6 @@ class AtsReport(BaseModel):
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
-
-
-def _build_cv_text(cv_data: dict) -> str:
-    """Extract a plain text representation of the CV for scoring.
-
-    Args:
-        cv_data: Full CVData JSON dictionary.
-
-    Returns:
-        Flat text string suitable for the ATS agent prompt.
-    """
-    profile = cv_data.get("profile", {})
-    text = []
-
-    if profile.get("title"):
-        text.append(f"Title: {profile['title']}")
-    if profile.get("text_markdown"):
-        text.append(f"Summary: {profile['text_markdown']}")
-
-    for exp in cv_data.get("experience", []):
-        text.append(f"Role: {exp.get('role')} at {exp.get('company')}")
-        if exp.get("description_markdown"):
-            text.append(exp["description_markdown"])
-
-    for skill_group in cv_data.get("skills", []):
-        cat = skill_group.get("category")
-        skills = ", ".join(skill_group.get("skills", []))
-        text.append(f"Skills ({cat}): {skills}")
-
-    return "\n".join(text)
 
 
 def build_ats_rubric(mode: str) -> AtsRubric:
@@ -264,8 +241,7 @@ def build_fallback_ats_report(
 
 
 async def calculate_ats_score(
-    cv_data: dict,
-    job_insights: dict,
+    snapshot: ResumeContextSnapshot,
     provider: str,
     model_name: str,
     mode: str = "standard",
@@ -273,8 +249,7 @@ async def calculate_ats_score(
     """Calculate the detailed ATS report for a CV against a job offer.
 
     Args:
-        cv_data:      Full CVData JSON from the frontend store.
-        job_insights: Structured job data (title, company, skills, bullets).
+        snapshot:     Canonical identity-free ATS context.
         provider:     LLM provider identifier.
         model_name:   Model name for the selected provider.
         mode:         ATS evaluation mode (`standard` or `strict`).
@@ -283,12 +258,12 @@ async def calculate_ats_score(
         Dictionary matching :class:`AtsReport` schema.
     """
     logger.info("🎯 Calculating ATS score via %s/%s (%s)", provider, model_name, mode)
-    cv_text = _build_cv_text(cv_data)
-
-    job_title = job_insights.get("job_title", "Unknown")
-    job_company = job_insights.get("company", "")
-    hard_skills = job_insights.get("hard_skills", [])
-    soft_skills = job_insights.get("soft_skills", [])
+    cv_text = snapshot.evidence_text()
+    job = snapshot.job_context
+    job_title = job.title if job else "Unknown"
+    job_company = job.company if job else ""
+    hard_skills = list(job.hard_skills) if job else []
+    soft_skills = list(job.soft_skills) if job else []
 
     job_text = (
         f"Job Title: {job_title}\n"
@@ -364,6 +339,12 @@ async def calculate_ats_score(
             report["context"] = AtsReportContext(
                 job_title=job_title,
                 job_company=job_company,
+                job_id=job.id if job else None,
+                resume_id=snapshot.resume_id,
+                resume_locale=snapshot.locale,
+                resume_revision=snapshot.revision,
+                resume_content_hash=snapshot.content_hash,
+                evidence_ids=[fact.id for fact in snapshot.evidence_registry],
                 provider=provider,
                 model_name=model_name,
             ).model_dump(mode="json")
@@ -380,5 +361,11 @@ async def calculate_ats_score(
             context={
                 "job_title": job_title,
                 "job_company": job_company,
+                "job_id": job.id if job else None,
+                "resume_id": snapshot.resume_id,
+                "resume_locale": snapshot.locale,
+                "resume_revision": snapshot.revision,
+                "resume_content_hash": snapshot.content_hash,
+                "evidence_ids": [fact.id for fact in snapshot.evidence_registry],
             },
         )
