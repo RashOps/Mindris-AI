@@ -14,6 +14,8 @@ puis produit une preview HTML ou un PDF via Puppeteer.
   `/render/markdown`.
 - Exposer health/readiness/metrics/openapi pour RuntimeGate et diagnostics.
 - Gérer un browser manager Puppeteer avec limite de pages concurrentes.
+- Publier les contrats versionnés des templates et sélecteurs CSS.
+- Mesurer un `RenderManifest` exploitable par le backend et les agents.
 
 ## Installation
 
@@ -54,6 +56,7 @@ PORT=4100 bun run start
 curl http://localhost:4000/health
 curl http://localhost:4000/ready
 curl http://localhost:4000/metrics
+curl http://localhost:4000/contracts
 curl http://localhost:4000/openapi.json
 ```
 
@@ -66,6 +69,7 @@ http://localhost:4000/docs
 Endpoints de rendu :
 
 - `POST /render/pdf` : CV data + template -> PDF ou HTML.
+- `POST /render/manifest` : inspection géométrique non persistée du CV.
 - `POST /render/markdown/preview` : Markdown -> HTML preview.
 - `POST /render/markdown` : Markdown -> PDF.
 
@@ -136,3 +140,12 @@ Ne pas committer :
   `src/templates/engine`.
 - Les exports doivent passer par les contrats API existants plutôt que par des
   appels directs depuis le navigateur.
+- Une classe CSS interne n'est pas une API. Les extensions utilisent les
+  sélecteurs `data-*` publiés par `/contracts`.
+- Une géométrie du manifeste n'est valide que pour son `contentHash`.
+
+## Contrat CV
+
+- [`docs/cv-renderer-contract.md`](../../docs/cv-renderer-contract.md)
+- [`docs/custom-cv-css.md`](../../docs/custom-cv-css.md)
+- [ADR 029](../../docs/adr/029-observable-versioned-cv-renderer-contract.md)
