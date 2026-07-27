@@ -25,17 +25,23 @@ export function WorkflowReadinessChecklist({
     },
     {
       label: copy.atsScore,
-      done: Boolean(selected.ats_report_id),
+      done: Boolean(
+        selected.ats_report_id &&
+          !selected.linked_artifacts?.ats_report?.stale,
+      ),
       detail: selected.ats_report_id
-        ? `ATS #${selected.ats_report_id}${selected.linked_artifacts?.ats_report?.generated_at ? ` · ${formatTimestamp(selected.linked_artifacts.ats_report.generated_at)}` : ""}`
+        ? `ATS #${selected.ats_report_id}${selected.linked_artifacts?.ats_report?.generated_at ? ` · ${formatTimestamp(selected.linked_artifacts.ats_report.generated_at)}` : ""}${selected.linked_artifacts?.ats_report?.stale ? ` · ${copy.stale}` : ""}`
         : copy.analyzeResume,
       icon: FileBadge2,
     },
     {
       label: copy.letter,
-      done: Boolean(selected.cover_letter_id),
+      done: Boolean(
+        selected.cover_letter_id &&
+          !selected.linked_artifacts?.cover_letter?.stale,
+      ),
       detail: selected.cover_letter_id
-        ? `#${selected.cover_letter_id}${selected.linked_artifacts?.cover_letter?.generated_at ? ` · ${formatTimestamp(selected.linked_artifacts.cover_letter.generated_at)}` : ""}`
+        ? `#${selected.cover_letter_id}${selected.linked_artifacts?.cover_letter?.generated_at ? ` · ${formatTimestamp(selected.linked_artifacts.cover_letter.generated_at)}` : ""}${selected.linked_artifacts?.cover_letter?.stale ? ` · ${copy.stale}` : ""}`
         : copy.generateLetter,
       icon: FileText,
     },

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { connectApiEventStream } from "@/lib/api";
+import { useI18n } from "@/i18n/I18nProvider";
 import {
   CheckCircle2,
   Circle,
@@ -17,6 +18,7 @@ export interface GhostEvent {
   id: string;
   event: string;       // node_start | node_done | pipeline_start | done | error | ping
   message: string;
+  messageId?: string;
   score?: number;
   content?: string;
   ts: number;
@@ -37,6 +39,8 @@ interface GhostModeProps {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function GhostMode({ jobId, onDone, onError, onJobResult, onCompanyResult }: GhostModeProps) {
+  const { messages } = useI18n();
+  const agentCopyRef = useRef(messages.agent);
   const [events, setEvents] = useState<GhostEvent[]>([]);
   const [status, setStatus] = useState<"idle" | "running" | "done" | "error">("idle");
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -54,6 +58,10 @@ export function GhostMode({ jobId, onDone, onError, onJobResult, onCompanyResult
     onCompanyResultRef.current = onCompanyResult;
   }, [onDone, onError, onJobResult, onCompanyResult]);
 
+  useEffect(() => {
+    agentCopyRef.current = messages.agent;
+  }, [messages.agent]);
+
   // ── Connect SSE only when jobId changes ────────────────────────────────────
   useEffect(() => {
     if (!jobId) return;
@@ -69,10 +77,45 @@ export function GhostMode({ jobId, onDone, onError, onJobResult, onCompanyResult
         const data = JSON.parse(rawData) as GhostPayload;
         if (eventType === "ping") return;
 
+        const messageId =
+          typeof data.message_id === "string" ? data.message_id : undefined;
+        const statusKey = messageId
+          ? {
+              "agent.pipeline.started": "started",
+              "agent.pipeline.scraping": "scraping",
+              "agent.pipeline.scraping_failed": "scrapingFailed",
+              "agent.pipeline.scraping_timeout": "scrapingTimeout",
+              "agent.pipeline.empty_source": "emptySource",
+              "agent.pipeline.scraped": "scraped",
+              "agent.pipeline.analyzing_job": "analyzingJob",
+              "agent.pipeline.job_analysis_timeout": "jobAnalysisTimeout",
+              "agent.pipeline.job_analysis_failed": "jobAnalysisFailed",
+              "agent.pipeline.job_ready": "jobReady",
+              "agent.workflow.searching_evidence": "searchingEvidence",
+              "agent.workflow.evidence_found": "evidenceFound",
+              "agent.workflow.drafting": "drafting",
+              "agent.workflow.draft_ready": "draftReady",
+              "agent.workflow.evaluating": "evaluating",
+              "agent.workflow.score_ready": "scoreReady",
+              "agent.workflow.score_unavailable": "scoreUnavailable",
+              "agent.pipeline.workflow_timeout": "workflowTimeout",
+              "agent.pipeline.completed": "completed",
+              "agent.resume_not_found": "resumeNotFound",
+              "agent.resume_locale_invalid": "invalidLocale",
+            }[messageId]
+          : undefined;
+        const localizedMessage = statusKey
+          ? agentCopyRef.current.statuses[
+              statusKey as keyof typeof agentCopyRef.current.statuses
+            ]
+          : undefined;
         const entry: GhostEvent = {
           id: `${Date.now()}-${Math.random()}`,
           event: eventType,
-          message: typeof data.message === "string" ? data.message : "",
+          message:
+            localizedMessage ??
+            (typeof data.message === "string" ? data.message : ""),
+          messageId,
           score: typeof data.score === "number" ? data.score : undefined,
           content: typeof data.content === "string" ? data.content : undefined,
           ts: Date.now(),
@@ -115,7 +158,7 @@ export function GhostMode({ jobId, onDone, onError, onJobResult, onCompanyResult
             {
               id: `err-${Date.now()}`,
               event: "error",
-              message: "Lost connection to the pipeline.",
+              message: agentCopyRef.current.connectionLost,
               ts: Date.now(),
             },
           ]);
@@ -136,10 +179,10 @@ export function GhostMode({ jobId, onDone, onError, onJobResult, onCompanyResult
 
   // ── Status badge ─────────────────────────────────────────────────────────────
   const badge = {
-    idle:    { label: "Standby",    color: "bg-slate-500" },
-    running: { label: "Live",       color: "bg-green-500 animate-pulse" },
-    done:    { label: "Complete",   color: "bg-blue-500" },
-    error:   { label: "Error",      color: "bg-red-500" },
+    idle:    { label: messages.agent.standby, color: "bg-slate-500" },
+    running: { label: messages.agent.live, color: "bg-green-500 animate-pulse" },
+    done:    { label: messages.agent.complete, color: "bg-blue-500" },
+    error:   { label: messages.agent.error, color: "bg-red-500" },
   }[status];
 
   return (
@@ -150,7 +193,9 @@ export function GhostMode({ jobId, onDone, onError, onJobResult, onCompanyResult
         <span className="w-3 h-3 rounded-full bg-[#ff5f57]" />
         <span className="w-3 h-3 rounded-full bg-[#febc2e]" />
         <span className="w-3 h-3 rounded-full bg-[#28c840]" />
-        <span className="ml-3 text-xs text-slate-400 flex-1">Ghost Mode — Live Intelligence Feed</span>
+        <span className="ml-3 text-xs text-slate-400 flex-1">
+          Ghost Mode — {messages.agent.title}
+        </span>
         <span className={`text-[10px] font-bold text-white px-2 py-0.5 rounded-full ${badge.color}`}>
           {badge.label}
         </span>
@@ -160,14 +205,14 @@ export function GhostMode({ jobId, onDone, onError, onJobResult, onCompanyResult
       <div className="flex-1 overflow-y-auto p-4 space-y-1.5 scrollbar-thin scrollbar-thumb-white/10">
         {events.length === 0 && status === "idle" && (
           <div className="text-slate-600 text-xs pt-2">
-            Waiting for a job URL to be submitted…
+            {messages.agent.waiting}
           </div>
         )}
 
         {events.length === 0 && status === "running" && (
           <div className="flex items-center gap-2 text-slate-400 text-xs">
             <span className="w-3 h-3 border border-slate-500 border-t-slate-300 rounded-full animate-spin" />
-            Connecting to pipeline…
+            {messages.agent.connecting}
           </div>
         )}
 

@@ -378,14 +378,31 @@ export interface JobInsights {
     rationale: string;
   }>;
   proposed_changes: Array<{
-    section_id: string;
-    entry_id?: string | null;
-    before: string;
-    after: string;
+    operation_id: string;
+    type: string;
     reason: string;
     source_fact_ids: string[];
-    confidence: number;
+    operation: Record<string, unknown>;
   }>;
+  proposal_id?: number | null;
+  resume_revision?: number | null;
+  resume_patch?: {
+    base_revision: number;
+    reason: string;
+    evidence_ids: string[];
+    operations: Array<
+      Record<string, unknown> & {
+        operation_id: string;
+        type: string;
+        evidence_ids?: string[];
+      }
+    >;
+    expected_effects?: {
+      page_count?: number | null;
+      target_score?: string | null;
+      visual_impact?: string;
+    };
+  } | null;
   evaluation?: {
     score: number;
     keyword_match: number;
