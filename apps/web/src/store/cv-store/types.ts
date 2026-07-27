@@ -426,6 +426,10 @@ export interface LLMConfig {
 }
 
 export type PdfIngestionMode = "auto" | "llama_parse" | "local_text";
+export type PrivacyMode =
+  | "local_strict"
+  | "private_cloud"
+  | "full_context_cloud";
 
 export interface AppSettings {
   optimize_llm: LLMConfig;
@@ -434,6 +438,8 @@ export interface AppSettings {
   patch_llm: LLMConfig;
   pdf_ingestion_mode: PdfIngestionMode;
   ui_locale: "fr" | "en";
+  privacy_mode: PrivacyMode;
+  telemetry_enabled: boolean;
 }
 
 export interface CVData {

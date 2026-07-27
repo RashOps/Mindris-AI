@@ -23,6 +23,8 @@ export type SystemConfigurationPayload = {
       defaults?: Record<string, { provider?: string; model_name?: string }>;
       pdf_ingestion_mode?: AppSettings["pdf_ingestion_mode"];
       ui_locale?: AppSettings["ui_locale"];
+      privacy_mode?: AppSettings["privacy_mode"];
+      telemetry_enabled?: boolean;
     };
     llm?: {
       providers?: ProviderStatus;

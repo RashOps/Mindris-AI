@@ -152,6 +152,42 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     ],
   },
   {
+    id: "privacy",
+    title: "Confidentialité : local-first, pas local-only",
+    badge: "Contrat vérifiable",
+    summary:
+      "Choisir ce qui peut quitter la machine et contrôler chaque appel externe.",
+    icon: LockKeyhole,
+    route: "/dashboard",
+    items: [
+      "Local-first signifie que le produit fonctionne et conserve son état localement. Local strict interdit en plus tout appel IA externe et désactive la télémétrie.",
+      "Cloud privé minimise et pseudonymise le CV avant l’envoi. Cloud contexte complet transmet volontairement davantage de contexte après un consentement renforcé.",
+      "Le BYOK relie l’appel à votre compte provider : Mindris ne promet donc pas l’anonymat absolu. Les placeholders réduisent les identifiants visibles, mais le provider conserve ses propres métadonnées techniques.",
+      "Avant le premier appel, l’écran « Ce qui quitte votre machine » affiche provider, modèle, tâche, catégories, volume estimé, rétention connue et date de vérification.",
+      "Utilisez Ollama avec le mode Local strict pour garder l’inférence sur votre machine. Le téléchargement d’un modèle reste une opération explicite.",
+      "Configuration permet de révoquer un consentement, exporter ou vider le registre externe. La désinstallation complète supprime les données locales lorsque l’option dédiée est choisie.",
+    ],
+    steps: [
+      "Données locales",
+      "Minimisation",
+      "Pseudonymisation",
+      "Consentement",
+      "Provider",
+      "Audit local",
+    ],
+    checklist: [
+      "Le mode choisi correspond à la sensibilité du document.",
+      "Les catégories affichées avant l’envoi sont nécessaires à la tâche.",
+      "La politique provider a été vérifiée récemment.",
+      "Les consentements inutiles sont révoqués.",
+      "Le registre externe peut être exporté ou supprimé.",
+    ],
+    tips: [
+      "Pour un CV contenant des données médicales, administratives ou des références personnelles, utilisez Local strict.",
+      "Une clé API privée protège la facturation, pas l’identité réseau de votre compte provider.",
+    ],
+  },
+  {
     id: "workflow",
     title: "3. Piloter le Workflow",
     badge: "Beta",
@@ -380,6 +416,39 @@ const EN_GUIDE_CONTENT: Record<
     tips: [
       "Start with tokens mode and use css_patch only when variables are insufficient.",
       "Prefer [data-cv-role='section-heading'] to a fragile class or nth-child selector.",
+    ],
+  },
+  privacy: {
+    title: "Privacy: local-first, not necessarily local-only",
+    badge: "Verifiable contract",
+    summary:
+      "Choose what may leave the machine and control every external call.",
+    items: [
+      "Local-first means the product works and keeps its state locally. Local strict additionally blocks every external AI call and disables telemetry.",
+      "Private cloud minimizes and pseudonymizes the resume. Full-context cloud voluntarily sends more context after reinforced consent.",
+      "BYOK links requests to your provider account, so Mindris cannot promise absolute anonymity. Placeholders reduce visible identifiers, while providers still receive technical metadata.",
+      "Before the first call, the outbound-data screen shows provider, model, task, categories, estimated volume, known retention and verification date.",
+      "Use Ollama with Local strict to keep inference on your machine. Model downloads are always explicit.",
+      "Configuration lets you revoke consent and export or clear the external activity ledger. Full uninstall can remove local data.",
+    ],
+    steps: [
+      "Local data",
+      "Minimize",
+      "Pseudonymize",
+      "Consent",
+      "Provider",
+      "Local audit",
+    ],
+    checklist: [
+      "The mode matches the document sensitivity.",
+      "Every displayed category is required for the task.",
+      "Provider information was verified recently.",
+      "Unused consents are revoked.",
+      "The external ledger can be exported or deleted.",
+    ],
+    tips: [
+      "Use Local strict for medical, administrative or personal-reference data.",
+      "A private API key protects billing, not the network identity of your provider account.",
     ],
   },
   workflow: {

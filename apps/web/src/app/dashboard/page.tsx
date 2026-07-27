@@ -17,7 +17,7 @@ import {
   useCVStore,
   type CVData,
 } from "@/store/useCVStore";
-import { apiHeaders, apiUrl, jsonHeaders } from "@/lib/api";
+import { apiHeaders, apiUrl, jsonHeaders, privacyFetch } from "@/lib/api";
 import {
   FALLBACK_TEMPLATES,
   fileNameToResumeName,
@@ -289,7 +289,7 @@ export default function DashboardPage() {
       form.append("model_name", appSettings.optimize_llm.model_name);
       form.append("ingestion_mode", appSettings.pdf_ingestion_mode);
 
-      const res = await fetch(apiUrl("/api/v1/cv/upload-pdf"), {
+      const res = await privacyFetch(apiUrl("/api/v1/cv/upload-pdf"), {
         method: "POST",
         headers: apiHeaders(),
         body: form,

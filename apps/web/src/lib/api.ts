@@ -26,6 +26,92 @@ export function jsonHeaders(): HeadersInit {
   return { "Content-Type": "application/json", ...apiHeaders() };
 }
 
+export type PrivacyConsentDetail = {
+  provider: string;
+  model: string;
+  task: string;
+  mode: "private_cloud" | "full_context_cloud";
+  categories: string[];
+  category_reasons?: Record<string, string>;
+  character_count: number;
+  approximate_tokens: number;
+  policy_version: string;
+  examples?: string[];
+  provider_metadata?: {
+    last_verified_at: string;
+    retention_summary: string;
+    retention_summary_fr?: string;
+    source_url: string;
+    stale: boolean;
+    legal_notice: string;
+    legal_notice_fr?: string;
+  };
+};
+
+type PrivacyDecision = "continue" | "reduce" | "local" | "cancel";
+
+export type PrivacyConsentEvent = {
+  detail: PrivacyConsentDetail;
+  resolve: (decision: PrivacyDecision) => void;
+};
+
+/**
+ * Product API fetch with an interactive retry when the backend requires
+ * explicit cloud consent. Business decisions remain backend-owned.
+ */
+export async function privacyFetch(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<Response> {
+  const response = await fetch(input, init);
+  if (response.status !== 428 || typeof window === "undefined") return response;
+
+  const payload = await response.clone().json().catch(() => null);
+  const detail = payload?.detail as PrivacyConsentDetail | undefined;
+  if (!detail?.provider || !detail.task || !detail.mode) return response;
+
+  const decision = await new Promise<PrivacyDecision>((resolve) => {
+    window.dispatchEvent(
+      new CustomEvent<PrivacyConsentEvent>("mindris:privacy-consent", {
+        detail: { detail, resolve },
+      }),
+    );
+  });
+
+  if (decision === "continue") {
+    const consent = await fetch(apiUrl("/api/v1/privacy/consents"), {
+      method: "PUT",
+      headers: jsonHeaders(),
+      body: JSON.stringify({
+        provider: detail.provider,
+        task: detail.task,
+        mode: detail.mode,
+        granted: true,
+        acknowledge_full_context: detail.mode === "full_context_cloud",
+      }),
+    });
+    return consent.ok ? privacyFetch(input, init) : response;
+  }
+
+  if (decision === "reduce" || decision === "local") {
+    const modeResponse = await fetch(apiUrl("/api/v1/system/configuration"), {
+      method: "PUT",
+      headers: jsonHeaders(),
+      body: JSON.stringify({
+        privacy_mode:
+          decision === "reduce" ? "private_cloud" : "local_strict",
+      }),
+    });
+    if (modeResponse.ok) {
+      window.dispatchEvent(new Event("mindris:privacy-mode-changed"));
+      if (decision === "reduce") {
+        return privacyFetch(input, init);
+      }
+    }
+  }
+  return response;
+}
+
 type StreamHandlers = {
   onEvent: (event: string, data: string) => void;
   onError?: (error: Error) => void;

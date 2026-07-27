@@ -9,7 +9,10 @@ import {
   CheckCircle2,
   Circle,
   FilePlus2,
+  LockKeyhole,
   Map,
+  Pause,
+  Play,
   ScanSearch,
   Send,
   ShieldCheck,
@@ -74,6 +77,65 @@ function AgentReviewDemo({ locale }: { locale: "fr" | "en" }) {
   );
 }
 
+function PrivacyFlowDemo({ locale }: { locale: "fr" | "en" }) {
+  const french = locale === "fr";
+  const [motionEnabled, setMotionEnabled] = useState(true);
+  const stages = [
+    { label: french ? "Votre machine" : "Your machine", icon: LockKeyhole },
+    { label: "Privacy Gateway", icon: ShieldCheck },
+    { label: french ? "Provider choisi" : "Chosen provider", icon: Send },
+  ];
+  return (
+    <div
+      className={`mt-6 rounded-xl border border-primary/20 bg-primary/5 p-4 ${
+        motionEnabled ? "" : "guide-motion-paused"
+      }`}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+          {french ? "Trajet contrôlé des données" : "Controlled data path"}
+        </p>
+        <button
+          type="button"
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 text-[11px] font-medium text-foreground"
+          aria-pressed={!motionEnabled}
+          onClick={() => setMotionEnabled((current) => !current)}
+        >
+          {motionEnabled ? <Pause size={12} /> : <Play size={12} />}
+          {motionEnabled
+            ? french
+              ? "Pause"
+              : "Pause"
+            : french
+              ? "Animer"
+              : "Animate"}
+        </button>
+      </div>
+      <div className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto_1fr_auto_1fr] sm:items-center">
+        {stages.map((stage, index) => {
+          const Icon = stage.icon;
+          return (
+            <div key={stage.label} className="contents">
+              <div className="guide-agent-stage rounded-lg border border-border bg-card p-3 text-center">
+                <Icon className="mx-auto h-4 w-4 text-primary" />
+                <p className="mt-2 text-xs font-medium text-foreground">
+                  {stage.label}
+                </p>
+              </div>
+              {index < stages.length - 1 && (
+                <ArrowRight className="mx-auto hidden h-4 w-4 text-muted-foreground sm:block" />
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <p className="guide-agent-highlight mt-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-foreground">
+        Ada Lovelace · ada@example.com → [CANDIDATE_NAME] · [CANDIDATE_EMAIL]
+      </p>
+    </div>
+  );
+}
+
 function progressKey(section: GuideSection, itemIndex: number): string {
   return `${section.id}::${itemIndex}`;
 }
@@ -88,7 +150,7 @@ export default function GuidePage() {
       title: copy.firstCvTitle,
       description: copy.firstCvDescription,
       icon: FilePlus2,
-      sectionIds: ["product-loop", "build-resume", "custom-css"],
+      sectionIds: ["product-loop", "privacy", "build-resume", "custom-css"],
       route: "/tools/cv-creator",
       cta: copy.firstCvCta,
     },
@@ -331,6 +393,9 @@ export default function GuidePage() {
                   </div>
                   {activeSection.id === "agent-review" ? (
                     <AgentReviewDemo locale={locale} />
+                  ) : null}
+                  {activeSection.id === "privacy" ? (
+                    <PrivacyFlowDemo locale={locale} />
                   ) : null}
                 </div>
 
