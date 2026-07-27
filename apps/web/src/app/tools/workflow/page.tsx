@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Plus, X } from "lucide-react";
 
 import { openCoverLetterInMarkdown } from "@/lib/cover-letters";
+import { useI18n } from "@/i18n/I18nProvider";
 import { WorkflowActionsPanel } from "./components/WorkflowActionsPanel";
 import { WorkflowCreatePanel } from "./components/WorkflowCreatePanel";
 import { WorkflowHeader } from "./components/WorkflowHeader";
@@ -26,6 +27,8 @@ import {
 } from "./workflow-model";
 
 export default function WorkflowPage() {
+  const { messages } = useI18n();
+  const copy = messages.pages.workflow;
   const router = useRouter();
   const [opportunities, setOpportunities] = useState<OpportunityItem[]>([]);
   const [jobs, setJobs] = useState<JobItem[]>([]);
@@ -79,11 +82,11 @@ export default function WorkflowPage() {
         return workflowData.items[0]?.id ?? null;
       });
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Unable to load workflow.");
+      setError(loadError instanceof Error ? loadError.message : copy.loadFailed);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [copy.loadFailed]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -142,7 +145,7 @@ export default function WorkflowPage() {
       await callback();
       await load();
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "Action workflow impossible.");
+      setError(actionError instanceof Error ? actionError.message : copy.actionFailed);
     } finally {
       setBusyAction(null);
     }
@@ -176,7 +179,7 @@ export default function WorkflowPage() {
     void openCoverLetterInMarkdown(activeCoverLetterId)
       .then(() => router.push("/tools/markdown"))
       .catch((openError: unknown) => {
-        setError(openError instanceof Error ? openError.message : "Ouverture de la lettre impossible.");
+        setError(openError instanceof Error ? openError.message : copy.openLetterFailed);
       });
   };
 
@@ -209,7 +212,7 @@ export default function WorkflowPage() {
               ) : (
                 <Plus className="h-4 w-4" aria-hidden="true" />
               )}
-              {isCreateOpen ? "Fermer la création" : "Nouvelle opportunité"}
+              {isCreateOpen ? copy.closeCreation : copy.newOpportunity}
             </button>
             {isCreateOpen ? <WorkflowCreatePanel
               busyAction={busyAction}
@@ -254,7 +257,7 @@ export default function WorkflowPage() {
             </button>
             {!selected ? (
               <div className="rounded-2xl border border-border bg-card px-5 py-8 text-sm text-muted-foreground shadow-sm">
-                Sélectionnez une opportunité pour piloter les prochaines étapes.
+                {copy.selectOpportunity}
               </div>
             ) : (
               <>
@@ -263,13 +266,13 @@ export default function WorkflowPage() {
                 <div
                   className="grid grid-cols-3 rounded-xl border border-border bg-card p-1"
                   role="tablist"
-                  aria-label="Détails de l’opportunité"
+                  aria-label={copy.detailsLabel}
                 >
                   {(
                     [
-                      ["overview", "Préparation"],
-                      ["artifacts", "Documents"],
-                      ["diagnostic", "Diagnostic"],
+                      ["overview", copy.preparation],
+                      ["artifacts", copy.documents],
+                      ["diagnostic", copy.diagnostic],
                     ] as const
                   ).map(([value, label]) => (
                     <button

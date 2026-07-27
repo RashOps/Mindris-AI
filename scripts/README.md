@@ -29,6 +29,7 @@ sont utilisés en CI.
 | Nettoyer un test self-hosted Docker | [`clean_self_hosted_test.sh`](./clean_self_hosted_test.sh) |
 | Vérifier qu'un tag stable peut être promu | [`verify_release_promotion.sh`](./verify_release_promotion.sh) |
 | Tester localement la politique de promotion | [`test_release_policy.sh`](./test_release_policy.sh) |
+| Vérifier les liens Markdown locaux | [`check_markdown_links.py`](./check_markdown_links.py) |
 
 ## Scripts locaux sans Docker
 
@@ -60,12 +61,14 @@ Commandes principales :
 | --- | --- | --- |
 | `doctor [--json]` | Vérifier outils, ports et services | Non |
 | `setup [--check]` | Installer le workspace verrouillé | Oui |
+| `reset-deps` | Réinstaller les dépendances sans toucher aux lockfiles | Oui |
 | `dev [--web-port 3100]` | Superviser les trois services | Oui |
 | `stop`, `status`, `logs` | Piloter une stack lancée par la CLI | Non |
 | `lint`, `test`, `check`, `e2e` | Valider le dépôt | Oui |
 | `smoke` | Vérifier les endpoints sans `curl` | Non |
 | `docker ...` | Piloter Docker Compose | Non |
 | `release verify vX.Y.Z` | Vérifier une promotion stable | Non |
+| `backup create/inspect/restore` | Sauvegarder ou restaurer `storage/` | Non |
 
 Exemples :
 
@@ -75,17 +78,27 @@ Exemples :
 ./mindris test --scope backend
 ./mindris check --with-smoke --with-e2e
 ./mindris logs renderer --follow
+./mindris logs api-gateway --since 30m --request-id <request-id>
 ./mindris docker doctor
 ./mindris release verify v0.5.0
+./mindris backup create ./backups/mindris.zip
+./mindris backup inspect ./backups/mindris.zip
+./mindris backup restore ./backups/mindris.zip
 ```
 
 La CLI n'installe jamais avec `pip` et n'installe pas silencieusement `uv`.
 Quand `uv` manque, elle affiche la commande officielle adaptée à la plateforme.
-Les scripts shell historiques restent disponibles pendant la migration.
+Les scripts shell historiques restent disponibles comme wrappers de
+compatibilité. Ils délèguent à la CLI afin que Linux, macOS et Windows
+partagent une seule implémentation. Les scripts self-hosted et release restent
+natifs, car ils doivent fonctionner sans checkout Python préparé.
+
+Le format de sauvegarde, l’exclusion des secrets et le parcours self-hosted
+sont détaillés dans le [guide de sauvegarde](../docs/backup-restore.md).
 
 ### [`setup_local.sh`](./setup_local.sh)
 
-Prépare l’environnement de développement local.
+Wrapper de compatibilité vers `./mindris setup`.
 
 Actions :
 
@@ -110,7 +123,7 @@ Commande :
 
 ### [`reset_local_deps.sh`](./reset_local_deps.sh)
 
-Réinstalle les dépendances sans toucher aux lockfiles.
+Wrapper de compatibilité vers `./mindris reset-deps`.
 
 Actions :
 
@@ -131,7 +144,8 @@ Commande :
 
 ### [`dev_local.sh`](./dev_local.sh)
 
-Lance la stack locale complète sans Docker :
+Wrapper de compatibilité vers `./mindris dev`. Il lance la stack locale
+complète sans Docker :
 
 - API Gateway sur `8000` ;
 - Renderer Bun sur `4000` ;
@@ -152,12 +166,17 @@ API_PORT=8100 RENDERER_PORT=4100 WEB_PORT=3100 ./scripts/dev_local.sh
 Logs :
 
 ```text
-.logs/api-gateway.log
-.logs/renderer.log
-.logs/web.log
+.logs/services/api-gateway.log
+.logs/services/renderer.log
+.logs/process/api-gateway.stdout.log
+.logs/process/renderer.stdout.log
+.logs/process/web.stdout.log
+.logs/runtime/mindris-dev.json
 ```
 
-Le script refuse de démarrer si un port requis est déjà occupé.
+La CLI refuse les ports invalides, dupliqués ou occupés. Son fichier d’état
+stocke l’identité de création de chaque processus : `mindris stop` ignore donc
+un PID qui aurait été réutilisé par le système.
 
 ## Validation locale
 
@@ -210,14 +229,10 @@ Précondition pour l’E2E : stack locale déjà démarrée et accessible.
 
 ### [`check_all.sh`](./check_all.sh)
 
-Wrapper de validation.
+Wrapper de compatibilité vers `./mindris check`.
 
-Actions :
-
-1. lance [`lint_all.sh`](./lint_all.sh) ;
-2. lance [`test_all.sh`](./test_all.sh) ;
-3. lance le smoke local si `RUN_LOCAL_SMOKE=1` ;
-4. lance l’E2E navigateur si `RUN_BROWSER_E2E=1`.
+Les variables `RUN_LOCAL_SMOKE=1` et `RUN_BROWSER_E2E=1` sont traduites en
+options `--with-smoke` et `--with-e2e`.
 
 Commande standard :
 

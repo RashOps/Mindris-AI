@@ -115,8 +115,11 @@ docker build -f services/renderer/Dockerfile services/renderer
 Le renderer ecrit des evenements structures JSONL dans :
 
 ```text
-.logs/renderer.log
+.logs/services/renderer.log
 ```
+
+`LOGS_DIR` choisit la racine commune et `RENDERER_LOG_PATH` peut cibler un
+fichier explicite. Le fichier est borné par rotation.
 
 Ne pas committer :
 

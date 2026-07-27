@@ -4,11 +4,11 @@ import { useMemo, useState } from "react";
 import { Loader2, Search } from "lucide-react";
 
 import {
-  STATE_LABELS,
   formatTimestamp,
   integrityTone,
   type OpportunityItem,
 } from "../workflow-model";
+import { useI18n } from "@/i18n/I18nProvider";
 
 interface WorkflowOpportunityListProps {
   loading: boolean;
@@ -23,20 +23,22 @@ export function WorkflowOpportunityList({
   selectedId,
   onSelect,
 }: WorkflowOpportunityListProps) {
+  const { locale, messages } = useI18n();
+  const copy = messages.pages.workflow;
   const [query, setQuery] = useState("");
   const filteredOpportunities = useMemo(() => {
-    const needle = query.trim().toLocaleLowerCase("fr");
+    const needle = query.trim().toLocaleLowerCase(locale);
     if (!needle) return opportunities;
     return opportunities.filter((item) =>
-      `${item.role} ${item.company}`.toLocaleLowerCase("fr").includes(needle),
+      `${item.role} ${item.company}`.toLocaleLowerCase(locale).includes(needle),
     );
-  }, [opportunities, query]);
+  }, [locale, opportunities, query]);
 
   return (
     <section className="rounded-2xl border border-border bg-card shadow-sm">
       <div className="border-b border-border px-4 py-3">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-sm font-semibold text-foreground">Opportunités actives</p>
+          <p className="text-sm font-semibold text-foreground">{copy.activeOpportunities}</p>
           <span className="text-xs text-muted-foreground">
             {filteredOpportunities.length}/{opportunities.length}
           </span>
@@ -47,7 +49,7 @@ export function WorkflowOpportunityList({
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Rechercher une opportunité"
+            placeholder={copy.searchOpportunity}
             className="app-input h-9 w-full pl-9 text-xs"
           />
         </label>
@@ -55,15 +57,15 @@ export function WorkflowOpportunityList({
       {loading ? (
         <div className="flex items-center gap-2 px-4 py-6 text-sm text-muted-foreground">
           <Loader2 size={16} className="animate-spin" />
-          Chargement des workflows...
+          {copy.loading}
         </div>
       ) : opportunities.length === 0 ? (
         <div className="px-4 py-6 text-sm text-muted-foreground">
-          Aucune opportunité. Démarrez depuis une offre importée ou créez une fiche manuelle.
+          {copy.noOpportunity}
         </div>
       ) : filteredOpportunities.length === 0 ? (
         <div className="px-4 py-6 text-sm text-muted-foreground">
-          Aucune opportunité ne correspond à cette recherche.
+          {copy.noSearchResult}
         </div>
       ) : (
         <div className="max-h-[60vh] divide-y divide-border overflow-y-auto">
@@ -89,14 +91,14 @@ export function WorkflowOpportunityList({
               <p className="mt-1 text-sm text-muted-foreground">{item.company}</p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <p className="text-xs text-muted-foreground">
-                  {STATE_LABELS[item.current_state]}
+                  {copy.states[item.current_state]}
                 </p>
                 <span
                   className={`rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${
                     integrityTone(item.integrity?.status)
                   }`}
                 >
-                  {item.integrity?.status === "degraded" ? "À réparer" : "Sain"}
+                  {item.integrity?.status === "degraded" ? copy.needsRepair : copy.healthy}
                 </span>
               </div>
             </button>

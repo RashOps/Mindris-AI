@@ -9,6 +9,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
+def resolve_runtime_path(path: Path, *, project_root: Path = _PROJECT_ROOT) -> Path:
+    """Resolve a runtime path independently from the current working directory."""
+    if path.is_absolute():
+        return path
+    return (project_root / path).resolve()
+
+
 class Settings(BaseSettings):
     """Application-wide settings resolved from environment variables and .env.
 
@@ -91,6 +98,10 @@ class Settings(BaseSettings):
 
     def model_post_init(self, __context: object) -> None:
         """Ensure required directories exist after settings are loaded."""
+        self.logs_dir = resolve_runtime_path(
+            self.logs_dir,
+            project_root=self.project_root,
+        )
         self.logs_dir.mkdir(parents=True, exist_ok=True)
         self.storage_dir.mkdir(parents=True, exist_ok=True)
         self.chroma_db_dir.mkdir(parents=True, exist_ok=True)

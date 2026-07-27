@@ -19,6 +19,7 @@ from persistence import (
     save_cover_letter,
     save_current_cv,
 )
+from persistence_domain.resumes import _latest_resume_revision
 from schemas import (
     CoverLetterRequest,
     CoverLetterVersionRequest,
@@ -234,6 +235,12 @@ async def calculate_ats_score_route(request: ScoreRequest, session: SessionDep) 
     report_context = dict(report.get("context", {}))
     report_context.setdefault("job_id", request.job_id)
     report_context.setdefault("resume_id", request.resume_id)
+    report_context.setdefault(
+        "resume_revision",
+        _latest_resume_revision(session, request.resume_id)
+        if request.resume_id is not None
+        else None,
+    )
     report_context.setdefault(
         "resume_locale",
         request.resume_locale

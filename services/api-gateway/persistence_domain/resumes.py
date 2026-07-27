@@ -10,6 +10,11 @@ from database.records import (
     ResumeRevisionRecord,
 )
 from database.session import Session
+from persistence_domain.resume_diff import (
+    diff_revision_metadata,
+    diff_values,
+    section_diff_summary,
+)
 from persistence_lib.json import dump_json, load_json
 from sqlalchemy import select
 from utils.logger import get_logger
@@ -571,9 +576,9 @@ def compare_resume_revisions(
     base_data, base_locale = resolve_resume_variant(base, locale=locale)
     target_data, target_locale = resolve_resume_variant(target, locale=locale)
     changes: list[dict[str, Any]] = []
-    _diff_revision_metadata(base, target, changes)
-    _diff_values("", base_data, target_data, changes)
-    section_summaries = _section_diff_summary(base_data, target_data)
+    diff_revision_metadata(base, target, changes)
+    diff_values("", base_data, target_data, changes)
+    section_summaries = section_diff_summary(base_data, target_data)
     base_item = serialize_resume_revision(base)
     target_item = serialize_resume_revision(target)
     base_item["locale"] = base_locale
@@ -586,187 +591,3 @@ def compare_resume_revisions(
         "sectionSummaries": section_summaries,
         "changes": changes,
     }
-
-
-def _diff_revision_metadata(
-    base: ResumeRevisionRecord,
-    target: ResumeRevisionRecord,
-    changes: list[dict[str, Any]],
-) -> None:
-    pairs = [
-        ("name", base.name, target.name),
-        ("templateId", base.template_id, target.template_id),
-        ("locale", base.locale, target.locale),
-        ("source", base.source, target.source),
-        ("label", base.label, target.label),
-    ]
-    for path, before, after in pairs:
-        if before == after:
-            continue
-        kind = "changed"
-        if before in (None, "") and after not in (None, ""):
-            kind = "added"
-        elif before not in (None, "") and after in (None, ""):
-            kind = "removed"
-        changes.append(
-            {
-                "path": path,
-                "kind": kind,
-                "before": before,
-                "after": after,
-            }
-        )
-
-
-def _diff_values(
-    path: str, before: Any, after: Any, changes: list[dict[str, Any]]
-) -> None:
-    if before == after:
-        return
-    if isinstance(before, dict) and isinstance(after, dict):
-        keys = sorted(set(before) | set(after))
-        for key in keys:
-            nested_path = f"{path}.{key}" if path else key
-            if key not in before:
-                changes.append(
-                    {
-                        "path": nested_path,
-                        "kind": "added",
-                        "before": None,
-                        "after": after[key],
-                    }
-                )
-                continue
-            if key not in after:
-                changes.append(
-                    {
-                        "path": nested_path,
-                        "kind": "removed",
-                        "before": before[key],
-                        "after": None,
-                    }
-                )
-                continue
-            _diff_values(nested_path, before[key], after[key], changes)
-        return
-
-    if isinstance(before, list) and isinstance(after, list):
-        if all(isinstance(item, dict) and item.get("id") for item in before + after):
-            before_map = {
-                str(item["id"]): item
-                for item in before
-                if isinstance(item, dict) and item.get("id")
-            }
-            after_map = {
-                str(item["id"]): item
-                for item in after
-                if isinstance(item, dict) and item.get("id")
-            }
-            keys = sorted(set(before_map) | set(after_map))
-            for key in keys:
-                nested_path = f"{path}[{key}]" if path else f"[{key}]"
-                if key not in before_map:
-                    changes.append(
-                        {
-                            "path": nested_path,
-                            "kind": "added",
-                            "before": None,
-                            "after": after_map[key],
-                        }
-                    )
-                    continue
-                if key not in after_map:
-                    changes.append(
-                        {
-                            "path": nested_path,
-                            "kind": "removed",
-                            "before": before_map[key],
-                            "after": None,
-                        }
-                    )
-                    continue
-                _diff_values(nested_path, before_map[key], after_map[key], changes)
-            return
-
-        max_length = max(len(before), len(after))
-        for index in range(max_length):
-            nested_path = f"{path}[{index}]"
-            if index >= len(before):
-                changes.append(
-                    {
-                        "path": nested_path,
-                        "kind": "added",
-                        "before": None,
-                        "after": after[index],
-                    }
-                )
-                continue
-            if index >= len(after):
-                changes.append(
-                    {
-                        "path": nested_path,
-                        "kind": "removed",
-                        "before": before[index],
-                        "after": None,
-                    }
-                )
-                continue
-            _diff_values(nested_path, before[index], after[index], changes)
-        return
-
-    changes.append(
-        {"path": path or "root", "kind": "changed", "before": before, "after": after}
-    )
-
-
-def _section_diff_summary(
-    before: dict[str, Any], after: dict[str, Any]
-) -> list[dict[str, Any]]:
-    sections = [
-        ("profile", "Profile"),
-        ("experience", "Experience"),
-        ("projects", "Projects"),
-        ("certifications", "Certifications"),
-        ("volunteering", "Volunteering"),
-        ("publications", "Publications"),
-        ("references", "References"),
-        ("custom_sections", "Custom sections"),
-        ("skills", "Skills"),
-        ("education", "Education"),
-        ("languages", "Languages"),
-        ("hobbies", "Interests"),
-    ]
-    summaries: list[dict[str, Any]] = []
-    for key, label in sections:
-        before_value = before.get(key)
-        after_value = after.get(key)
-        before_count = _section_count(before_value)
-        after_count = _section_count(after_value)
-        status = "unchanged"
-        if before_value != after_value:
-            if before_count == 0 and after_count > 0:
-                status = "added"
-            elif before_count > 0 and after_count == 0:
-                status = "removed"
-            else:
-                status = "changed"
-        summaries.append(
-            {
-                "section": key,
-                "label": label,
-                "status": status,
-                "beforeCount": before_count,
-                "afterCount": after_count,
-            }
-        )
-    return summaries
-
-
-def _section_count(value: Any) -> int:
-    if isinstance(value, list):
-        return len(value)
-    if isinstance(value, dict):
-        return len(value)
-    if isinstance(value, str):
-        return 1 if value.strip() else 0
-    return 0

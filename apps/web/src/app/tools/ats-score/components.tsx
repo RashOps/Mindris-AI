@@ -19,6 +19,7 @@ import {
 import type { KeywordStatus } from "@/store/useCVStore";
 import { CVUploadZone } from "@/components/CVUploadZone";
 import { LLMSelector } from "@/components/LLMSelector";
+import { useI18n } from "@/i18n/I18nProvider";
 
 // ── Color helpers ─────────────────────────────────────────────────────────────
 
@@ -26,12 +27,6 @@ export function scoreColor(s: number) {
   if (s >= 80) return "#10b981";
   if (s >= 60) return "#f59e0b";
   return "#ef4444";
-}
-function scoreLabel(s: number) {
-  if (s >= 80) return "Excellent";
-  if (s >= 60) return "Good";
-  if (s >= 40) return "Fair";
-  return "Needs Work";
 }
 export function severityColor(sev: string) {
   switch (sev.toLowerCase()) {
@@ -47,6 +42,8 @@ export function severityColor(sev: string) {
 // ── Gauge SVG ─────────────────────────────────────────────────────────────────
 
 export function ScoreGauge({ score }: { score: number }) {
+  const { messages } = useI18n();
+  const copy = messages.pages.ats;
   const r = 54;
   const circ = 2 * Math.PI * r;
   const dash = (score / 100) * circ;
@@ -95,7 +92,13 @@ export function ScoreGauge({ score }: { score: number }) {
         </span>
         <span className="mt-0.5 text-xs text-muted-foreground">/ 100</span>
         <span className="text-[11px] font-semibold mt-1" style={{ color }}>
-          {scoreLabel(score)}
+          {score >= 80
+            ? copy.excellent
+            : score >= 60
+              ? copy.good
+              : score >= 40
+                ? copy.fair
+                : copy.needsWork}
         </span>
       </div>
     </div>
@@ -105,6 +108,8 @@ export function ScoreGauge({ score }: { score: number }) {
 // ── Keyword Bar Chart ─────────────────────────────────────────────────────────
 
 export function KeywordBarChart({ keywords }: { keywords: KeywordStatus[] }) {
+  const { messages } = useI18n();
+  const copy = messages.pages.ats;
   const high = keywords.filter(
     (k) => !k.found && k.severity.toLowerCase() === "high",
   ).length;
@@ -117,10 +122,10 @@ export function KeywordBarChart({ keywords }: { keywords: KeywordStatus[] }) {
   const found = keywords.filter((k) => k.found).length;
 
   const data = [
-    { name: "Trouvés", value: found, fill: "#10b981" },
-    { name: "Faible", value: low, fill: "#64748b" },
-    { name: "Moyen", value: medium, fill: "#f59e0b" },
-    { name: "Élevé", value: high, fill: "#ef4444" },
+    { name: copy.foundPlural, value: found, fill: "#10b981" },
+    { name: copy.low, value: low, fill: "#64748b" },
+    { name: copy.medium, value: medium, fill: "#f59e0b" },
+    { name: copy.high, value: high, fill: "#ef4444" },
   ];
 
   return (
@@ -161,6 +166,7 @@ export function KeywordBarChart({ keywords }: { keywords: KeywordStatus[] }) {
 // ── Radar Chart (skills coverage) ─────────────────────────────────────────────
 
 export function SkillsRadar({ keywords }: { keywords: KeywordStatus[] }) {
+  const { messages } = useI18n();
   const data = keywords.slice(0, 8).map((k) => ({
     skill: k.keyword.length > 12 ? k.keyword.slice(0, 12) + "…" : k.keyword,
     score: k.found
@@ -187,7 +193,7 @@ export function SkillsRadar({ keywords }: { keywords: KeywordStatus[] }) {
         />
         <PolarRadiusAxis tick={false} axisLine={false} domain={[0, 100]} />
         <Radar
-          name="Couverture"
+          name={messages.pages.ats.coverage}
           dataKey="score"
           stroke="#8b5cf6"
           fill="#8b5cf6"
@@ -213,6 +219,8 @@ export function SkillsRadar({ keywords }: { keywords: KeywordStatus[] }) {
 type Filter = "all" | "found" | "missing" | "high";
 
 export function KeywordTable({ keywords }: { keywords: KeywordStatus[] }) {
+  const { messages } = useI18n();
+  const copy = messages.pages.ats;
   const [filter, setFilter] = useState<Filter>("all");
 
   const filtered = keywords.filter((k) => {
@@ -224,20 +232,20 @@ export function KeywordTable({ keywords }: { keywords: KeywordStatus[] }) {
   });
 
   const filters: { id: Filter; label: string; count: number }[] = [
-    { id: "all", label: "Tous", count: keywords.length },
+    { id: "all", label: copy.all, count: keywords.length },
     {
       id: "found",
-      label: "Trouvés",
+      label: copy.foundPlural,
       count: keywords.filter((k) => k.found).length,
     },
     {
       id: "missing",
-      label: "Manquants",
+      label: copy.missingPlural,
       count: keywords.filter((k) => !k.found).length,
     },
     {
       id: "high",
-      label: "Critiques",
+      label: copy.criticalPlural,
       count: keywords.filter((k) => !k.found && k.severity === "high").length,
     },
   ];
@@ -270,10 +278,10 @@ export function KeywordTable({ keywords }: { keywords: KeywordStatus[] }) {
           <thead>
             <tr className="border-b border-border bg-muted/40">
               {[
-                "Mot-clé / compétence",
-                "Statut",
-                "Densité",
-                "Impact si absent",
+                copy.keyword,
+                copy.status,
+                copy.density,
+                copy.missingImpact,
               ].map((h) => (
                 <th
                   key={h}
@@ -301,14 +309,14 @@ export function KeywordTable({ keywords }: { keywords: KeywordStatus[] }) {
                         className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300"
                       >
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                        Trouvé
+                        {copy.found}
                       </span>
                     ) : (
                       <span
                         className="inline-flex items-center gap-1.5 rounded-full border border-destructive/30 bg-destructive/10 px-2.5 py-1 text-xs font-medium text-destructive"
                       >
                         <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-                        Manquant
+                        {copy.missing}
                       </span>
                     )}
                   </td>
@@ -395,22 +403,23 @@ export function AtsHero({
   cvLoaded,
   onCvLoaded,
 }: HeroProps) {
+  const { messages } = useI18n();
+  const copy = messages.pages.ats;
   return (
     <div className="mx-auto max-w-2xl space-y-8 pb-4 pt-8 text-center">
       {/* Title */}
       <div>
         <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 dark:border-violet-900/60 dark:bg-violet-950/40 dark:text-violet-300">
-          Analyse ATS
+          {copy.analysis}
         </div>
         <h1
           className="mb-3 text-4xl font-black tracking-tight text-foreground"
           style={{ fontFamily: "var(--font-space)" }}
         >
-          Score ATS
+          {messages.tools["ats-score"].label}
         </h1>
         <p className="text-base text-muted-foreground">
-          Compare ton CV à une offre réelle, repère les écarts et priorise les
-          corrections utiles.
+          {copy.description}
         </p>
       </div>
 
@@ -425,7 +434,7 @@ export function AtsHero({
             CV
             {cvLoaded && (
               <span className="font-normal normal-case text-emerald-700">
-                chargé
+                {copy.loaded}
               </span>
             )}
           </p>
@@ -441,7 +450,7 @@ export function AtsHero({
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-100 text-[10px] font-black text-violet-700">
               2
             </span>
-            URL de l’offre
+            {copy.jobUrl}
           </p>
           <div className="flex gap-2">
             <input
@@ -458,14 +467,14 @@ export function AtsHero({
           </div>
         </div>
 
-        <LLMSelector taskKey="ats_llm" label="Modèle ATS" />
+        <LLMSelector taskKey="ats_llm" label={copy.atsModel} />
 
         <div>
           <p className="mb-2.5 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-violet-700">
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-100 text-[10px] font-black text-violet-700">
               3
             </span>
-            Mode d’évaluation
+            {copy.evaluationMode}
           </p>
           <div className="grid grid-cols-2 gap-2">
             {(["standard", "strict"] as const).map((mode) => (
@@ -482,8 +491,8 @@ export function AtsHero({
                 <p className="font-semibold capitalize">{mode}</p>
                 <p className="mt-1 text-xs">
                   {mode === "strict"
-                    ? "Pénalités plus sévères pour environnements ATS rigides."
-                    : "Scoring équilibré pour candidatures modernes."}
+                    ? copy.strictDescription
+                    : copy.standardDescription}
                 </p>
               </button>
             ))}
@@ -500,10 +509,10 @@ export function AtsHero({
           {isAnalyzing ? (
             <>
               <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-              Analyse… (30-60s)
+              {copy.analyzing}
             </>
           ) : (
-            <>Analyser le score ATS</>
+            <>{copy.analyze}</>
           )}
         </button>
       </div>
@@ -517,6 +526,7 @@ interface SSEProgressProps {
   messages: string[];
 }
 export function SSEProgress({ messages }: SSEProgressProps) {
+  const { messages: translations } = useI18n();
   if (!messages.length) return null;
   return (
     <div className="mx-auto max-w-2xl space-y-1 rounded-lg border border-border bg-card p-4 font-mono text-xs shadow-sm">
@@ -527,7 +537,7 @@ export function SSEProgress({ messages }: SSEProgressProps) {
       ))}
       <div className="flex items-center gap-1 pt-1 text-violet-700">
         <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
-        <span>Traitement…</span>
+        <span>{translations.pages.ats.processing}</span>
       </div>
     </div>
   );

@@ -1,8 +1,6 @@
 "use client";
-import { Editor } from "@/components/Editor";
 import { LivePreview } from "@/components/LivePreview";
 import { GhostMode } from "@/components/GhostMode";
-import { StylePanel } from "@/components/StylePanel";
 import { JobInsightsPanel } from "@/components/JobInsightsPanel";
 import { CoverLetterModal } from "@/components/CoverLetterModal";
 import { useCVStore } from "@/store/useCVStore";
@@ -14,6 +12,7 @@ import {
 import { useEffect, useState, useRef, useCallback } from "react";
 import { apiUrl, rendererUrl, apiHeaders, jsonHeaders } from "@/lib/api";
 import { resolveTemplateRenderPayload } from "@/lib/templates";
+import { updateOnboardingStep } from "@/lib/onboarding";
 import { Download, Upload } from "lucide-react";
 import {
   CV_BUILDER_UI_MODE_STORAGE_KEY,
@@ -28,7 +27,9 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { CvBuilderHeader } from "./components/CvBuilderHeader";
+import { CvEditorPane } from "./components/CvEditorPane";
 import type { HeaderMenuAction } from "./components/HeaderActionMenu";
+import { useI18n } from "@/i18n/I18nProvider";
 import {
   RESUME_EXPORTS,
   asDragPayload,
@@ -43,6 +44,8 @@ import {
   type ResumeExportFormat,
 } from "./cv-builder-model";
 export default function AppPage() {
+  const { messages } = useI18n();
+  const copy = messages.pages.cvBuilder;
   const {
     setIsOptimizing,
     replaceCVData,
@@ -238,16 +241,16 @@ export default function AppPage() {
       };
       setJobInsights(insights);
       setShowInsights(true);
-      showToast("Analyse de l’offre prête — voir le panneau");
+      showToast(copy.offerReady);
     },
-    [setJobInsights],
+    [copy.offerReady, setJobInsights],
   );
 
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setIsUploading(true);
-    showToast("Analyse du PDF (10-30s)...", 30000);
+    showToast(copy.pdfAnalyzing, 30000);
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -265,7 +268,7 @@ export default function AppPage() {
       }
       const data = await res.json();
       if (data.cv_data) replaceCVData(data.cv_data);
-      showToast("PDF indexé. Éditeur et RAG mis à jour.");
+      showToast(copy.pdfIndexed);
     } catch (err: unknown) {
       showToast(errorMessage(err, "Upload impossible"), 6000);
     } finally {
@@ -293,7 +296,7 @@ export default function AppPage() {
           source: "json",
         }),
       });
-      showToast("CV JSON indexé.");
+      showToast(copy.jsonIndexed);
     } catch (err: unknown) {
       showToast(errorMessage(err, "Parsing ou upload JSON impossible."), 5000);
     } finally {
@@ -323,11 +326,12 @@ export default function AppPage() {
       blob,
       `${name.replace(/\s+/g, "_") || "mindris_cv"}.${exportConfig.extension}`,
     );
+    void updateOnboardingStep("first_export", "completed").catch(() => undefined);
     showToast(`CV exporté en ${exportConfig.label}`);
   };
 
   const handleExportPDF = async () => {
-    showToast("Génération du PDF...", 30000);
+    showToast(copy.pdfGenerating, 30000);
     try {
       await flushResumeSave();
       const resolved = await resolveTemplateRenderPayload(
@@ -349,7 +353,10 @@ export default function AppPage() {
         blob,
         `${cvData.profile.full_name.replace(/\s+/g, "_")}_CV.pdf`,
       );
-      showToast("PDF téléchargé.");
+      void updateOnboardingStep("first_export", "completed").catch(
+        () => undefined,
+      );
+      showToast(copy.pdfDownloaded);
     } catch (err: unknown) {
       showToast(errorMessage(err, "Rendu impossible"), 5000);
     }
@@ -384,11 +391,11 @@ export default function AppPage() {
 
   const handleGhostDone = () => {
     setIsOptimizing(false);
-    showToast("CV optimisé. Vérifie la preview.");
+    showToast(copy.optimized);
   };
   const handleGhostError = () => {
     setIsOptimizing(false);
-    showToast("Pipeline en échec.", 6000);
+    showToast(copy.pipelineFailed, 6000);
   };
 
   const { isOptimizing } = useCVStore();
@@ -534,15 +541,15 @@ export default function AppPage() {
           onSelectResume={setActiveResume}
           onRenameResume={(name) => renameResume(activeResumeId, name)}
           onCreateResume={() => {
-            void createResume("Nouveau CV")
-              .then(() => showToast("Nouveau CV créé"))
+            void createResume(copy.newResume)
+              .then(() => showToast(copy.newResumeCreated))
               .catch((err: unknown) => {
                 showToast(errorMessage(err, "Création impossible"), 6000);
               });
           }}
           onDuplicateResume={() => {
             void duplicateResume()
-              .then(() => showToast("CV dupliqué"))
+              .then(() => showToast(copy.duplicateCreated))
               .catch((err: unknown) => {
                 showToast(errorMessage(err, "Duplication impossible"), 6000);
               });
@@ -551,7 +558,7 @@ export default function AppPage() {
             void deleteResume(activeResumeId)
               .then(() =>
                 showToast(
-                  resumes.length > 1 ? "CV supprimé" : "Garde au moins un CV",
+                  resumes.length > 1 ? copy.resumeDeleted : copy.keepOneResume,
                 ),
               )
               .catch((err: unknown) => {
@@ -617,81 +624,17 @@ export default function AppPage() {
 
         {/* ── Body ───────────────────────────────────────────────────────────── */}
         <div className="flex flex-1 overflow-hidden bg-muted/40 max-lg:flex-col max-lg:overflow-y-auto">
-          {/* Editor */}
-          <div
-            className={`flex min-h-0 w-full shrink-0 flex-col overflow-hidden border-b border-border bg-card transition-all duration-300 max-lg:min-h-[58vh] lg:h-full lg:border-b-0 lg:border-r ${showGhost || showInsights ? "lg:w-[32%]" : "lg:w-[45%]"}`}
-          >
-            <div className="shrink-0 border-b border-border bg-card px-4 py-2">
-              <div
-                className="flex rounded-lg border border-border bg-muted/40 p-1"
-                role="tablist"
-                aria-label="Éditeur du CV"
-                onKeyDown={(event) => {
-                  const tabs = Array.from(
-                    event.currentTarget.querySelectorAll<HTMLElement>(
-                      '[role="tab"]',
-                    ),
-                  );
-                  const current = tabs.indexOf(document.activeElement as HTMLElement);
-                  if (current < 0) return;
-                  let next = current;
-                  if (event.key === "ArrowRight") next = (current + 1) % tabs.length;
-                  else if (event.key === "ArrowLeft") next = (current - 1 + tabs.length) % tabs.length;
-                  else if (event.key === "Home") next = 0;
-                  else if (event.key === "End") next = tabs.length - 1;
-                  else return;
-                  event.preventDefault();
-                  tabs[next]?.focus();
-                  tabs[next]?.click();
-                }}
-              >
-                <button
-                  type="button"
-                  id="cv-editor-tab-structure"
-                  role="tab"
-                  aria-selected={editorTab === "structure"}
-                  aria-controls="cv-editor-panel-structure"
-                  tabIndex={editorTab === "structure" ? 0 : -1}
-                  onClick={() => setEditorTab("structure")}
-                  className={`flex-1 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    editorTab === "structure"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Structure
-                </button>
-                <button
-                  type="button"
-                  id="cv-editor-tab-style"
-                  role="tab"
-                  aria-selected={editorTab === "style"}
-                  aria-controls="cv-editor-panel-style"
-                  tabIndex={editorTab === "style" ? 0 : -1}
-                  onClick={() => setEditorTab("style")}
-                  className={`flex-1 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    editorTab === "style"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Style
-                </button>
-              </div>
-            </div>
-            <div
-              id={`cv-editor-panel-${editorTab}`}
-              role="tabpanel"
-              aria-labelledby={`cv-editor-tab-${editorTab}`}
-              className="flex-1 overflow-hidden px-3 py-3"
-            >
-              {editorTab === "structure" ? (
-                <Editor />
-              ) : (
-                <StylePanel variant="embedded" uiMode={uiMode} />
-              )}
-            </div>
-          </div>
+          <CvEditorPane
+            activeTab={editorTab}
+            labels={{
+              editor: copy.editorLabel,
+              structure: copy.structure,
+              style: copy.style,
+            }}
+            narrow={showGhost || showInsights}
+            uiMode={uiMode}
+            onChangeTab={setEditorTab}
+          />
 
           {/* Ghost Mode */}
           {showGhost && (
@@ -728,7 +671,7 @@ export default function AppPage() {
           <div className="flex min-h-0 shrink-0 flex-col overflow-hidden bg-muted/20 max-lg:min-h-[72vh] lg:h-full lg:flex-1">
             <div className="shrink-0 border-b border-border bg-card px-4 py-2">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                Live Preview
+                {copy.preview}
               </p>
             </div>
             <div className="flex-1 p-4 overflow-hidden">

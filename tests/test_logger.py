@@ -1,5 +1,7 @@
 import logging
+from pathlib import Path
 
+from utils.config import resolve_runtime_path
 from utils.logger import get_logger
 
 
@@ -26,7 +28,7 @@ def test_get_logger_redacts_known_secret_values_from_log_output(tmp_path, monkey
     logger = get_logger("services.secure", service_name="api-gateway")
     logger.warning("auth=%s provider=%s", "dev-secret-token", "sk-openai-secret")
 
-    contents = (tmp_path / "api-gateway.log").read_text(encoding="utf-8")
+    contents = (tmp_path / "services" / "api-gateway.log").read_text(encoding="utf-8")
     assert "dev-secret-token" not in contents
     assert "sk-openai-secret" not in contents
     assert "[REDACTED]" in contents
@@ -44,7 +46,9 @@ def test_get_logger_writes_to_service_specific_file(tmp_path, monkeypatch):
     ]
 
     assert file_handlers, "expected a file handler to be configured"
-    assert file_handlers[0].baseFilename == str(tmp_path / "api-gateway.log")
+    assert file_handlers[0].baseFilename == str(
+        tmp_path / "services" / "api-gateway.log"
+    )
 
 
 def test_get_logger_ignores_parent_handlers_and_configures_its_own(
@@ -64,3 +68,17 @@ def test_get_logger_ignores_parent_handlers_and_configures_its_own(
     finally:
         parent.removeHandler(parent_handler)
         parent_handler.close()
+
+
+def test_runtime_log_path_is_independent_from_current_directory(tmp_path, monkeypatch):
+    project_root = tmp_path / "project"
+    working_directory = tmp_path / "nested" / "service"
+    working_directory.mkdir(parents=True)
+    monkeypatch.chdir(working_directory)
+
+    resolved = resolve_runtime_path(
+        Path(".logs"),
+        project_root=project_root,
+    )
+
+    assert resolved == project_root / ".logs"

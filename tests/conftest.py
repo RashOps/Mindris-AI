@@ -3,11 +3,19 @@
 from __future__ import annotations
 
 import asyncio
+import atexit
+import os
+import shutil
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
+_TEST_RUNTIME_DIR = Path(tempfile.mkdtemp(prefix="mindris-tests-"))
+os.environ["LOGS_DIR"] = str(_TEST_RUNTIME_DIR / "logs")
+atexit.register(shutil.rmtree, _TEST_RUNTIME_DIR, True)
+
 sys.path.insert(0, str(ROOT / "services" / "api-gateway"))
 sys.path.insert(0, str(ROOT / "services"))
 sys.path.insert(0, str(ROOT / "packages"))

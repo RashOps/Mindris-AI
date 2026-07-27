@@ -27,7 +27,8 @@ Python et des lanceurs Unix, PowerShell et CMD.
 - aucun fallback `pip`, Poetry ou Conda n'est fourni ;
 - Bun reste le gestionnaire unique du frontend et du renderer ;
 - Docker reste indépendant du workspace Python ;
-- les scripts shell sont conservés pendant une migration progressive ;
+- les scripts locaux historiques sont des wrappers de compatibilité sans
+  logique d’orchestration dupliquée ;
 - la CI teste la CLI sur Linux et Windows.
 
 La CLI orchestre les services et les outils. Elle ne contient aucune logique

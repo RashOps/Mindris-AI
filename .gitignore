@@ -4,9 +4,11 @@ Thumbs.db
 .vscode/
 .idea/
 logs/
+.logs/
 *.swp
 *.log
 *.screenshots/
+*.code-workspace
 
 # --- Python (uv & venv) ---
 __pycache__/

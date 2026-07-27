@@ -10,6 +10,7 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
+import { useI18n } from "@/i18n/I18nProvider";
 
 import { LLMSelector } from "@/components/LLMSelector";
 import { PdfIngestionModeSelect } from "@/components/PdfIngestionModeSelect";
@@ -127,6 +128,8 @@ export function CvBuilderHeader(props: {
     onChangeUiMode,
   } = props;
 
+  const { messages } = useI18n();
+  const copy = messages.pages.cvBuilder;
   const isSimple = uiMode === "simple";
   const isNormal = uiMode === "normal";
   const isAdvanced = uiMode === "advanced";
@@ -139,7 +142,7 @@ export function CvBuilderHeader(props: {
   const resumeSelector = (
     <ToolbarSelect
       value={activeResumeId}
-      ariaLabel="Choisir le CV"
+      ariaLabel={copy.chooseResume}
       options={resumes.map((resume) => ({
         value: resume.id,
         label: resume.name,
@@ -154,7 +157,7 @@ export function CvBuilderHeader(props: {
     <input
       value={activeResumeName}
       onChange={(e) => onRenameResume(e.target.value)}
-      placeholder="Nom du CV"
+      placeholder={copy.resumeName}
       className={`${BUILDER_INPUT_CLASS} w-40`}
     />
   );
@@ -179,8 +182,8 @@ export function CvBuilderHeader(props: {
         <>
           <ToolbarSelect
             value={localeToCreate}
-            placeholder="Ajouter"
-            ariaLabel="Ajouter une langue"
+            placeholder={copy.addLocale}
+            ariaLabel={copy.addLocaleLabel}
             options={inactiveLocales.map((locale) => ({
               value: locale,
               label: locale.toUpperCase(),
@@ -214,7 +217,7 @@ export function CvBuilderHeader(props: {
   const importExportControls = (
     <>
       <HeaderActionMenu
-        label="Importer"
+        label={copy.import}
         icon={uploadIcon}
         isOpen={activeHeaderMenu === "upload"}
         onToggle={onToggleUploadMenu}
@@ -222,7 +225,7 @@ export function CvBuilderHeader(props: {
         actions={uploadActions}
       />
       <HeaderActionMenu
-        label="Exporter"
+        label={copy.export}
         icon={downloadIcon}
         isOpen={activeHeaderMenu === "download"}
         onToggle={onToggleDownloadMenu}
@@ -238,7 +241,7 @@ export function CvBuilderHeader(props: {
         value={jobUrl}
         onChange={(e) => onChangeJobUrl(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && onOptimize()}
-        placeholder="Coller l'URL de l'offre…"
+        placeholder={copy.jobUrl}
         className="app-input h-9 text-sm"
       />
       <Button
@@ -252,7 +255,7 @@ export function CvBuilderHeader(props: {
             Analyse…
           </span>
         ) : (
-          "Adapter mon CV"
+          copy.tailor
         )}
       </Button>
     </div>
@@ -286,9 +289,9 @@ export function CvBuilderHeader(props: {
   );
 
   const tabs = [
-    { id: "main" as const, label: "Principal", icon: FileText },
-    { id: "adapt" as const, label: "Adapter", icon: Sparkles },
-    { id: "document" as const, label: "Document", icon: SlidersHorizontal },
+    { id: "main" as const, label: copy.mainRibbon, icon: FileText },
+    { id: "adapt" as const, label: copy.tailorRibbon, icon: Sparkles },
+    { id: "document" as const, label: copy.documentRibbon, icon: SlidersHorizontal },
   ];
 
   return (
@@ -310,7 +313,7 @@ export function CvBuilderHeader(props: {
                 color: saveStatusColor,
                 cursor: resumeSaveStatus === "error" ? "pointer" : "default",
               }}
-              title={resumeSaveError ?? "Statut de sauvegarde backend"}
+              title={resumeSaveError ?? copy.saveStatus}
             >
               {saveStatusText}
             </button>
@@ -322,14 +325,14 @@ export function CvBuilderHeader(props: {
               aria-controls="cv-builder-ribbon"
             >
               {ribbonOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-              {ribbonOpen ? "Réduire" : "Ouvrir"}
+              {ribbonOpen ? copy.collapseRibbon : copy.expandRibbon}
             </button>
           </div>
         </div>
 
         {ribbonOpen ? (
           <div id="cv-builder-ribbon" className="px-4 pb-3">
-            <div className="flex h-9 items-end gap-1" role="tablist" aria-label="Outils du CV Builder">
+            <div className="flex h-9 items-end gap-1" role="tablist" aria-label={copy.toolsLabel}>
               {tabs.map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
@@ -354,8 +357,8 @@ export function CvBuilderHeader(props: {
                   {resumeNameInput}
                   {!isSimple ? (
                     <>
-                      <button onClick={onCreateResume} className={TOOLBAR_BUTTON_CLASS}>Nouveau</button>
-                      <button onClick={onDuplicateResume} className={TOOLBAR_BUTTON_CLASS}>Dupliquer</button>
+                      <button onClick={onCreateResume} className={TOOLBAR_BUTTON_CLASS}>{copy.new}</button>
+                      <button onClick={onDuplicateResume} className={TOOLBAR_BUTTON_CLASS}>{copy.duplicate}</button>
                     </>
                   ) : null}
                   {(isNormal || isAdvanced) ? localeControls : null}
@@ -364,8 +367,8 @@ export function CvBuilderHeader(props: {
               {ribbonTab === "adapt" ? (
                 <>
                   {optimizeControl}
-                  {!isSimple ? <PdfIngestionModeSelect label="Lecture PDF" variant="toolbar" /> : null}
-                  {isAdvanced ? <LLMSelector taskKey="optimize_llm" label="Moteur IA" variant="toolbar" /> : null}
+                  {!isSimple ? <PdfIngestionModeSelect label={copy.pdfReading} variant="toolbar" /> : null}
+                  {isAdvanced ? <LLMSelector taskKey="optimize_llm" label={copy.aiEngine} variant="toolbar" /> : null}
                   {!isSimple ? (
                     <button onClick={onToggleInsights} className={showInsights ? TOOLBAR_BUTTON_ACTIVE_CLASS : TOOLBAR_BUTTON_CLASS}>
                       Conseils{insightsBadge ? " ·" : ""}
@@ -394,7 +397,7 @@ export function CvBuilderHeader(props: {
           <button
             onClick={onRetrySave}
             className="h-8 shrink-0 px-1 text-[10px] text-muted-foreground"
-            title={resumeSaveError ?? "Statut de sauvegarde backend"}
+            title={resumeSaveError ?? copy.saveStatus}
           >
             {saveStatusText}
           </button>
@@ -413,20 +416,20 @@ export function CvBuilderHeader(props: {
       </div>
 
       {mobileToolsOpen ? (
-        <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true" aria-label="Outils du CV Builder">
-          <button className="absolute inset-0 bg-black/50" onClick={() => setMobileToolsOpen(false)} aria-label="Fermer les outils" />
+        <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true" aria-label={copy.toolsLabel}>
+          <button className="absolute inset-0 bg-black/50" onClick={() => setMobileToolsOpen(false)} aria-label={copy.closeTools} />
           <div className="absolute inset-x-0 bottom-0 max-h-[78vh] overflow-y-auto rounded-t-2xl border border-border bg-background p-4 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2"><Bot size={16} /><h2 className="text-sm font-semibold">Outils du CV</h2></div>
-              <button onClick={() => setMobileToolsOpen(false)} className="app-toolbar-button flex h-8 w-8 items-center justify-center" aria-label="Fermer"><X size={16} /></button>
+              <div className="flex items-center gap-2"><Bot size={16} /><h2 className="text-sm font-semibold">{copy.resumeTools}</h2></div>
+              <button onClick={() => setMobileToolsOpen(false)} className="app-toolbar-button flex h-8 w-8 items-center justify-center" aria-label={messages.common.close}><X size={16} /></button>
             </div>
             <div className="space-y-4">
               <ContextualGuideLink tool="cv-creator" />
               <CvBuilderModeToggle value={uiMode} onChange={onChangeUiMode} />
-              <div className="flex flex-wrap gap-2">{resumeNameInput}{!isSimple ? <><button onClick={onCreateResume} className={TOOLBAR_BUTTON_CLASS}>Nouveau</button><button onClick={onDuplicateResume} className={TOOLBAR_BUTTON_CLASS}>Dupliquer</button></> : null}</div>
+              <div className="flex flex-wrap gap-2">{resumeNameInput}{!isSimple ? <><button onClick={onCreateResume} className={TOOLBAR_BUTTON_CLASS}>{copy.new}</button><button onClick={onDuplicateResume} className={TOOLBAR_BUTTON_CLASS}>{copy.duplicate}</button></> : null}</div>
               {(isNormal || isAdvanced) ? localeControls : null}
-              {!isSimple ? <PdfIngestionModeSelect label="Lecture PDF" variant="toolbar" /> : null}
-              {isAdvanced ? <LLMSelector taskKey="optimize_llm" label="Moteur IA" variant="toolbar" /> : null}
+              {!isSimple ? <PdfIngestionModeSelect label={copy.pdfReading} variant="toolbar" /> : null}
+              {isAdvanced ? <LLMSelector taskKey="optimize_llm" label={copy.aiEngine} variant="toolbar" /> : null}
               <div className="flex flex-wrap gap-2">{actionControls}</div>
             </div>
           </div>

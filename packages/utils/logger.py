@@ -42,7 +42,7 @@ def _normalize_level(level_name: str) -> int:
 
 def _service_log_path(service_name: str | None) -> str:
     slug = (service_name or "app").strip() or "app"
-    return str(settings.logs_dir / f"{slug}.log")
+    return str(settings.logs_dir / "services" / f"{slug}.log")
 
 
 def _mindris_handlers(logger: logging.Logger) -> list[logging.Handler]:
@@ -127,7 +127,7 @@ def get_logger(name: str, *, service_name: str | None = None) -> logging.Logger:
     logger.setLevel(_normalize_level(settings.log_level))
 
     formatter = logging.Formatter(_LOG_FORMAT, datefmt=_DATE_FORMAT)
-    settings.logs_dir.mkdir(parents=True, exist_ok=True)
+    (settings.logs_dir / "services").mkdir(parents=True, exist_ok=True)
 
     # Console — WARNING and above only (not too noisy in terminals)
     console_h = logging.StreamHandler()

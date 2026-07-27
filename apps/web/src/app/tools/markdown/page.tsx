@@ -15,85 +15,12 @@ import {
   PencilLine,
   Save,
 } from "lucide-react";
-
-// ── Templates ─────────────────────────────────────────────────────────────────
-
-const TEMPLATES = {
-  blank: "",
-
-  cover_letter: `# Rayhan Touboui
-**AI Engineer** · Paris, France · rayhan@email.com · linkedin.com/in/rayhan
-
----
-
-**À l'attention du service Recrutement**
-Paris, le [date]
-
----
-
-## Objet : Candidature au poste d'Ingénieur IA
-
-Madame, Monsieur,
-
-Passionné par l'intelligence artificielle et les systèmes autonomes, je me permets de vous adresser ma candidature pour le poste d'Ingénieur IA au sein de votre équipe.
-
-Actuellement en formation double diplôme **Data & IA** à Paris School of Technology & Business, j'ai développé une expertise solide en **LangGraph**, **RAG** et déploiement d'architectures multi-agents. Mon projet **Mindris AI** — plateforme d'optimisation de carrière par agents IA — témoigne de ma capacité à mener des projets complexes de bout en bout.
-
-Ce qui me motive particulièrement dans votre organisation, c'est votre approche pragmatique de l'IA appliquée. Je suis convaincu de pouvoir apporter une contribution immédiate et significative à vos équipes.
-
-Dans l'attente d'un entretien, je reste à votre disposition pour tout complément d'information.
-
-Cordialement,
-
-**Rayhan Touboui**
-`,
-
-  technical_doc: `# Technical Documentation
-
-## Overview
-
-This document describes the architecture and usage of the system.
-
-## Architecture
-
-The system is composed of three main services:
-
-- **API Gateway** — FastAPI, port 8000
-- **Renderer** — Bun/Elysia, port 4000
-- **Frontend** — Next.js, port 3000
-
-## Installation
-
-\`\`\`bash
-# Clone the repository
-git clone https://github.com/mindrisai/mindris-ai
-
-# Install dependencies
-bun install
-
-# Start services
-bun run dev
-\`\`\`
-
-## API Reference
-
-### POST /render/markdown
-
-Converts Markdown to a PDF document.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| markdown | string | Oui | Markdown content |
-| style | string | Non | \`document\` or \`letter\` |
-| title | string | Non | Document title |
-
-**Response:** PDF binary stream (\`application/pdf\`)
-
-## Notes
-
-> This service uses Puppeteer for pixel-perfect A4 PDF rendering with Shadow DOM style isolation.
-`,
-};
+import { useI18n } from "@/i18n/I18nProvider";
+import { updateOnboardingStep } from "@/lib/onboarding";
+import {
+  MARKDOWN_TEMPLATES,
+  type MarkdownTemplateId,
+} from "./markdown-templates";
 
 type MarkdownDraft = {
   markdown?: string;
@@ -113,16 +40,18 @@ type CoverLetterItem = {
 
 function defaultDraft() {
   return {
-    markdown: TEMPLATES.cover_letter,
+    markdown: MARKDOWN_TEMPLATES.cover_letter,
     style: "letter" as const,
     title: "Document",
-    activeTemplate: "cover_letter" as keyof typeof TEMPLATES,
+    activeTemplate: "cover_letter" as MarkdownTemplateId,
   };
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function MarkdownToolPage() {
+  const { locale, messages } = useI18n();
+  const copy = messages.pages.markdown;
   const [initialDraft] = useState(defaultDraft);
   const [markdown, setMarkdown] = useState(initialDraft.markdown);
   const [style, setStyle] = useState<"document" | "letter">(initialDraft.style);
@@ -136,7 +65,7 @@ export default function MarkdownToolPage() {
     type: "success" | "error";
     msg: string;
   } | null>(null);
-  const [activeTemplate, setActiveTemplate] = useState<keyof typeof TEMPLATES>(
+  const [activeTemplate, setActiveTemplate] = useState<MarkdownTemplateId>(
     initialDraft.activeTemplate,
   );
   const [coverLetterId, setCoverLetterId] = useState<number | null>(null);
@@ -220,14 +149,14 @@ export default function MarkdownToolPage() {
           msg:
             err instanceof Error
               ? err.message
-              : "Chargement de la lettre impossible.",
+              : copy.letterLoadFailed,
         });
       } finally {
         setIsLoadingLetter(false);
         setTimeout(() => setStatus(null), 4000);
       }
     },
-    [],
+    [copy.letterLoadFailed],
   );
 
   // ── Preview (debounced) ───────────────────────────────────────────────────
@@ -283,11 +212,14 @@ export default function MarkdownToolPage() {
       a.download = `${title.replace(/\s+/g, "_") || "document"}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
-      setStatus({ type: "success", msg: "PDF téléchargé." });
+      void updateOnboardingStep("first_export", "completed").catch(
+        () => undefined,
+      );
+      setStatus({ type: "success", msg: copy.pdfDownloaded });
     } catch (err: unknown) {
       setStatus({
         type: "error",
-        msg: err instanceof Error ? err.message : "Export PDF impossible",
+        msg: err instanceof Error ? err.message : copy.pdfExportFailed,
       });
     } finally {
       setIsExporting(false);
@@ -313,11 +245,14 @@ export default function MarkdownToolPage() {
       a.download = `${title.replace(/\s+/g, "_") || "document"}.docx`;
       a.click();
       URL.revokeObjectURL(url);
-      setStatus({ type: "success", msg: "DOCX téléchargé." });
+      void updateOnboardingStep("first_export", "completed").catch(
+        () => undefined,
+      );
+      setStatus({ type: "success", msg: copy.docxDownloaded });
     } catch (err: unknown) {
       setStatus({
         type: "error",
-        msg: err instanceof Error ? err.message : "Export DOCX impossible",
+        msg: err instanceof Error ? err.message : copy.docxExportFailed,
       });
     } finally {
       setIsExportingDocx(false);
@@ -346,11 +281,11 @@ export default function MarkdownToolPage() {
       if (typeof data.id === "number") setCoverLetterId(data.id);
       if (typeof data.job_id === "number") setCoverLetterJobId(data.job_id);
       await refreshCoverLetters();
-      setStatus({ type: "success", msg: "Nouvelle version de lettre sauvegardée." });
+      setStatus({ type: "success", msg: copy.versionSaved });
     } catch (err: unknown) {
       setStatus({
         type: "error",
-        msg: err instanceof Error ? err.message : "Sauvegarde impossible",
+        msg: err instanceof Error ? err.message : copy.saveFailed,
       });
     } finally {
       setIsSavingVersion(false);
@@ -359,9 +294,9 @@ export default function MarkdownToolPage() {
   };
 
   // ── Template picker ───────────────────────────────────────────────────────
-  const applyTemplate = (key: keyof typeof TEMPLATES) => {
+  const applyTemplate = (key: MarkdownTemplateId) => {
     setActiveTemplate(key);
-    setMarkdown(TEMPLATES[key]);
+    setMarkdown(MARKDOWN_TEMPLATES[key]);
     setCoverLetterId(null);
     setCoverLetterJobId(null);
     if (key === "cover_letter") {
@@ -405,14 +340,14 @@ export default function MarkdownToolPage() {
           {coverLetters.length > 0 ? (
             <ToolbarSelect
               value={coverLetterId ? String(coverLetterId) : ""}
-              ariaLabel="Charger une lettre persistée"
-              placeholder="Charger une lettre"
+              ariaLabel={copy.loadLetterLabel}
+              placeholder={copy.loadLetter}
               options={[
-                { value: "", label: "Charger une lettre" },
+                { value: "", label: copy.loadLetter },
                 ...coverLetters.map((letter) => ({
                   value: String(letter.id),
                   label: `Lettre #${letter.id}`,
-                  hint: letter.job_id ? `Job #${letter.job_id}` : "Sans job",
+                  hint: letter.job_id ? `Job #${letter.job_id}` : copy.withoutJob,
                 })),
               ]}
               onChange={(value) => {
@@ -433,7 +368,7 @@ export default function MarkdownToolPage() {
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Titre du document..."
+            placeholder={copy.documentTitle}
             className="app-input h-9 w-44 px-3 text-sm"
           />
 
@@ -449,7 +384,7 @@ export default function MarkdownToolPage() {
                     : "bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 }`}
               >
-                {s === "document" ? "Document" : "Lettre"}
+                {s === "document" ? copy.document : copy.letter}
               </button>
             ))}
           </div>
@@ -464,12 +399,12 @@ export default function MarkdownToolPage() {
               {isSavingVersion ? (
                 <>
                   <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />{" "}
-                  Sauvegarde...
+                  {copy.saving}
                 </>
               ) : (
                 <>
                   <Save className="h-4 w-4" aria-hidden="true" />
-                  Enregistrer une version
+                  {copy.saveVersion}
                 </>
               )}
             </button>
@@ -516,9 +451,9 @@ export default function MarkdownToolPage() {
       {/* ── Template bar ─────────────────────────────────────────────────────────── */}
       <div className="flex shrink-0 items-center gap-2 border-b border-border bg-card px-4 py-2">
         <span className="mr-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-          Template :
+          {copy.template} :
         </span>
-        {(Object.keys(TEMPLATES) as Array<keyof typeof TEMPLATES>).map(
+        {(Object.keys(MARKDOWN_TEMPLATES) as MarkdownTemplateId[]).map(
           (key) => (
             <button
               key={key}
@@ -529,9 +464,9 @@ export default function MarkdownToolPage() {
                   : "border-border bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               }`}
             >
-              {key === "blank" && "Vide"}
-              {key === "cover_letter" && "Lettre"}
-              {key === "technical_doc" && "Doc technique"}
+              {key === "blank" && copy.blank}
+              {key === "cover_letter" && copy.letter}
+              {key === "technical_doc" && copy.technicalDocument}
             </button>
           ),
         )}
@@ -545,14 +480,14 @@ export default function MarkdownToolPage() {
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1 font-medium text-foreground">
               <BriefcaseBusiness className="h-3.5 w-3.5" aria-hidden="true" />
-              {coverLetterJobId ? `Offre #${coverLetterJobId}` : "Offre non liée"}
+              {coverLetterJobId ? `Job #${coverLetterJobId}` : copy.unlinkedJob}
             </span>
             <ArrowRight className="h-3 w-3" aria-hidden="true" />
             <span className="font-medium text-foreground">
               Lettre #{coverLetterId}
             </span>
             <ArrowRight className="h-3 w-3" aria-hidden="true" />
-            <span>Export PDF</span>
+            <span>{copy.exportPdf}</span>
             <span className="ml-auto inline-flex items-center gap-1">
               <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
               {sameJobLetters.length} version{sameJobLetters.length > 1 ? "s" : ""}
@@ -572,7 +507,9 @@ export default function MarkdownToolPage() {
                   }`}
                 >
                   Version #{letter.id} ·{" "}
-                  {new Date(letter.generated_at).toLocaleDateString("fr-FR")}
+                  {new Date(letter.generated_at).toLocaleDateString(
+                    locale === "en" ? "en-US" : "fr-FR",
+                  )}
                 </button>
               ))}
             </div>
@@ -583,7 +520,7 @@ export default function MarkdownToolPage() {
       <div
         className="grid shrink-0 grid-cols-2 border-b border-border bg-card md:hidden"
         role="tablist"
-        aria-label="Vue Markdown"
+        aria-label={copy.markdownView}
       >
         <button
           type="button"
@@ -597,7 +534,7 @@ export default function MarkdownToolPage() {
           }`}
         >
           <PencilLine className="h-3.5 w-3.5" aria-hidden="true" />
-          Éditeur
+          {copy.editor}
         </button>
         <button
           type="button"
@@ -611,7 +548,7 @@ export default function MarkdownToolPage() {
           }`}
         >
           <Eye className="h-3.5 w-3.5" aria-hidden="true" />
-          Aperçu
+          {copy.preview}
         </button>
       </div>
 

@@ -192,7 +192,7 @@ export function AppShell({
             <Brand collapsed={desktopCollapsed} />
             <Button
               aria-label={
-                desktopCollapsed ? "Expand sidebar" : "Collapse sidebar"
+                desktopCollapsed ? messages.sidebar.expand : messages.sidebar.collapse
               }
               size="icon"
               variant="ghost"
@@ -224,7 +224,7 @@ export function AppShell({
               <div className="mb-8 flex items-center justify-between">
                 <Brand />
                 <Button
-                  aria-label="Close navigation"
+                  aria-label={messages.sidebar.closeNavigation}
                   size="icon"
                   variant="ghost"
                   onClick={() => setMobileOpen(false)}
@@ -252,7 +252,7 @@ export function AppShell({
             <div className="flex min-h-16 flex-col items-stretch justify-between gap-3 px-4 py-3 sm:flex-row sm:items-center lg:px-6">
               <div className="flex min-w-0 items-center gap-3">
                 <Button
-                  aria-label="Open navigation"
+                  aria-label={messages.sidebar.openNavigation}
                   size="icon"
                   variant="ghost"
                   className="lg:hidden"

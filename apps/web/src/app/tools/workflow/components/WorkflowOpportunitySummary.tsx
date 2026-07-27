@@ -3,12 +3,12 @@
 import { ArrowRight, FileBadge2, FileText, ListTodo } from "lucide-react";
 
 import {
-  STATE_LABELS,
   formatTimestamp,
   integrityTone,
   type OpportunityIntegrity,
   type OpportunityItem,
 } from "../workflow-model";
+import { useI18n } from "@/i18n/I18nProvider";
 
 interface WorkflowOpportunitySummaryProps {
   integrity: OpportunityIntegrity;
@@ -19,11 +19,13 @@ export function WorkflowOpportunitySummary({
   integrity,
   selected,
 }: WorkflowOpportunitySummaryProps) {
+  const { messages } = useI18n();
+  const copy = messages.pages.workflow;
   const stats = [
-    { label: "CV", value: selected.resume_id ? `#${selected.resume_id}` : "Manquant", icon: FileText },
-    { label: "ATS", value: selected.ats_report_id ? `#${selected.ats_report_id}` : "Manquant", icon: FileBadge2 },
-    { label: "Lettre", value: selected.cover_letter_id ? `#${selected.cover_letter_id}` : "Manquant", icon: FileText },
-    { label: "Tracker", value: selected.application_id ? `#${selected.application_id}` : "Manquant", icon: ListTodo },
+    { label: "CV", value: selected.resume_id ? `#${selected.resume_id}` : copy.missing, icon: FileText },
+    { label: "ATS", value: selected.ats_report_id ? `#${selected.ats_report_id}` : copy.missing, icon: FileBadge2 },
+    { label: copy.letter, value: selected.cover_letter_id ? `#${selected.cover_letter_id}` : copy.missing, icon: FileText },
+    { label: copy.tracker, value: selected.application_id ? `#${selected.application_id}` : copy.missing, icon: ListTodo },
   ];
 
   return (
@@ -38,17 +40,17 @@ export function WorkflowOpportunitySummary({
               #{selected.id}
             </span>
             <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-blue-700">
-              {STATE_LABELS[selected.current_state]}
+              {copy.states[selected.current_state]}
             </span>
             <span
               className={`rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${
                 integrityTone(integrity.status)
               }`}
             >
-              {integrity.status === "degraded" ? "Intégrité dégradée" : "Intégrité saine"}
+              {integrity.status === "degraded" ? copy.degradedIntegrity : copy.healthyIntegrity}
             </span>
             <span className="text-xs text-muted-foreground">
-              Mis à jour {formatTimestamp(selected.last_transition_at)}
+              {copy.updated} {formatTimestamp(selected.last_transition_at)}
             </span>
           </div>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
@@ -62,7 +64,7 @@ export function WorkflowOpportunitySummary({
               rel="noreferrer"
               className="mt-2 inline-flex items-center gap-1 text-sm text-blue-700 underline-offset-4 hover:underline"
             >
-              Offre source
+              {copy.sourceJob}
               <ArrowRight size={14} />
             </a>
           )}

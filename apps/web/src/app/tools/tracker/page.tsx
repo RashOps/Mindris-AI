@@ -16,16 +16,9 @@ import { compactTrackerSummary, toggleExpandedTrackerCard } from "@/lib/tracker-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TrackerHeader } from "./components/TrackerHeader";
+import { useI18n } from "@/i18n/I18nProvider";
 
-const STATUSES = [
-  { id: "wishlist", label: "À étudier", hint: "Opportunités à qualifier" },
-  { id: "applied", label: "Candidaté", hint: "Envoyé, en attente" },
-  { id: "interview", label: "Entretien", hint: "Process actif" },
-  { id: "offer", label: "Offre", hint: "Décision proche" },
-  { id: "rejected", label: "Refusé", hint: "Clôturé pour l’instant" },
-] as const;
-
-type Status = (typeof STATUSES)[number]["id"];
+type Status = "wishlist" | "applied" | "interview" | "offer" | "rejected";
 
 interface ApplicationItem {
   id: number;
@@ -55,8 +48,11 @@ interface TrackerResponse {
   columns?: Record<string, ApplicationItem[]>;
 }
 
-function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("fr-FR", { month: "short", day: "2-digit" }).format(new Date(value));
+function formatDate(value: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale === "en" ? "en-US" : "fr-FR", {
+    month: "short",
+    day: "2-digit",
+  }).format(new Date(value));
 }
 
 function statTone(status: Status): string {
@@ -75,6 +71,15 @@ function statTone(status: Status): string {
 }
 
 export default function TrackerPage() {
+  const { locale, messages } = useI18n();
+  const copy = messages.pages.tracker;
+  const statuses = useMemo(() => [
+    { id: "wishlist" as const, label: copy.wishlist, hint: copy.wishlistHint },
+    { id: "applied" as const, label: copy.applied, hint: copy.appliedHint },
+    { id: "interview" as const, label: copy.interview, hint: copy.interviewHint },
+    { id: "offer" as const, label: copy.offer, hint: copy.offerHint },
+    { id: "rejected" as const, label: copy.rejected, hint: copy.rejectedHint },
+  ], [copy]);
   const [columns, setColumns] = useState<Record<string, ApplicationItem[]>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -107,12 +112,12 @@ export default function TrackerPage() {
     void Promise.resolve().then(load);
   }, [load]);
 
-  const items = useMemo(() => STATUSES.flatMap((status) => columns[status.id] ?? []), [columns]);
+  const items = useMemo(() => statuses.flatMap((status) => columns[status.id] ?? []), [columns, statuses]);
   const filteredColumns = useMemo(() => {
     const needle = query.trim().toLowerCase();
     if (!needle) return columns;
     const next: Record<string, ApplicationItem[]> = {};
-    for (const status of STATUSES) {
+    for (const status of statuses) {
       next[status.id] = (columns[status.id] ?? []).filter((item) => {
         return [item.company, item.role, item.notes, item.url ?? ""].some((value) =>
           value.toLowerCase().includes(needle),
@@ -120,7 +125,7 @@ export default function TrackerPage() {
       });
     }
     return next;
-  }, [columns, query]);
+  }, [columns, query, statuses]);
 
   const metrics = useMemo(() => {
     const interviewCount = columns.interview?.length ?? 0;
@@ -281,16 +286,16 @@ export default function TrackerPage() {
 
         {loading ? (
           <div className="rounded-lg border border-border bg-card px-4 py-8 text-sm text-muted-foreground shadow-sm">
-            Chargement du tracker...
+            {copy.loading}
           </div>
         ) : (
           <>
           <div
             className="mb-4 flex gap-2 overflow-x-auto pb-1 xl:hidden"
             role="tablist"
-            aria-label="États des candidatures"
+            aria-label={copy.statesLabel}
           >
-            {STATUSES.map((status) => (
+            {statuses.map((status) => (
               <button
                 key={status.id}
                 type="button"
@@ -311,7 +316,7 @@ export default function TrackerPage() {
             ))}
           </div>
           <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-5">
-            {STATUSES.map((status) => {
+            {statuses.map((status) => {
               const itemsForStatus = filteredColumns[status.id] ?? [];
               const tone = statTone(status.id);
               return (
@@ -335,7 +340,7 @@ export default function TrackerPage() {
                   <div className="min-w-0 flex-1 space-y-3 p-3">
                     {itemsForStatus.length === 0 ? (
                       <div className="flex h-full min-w-0 items-center justify-center rounded-lg border border-dashed border-border px-4 py-10 text-center text-xs text-muted-foreground">
-                        Aucune candidature dans cette colonne.
+                        {copy.emptyColumn}
                       </div>
                     ) : (
                       itemsForStatus.map((item, index) => {
@@ -345,7 +350,7 @@ export default function TrackerPage() {
                           notes: item.notes,
                           reminderCounts: item.reminder_counts,
                           nextReminderLabel: item.next_reminder?.due_at
-                            ? formatDate(item.next_reminder.due_at)
+                            ? formatDate(item.next_reminder.due_at, locale)
                             : null,
                         });
                         return (
@@ -399,11 +404,11 @@ export default function TrackerPage() {
                                 }
                                 className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-border bg-card px-2 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                               >
-                                {expanded ? "Masquer" : "Détails"}
+                                {expanded ? copy.hide : copy.details}
                               </button>
                               {item.applied_at && (
                                 <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                                  Envoyé {formatDate(item.applied_at)}
+                                  {copy.sent} {formatDate(item.applied_at, locale)}
                                 </p>
                               )}
                             </div>
@@ -413,10 +418,10 @@ export default function TrackerPage() {
                               <div className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                                   <BellRing size={12} />
-                                  Relances
+                                  {copy.reminders}
                                 </div>
                                 <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                                  {item.reminder_counts?.pending ?? 0} en attente
+                                  {item.reminder_counts?.pending ?? 0} {copy.pending}
                                 </span>
                               </div>
 
@@ -434,7 +439,7 @@ export default function TrackerPage() {
                                           </p>
                                           <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
                                             <CalendarClock size={11} />
-                                            {formatDate(reminder.due_at)}
+                                            {formatDate(reminder.due_at, locale)}
                                           </p>
                                         </div>
                                         <span
@@ -459,7 +464,7 @@ export default function TrackerPage() {
                                               className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-emerald-500/30 bg-card px-2 py-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-300"
                                             >
                                               <CheckCheck size={11} />
-                                              Fait
+                                              {copy.done}
                                             </button>
                                             <button
                                               onClick={() =>
@@ -477,7 +482,7 @@ export default function TrackerPage() {
                                           className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-destructive/30 bg-card px-2 py-1 text-[11px] font-medium text-destructive"
                                         >
                                           <Trash2 size={11} />
-                                          Supprimer
+                                          {copy.delete}
                                         </button>
                                       </div>
                                     </div>
@@ -485,7 +490,7 @@ export default function TrackerPage() {
                                 </div>
                               ) : (
                                 <p className="mt-2 text-[11px] text-muted-foreground">
-                                  Aucune relance planifiée.
+                                  {copy.noReminder}
                                 </p>
                               )}
 
@@ -501,7 +506,7 @@ export default function TrackerPage() {
                                       },
                                     }))
                                   }
-                                  placeholder="Titre de relance"
+                                  placeholder={copy.reminderTitle}
                                   className="app-input h-9 text-xs"
                                 />
                                 <Input
@@ -524,7 +529,7 @@ export default function TrackerPage() {
                                   className="h-8 justify-center text-xs"
                                 >
                                   <Plus size={12} />
-                                  Ajouter une relance
+                                  {copy.addReminder}
                                 </Button>
                               </div>
                             </div>
@@ -532,7 +537,7 @@ export default function TrackerPage() {
 
                             {expanded && (
                             <div className="mt-3 flex flex-wrap gap-1.5">
-                              {STATUSES.filter((candidate) => candidate.id !== item.status).map((target) => (
+                              {statuses.filter((candidate) => candidate.id !== item.status).map((target) => (
                                 <button
                                   key={target.id}
                                   onClick={() => move(item, target.id, index)}
@@ -547,7 +552,7 @@ export default function TrackerPage() {
                                 className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-destructive/30 bg-card px-2 py-1 text-[11px] font-medium text-destructive transition-colors hover:bg-destructive/10"
                               >
                                 <Trash2 size={11} />
-                                Supprimer
+                                {copy.delete}
                               </button>
                             </div>
                             )}

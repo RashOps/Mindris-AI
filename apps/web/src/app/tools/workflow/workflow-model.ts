@@ -93,7 +93,22 @@ export interface OpportunityItem {
   last_transition_at: string;
   transitions: WorkflowTransition[];
   next_actions: string[];
-  linked_artifacts?: Record<string, unknown>;
+  linked_artifacts?: {
+    resume?: {
+      id: number;
+      name: string;
+      locale: string;
+      revision?: number;
+      updated_at: string;
+    };
+    ats_report?: AtsReportItem;
+    cover_letter?: CoverLetterItem;
+    application?: {
+      id: number;
+      status: string;
+      updated_at: string;
+    };
+  };
   integrity?: OpportunityIntegrity;
 }
 
@@ -185,6 +200,12 @@ export function repairActionLabel(action: string): string {
       return "Réinitialiser la langue du CV";
     case "sync_application_links":
       return "Synchroniser le tracker";
+    case "relink_ats_report":
+      return "Remplacer ou recalculer le score ATS";
+    case "relink_cover_letter":
+      return "Remplacer la lettre";
+    case "relink_application":
+      return "Remplacer l’entrée tracker";
     default:
       return action;
   }

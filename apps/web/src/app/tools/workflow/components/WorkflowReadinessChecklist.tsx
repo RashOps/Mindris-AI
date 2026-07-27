@@ -2,7 +2,8 @@
 
 import { FileBadge2, FileText, ListTodo } from "lucide-react";
 
-import { type OpportunityItem } from "../workflow-model";
+import { formatTimestamp, type OpportunityItem } from "../workflow-model";
+import { useI18n } from "@/i18n/I18nProvider";
 
 interface WorkflowReadinessChecklistProps {
   selected: OpportunityItem;
@@ -11,31 +12,39 @@ interface WorkflowReadinessChecklistProps {
 export function WorkflowReadinessChecklist({
   selected,
 }: WorkflowReadinessChecklistProps) {
+  const { messages } = useI18n();
+  const copy = messages.pages.workflow;
   const readinessItems = [
     {
-      label: "CV adapté",
+      label: copy.tailoredResume,
       done: Boolean(selected.resume_id),
       detail: selected.resume_id
-        ? `CV #${selected.resume_id}${selected.resume_locale ? ` · ${selected.resume_locale.toUpperCase()}` : ""}`
-        : "Lier un CV avant de candidater.",
+        ? `CV #${selected.resume_id}${selected.linked_artifacts?.resume?.revision ? ` · r${selected.linked_artifacts.resume.revision}` : ""}${selected.resume_locale ? ` · ${selected.resume_locale.toUpperCase()}` : ""}`
+        : copy.linkResumeBeforeApply,
       icon: FileText,
     },
     {
-      label: "Score ATS",
+      label: copy.atsScore,
       done: Boolean(selected.ats_report_id),
-      detail: selected.ats_report_id ? `Rapport #${selected.ats_report_id}` : "Analyser le CV contre l’offre.",
+      detail: selected.ats_report_id
+        ? `ATS #${selected.ats_report_id}${selected.linked_artifacts?.ats_report?.generated_at ? ` · ${formatTimestamp(selected.linked_artifacts.ats_report.generated_at)}` : ""}`
+        : copy.analyzeResume,
       icon: FileBadge2,
     },
     {
-      label: "Lettre",
+      label: copy.letter,
       done: Boolean(selected.cover_letter_id),
-      detail: selected.cover_letter_id ? `Lettre #${selected.cover_letter_id}` : "Générer ou lier une lettre.",
+      detail: selected.cover_letter_id
+        ? `#${selected.cover_letter_id}${selected.linked_artifacts?.cover_letter?.generated_at ? ` · ${formatTimestamp(selected.linked_artifacts.cover_letter.generated_at)}` : ""}`
+        : copy.generateLetter,
       icon: FileText,
     },
     {
-      label: "Suivi",
+      label: copy.tracker,
       done: Boolean(selected.application_id),
-      detail: selected.application_id ? `Tracker #${selected.application_id}` : "Créer une entrée tracker.",
+      detail: selected.application_id
+        ? `Tracker #${selected.application_id}${selected.linked_artifacts?.application?.updated_at ? ` · ${formatTimestamp(selected.linked_artifacts.application.updated_at)}` : ""}`
+        : copy.createTrackerEntry,
       icon: ListTodo,
     },
   ];
@@ -45,13 +54,13 @@ export function WorkflowReadinessChecklist({
     <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm font-semibold text-foreground">Prêt à candidater ?</p>
+          <p className="text-sm font-semibold text-foreground">{copy.readiness}</p>
           <p className="text-xs text-muted-foreground">
             {readyCount}/4 éléments nécessaires sont liés à cette opportunité.
           </p>
         </div>
         <span className="rounded-full border border-border bg-muted/40 px-3 py-1 text-xs font-medium text-muted-foreground">
-          {selected.job_id ? `Filtré par offre #${selected.job_id}` : "Opportunité manuelle"}
+          {selected.job_id ? `${copy.filteredByJob} #${selected.job_id}` : copy.manualOpportunity}
         </span>
       </div>
       <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">

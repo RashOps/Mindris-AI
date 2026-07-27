@@ -60,19 +60,22 @@ Le script demarre :
 Logs :
 
 ```text
-.logs/api-gateway.log
-.logs/intelligence.log
-.logs/renderer.log
-.logs/scraper.log
-.logs/web.log
+.logs/services/api-gateway.log
+.logs/services/intelligence.log
+.logs/services/renderer.log
+.logs/services/scraper.log
+.logs/process/api-gateway.stdout.log
+.logs/process/renderer.stdout.log
+.logs/process/web.stdout.log
 ```
 
-`renderer.log` contient maintenant des lignes JSON structurees exploitables pour le debug local.
-Les modules Python utilisent aussi des fichiers separes par service pour eviter le melange des traces.
-Le dossier canonique pour les logs locaux est `.logs/`.
+Les événements applicatifs vivent sous `services/`, tandis que la sortie brute
+des processus supervisés vit sous `process/`. Le dossier canonique pour tous
+les logs locaux est `.logs/`, indépendamment du répertoire courant.
 
 Chaque reponse API expose aussi un header `X-Request-Id`.
-En cas d'erreur backend, utilise cet identifiant pour recouper le terminal, `.logs/api-gateway.log` et les appels navigateur.
+En cas d'erreur backend, utilise cet identifiant pour recouper le terminal,
+`.logs/services/api-gateway.log` et les appels navigateur.
 
 Ports personnalisables :
 
@@ -241,7 +244,8 @@ cp -R /tmp/mindris-backup/logs ./.logs
 Si seuls les logs t'interessent, ne restaure pas `storage/`.
 
 Les scripts ne lisent pas le contenu de `.env` dans la sortie terminal et ne doivent pas afficher de secrets.
-Le dossier `logs/` est considere comme legacy local; les nouveaux flux utilisent `.logs/`.
+Les dossiers `logs/`, `tests/logs/` et `services/api-gateway/logs/` sont legacy ;
+les nouveaux flux utilisent uniquement `.logs/`.
 
 Ne pas partager la sortie de `docker compose config` si `.env` contient de
 vraies cles : Compose y developpe les secrets en clair. Utiliser les variantes

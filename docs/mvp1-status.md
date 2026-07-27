@@ -1,6 +1,6 @@
 # Etat MVP1 - Mindris AI
 
-Date : 20 juillet 2026
+Date : 23 juillet 2026
 
 ## Statut global
 
@@ -37,6 +37,15 @@ Le principe architectural reste respecte : le frontend n'est pas un service meti
 - Guide produit visuel avec parcours, checklists et rappel des frontieres runtime.
 - UI prioritaire francais-first sur Dashboard, CV Builder, Guide et History.
 - Docker release one-command via GHCR, compose release, scripts install/update/uninstall/smoke.
+- CLI contributeur multiplateforme canonique avec lanceurs Unix, PowerShell et
+  CMD ; les anciens scripts locaux sont désormais de simples wrappers.
+- Racine de logs unique par instance : `.logs/` dans un clone et `logs/` dans
+  une installation self-hosted.
+- Format communautaire import/export disponible hors ligne pour les templates.
+- Checklist de premier démarrage persistée par le backend, avec preuves
+  automatiques, étapes réparables et mode local recommandé.
+- Sauvegarde portable via `mindris backup create/inspect/restore`, sans secrets
+  et avec restauration transactionnelle.
 
 ## Partiel
 
@@ -55,7 +64,8 @@ Le principe architectural reste respecte : le frontend n'est pas un service meti
 - Authentification SaaS multi-utilisateur.
 - Stripe ou billing.
 - Versioning Git-like complet.
-- Marketplace communautaire de templates.
+- Marketplace publique de templates : le format portable et l’import/export
+  existent, mais pas encore le catalogue distant ni la publication modérée.
 - IA locale avancee via Ollama comme mode principal.
 - Portfolio public.
 - Application Tauri/Desktop complete.
@@ -176,6 +186,34 @@ bun run typecheck
 Resultat intermediaire : OK.
 
 ## Runs de consolidation recents
+
+### Run D - Release immuable et CLI multiplateforme
+
+ADRs : [`025`](adr/025-immutable-release-candidates-and-ghcr-digest-promotion.md),
+[`026`](adr/026-cross-platform-contributor-cli.md).
+
+Terminé :
+
+- PR limitées à la validation, sans publication d’images.
+- Builds Docker déclenchés uniquement par tags `v*-rc.*`.
+- Promotion stable par digest GHCR, sans rebuild.
+- CLI Python standard avec lanceurs Unix, PowerShell et CMD.
+- `uv` reste obligatoire pour toute commande qui touche au workspace Python.
+- Supervision locale, diagnostics, validation et contrôles de release unifiés.
+
+### Run E - Observabilité runtime centralisée
+
+ADR : [`027`](adr/027-canonical-runtime-log-root.md).
+
+Terminé :
+
+- `.logs/services/` pour les événements applicatifs.
+- `.logs/process/` pour stdout/stderr des processus supervisés.
+- `.logs/runtime/` pour l’état de supervision.
+- résolution indépendante du répertoire courant ;
+- rotation bornée Python et Bun ;
+- tests ordinaires isolés dans un dossier temporaire ;
+- persistance Docker des logs API et renderer.
 
 ### Run A - Runtime, backend contracts et CV Builder
 
@@ -325,3 +363,37 @@ Terminé :
 - `.screenshots/product-simplification-2026-07-20/`
 
 Desktop/Tauri reste explicitement hors de ce run.
+
+## Run 24 - Consolidation, observabilité et reprise - 23 juillet 2026
+
+Terminé :
+
+- baseline CI restaurée et politique PR sans publication vérifiée ;
+- logs centralisés sous une racine canonique par instance ;
+- CLI multiplateforme devenue point d’entrée officiel des contributeurs ;
+- documentation, roadmap, changelog et ADR réconciliés ;
+- surfaces prioritaires migrées vers les catalogues i18n FR/EN ;
+- Workflow Beta durci avec fraîcheur des artefacts et réparations bornées ;
+- gros modules ramenés sous 700 lignes, sauf le store métier à 771 lignes sous
+  le plafond exceptionnel de 800 ;
+- onboarding backend-driven ajouté au dashboard ;
+- archives de sauvegarde versionnées, inspectables et restaurables.
+
+Validation finale :
+
+```text
+161 tests Python réussis, 2 ignorés
+46 tests frontend réussis
+47 tests renderer réussis
+E2E : cv-builder, DOCX, PDF, ATS, tracker et workflow-repair réussis
+Docker compose release, dry-run installateur et politique de promotion réussis
+```
+
+Audit visuel Playwright :
+
+- Dashboard, CV Builder et Guide ;
+- clair et sombre ;
+- 1600 × 900 et 390 × 844 ;
+- aucun overflow horizontal ni erreur console.
+
+Aucun tag de release n’a été créé pendant ce run.

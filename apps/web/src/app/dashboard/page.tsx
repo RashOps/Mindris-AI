@@ -37,6 +37,7 @@ import {
 } from "@/lib/templates";
 import { DashboardActions, ResumeCard, TemplatePreview } from "./dashboard-components";
 import { ContextualGuideLink } from "@/components/help/ContextualGuideLink";
+import { OnboardingChecklist } from "./OnboardingChecklist";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -357,6 +358,7 @@ export default function DashboardPage() {
                 <StatusBanner>{status}</StatusBanner>
               </div>
             )}
+            <OnboardingChecklist />
 
             <section className="mb-8">
               <div className="mb-4 flex items-end justify-between gap-4">

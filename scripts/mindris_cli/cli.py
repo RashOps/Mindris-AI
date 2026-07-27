@@ -3,10 +3,24 @@
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
+from pathlib import Path
 
 from . import __version__
-from .commands import check, docker, e2e, lint, logs, release_verify, setup, smoke, test
+from .backup import create_backup, inspect_backup, restore_backup
+from .commands import (
+    check,
+    docker,
+    e2e,
+    lint,
+    logs,
+    release_verify,
+    reset_dependencies,
+    setup,
+    smoke,
+    test,
+)
 from .context import CliError
 from .doctor import doctor
 from .services import dev, status, stop_services
@@ -35,6 +49,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     setup_parser = commands.add_parser("setup", help="Initialiser le workspace")
     setup_parser.add_argument("--check", action="store_true", dest="check_only")
+    commands.add_parser("reset-deps", help="Réinstaller les dépendances locales")
 
     dev_parser = commands.add_parser("dev", help="Lancer la stack locale")
     dev_parser.add_argument("--api-port", type=int, default=8000)
@@ -69,6 +84,11 @@ def build_parser() -> argparse.ArgumentParser:
     logs_parser = commands.add_parser("logs", help="Lire les logs .logs")
     logs_parser.add_argument("service", nargs="?")
     logs_parser.add_argument("--follow", "-f", action="store_true")
+    logs_parser.add_argument(
+        "--since",
+        help="Limiter à une durée (10m, 2h) ou une date ISO 8601",
+    )
+    logs_parser.add_argument("--request-id", help="Filtrer par identifiant de requête")
 
     docker_parser = commands.add_parser("docker", help="Piloter Docker Compose")
     docker_parser.add_argument(
@@ -82,6 +102,20 @@ def build_parser() -> argparse.ArgumentParser:
     verify_parser = release_commands.add_parser("verify", help="Vérifier un tag stable")
     verify_parser.add_argument("tag")
     verify_parser.add_argument("--main-ref", default="origin/main")
+
+    backup_parser = commands.add_parser(
+        "backup",
+        help="Sauvegarder les données locales",
+    )
+    backup_commands = backup_parser.add_subparsers(dest="backup_command", required=True)
+    create_parser = backup_commands.add_parser("create", help="Créer une archive")
+    create_parser.add_argument("archive", type=Path)
+    inspect_parser = backup_commands.add_parser("inspect", help="Inspecter une archive")
+    inspect_parser.add_argument("archive", type=Path)
+    restore_parser = backup_commands.add_parser(
+        "restore", help="Restaurer une archive validée"
+    )
+    restore_parser.add_argument("archive", type=Path)
     return parser
 
 
@@ -90,6 +124,7 @@ def dispatch(args: argparse.Namespace) -> int:
     handlers = {
         "doctor": lambda: doctor(json_output=args.json_output),
         "setup": lambda: setup(check_only=args.check_only),
+        "reset-deps": reset_dependencies,
         "dev": lambda: dev(
             api_port=args.api_port,
             renderer_port=args.renderer_port,
@@ -107,11 +142,27 @@ def dispatch(args: argparse.Namespace) -> int:
             web_url=args.web_url,
         ),
         "e2e": lambda: e2e(web_url=args.web_url, api_url=args.api_url),
-        "logs": lambda: logs(args.service, follow=args.follow),
+        "logs": lambda: logs(
+            args.service,
+            follow=args.follow,
+            since=args.since,
+            request_id=args.request_id,
+        ),
         "docker": lambda: docker(args.action),
         "release": lambda: release_verify(args.tag, main_ref=args.main_ref),
+        "backup": lambda: _backup(args),
     }
     return handlers[args.command]()
+
+
+def _backup(args: argparse.Namespace) -> int:
+    operation = {
+        "create": create_backup,
+        "inspect": inspect_backup,
+        "restore": restore_backup,
+    }[args.backup_command]
+    print(json.dumps(operation(args.archive), ensure_ascii=False, indent=2))
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:

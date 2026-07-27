@@ -4,7 +4,12 @@ from __future__ import annotations
 
 import json
 import os
+import re
+import shutil
 import subprocess
+import sys
+import time
+from datetime import datetime
 from pathlib import Path
 
 from .context import (
@@ -41,9 +46,28 @@ def setup(*, check_only: bool = False) -> int:
     return 0
 
 
+def reset_dependencies() -> int:
+    """Réinstalle les dépendances locales sans supprimer les lockfiles."""
+    require_contributor_runtime()
+    for path in (
+        ROOT / ".venv",
+        ROOT / "apps/web/node_modules",
+        ROOT / "services/renderer/node_modules",
+    ):
+        if path.exists():
+            shutil.rmtree(path)
+    run(["uv", "sync", "--all-packages"])
+    run(["bun", "install", "--frozen-lockfile"], cwd=ROOT / "apps/web")
+    run(["bun", "install", "--frozen-lockfile"], cwd=ROOT / "services/renderer")
+    print("✓ Dépendances locales réinstallées.")
+    return 0
+
+
 def lint(scope: str = "all") -> int:
     """Lance les validations statiques sélectionnées."""
     require_contributor_runtime()
+    if scope == "all":
+        run([sys.executable, "scripts/check_markdown_links.py"])
     if scope in {"all", "backend"}:
         run(["uv", "run", "--no-sync", "ruff", "check", "."])
         run(["uv", "run", "--no-sync", "ruff", "format", "--check", "."])
@@ -132,11 +156,68 @@ def e2e(
     return 0
 
 
-def logs(service: str | None = None, *, follow: bool = False) -> int:
+def _since_timestamp(value: str | None) -> float | None:
+    if value is None:
+        return None
+    units = {"s": 1, "m": 60, "h": 3600, "d": 86400}
+    if len(value) > 1 and value[-1] in units and value[:-1].isdigit():
+        return time.time() - int(value[:-1]) * units[value[-1]]
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00")).timestamp()
+    except ValueError as error:
+        raise CliError(
+            "--since attend une durée (30s, 10m, 2h, 1d) ou une date ISO 8601.",
+            2,
+        ) from error
+
+
+def _line_timestamp(line: str) -> float | None:
+    try:
+        payload = json.loads(line)
+    except json.JSONDecodeError:
+        match = re.match(r"^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})]", line)
+        if not match:
+            return None
+        parsed = datetime.strptime(match.group(1), "%Y-%m-%d %H:%M:%S")
+        return parsed.astimezone().timestamp()
+    raw = payload.get("timestamp") or payload.get("time")
+    if not isinstance(raw, str):
+        return None
+    try:
+        return datetime.fromisoformat(raw.replace("Z", "+00:00")).timestamp()
+    except ValueError:
+        return None
+
+
+def _filter_log_content(
+    content: str,
+    *,
+    since: float | None,
+    request_id: str | None,
+) -> str:
+    selected: list[str] = []
+    for line in content.splitlines(keepends=True):
+        if request_id and request_id not in line:
+            continue
+        timestamp = _line_timestamp(line)
+        if since is not None and timestamp is not None and timestamp < since:
+            continue
+        selected.append(line)
+    return "".join(selected)
+
+
+def logs(
+    service: str | None = None,
+    *,
+    follow: bool = False,
+    since: str | None = None,
+    request_id: str | None = None,
+) -> int:
     """Affiche les logs canoniques sans commande Unix externe."""
-    candidates = sorted(LOG_DIR.glob("*.log"))
+    since_timestamp = _since_timestamp(since)
+    candidates = sorted(LOG_DIR.rglob("*.log"))
     if service:
-        candidates = [path for path in candidates if service in path.stem]
+        candidates = [path for path in candidates if path.stem == service]
     if not candidates:
         raise CliError(f"Aucun log correspondant dans {LOG_DIR}")
     positions: dict[Path, int] = {}
@@ -149,12 +230,17 @@ def logs(service: str | None = None, *, follow: bool = False) -> int:
                     content = stream.read()
                     positions[path] = stream.tell()
                 if content:
-                    print(f"\n==> {path.name} <==")
+                    content = _filter_log_content(
+                        content,
+                        since=since_timestamp,
+                        request_id=request_id,
+                    )
+                if content:
+                    relative_path = path.relative_to(LOG_DIR)
+                    print(f"\n==> {relative_path} <==")
                     print(content, end="" if content.endswith("\n") else "\n")
             if not follow:
                 return 0
-            import time
-
             time.sleep(1)
     except KeyboardInterrupt:
         return 0
@@ -185,8 +271,6 @@ def docker(command: str) -> int:
 def release_verify(stable_tag: str, *, main_ref: str = "origin/main") -> int:
     """Vérifie en Python la même politique Git que le gate CI shell."""
     require_tool("git")
-    import re
-
     if not re.fullmatch(r"v\d+\.\d+\.\d+", stable_tag):
         raise CliError(f"Tag stable invalide : {stable_tag}", 2)
 

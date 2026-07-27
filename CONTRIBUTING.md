@@ -41,8 +41,11 @@ Initialisation puis validation :
 
 Sous Windows, utiliser `.\mindris.ps1` dans PowerShell ou `mindris.cmd` dans
 CMD. La CLI démarre avec
-Python standard, mais `setup`, `dev`, `lint`, `test`, `check` et `e2e` refusent
-de continuer si `uv` est absent.
+Python standard, mais `setup`, `reset-deps`, `dev`, `lint`, `test`, `check` et
+`e2e` refusent de continuer si `uv` est absent.
+
+Les scripts historiques ci-dessous sont des wrappers de compatibilité vers la
+CLI. La logique d’orchestration ne doit pas y être dupliquée.
 
 Validation repo-first :
 
@@ -121,3 +124,18 @@ git fetch origin main --tags
 Ne déplacez et ne supprimez jamais un tag pour relancer la CI. Une correction
 produit un nouveau commit et le RC suivant. La procédure complète est décrite
 dans [docs/releases.md](docs/releases.md).
+
+## Checks requis avant merge
+
+La protection de `main` doit exiger la réussite des checks de pull request
+suivants :
+
+- `backend` ;
+- `frontend` ;
+- `docker-self-hosted-dry-run` ;
+- `cli-cross-platform (ubuntu-latest)` ;
+- `cli-cross-platform (windows-latest)`.
+
+Le job navigateur complet reste manuel sur les pull requests ordinaires, mais
+devient un gate obligatoire des release candidates. Aucun workflow déclenché
+par une pull request ne possède le droit `packages: write`.

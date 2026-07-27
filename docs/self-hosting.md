@@ -46,7 +46,7 @@ RENDERER_URL="http://localhost:4000"
 NEXT_PUBLIC_API_URL="http://localhost:8000"
 NEXT_PUBLIC_RENDERER_URL="http://localhost:4000"
 STORAGE_DIR="./storage"
-LOGS_DIR="./logs"
+LOGS_DIR=".logs"
 CHROMA_DB_DIR="./storage/vectordb"
 ```
 
@@ -55,9 +55,13 @@ Pour Docker Compose, le backend reçoit automatiquement :
 ```env
 RENDERER_URL=http://renderer:4000
 STORAGE_DIR=/app/storage
-LOGS_DIR=/app/logs
+LOGS_DIR=/app/.logs
 CHROMA_DB_DIR=/app/storage/vectordb
 ```
+
+Le Compose de release utilise `/app/logs`, monté vers
+`~/.mindris-ai/logs/`, afin de conserver une racine lisible dans le package
+self-hosted.
 
 Les variables `NEXT_PUBLIC_*` restent en `localhost` parce qu'elles sont utilisées par le navigateur de l'utilisateur, pas par le réseau interne Docker. Le navigateur local n'embarque plus de clé publique: l'accès web repose sur la frontière loopback locale, tandis que les scripts et appels externes utilisent `X-API-Key`.
 
@@ -151,8 +155,10 @@ Statut des conteneurs :
 ./scripts/docker_local.sh status
 ```
 
-En plus des flux `docker compose logs`, les services ecrivent dans les volumes locaux.
-Pour les services Python et Bun, la reference locale reste `.logs/` hors conteneur.
+En plus des flux `docker compose logs`, les services écrivent dans une racine
+partagée. Depuis un clone Docker local, elle reste `.logs/`. Dans une
+installation one-command, elle devient `~/.mindris-ai/logs/`. L'API et le
+renderer utilisent le même volume, avec un fichier par service.
 Les erreurs API normalisees exposent un `X-Request-Id` pour recouper les traces.
 
 ## Arrêt

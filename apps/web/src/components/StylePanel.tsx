@@ -47,21 +47,14 @@ import {
   FALLBACK_CUSTOMIZATION_CATALOGUE,
 } from "@/lib/customization-catalogue";
 import { resolveTemplateRenderPayload } from "@/lib/templates";
+import {
+  StylePanelTabs,
+  type StylePanelTab,
+} from "@/components/style-panel/StylePanelTabs";
 
 export { mergeSections } from "@/components/style-panel/settings";
 
-type Tab =
-  | "document"
-  | "template"
-  | "layout"
-  | "typography"
-  | "spacing"
-  | "colors"
-  | "photo"
-  | "header"
-  | "links"
-  | "sections"
-  | "advanced";
+type Tab = StylePanelTab;
 type AccentTarget = NonNullable<
   NonNullable<GlobalSettings["colors"]>["accent_targets"]
 >[number];
@@ -292,51 +285,12 @@ export function StylePanel({
           )}
         </div>
 
-        {visibleTabs.length > 1 ? (
-          <div
-            className={`grid shrink-0 border-b border-border ${isAdvancedMode ? "grid-cols-4" : "grid-cols-3"}`}
-            role="tablist"
-            aria-label="Réglages de style"
-            onKeyDown={(event) => {
-              const tabs = Array.from(
-                event.currentTarget.querySelectorAll<HTMLElement>('[role="tab"]'),
-              );
-              const current = tabs.indexOf(document.activeElement as HTMLElement);
-              if (current < 0) return;
-              let next = current;
-              if (event.key === "ArrowRight") next = (current + 1) % tabs.length;
-              else if (event.key === "ArrowLeft")
-                next = (current - 1 + tabs.length) % tabs.length;
-              else if (event.key === "Home") next = 0;
-              else if (event.key === "End") next = tabs.length - 1;
-              else return;
-              event.preventDefault();
-              tabs[next]?.focus();
-              tabs[next]?.click();
-            }}
-          >
-            {visibleTabs.map((t) => (
-              <button
-                key={t.key}
-                type="button"
-                id={`cv-style-tab-${t.key}`}
-                role="tab"
-                aria-selected={activeTab === t.key}
-                aria-controls={`cv-style-panel-${t.key}`}
-                tabIndex={activeTab === t.key ? 0 : -1}
-                onClick={() => setTab(t.key)}
-                className={`flex min-w-0 cursor-pointer flex-col items-center gap-0.5 border-b-2 px-1 py-2 text-center text-[10px] font-semibold leading-tight transition-colors ${
-                  activeTab === t.key
-                    ? "border-violet-600 bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300"
-                    : "border-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                }`}
-              >
-                <t.icon className="h-4 w-4" aria-hidden="true" />
-                {t.label}
-              </button>
-            ))}
-          </div>
-        ) : null}
+        <StylePanelTabs
+          activeTab={activeTab}
+          advanced={isAdvancedMode}
+          tabs={visibleTabs}
+          onChange={setTab}
+        />
 
         <div
           id={`cv-style-panel-${activeTab}`}

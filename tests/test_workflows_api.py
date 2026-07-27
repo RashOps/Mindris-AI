@@ -7,6 +7,7 @@ from database.records import ApplicationRecord, ResumeRecord, ScrapedJobRecord
 from database.session import SessionLocal
 from fastapi import HTTPException
 from persistence import (
+    create_resume_revision,
     delete_resume_locale_variant,
     save_ats_report,
     save_cover_letter,
@@ -430,3 +431,89 @@ def test_workflow_surfaces_invalid_resume_locale_as_degraded_integrity() -> None
     assert repaired_item["resume_locale"] == "fr"
     assert repaired_item["integrity"]["status"] == "healthy"
     assert repaired_item["transitions"][-1]["action"] == "repair:reset_resume_locale"
+
+
+def test_workflow_detects_and_detaches_stale_ats_resume_revision() -> None:
+    job = _seed_job("workflow-stale-ats")
+    resume = _seed_resume("Workflow Stale ATS")
+
+    with SessionLocal() as session:
+        persisted_resume = session.get(ResumeRecord, resume.id)
+        assert persisted_resume is not None
+        first_revision = create_resume_revision(
+            session,
+            persisted_resume,
+            label="ats baseline",
+        )
+        ats = save_ats_report(
+            session,
+            {
+                "score": 78,
+                "context": {
+                    "resume_id": resume.id,
+                    "resume_locale": "fr",
+                    "resume_revision": first_revision.revision,
+                },
+            },
+            provider="test",
+            model_name="test",
+            job_id=job.id,
+        )
+        letter = save_cover_letter(
+            session,
+            "Letter",
+            provider="test",
+            model_name="test",
+            job_id=job.id,
+        )
+        created = create_opportunity_route(
+            OpportunityCreateRequest(job_id=job.id),
+            session,
+        )
+        opportunity_id = created["item"]["id"]
+        link_resume_route(
+            opportunity_id,
+            OpportunityResumeLinkRequest(resume_id=resume.id, locale="fr"),
+            session,
+        )
+        link_ats_route(
+            opportunity_id,
+            OpportunityAtsLinkRequest(ats_report_id=ats.id),
+            session,
+        )
+        link_cover_letter_route(
+            opportunity_id,
+            OpportunityCoverLetterLinkRequest(cover_letter_id=letter.id),
+            session,
+        )
+        link_tracker_route(
+            opportunity_id,
+            OpportunityTrackerLinkRequest(create=True, status="wishlist"),
+            session,
+        )
+
+        create_resume_revision(session, persisted_resume, label="new content")
+        fetched = get_opportunity_route(opportunity_id, session)["item"]
+
+        stale_issue = next(
+            issue
+            for issue in fetched["integrity"]["issues"]
+            if issue["code"] == "stale_ats_resume_revision"
+        )
+        assert stale_issue["metadata"]["ats_resume_revision"] == 1
+        assert stale_issue["metadata"]["current_resume_revision"] == 2
+        assert fetched["linked_artifacts"]["resume"]["revision"] == 2
+        assert "relink_ats_report" in fetched["integrity"]["repair_actions"]
+
+        with pytest.raises(HTTPException, match="degraded artifact integrity"):
+            mark_ready_route(opportunity_id, session)
+
+        repaired = repair_opportunity_route(
+            opportunity_id,
+            OpportunityRepairRequest(action="relink_ats_report"),
+            session,
+        )["item"]
+
+    assert repaired["ats_report_id"] is None
+    assert repaired["current_state"] == "tracker_entry_created"
+    assert repaired["integrity"]["status"] == "healthy"
