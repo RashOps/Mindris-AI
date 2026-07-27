@@ -93,6 +93,10 @@ class CoverLetterRecord(Base):
     job_id: Mapped[int | None] = mapped_column(
         ForeignKey("scrapedjobrecord.id"), default=None
     )
+    resume_id: Mapped[int | None] = mapped_column(
+        ForeignKey("resumerecord.id"), default=None, index=True
+    )
+    resume_revision: Mapped[int | None] = mapped_column(default=None, index=True)
     markdown_content: Mapped[str] = mapped_column(Text)
     provider: Mapped[str]
     model_name: Mapped[str]
@@ -108,6 +112,10 @@ class AtsReportRecord(Base):
     job_id: Mapped[int | None] = mapped_column(
         ForeignKey("scrapedjobrecord.id"), default=None
     )
+    resume_id: Mapped[int | None] = mapped_column(
+        ForeignKey("resumerecord.id"), default=None, index=True
+    )
+    resume_revision: Mapped[int | None] = mapped_column(default=None, index=True)
     score: Mapped[int]
     summary: Mapped[str] = mapped_column(Text, default="")
     mode: Mapped[str] = mapped_column(default="standard")
@@ -120,6 +128,48 @@ class AtsReportRecord(Base):
     provider: Mapped[str]
     model_name: Mapped[str]
     generated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+
+class ResumeAgentProposalRecord(Base):
+    """Auditable human-gated proposal against one resume revision."""
+
+    __tablename__ = "resumeagentproposalrecord"
+
+    id: Mapped[int | None] = mapped_column(primary_key=True, default=None)
+    resume_id: Mapped[int] = mapped_column(
+        ForeignKey("resumerecord.id"), index=True
+    )
+    source_revision: Mapped[int] = mapped_column(index=True)
+    created_revision: Mapped[int | None] = mapped_column(default=None, index=True)
+    agent: Mapped[str] = mapped_column(default="resume_agent", index=True)
+    provider: Mapped[str] = mapped_column(default="")
+    model_name: Mapped[str] = mapped_column(default="")
+    proposal_json: Mapped[str] = mapped_column(Text)
+    evidence_json: Mapped[str] = mapped_column(Text, default="[]")
+    manifest_before_json: Mapped[str] = mapped_column(Text, default="{}")
+    manifest_after_json: Mapped[str] = mapped_column(Text, default="{}")
+    privacy_policy_json: Mapped[str] = mapped_column(Text, default="{}")
+    validation_json: Mapped[str] = mapped_column(Text, default="{}")
+    status: Mapped[str] = mapped_column(default="pending", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    validated_at: Mapped[datetime | None] = mapped_column(DateTime, default=None)
+
+
+class AgentToolAuditRecord(Base):
+    """Bounded audit event for one backend-owned agent tool invocation."""
+
+    __tablename__ = "agenttoolauditrecord"
+
+    id: Mapped[int | None] = mapped_column(primary_key=True, default=None)
+    tool_name: Mapped[str] = mapped_column(index=True)
+    resume_id: Mapped[int | None] = mapped_column(default=None, index=True)
+    actor: Mapped[str] = mapped_column(default="agent")
+    status: Mapped[str] = mapped_column(default="success", index=True)
+    input_size: Mapped[int] = mapped_column(default=0)
+    output_size: Mapped[int] = mapped_column(default=0)
+    message_id: Mapped[str] = mapped_column(default="agent.tool.completed")
+    metadata_json: Mapped[str] = mapped_column(Text, default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
 
 
 class CompanyInsightRecord(Base):

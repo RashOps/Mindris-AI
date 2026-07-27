@@ -12,7 +12,7 @@ from sqlalchemy import Connection, text
 
 from .records import Base
 
-SCHEMA_VERSION = 8
+SCHEMA_VERSION = 9
 
 
 Migration = Callable[[Connection], None]
@@ -125,6 +125,23 @@ def _migration_008_create_llm_run_table(connection: Connection) -> None:
     Base.metadata.create_all(bind=connection)
 
 
+def _migration_009_create_resume_agent_audit_tables(connection: Connection) -> None:
+    Base.metadata.create_all(bind=connection)
+    for table_name in ("coverletterrecord", "atsreportrecord"):
+        _add_column_if_missing(
+            connection,
+            table_name,
+            "resume_id",
+            "resume_id INTEGER DEFAULT NULL REFERENCES resumerecord(id)",
+        )
+        _add_column_if_missing(
+            connection,
+            table_name,
+            "resume_revision",
+            "resume_revision INTEGER DEFAULT NULL",
+        )
+
+
 MIGRATIONS: dict[int, Migration] = {
     1: _migration_001_create_current_schema,
     2: _migration_002_create_revision_history,
@@ -134,6 +151,7 @@ MIGRATIONS: dict[int, Migration] = {
     6: _migration_006_create_application_reminder_tables,
     7: _migration_007_extend_company_insight_cache_keys,
     8: _migration_008_create_llm_run_table,
+    9: _migration_009_create_resume_agent_audit_tables,
 }
 
 

@@ -47,10 +47,14 @@ def save_ats_report(
     provider: str,
     model_name: str,
     job_id: int | None = None,
+    resume_id: int | None = None,
+    resume_revision: int | None = None,
 ) -> AtsReportRecord:
     """Persist an ATS report."""
     record = AtsReportRecord(
         job_id=job_id,
+        resume_id=resume_id,
+        resume_revision=resume_revision,
         score=int(report.get("score", 0)),
         summary=report.get("summary", ""),
         mode=report.get("mode", "standard"),
@@ -75,10 +79,14 @@ def save_cover_letter(
     provider: str,
     model_name: str,
     job_id: int | None = None,
+    resume_id: int | None = None,
+    resume_revision: int | None = None,
 ) -> CoverLetterRecord:
     """Persist a generated cover letter."""
     record = CoverLetterRecord(
         job_id=job_id,
+        resume_id=resume_id,
+        resume_revision=resume_revision,
         markdown_content=markdown,
         provider=provider,
         model_name=model_name,
@@ -105,11 +113,21 @@ def serialize_job(record: ScrapedJobRecord) -> dict:
     }
 
 
-def serialize_ats(record: AtsReportRecord) -> dict:
+def serialize_ats(
+    record: AtsReportRecord,
+    current_resume_revision: int | None = None,
+) -> dict:
     """Convert an ATS record to JSON-safe output."""
     return {
         "id": record.id,
         "job_id": record.job_id,
+        "resume_id": record.resume_id,
+        "resume_revision": record.resume_revision,
+        "stale": (
+            current_resume_revision is not None
+            and record.resume_revision is not None
+            and record.resume_revision < current_resume_revision
+        ),
         "score": record.score,
         "summary": record.summary,
         "mode": record.mode,
@@ -125,11 +143,21 @@ def serialize_ats(record: AtsReportRecord) -> dict:
     }
 
 
-def serialize_cover_letter(record: CoverLetterRecord) -> dict:
+def serialize_cover_letter(
+    record: CoverLetterRecord,
+    current_resume_revision: int | None = None,
+) -> dict:
     """Convert a cover letter record to JSON-safe output."""
     return {
         "id": record.id,
         "job_id": record.job_id,
+        "resume_id": record.resume_id,
+        "resume_revision": record.resume_revision,
+        "stale": (
+            current_resume_revision is not None
+            and record.resume_revision is not None
+            and record.resume_revision < current_resume_revision
+        ),
         "markdown_content": record.markdown_content,
         "provider": record.provider,
         "model_name": record.model_name,

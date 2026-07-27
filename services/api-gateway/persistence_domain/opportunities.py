@@ -263,6 +263,50 @@ def _opportunity_integrity(
             }
         )
         repair_actions.append("relink_cover_letter")
+    elif (
+        cover_letter is not None
+        and resume is not None
+        and cover_letter.resume_id is not None
+        and cover_letter.resume_id != resume.id
+    ):
+        issues.append(
+            {
+                "code": "mismatched_cover_letter_resume",
+                "severity": "warning",
+                "artifact": "cover_letter",
+                "message": "The linked cover letter uses another resume.",
+                "metadata": {
+                    "cover_letter_id": cover_letter.id,
+                    "opportunity_resume_id": resume.id,
+                    "cover_letter_resume_id": cover_letter.resume_id,
+                },
+            }
+        )
+        repair_actions.append("relink_cover_letter")
+    elif (
+        cover_letter is not None
+        and resume is not None
+        and cover_letter.resume_revision is not None
+        and cover_letter.resume_revision < _latest_resume_revision(session, resume.id)
+    ):
+        issues.append(
+            {
+                "code": "stale_cover_letter_resume_revision",
+                "severity": "warning",
+                "artifact": "cover_letter",
+                "message": "The linked cover letter uses an older resume revision.",
+                "metadata": {
+                    "cover_letter_id": cover_letter.id,
+                    "resume_id": resume.id,
+                    "cover_letter_resume_revision": cover_letter.resume_revision,
+                    "current_resume_revision": _latest_resume_revision(
+                        session,
+                        resume.id,
+                    ),
+                },
+            }
+        )
+        repair_actions.append("relink_cover_letter")
 
     application = (
         session.get(ApplicationRecord, record.application_id)
@@ -371,11 +415,17 @@ def serialize_opportunity(session: Session, record: OpportunityRecord) -> dict:
     if record.ats_report_id:
         ats = session.get(AtsReportRecord, record.ats_report_id)
         if ats:
-            linked_artifacts["ats_report"] = serialize_ats(ats)
+            linked_artifacts["ats_report"] = serialize_ats(
+                ats,
+                _latest_resume_revision(session, ats.resume_id),
+            )
     if record.cover_letter_id:
         letter = session.get(CoverLetterRecord, record.cover_letter_id)
         if letter:
-            linked_artifacts["cover_letter"] = serialize_cover_letter(letter)
+            linked_artifacts["cover_letter"] = serialize_cover_letter(
+                letter,
+                _latest_resume_revision(session, letter.resume_id),
+            )
     if record.application_id:
         application = session.get(ApplicationRecord, record.application_id)
         if application:
