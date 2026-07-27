@@ -8,6 +8,7 @@ from database.models import JobOffer, JobOfferExtract
 from utils.logger import get_logger
 
 from .agents import MindrisAgents
+from .privacy import PrivacyTask
 from .tasks import MindrisTasks
 
 logger = get_logger(__name__, service_name="intelligence")
@@ -41,7 +42,11 @@ class MindrisIntelligence:
             provider: The LLM provider (e.g., "ollama", "groq", "gemini", "openai").
             model_name: The specific model name for the provider.
         """
-        self.agents = MindrisAgents(provider=provider, model_name=model_name)
+        self.agents = MindrisAgents(
+            provider=provider,
+            model_name=model_name,
+            privacy_task=PrivacyTask.JOB_ANALYSIS,
+        )
         self.tasks = MindrisTasks()
 
     def analyze_job(self, job_markdown: str, url: str = "http://unknown") -> CrewOutput:

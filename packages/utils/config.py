@@ -48,6 +48,14 @@ class Settings(BaseSettings):
         alias="PIPELINE_TIMEOUT_SECONDS",
     )
     agent_max_iterations: int = Field(default=3, alias="AGENT_MAX_ITERATIONS")
+    default_privacy_mode: str = Field(
+        default="local_strict",
+        alias="MINDRIS_PRIVACY_MODE",
+    )
+    telemetry_enabled: bool = Field(
+        default=False,
+        alias="MINDRIS_TELEMETRY_ENABLED",
+    )
     max_pdf_upload_bytes: int = Field(
         default=10 * 1024 * 1024,
         alias="MAX_PDF_UPLOAD_BYTES",

@@ -277,7 +277,13 @@ async def calculate_ats_score(
         for dimension in rubric.dimensions
     )
 
-    llm = get_llm(provider=provider, model_name=model_name)
+    from intelligence.privacy import PrivacyTask
+
+    llm = get_llm(
+        provider=provider,
+        model_name=model_name,
+        privacy_task=PrivacyTask.ATS,
+    )
 
     ats_scorer = Agent(
         role="Senior ATS & Recruitment Scanner",

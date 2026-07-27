@@ -9,6 +9,9 @@ from typing import Any
 import httpx
 
 from .model_registry import ModelDescriptor, ModelRegistryError
+from .network_policy import assert_destination_allowed
+from .privacy import PrivacyTask
+from .privacy_gateway import outbound_gateway
 
 JsonObject = dict[str, Any]
 Parser = Callable[[JsonObject], list[ModelDescriptor]]
@@ -195,6 +198,14 @@ class HttpModelDiscoveryAdapter:
 
     def discover(self) -> list[ModelDescriptor]:
         """Fetch and normalize the provider model list."""
+        gateway = outbound_gateway()
+        assert_destination_allowed(self.url, mode=gateway.mode)
+        prepared = gateway.prepare(
+            provider=self.provider,
+            model="catalogue",
+            task=PrivacyTask.MODEL_DISCOVERY,
+            payload={},
+        )
         key = self.api_key()
         headers: dict[str, str] = {"Accept": "application/json"}
         if key:
@@ -208,11 +219,16 @@ class HttpModelDiscoveryAdapter:
             response.raise_for_status()
             payload = response.json()
         except Exception as exc:
+            gateway.audit_sink(prepared.manifest, "error")
             status = getattr(getattr(exc, "response", None), "status_code", None)
             suffix = f" (HTTP {status})" if status else ""
             raise ModelRegistryError(
                 f"{self.provider} model discovery failed{suffix}."
-            ) from exc
+            ) from None
+        else:
+            gateway.audit_sink(prepared.manifest, "success")
+        finally:
+            prepared.close()
         if not isinstance(payload, dict):
             raise ModelRegistryError(
                 f"{self.provider} model discovery returned an invalid payload."
@@ -225,6 +241,14 @@ class GeminiModelDiscoveryAdapter(HttpModelDiscoveryAdapter):
 
     def discover(self) -> list[ModelDescriptor]:
         """Fetch and combine every Gemini models page."""
+        gateway = outbound_gateway()
+        assert_destination_allowed(self.url, mode=gateway.mode)
+        prepared = gateway.prepare(
+            provider=self.provider,
+            model="catalogue",
+            task=PrivacyTask.MODEL_DISCOVERY,
+            payload={},
+        )
         key = self.api_key()
         headers = {"Accept": "application/json"}
         if key:
@@ -251,11 +275,18 @@ class GeminiModelDiscoveryAdapter(HttpModelDiscoveryAdapter):
                 models.extend(self.parser(payload))
                 token = payload.get("nextPageToken")
                 if not isinstance(token, str) or not token:
+                    gateway.audit_sink(prepared.manifest, "success")
                     return models
                 page_token = token
         except ModelRegistryError:
+            gateway.audit_sink(prepared.manifest, "error")
             raise
         except Exception as exc:
+            gateway.audit_sink(prepared.manifest, "error")
             status = getattr(getattr(exc, "response", None), "status_code", None)
             suffix = f" (HTTP {status})" if status else ""
-            raise ModelRegistryError(f"gemini model discovery failed{suffix}.") from exc
+            raise ModelRegistryError(
+                f"gemini model discovery failed{suffix}."
+            ) from None
+        finally:
+            prepared.close()

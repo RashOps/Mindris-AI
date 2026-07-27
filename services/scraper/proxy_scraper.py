@@ -10,6 +10,12 @@ and should **never** be used directly in application code.
 """
 
 import httpx
+from intelligence.privacy import (
+    OutboundProviderError,
+    PrivacyTask,
+    validate_public_url,
+)
+from intelligence.privacy_gateway import outbound_gateway
 from markdownify import markdownify as md
 from utils.config import settings
 from utils.logger import get_logger
@@ -105,9 +111,17 @@ class ScrapeDoProvider:
             httpx.HTTPStatusError: When the API returns a non-2xx status.
             ValueError: When SCRAPE_DO_API key is not configured.
         """
+        url = validate_public_url(url)
         api_key = resolve_secret_slot("scrape_do_api_key", settings.scrape_do_api_key)
         if not api_key:
             raise ValueError("SCRAPE_DO_API is not set. Add it to your .env file.")
+        gateway = outbound_gateway()
+        prepared = gateway.prepare(
+            provider="scrape_do",
+            model="web-proxy",
+            task=PrivacyTask.JOB_ANALYSIS,
+            payload={"job": {"source_url": url}},
+        )
         params = {
             "token": api_key,
             "url": url,
@@ -118,9 +132,20 @@ class ScrapeDoProvider:
 
         logger.info("🌐 [Scrape.do] Fetching %s", url)
 
-        async with httpx.AsyncClient(timeout=self.TIMEOUT_S) as client:
-            response = await client.get(self.BASE_URL, params=params)
-            response.raise_for_status()
+        try:
+            async with httpx.AsyncClient(timeout=self.TIMEOUT_S) as client:
+                response = await client.get(self.BASE_URL, params=params)
+                response.raise_for_status()
+        except Exception:
+            gateway.audit_sink(prepared.manifest, "error")
+            raise OutboundProviderError(
+                "scrape_do",
+                PrivacyTask.JOB_ANALYSIS,
+            ) from None
+        else:
+            gateway.audit_sink(prepared.manifest, "success")
+        finally:
+            prepared.close()
 
         html = response.text
         logger.debug(
@@ -172,12 +197,20 @@ class ScrapingBeeProvider:
             httpx.HTTPStatusError: When the API returns a non-2xx status.
             ValueError: When SCRAPINGBEE_API key is not configured.
         """
+        url = validate_public_url(url)
         api_key = resolve_secret_slot(
             "scrapingbee_api_key",
             settings.scrapingbee_api_key,
         )
         if not api_key:
             raise ValueError("SCRAPINGBEE_API is not set. Add it to your .env file.")
+        gateway = outbound_gateway()
+        prepared = gateway.prepare(
+            provider="scrapingbee",
+            model="web-proxy",
+            task=PrivacyTask.JOB_ANALYSIS,
+            payload={"job": {"source_url": url}},
+        )
         params = {
             "api_key": api_key,
             "url": url,
@@ -191,9 +224,20 @@ class ScrapingBeeProvider:
 
         logger.info("🐝 [ScrapingBee] Fetching %s", url)
 
-        async with httpx.AsyncClient(timeout=self.TIMEOUT_S) as client:
-            response = await client.get(self.BASE_URL, params=params)
-            response.raise_for_status()
+        try:
+            async with httpx.AsyncClient(timeout=self.TIMEOUT_S) as client:
+                response = await client.get(self.BASE_URL, params=params)
+                response.raise_for_status()
+        except Exception:
+            gateway.audit_sink(prepared.manifest, "error")
+            raise OutboundProviderError(
+                "scrapingbee",
+                PrivacyTask.JOB_ANALYSIS,
+            ) from None
+        else:
+            gateway.audit_sink(prepared.manifest, "success")
+        finally:
+            prepared.close()
 
         html = response.text
         logger.debug(

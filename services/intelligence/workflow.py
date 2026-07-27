@@ -20,6 +20,7 @@ from utils.logger import get_logger
 
 from intelligence.agents import MindrisAgents
 from intelligence.event_bus import emit
+from intelligence.privacy import PrivacyTask
 from intelligence.resume_context import ResumeContextSnapshot
 from intelligence.resume_patches import validate_resume_patch
 from intelligence.workflow_models import (
@@ -161,12 +162,8 @@ def make_nodes(
             evidence_ledger = [
                 EvidenceFact(
                     id=f"fact_{index}",
-                    section_type=str(
-                        result.get("metadata", {}).get("type", "unknown")
-                    ),
-                    source_id=str(
-                        result.get("metadata", {}).get("id") or result["id"]
-                    ),
+                    section_type=str(result.get("metadata", {}).get("type", "unknown")),
+                    source_id=str(result.get("metadata", {}).get("id") or result["id"]),
                     text=result["document"],
                     relevance=(
                         1 - float(result["distance"])
@@ -213,7 +210,9 @@ def make_nodes(
         )
 
         agents_factory = MindrisAgents(
-            provider=state["provider"], model_name=state["model_name"]
+            provider=state["provider"],
+            model_name=state["model_name"],
+            privacy_task=PrivacyTask.CV_COMPOSITION,
         )
 
         copywriter = Agent(
@@ -295,8 +294,7 @@ def make_nodes(
                             "type": operation.type,
                             "reason": draft.patch.reason,
                             "source_fact_ids": (
-                                operation.evidence_ids
-                                or draft.patch.evidence_ids
+                                operation.evidence_ids or draft.patch.evidence_ids
                             ),
                             "operation": operation.model_dump(mode="json"),
                         }
@@ -342,7 +340,9 @@ def make_nodes(
         )
 
         agents_factory = MindrisAgents(
-            provider=state["provider"], model_name=state["model_name"]
+            provider=state["provider"],
+            model_name=state["model_name"],
+            privacy_task=PrivacyTask.ATS,
         )
 
         ats_scorer = Agent(

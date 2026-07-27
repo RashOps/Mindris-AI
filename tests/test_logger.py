@@ -34,6 +34,20 @@ def test_get_logger_redacts_known_secret_values_from_log_output(tmp_path, monkey
     assert "[REDACTED]" in contents
 
 
+def test_get_logger_redacts_unknown_provider_token_shapes(tmp_path, monkeypatch):
+    monkeypatch.setattr("utils.logger.settings.logs_dir", tmp_path)
+    logger = get_logger("services.dynamic-secret", service_name="api-gateway")
+    logger.warning(
+        "unexpected provider error token=%s auth=%s",
+        "sk-unknownprovidersecret123",
+        "Bearer eyJhbGciOiJIUzI1NiJ9.payload.signature",
+    )
+    contents = (tmp_path / "services" / "api-gateway.log").read_text(encoding="utf-8")
+    assert "sk-unknownprovidersecret123" not in contents
+    assert "eyJhbGciOiJIUzI1NiJ9" not in contents
+    assert contents.count("[REDACTED]") >= 2
+
+
 def test_get_logger_writes_to_service_specific_file(tmp_path, monkeypatch):
     monkeypatch.setattr("utils.logger.settings.logs_dir", tmp_path)
 
