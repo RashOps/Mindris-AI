@@ -1,9 +1,26 @@
 services:
+  ollama:
+    image: ollama/ollama:${MINDRIS_OLLAMA_VERSION:-latest}
+    profiles: ["local-ai"]
+    restart: unless-stopped
+    ports:
+      - "${MINDRIS_BIND_HOST:-127.0.0.1}:${MINDRIS_OLLAMA_PORT:-11434}:11434"
+    environment:
+      OLLAMA_NO_TELEMETRY: "1"
+    volumes:
+      - ./storage/ollama:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
   api-gateway:
     image: ${MINDRIS_API_IMAGE:-ghcr.io/rashops/mindris-ai-api-gateway}:${MINDRIS_VERSION:-latest}
     restart: unless-stopped
     ports:
-      - "${MINDRIS_API_PORT:-8000}:8000"
+      - "${MINDRIS_BIND_HOST:-127.0.0.1}:${MINDRIS_API_PORT:-8000}:8000"
     env_file:
       - .env
     environment:
@@ -12,6 +29,10 @@ services:
       STORAGE_DIR: /app/storage
       LOGS_DIR: /app/logs
       CHROMA_DB_DIR: /app/storage/vectordb
+      MINDRIS_PRIVACY_MODE: ${MINDRIS_PRIVACY_MODE:-local_strict}
+      MINDRIS_TELEMETRY_ENABLED: ${MINDRIS_TELEMETRY_ENABLED:-false}
+      OTEL_SDK_DISABLED: "true"
+      DO_NOT_TRACK: "1"
     volumes:
       - ./storage:/app/storage
       - ./logs:/app/logs
@@ -29,7 +50,7 @@ services:
     image: ${MINDRIS_RENDERER_IMAGE:-ghcr.io/rashops/mindris-ai-renderer}:${MINDRIS_VERSION:-latest}
     restart: unless-stopped
     ports:
-      - "${MINDRIS_RENDERER_PORT:-4000}:4000"
+      - "${MINDRIS_BIND_HOST:-127.0.0.1}:${MINDRIS_RENDERER_PORT:-4000}:4000"
     environment:
       LOGS_DIR: /app/logs
     volumes:
@@ -45,7 +66,7 @@ services:
     image: ${MINDRIS_WEB_IMAGE:-ghcr.io/rashops/mindris-ai-web}:${MINDRIS_VERSION:-latest}
     restart: unless-stopped
     ports:
-      - "${MINDRIS_WEB_PORT:-3000}:3000"
+      - "${MINDRIS_BIND_HOST:-127.0.0.1}:${MINDRIS_WEB_PORT:-3000}:3000"
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
       NEXT_PUBLIC_RENDERER_URL: ${NEXT_PUBLIC_RENDERER_URL:-http://localhost:4000}

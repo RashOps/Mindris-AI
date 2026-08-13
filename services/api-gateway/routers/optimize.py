@@ -8,8 +8,10 @@ from functools import partial
 
 from database.records import ResumeRecord
 from database.session import Session, engine
-from fastapi import APIRouter, BackgroundTasks, Request
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from intelligence.event_bus import create_job_queue, emit, stream_events
+from intelligence.privacy import PrivacyMode, PrivacyTask, validate_public_url
+from intelligence.privacy_gateway import outbound_gateway
 from monitoring import monitor
 from persistence import resolve_resume_variant, save_job_offer
 from persistence_lib.json import dump_json
@@ -17,6 +19,7 @@ from schemas import OptimizationResponse, OptimizeRequest
 from sse_starlette.sse import EventSourceResponse
 from utils.config import settings
 from utils.logger import get_logger
+from utils.runtime_config import secret_slot_configured
 
 logger = get_logger(__name__, service_name="api-gateway")
 router = APIRouter(prefix="/api/v1", tags=["optimize"])
@@ -271,12 +274,8 @@ async def run_intelligence_pipeline(
                         locale=resolved_resume_locale,
                         job_id=job_record_id,
                         task="strategy",
-                        external_provider=(
-                            provider if provider != "ollama" else None
-                        ),
-                        proposal=ResumePatchProposal.model_validate(
-                            proposal_payload
-                        ),
+                        external_provider=(provider if provider != "ollama" else None),
+                        proposal=ResumePatchProposal.model_validate(proposal_payload),
                         agent="resume_strategist",
                         provider=provider,
                         model_name=model_name,
@@ -351,6 +350,46 @@ async def optimize_cv(
     request: OptimizeRequest, background_tasks: BackgroundTasks
 ) -> OptimizationResponse:
     """Trigger the CV optimization pipeline."""
+    try:
+        validate_public_url(str(request.job_url))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    resume_payload: dict = {}
+    if request.resume_id is not None:
+        with Session(engine) as session:
+            record = session.get(ResumeRecord, request.resume_id)
+            if record is not None:
+                resume_payload = json.loads(record.data_json)
+    gateway = outbound_gateway()
+    preflight_payloads = {
+        PrivacyTask.JOB_ANALYSIS: {"job": {"source_url": str(request.job_url)}},
+        PrivacyTask.COMPANY_ANALYSIS: {"job": {"source_url": str(request.job_url)}},
+        PrivacyTask.CV_COMPOSITION: resume_payload,
+        PrivacyTask.ATS: resume_payload,
+    }
+    for task, payload in preflight_payloads.items():
+        prepared = gateway.prepare(
+            provider=request.provider,
+            model=request.model_name,
+            task=task,
+            payload=payload,
+        )
+        prepared.close()
+    if gateway.mode != PrivacyMode.LOCAL_STRICT and settings.scraper_proxy_fallback:
+        proxy_slots = (
+            ("scrape_do", "scrape_do_api_key", settings.scrape_do_api_key),
+            ("scrapingbee", "scrapingbee_api_key", settings.scrapingbee_api_key),
+        )
+        for proxy, slot, fallback in proxy_slots:
+            if not secret_slot_configured(slot, fallback):
+                continue
+            prepared = gateway.prepare(
+                provider=proxy,
+                model="web-proxy",
+                task=PrivacyTask.JOB_ANALYSIS,
+                payload={"job": {"source_url": str(request.job_url)}},
+            )
+            prepared.close()
     job_id = "job_" + os.urandom(4).hex()
     create_job_queue(job_id)
     background_tasks.add_task(

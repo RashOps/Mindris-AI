@@ -402,6 +402,22 @@ Dry-run sans démarrage :
 MINDRIS_INSTALL_DRY_RUN=true ./scripts/install_self_hosted.sh
 ```
 
+Confidentialité et modèle local :
+
+```bash
+MINDRIS_PRIVACY_MODE=local_strict \
+MINDRIS_DOWNLOAD_LOCAL_MODEL=true \
+MINDRIS_LOCAL_MODEL=llama3.2:3b \
+./scripts/install_self_hosted.sh
+```
+
+- `local_strict` active le profil `local-ai`, désactive la télémétrie connue
+  et affiche un diagnostic mémoire indicatif ;
+- `private_cloud` prépare les providers BYOK et le consentement ;
+- `full_context_cloud` reste volontaire et renforcé ;
+- aucune clé provider ne doit être passée dans la commande ;
+- le téléchargement n'a lieu que si `MINDRIS_DOWNLOAD_LOCAL_MODEL=true`.
+
 Variables utiles :
 
 - `MINDRIS_HOME` : dossier d’installation, par défaut `~/.mindris-ai`.
@@ -418,6 +434,10 @@ Python, ni `uv`, ni Bun : Docker Desktop avec Compose v2 suffit.
 ```powershell
 irm https://raw.githubusercontent.com/RashOps/Mindris-AI/main/scripts/install_self_hosted.ps1 | iex
 ```
+
+`MINDRIS_PRIVACY_MODE`, `MINDRIS_DOWNLOAD_LOCAL_MODEL` et
+`MINDRIS_LOCAL_MODEL` ont le même contrat sous PowerShell. Le diagnostic
+matériel utilise les informations Windows lorsqu'elles sont disponibles.
 
 Avec un port frontend alternatif :
 

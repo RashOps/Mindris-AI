@@ -13,9 +13,11 @@ from crewai import Agent, Crew, Process, Task
 from utils.logger import get_logger
 
 from intelligence.llm_config import get_llm
+from intelligence.privacy import PrivacyTask
 from intelligence.resume_context import ResumeContextSnapshot, ResumeIdentity
 
 logger = get_logger(__name__, service_name="intelligence")
+
 
 def _build_job_summary(snapshot: ResumeContextSnapshot) -> str:
     """Format job insights for the agent prompt."""
@@ -75,7 +77,11 @@ async def generate_cover_letter(
     Returns:
         Markdown string — the generated cover letter.
     """
-    llm = get_llm(provider=provider, model_name=model_name)
+    llm = get_llm(
+        provider=provider,
+        model_name=model_name,
+        privacy_task=PrivacyTask.COVER_LETTER,
+    )
     logger.info("📝 Generating cover letter via %s/%s", provider, model_name)
 
     identity = snapshot.identity

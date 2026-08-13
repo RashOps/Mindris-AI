@@ -8,6 +8,7 @@ from utils.logger import get_logger
 from utils.runtime_config import load_runtime_configuration
 
 from .llm_config import get_llm
+from .privacy import PrivacyTask
 
 logger = get_logger(__name__, service_name="intelligence")
 
@@ -19,12 +20,14 @@ class MindrisAgents:
         self,
         provider: str | None = None,
         model_name: str | None = None,
+        privacy_task: PrivacyTask = PrivacyTask.CV_COMPOSITION,
     ) -> None:
         """Load agent configuration and initialize the LLM.
 
         Args:
             provider: The LLM provider (e.g., "ollama", "groq", "gemini", "openai").
             model_name: The specific model name for the provider.
+            privacy_task: Backend privacy policy applied to every model call.
         """
         runtime_default = load_runtime_configuration()["defaults"]["optimize"]
         provider = provider or runtime_default["provider"]
@@ -38,7 +41,11 @@ class MindrisAgents:
             provider,
             model_name,
         )
-        self.llm = get_llm(provider=provider, model_name=model_name)
+        self.llm = get_llm(
+            provider=provider,
+            model_name=model_name,
+            privacy_task=privacy_task,
+        )
 
     def job_analyst_agent(self) -> Agent:
         """Return a configured job-offer analyst agent.

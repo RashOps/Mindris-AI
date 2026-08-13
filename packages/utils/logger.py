@@ -9,6 +9,7 @@ Usage::
 
 import json
 import logging
+import re
 from logging.handlers import RotatingFileHandler
 
 from .config import settings
@@ -20,6 +21,11 @@ _DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 _HANDLER_MARKER = "_mindris_handler"
 _SERVICE_MARKER = "_mindris_service_name"
 _LOG_PATH_MARKER = "_mindris_log_path"
+_GENERIC_SECRET_PATTERN = re.compile(
+    r"\b(?:sk-[A-Za-z0-9_-]{12,}|gsk_[A-Za-z0-9_-]{12,}|"
+    r"Bearer\s+[A-Za-z0-9._~+/-]+=*)\b",
+    re.IGNORECASE,
+)
 
 
 class _SecretRedactionFilter(logging.Filter):
@@ -57,7 +63,7 @@ def _redact_text(value: str) -> str:
     text = value
     for secret in _configured_secrets():
         text = text.replace(secret, "[REDACTED]")
-    return text
+    return _GENERIC_SECRET_PATTERN.sub("[REDACTED]", text)
 
 
 def _configured_secrets() -> list[str]:

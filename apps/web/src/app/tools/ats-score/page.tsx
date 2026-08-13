@@ -15,7 +15,7 @@ import {
   severityColor,
 } from "./components";
 import Link from "next/link";
-import { apiUrl, connectApiEventStream, jsonHeaders } from "@/lib/api";
+import { apiUrl, connectApiEventStream, jsonHeaders, privacyFetch } from "@/lib/api";
 import { loadDraft, saveDraft } from "@/lib/drafts";
 import { ArrowRight, ChartNoAxesColumn, FileSearch, RotateCcw } from "lucide-react";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -69,7 +69,7 @@ export default function AtsScorePage() {
 
     try {
       // 1. Start the pipeline (scrape + analyze job)
-      const startRes = await fetch(apiUrl("/api/v1/optimize"), {
+      const startRes = await privacyFetch(apiUrl("/api/v1/optimize"), {
         method: "POST",
         headers: jsonHeaders(),
         body: JSON.stringify({
@@ -113,7 +113,7 @@ export default function AtsScorePage() {
                 `Offre analysée : ${insights.job_title}`,
               ]);
 
-              const scoreRes = await fetch(apiUrl("/api/v1/cv/score"), {
+              const scoreRes = await privacyFetch(apiUrl("/api/v1/cv/score"), {
                 method: "POST",
                 headers: jsonHeaders(),
                 body: JSON.stringify({

@@ -1,0 +1,19 @@
+# Opt-in egress-isolated profile for offline/local-only sessions.
+# Public job scraping and cloud providers are intentionally unavailable.
+services:
+  api-gateway:
+    networks:
+      - mindris-strict
+  renderer:
+    networks:
+      - mindris-strict
+  web:
+    networks:
+      - mindris-strict
+  ollama:
+    networks:
+      - mindris-strict
+
+networks:
+  mindris-strict:
+    internal: true

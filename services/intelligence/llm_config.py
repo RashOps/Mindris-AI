@@ -27,6 +27,9 @@ from .model_catalogue import (
     get_model_registry,
     provider_configuration_status,
 )
+from .network_policy import assert_destination_allowed
+from .privacy import PrivacyMode, PrivacyTask
+from .privacy_gateway import privacy_guarded_llm_class
 
 if TYPE_CHECKING:
     from crewai import LLM
@@ -52,12 +55,15 @@ def ensure_provider_configured(provider: str) -> None:
 def get_llm(
     provider: str = "groq",
     model_name: str = "llama-3.3-70b-versatile",
+    *,
+    privacy_task: PrivacyTask = PrivacyTask.CV_COMPOSITION,
 ) -> LLM:
     """Build and return the LLM configured for the specified provider.
 
     Args:
         provider:   The LLM provider (ollama | groq | gemini | openai | mistral).
         model_name: The specific model name for the provider.
+        privacy_task: Data minimisation policy for this client.
 
     Returns:
         A :class:`crewai.LLM` ready to be attached to an agent.
@@ -65,43 +71,69 @@ def get_llm(
     Raises:
         ValueError: If an unsupported provider is specified.
     """
-    from crewai import LLM
+    guarded_llm = privacy_guarded_llm_class()
 
     ensure_provider_configured(provider)
 
     if provider == "ollama":
+        assert_destination_allowed(
+            settings.ollama_api_base,
+            mode=PrivacyMode(load_runtime_configuration()["privacy_mode"]),
+        )
         name = (
             model_name if model_name.startswith("ollama/") else f"ollama/{model_name}"
         )
-        return LLM(
+        return guarded_llm(
             model=name,
             base_url=settings.ollama_api_base,
             extra_body={"options": {"num_ctx": settings.llm_num_ctx}},
             timeout=600,
+            privacy_provider=provider,
+            privacy_task=privacy_task,
         )
 
     if provider == "groq":
         name = model_name if model_name.startswith("groq/") else f"groq/{model_name}"
         api_key = resolve_secret_slot("groq_api_key", settings.groq_api_key)
-        return LLM(model=name, api_key=api_key)
+        return guarded_llm(
+            model=name,
+            api_key=api_key,
+            privacy_provider=provider,
+            privacy_task=privacy_task,
+        )
 
     if provider == "gemini":
         name = (
             model_name if model_name.startswith("gemini/") else f"gemini/{model_name}"
         )
         api_key = resolve_secret_slot("gemini_api_key", settings.gemini_api_key)
-        return LLM(model=name, api_key=api_key)
+        return guarded_llm(
+            model=name,
+            api_key=api_key,
+            privacy_provider=provider,
+            privacy_task=privacy_task,
+        )
 
     if provider == "openai":
         api_key = resolve_secret_slot("openai_api_key", settings.openai_api_key)
-        return LLM(model=model_name, api_key=api_key)
+        return guarded_llm(
+            model=model_name,
+            api_key=api_key,
+            privacy_provider=provider,
+            privacy_task=privacy_task,
+        )
 
     if provider == "mistral":
         name = (
             model_name if model_name.startswith("mistral/") else f"mistral/{model_name}"
         )
         api_key = resolve_secret_slot("mistral_api_key", settings.mistral_api_key)
-        return LLM(model=name, api_key=api_key)
+        return guarded_llm(
+            model=name,
+            api_key=api_key,
+            privacy_provider=provider,
+            privacy_task=privacy_task,
+        )
 
     raise ValueError(
         f"Unsupported LLM provider: '{provider}'. "
@@ -133,4 +165,14 @@ def get_task_llm(task: str) -> LLM:
             resolution.provider,
             resolution.model_id,
         )
-    return get_llm(provider=resolution.provider, model_name=resolution.model_id)
+    privacy_task = {
+        "ats_score": PrivacyTask.ATS,
+        "cover_letter": PrivacyTask.COVER_LETTER,
+        "optimize": PrivacyTask.CV_COMPOSITION,
+        "patch": PrivacyTask.REWRITE,
+    }.get(task, PrivacyTask.CV_COMPOSITION)
+    return get_llm(
+        provider=resolution.provider,
+        model_name=resolution.model_id,
+        privacy_task=privacy_task,
+    )

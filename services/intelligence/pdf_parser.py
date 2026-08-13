@@ -18,6 +18,18 @@ from utils.config import settings
 from utils.logger import get_logger
 from utils.runtime_config import resolve_secret_slot
 
+from intelligence.privacy import (
+    DataCategory,
+    OutboundProviderError,
+    PrivacyMode,
+    PrivacyTask,
+    PseudonymizationError,
+    scan_sensitive_text,
+    structured_untrusted_data,
+    validate_provider_response,
+)
+from intelligence.privacy_gateway import outbound_gateway
+
 logger = get_logger(__name__, service_name="intelligence")
 PDFIngestionMode = Literal["auto", "llama_parse", "local_text"]
 
@@ -51,6 +63,37 @@ async def pdf_to_markdown_llama_parse(
     Returns:
         The parsed content as Markdown.
     """
+    gateway = outbound_gateway()
+    if gateway.mode != PrivacyMode.FULL_CONTEXT_CLOUD:
+        raise PermissionError("privacy.pdf.full_context_cloud_required")
+    prepared = gateway.prepare(
+        provider="llama_cloud",
+        model="llama-parse",
+        task=PrivacyTask.CV_PARSE,
+        payload={
+            "profile": {
+                "text_markdown": (
+                    f"Raw PDF upload: {filename}; {len(pdf_bytes)} bytes. "
+                    "The complete document may contain every CV data category."
+                )
+            }
+        },
+        declared_categories=frozenset(
+            {
+                DataCategory.DIRECT_IDENTIFIER,
+                DataCategory.CONTACT,
+                DataCategory.LOCATION,
+                DataCategory.SOCIAL_IDENTIFIER,
+                DataCategory.EMPLOYER,
+                DataCategory.EDUCATION_INSTITUTION,
+                DataCategory.PROFESSIONAL_DATA,
+                DataCategory.PROJECT,
+                DataCategory.SENSITIVE_DATA,
+                DataCategory.FREE_TEXT,
+            }
+        ),
+        character_count_override=len(pdf_bytes),
+    )
     api_key = _get_api_key()
     client = AsyncLlamaCloud(api_key=api_key)
 
@@ -61,17 +104,33 @@ async def pdf_to_markdown_llama_parse(
 
     try:
         logger.info("📤 Uploading %s to LlamaCloud for parsing...", filename)
-        with tmp_path.open("rb") as f:
-            result = await client.parsing.parse(
-                upload_file=(filename, f, "application/pdf"),
-                tier="cost_effective",
-                version="latest",
-                expand=["markdown"],  # Request only markdown output
-            )
-
-        markdown_content = str(result.markdown) if result.markdown else ""
+        try:
+            with tmp_path.open("rb") as f:
+                result = await client.parsing.parse(
+                    upload_file=(filename, f, "application/pdf"),
+                    tier="cost_effective",
+                    version="latest",
+                    expand=["markdown"],
+                )
+            markdown_content = str(result.markdown) if result.markdown else ""
+            if any(
+                finding.category == DataCategory.TECHNICAL_SECRET
+                for finding in scan_sensitive_text(markdown_content)
+            ):
+                raise PseudonymizationError("privacy.response.secret_detected")
+        except PseudonymizationError:
+            gateway.audit_sink(prepared.manifest, "error")
+            raise
+        except Exception:
+            gateway.audit_sink(prepared.manifest, "error")
+            raise OutboundProviderError(
+                "llama_cloud",
+                PrivacyTask.CV_PARSE,
+            ) from None
+        gateway.audit_sink(prepared.manifest, "success")
         logger.info("LlamaCloud parsing complete (%d chars).", len(markdown_content))
     finally:
+        prepared.close()
         tmp_path.unlink(missing_ok=True)
 
     return markdown_content
@@ -207,22 +266,51 @@ def markdown_to_cv_json(
 
     full_model = f"{provider}/{model_name}"
     logger.info("🤖 Structuring CV with %s...", full_model)
-
-    response = litellm.completion(
-        model=full_model,
-        messages=[
-            {"role": "system", "content": _SYSTEM_PROMPT},
-            {
-                "role": "user",
-                "content": (
-                    f"Parse this CV and return the structured JSON:\n\n{markdown}"
-                ),
-            },
-        ],
-        temperature=0.0,  # Deterministic output for parsing
+    gateway = outbound_gateway()
+    prepared = gateway.prepare(
+        provider=provider,
+        model=model_name,
+        task=PrivacyTask.CV_PARSE,
+        payload={"profile": {"text_markdown": markdown}},
     )
-
-    raw_text = response.choices[0].message.content.strip()
+    filtered_markdown = (
+        prepared.payload.get("profile", {}).get("text_markdown", "")
+        if isinstance(prepared.payload, dict)
+        else ""
+    )
+    protected_cv_block = structured_untrusted_data(
+        "cv",
+        filtered_markdown,
+        limit=prepared.manifest.character_count,
+    )
+    try:
+        response = litellm.completion(
+            model=full_model,
+            messages=[
+                {"role": "system", "content": _SYSTEM_PROMPT},
+                {
+                    "role": "user",
+                    "content": (
+                        "Parse the structured untrusted CV block below and return "
+                        f"the requested JSON.\n\n{protected_cv_block}"
+                    ),
+                },
+            ],
+            temperature=0.0,
+        )
+        protected_text = response.choices[0].message.content.strip()
+        validate_provider_response(protected_text)
+        raw_text = prepared.pseudonymizer.rehydrate(protected_text)
+    except PseudonymizationError:
+        gateway.audit_sink(prepared.manifest, "error")
+        raise
+    except Exception:
+        gateway.audit_sink(prepared.manifest, "error")
+        raise OutboundProviderError(provider, PrivacyTask.CV_PARSE) from None
+    else:
+        gateway.audit_sink(prepared.manifest, "success")
+    finally:
+        prepared.close()
 
     # Strip potential markdown code fences (```json ... ```)
     raw_text = re.sub(r"^```[a-zA-Z]*\n?", "", raw_text)

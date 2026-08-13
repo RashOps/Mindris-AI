@@ -1,12 +1,13 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
-import { HardDrive } from "lucide-react";
+import { HardDrive, ShieldCheck } from "lucide-react";
 
 import { ToolbarSelect } from "@/components/ToolbarSelect";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import type { AppSettings } from "@/store/useCVStore";
+import { useI18n } from "@/i18n/I18nProvider";
 
 import { SettingsSection } from "./SettingsSection";
 import type { ProviderList, ProviderStatus } from "./types";
@@ -26,9 +27,46 @@ export function RuntimeConfigurationSection({
   saving: boolean;
   onSave: () => void;
 }) {
+  const { messages } = useI18n();
   return (
     <SettingsSection title="Ingestion et interface" icon={<HardDrive size={16} />}>
       <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2 md:col-span-2">
+          <Label>{messages.privacy.modeLabel}</Label>
+          <ToolbarSelect
+            value={draftSettings.privacy_mode}
+            ariaLabel={messages.privacy.modeLabel}
+            options={[
+              { value: "local_strict", label: messages.privacy.local },
+              { value: "private_cloud", label: messages.privacy.privateCloud },
+              {
+                value: "full_context_cloud",
+                label: messages.privacy.fullCloud,
+              },
+            ]}
+            onChange={(value) =>
+              setDraftSettings((current) => ({
+                ...current,
+                privacy_mode: value as AppSettings["privacy_mode"],
+                telemetry_enabled:
+                  value === "local_strict"
+                    ? false
+                    : current.telemetry_enabled,
+              }))
+            }
+            triggerClassName="app-select h-10 w-full px-3 text-sm"
+          />
+          <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+            <ShieldCheck size={15} className="mt-0.5 shrink-0 text-primary" />
+            <p>
+              {draftSettings.privacy_mode === "local_strict"
+                ? messages.privacy.strictDescription
+                : draftSettings.privacy_mode === "private_cloud"
+                  ? messages.privacy.privateDescription
+                  : messages.privacy.fullDescription}
+            </p>
+          </div>
+        </div>
         <div className="space-y-2">
           <Label>PDF ingestion mode</Label>
           <ToolbarSelect

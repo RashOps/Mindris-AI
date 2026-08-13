@@ -15,6 +15,8 @@ export interface BackendSystemConfiguration {
     defaults?: Record<string, BackendTaskConfig>;
     pdf_ingestion_mode?: unknown;
     ui_locale?: unknown;
+    privacy_mode?: unknown;
+    telemetry_enabled?: unknown;
   };
   llm?: {
     defaults?: Record<string, BackendTaskConfig>;
@@ -29,6 +31,8 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   patch_llm: { provider: "groq", model_name: "llama-3.3-70b-versatile" },
   pdf_ingestion_mode: "auto",
   ui_locale: "fr",
+  privacy_mode: "local_strict",
+  telemetry_enabled: false,
 };
 
 export function normalizeAppSettings(value: unknown): AppSettings {
@@ -56,6 +60,15 @@ export function normalizeAppSettings(value: unknown): AppSettings {
       DEFAULT_APP_SETTINGS.pdf_ingestion_mode,
     ),
     ui_locale: candidate.ui_locale === "en" ? "en" : "fr",
+    privacy_mode:
+      candidate.privacy_mode === "private_cloud" ||
+      candidate.privacy_mode === "full_context_cloud"
+        ? candidate.privacy_mode
+        : "local_strict",
+    telemetry_enabled:
+      candidate.privacy_mode === "local_strict"
+        ? false
+        : candidate.telemetry_enabled === true,
   };
 }
 
@@ -70,6 +83,8 @@ export function systemConfigurationToAppSettings(
     patch_llm: defaults.patch,
     pdf_ingestion_mode: value?.app?.pdf_ingestion_mode,
     ui_locale: value?.app?.ui_locale,
+    privacy_mode: value?.app?.privacy_mode,
+    telemetry_enabled: value?.app?.telemetry_enabled,
   });
 }
 

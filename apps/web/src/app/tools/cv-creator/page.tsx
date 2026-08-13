@@ -10,7 +10,7 @@ import {
   type JobInsights,
 } from "@/store/useCVStore";
 import { useEffect, useState, useRef, useCallback } from "react";
-import { apiUrl, rendererUrl, apiHeaders, jsonHeaders } from "@/lib/api";
+import { apiUrl, rendererUrl, apiHeaders, jsonHeaders, privacyFetch } from "@/lib/api";
 import { resolveTemplateRenderPayload } from "@/lib/templates";
 import { updateOnboardingStep } from "@/lib/onboarding";
 import { Download, Upload } from "lucide-react";
@@ -267,7 +267,7 @@ export default function AppPage() {
       formData.append("provider", appSettings.optimize_llm.provider);
       formData.append("model_name", appSettings.optimize_llm.model_name);
       formData.append("ingestion_mode", appSettings.pdf_ingestion_mode);
-      const res = await fetch(apiUrl("/api/v1/cv/upload-pdf"), {
+      const res = await privacyFetch(apiUrl("/api/v1/cv/upload-pdf"), {
         method: "POST",
         headers: apiHeaders(),
         body: formData,
@@ -381,7 +381,7 @@ export default function AppPage() {
     setShowGhost(true);
     setJobId(null);
     try {
-      const res = await fetch(apiUrl("/api/v1/optimize"), {
+      const res = await privacyFetch(apiUrl("/api/v1/optimize"), {
         method: "POST",
         headers: jsonHeaders(),
         body: JSON.stringify({

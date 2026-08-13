@@ -128,6 +128,15 @@ class SystemConfigurationUpdateRequest(BaseModel):
     defaults: dict[str, SystemConfigurationTaskDefault] | None = None
     pdf_ingestion_mode: Literal["auto", "llama_parse", "local_text"] | None = None
     ui_locale: Literal["fr", "en"] | None = None
+    privacy_mode: (
+        Literal[
+            "local_strict",
+            "private_cloud",
+            "full_context_cloud",
+        ]
+        | None
+    ) = None
+    telemetry_enabled: bool | None = None
 
 
 class SystemSecretUpdateRequest(BaseModel):

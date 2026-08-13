@@ -217,9 +217,7 @@ async def calculate_ats_score_route(request: ScoreRequest, session: SessionDep) 
     )
     ats_snapshot = canonical_snapshot.for_task(
         AgentTask.ATS,
-        external_provider=(
-            request.provider if request.provider != "ollama" else None
-        ),
+        external_provider=(request.provider if request.provider != "ollama" else None),
     )
     try:
         report = await asyncio.wait_for(
@@ -311,6 +309,7 @@ async def generate_cover_letter_route(
 ) -> dict:
     """Generate and persist a tailored cover letter in Markdown."""
     from intelligence.cover_letter import generate_cover_letter
+
     started_at = perf_counter()
     canonical_snapshot = build_request_resume_snapshot(
         session,
@@ -432,8 +431,13 @@ def patch_cv_from_bullets(request: PatchRequest) -> dict:
     """Use an LLM to map AI-generated bullets back to a CVData JSON patch."""
     from crewai import Agent, Crew, Process, Task
     from intelligence.llm_config import get_llm
+    from intelligence.privacy import PrivacyTask
 
-    llm = get_llm(provider=request.provider, model_name=request.model_name)
+    llm = get_llm(
+        provider=request.provider,
+        model_name=request.model_name,
+        privacy_task=PrivacyTask.REWRITE,
+    )
     experiences = request.cv_data.get("experience", [])
     exp_list = "\n".join(
         f"  - id: {e.get('id')}, role: {e.get('role')}, company: {e.get('company')}"

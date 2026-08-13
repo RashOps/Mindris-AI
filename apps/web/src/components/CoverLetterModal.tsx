@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useCVStore } from "@/store/useCVStore";
 import { LLMSelector } from "@/components/LLMSelector";
 import { useRouter } from "next/navigation";
-import { apiUrl, jsonHeaders } from "@/lib/api";
+import { apiUrl, jsonHeaders, privacyFetch } from "@/lib/api";
 import { saveDraft } from "@/lib/drafts";
 import { ArrowRight, X } from "lucide-react";
 
@@ -40,7 +40,7 @@ export function CoverLetterModal({ open, onClose }: CoverLetterModalProps) {
     };
 
     try {
-      const res = await fetch(apiUrl("/api/v1/cover-letter"), {
+      const res = await privacyFetch(apiUrl("/api/v1/cover-letter"), {
         method: "POST",
         headers: jsonHeaders(),
         body: JSON.stringify({

@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { cvDataFromImport, useCVStore } from '@/store/useCVStore';
-import { apiUrl, apiHeaders, jsonHeaders } from '@/lib/api';
+import { apiUrl, apiHeaders, jsonHeaders, privacyFetch } from '@/lib/api';
 import { PdfIngestionModeSelect } from '@/components/PdfIngestionModeSelect';
 import {
   ArrowRight,
@@ -81,7 +81,7 @@ export function CVUploadZone({ onCvLoaded, compact = false }: CVUploadZoneProps)
       form.append('provider',   appSettings.optimize_llm.provider);
       form.append('model_name', appSettings.optimize_llm.model_name);
       form.append('ingestion_mode', appSettings.pdf_ingestion_mode);
-      const res = await fetch(apiUrl("/api/v1/cv/upload-pdf"), { method: 'POST', headers: apiHeaders(), body: form });
+      const res = await privacyFetch(apiUrl("/api/v1/cv/upload-pdf"), { method: 'POST', headers: apiHeaders(), body: form });
       if (!res.ok) throw new Error('Import impossible');
       const data = await res.json();
       if (data.cv_data) {

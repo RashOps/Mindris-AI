@@ -28,6 +28,13 @@ DEFAULT_APP_CONFIGURATION: dict[str, Any] = {
     "defaults": DEFAULT_TASK_CONFIGURATION,
     "pdf_ingestion_mode": "auto",
     "ui_locale": "fr",
+    "privacy_mode": (
+        settings.default_privacy_mode
+        if settings.default_privacy_mode
+        in {"local_strict", "private_cloud", "full_context_cloud"}
+        else "local_strict"
+    ),
+    "telemetry_enabled": settings.telemetry_enabled,
 }
 
 SECRET_SLOTS = {
@@ -85,6 +92,16 @@ def load_runtime_configuration() -> dict[str, Any]:
         merged["pdf_ingestion_mode"] = current["pdf_ingestion_mode"]
     if current.get("ui_locale") in {"fr", "en"}:
         merged["ui_locale"] = current["ui_locale"]
+    if current.get("privacy_mode") in {
+        "local_strict",
+        "private_cloud",
+        "full_context_cloud",
+    }:
+        merged["privacy_mode"] = current["privacy_mode"]
+    # Scope C contract: telemetry cannot be enabled in local-strict mode.
+    merged["telemetry_enabled"] = bool(current.get("telemetry_enabled", False))
+    if merged["privacy_mode"] == "local_strict":
+        merged["telemetry_enabled"] = False
     return merged
 
 
@@ -105,6 +122,16 @@ def save_runtime_configuration(config: dict[str, Any]) -> dict[str, Any]:
         current["pdf_ingestion_mode"] = config["pdf_ingestion_mode"]
     if config.get("ui_locale") in {"fr", "en"}:
         current["ui_locale"] = config["ui_locale"]
+    if config.get("privacy_mode") in {
+        "local_strict",
+        "private_cloud",
+        "full_context_cloud",
+    }:
+        current["privacy_mode"] = config["privacy_mode"]
+    if "telemetry_enabled" in config:
+        current["telemetry_enabled"] = bool(config["telemetry_enabled"])
+    if current["privacy_mode"] == "local_strict":
+        current["telemetry_enabled"] = False
     _write_json(CONFIG_PATH, current)
     return current
 

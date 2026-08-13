@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronLeft, ChevronRight, Menu, X } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Menu,
+  ShieldCheck,
+  X,
+} from "lucide-react";
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 
 import { ConfigurationDrawer } from "@/components/settings/ConfigurationDrawer";
@@ -18,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { RuntimeGate } from "@/components/layout/RuntimeGate";
 import { useCVStore } from "@/store/useCVStore";
 import { useI18n } from "@/i18n/I18nProvider";
+import { PrivacyConsentGate } from "@/components/privacy/PrivacyConsentGate";
 
 interface AppShellProps {
   children: ReactNode;
@@ -158,16 +165,24 @@ export function AppShell({
 }: AppShellProps) {
   const { messages } = useI18n();
   const hydrateAppSettings = useCVStore((state) => state.hydrateAppSettings);
+  const privacyMode = useCVStore(
+    (state) => state.appSettings.privacy_mode,
+  );
   const [mobileOpen, setMobileOpen] = useState(false);
   const [desktopCollapsed, setDesktopCollapsed] = useState(false);
   const desktopSidebar = resolveDesktopSidebarLayout(desktopCollapsed);
 
   useEffect(() => {
     void hydrateAppSettings();
+    const rehydrate = () => void hydrateAppSettings();
+    window.addEventListener("mindris:privacy-mode-changed", rehydrate);
+    return () =>
+      window.removeEventListener("mindris:privacy-mode-changed", rehydrate);
   }, [hydrateAppSettings]);
 
   return (
     <RuntimeGate>
+      <PrivacyConsentGate />
       <div className="min-h-screen bg-background text-foreground">
         <aside
           className="fixed inset-y-0 left-0 z-40 hidden border-r border-border bg-card px-3 py-5 transition-[width] duration-200 lg:block"
@@ -274,6 +289,17 @@ export function AppShell({
                 </div>
               </div>
               <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <span
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 text-xs font-semibold text-foreground"
+                  title={messages.privacy.modeTitle}
+                >
+                  <ShieldCheck size={14} className="text-primary" />
+                  {privacyMode === "local_strict"
+                    ? messages.privacy.local
+                    : privacyMode === "private_cloud"
+                      ? messages.privacy.privateCloud
+                      : messages.privacy.fullCloud}
+                </span>
                 <ThemeToggle />
                 {actions}
               </div>

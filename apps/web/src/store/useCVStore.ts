@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { arrayMove } from "@dnd-kit/sortable";
-import { apiUrl, jsonHeaders } from "@/lib/api";
+import { apiUrl, jsonHeaders, privacyFetch } from "@/lib/api";
 
 import { initialResume, uid } from "./cv-store/initial-data";
 import {
@@ -327,7 +327,7 @@ export const useCVStore = create<CVStore>()((set, get) => ({
     const { cvData, jobInsights, appSettings } = get();
     if (!jobInsights) return;
     try {
-      const res = await fetch(apiUrl("/api/v1/cv/score"), {
+      const res = await privacyFetch(apiUrl("/api/v1/cv/score"), {
         method: "POST",
         headers: jsonHeaders(),
         body: JSON.stringify({

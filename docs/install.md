@@ -17,6 +17,41 @@ irm https://raw.githubusercontent.com/RashOps/Mindris-AI/main/scripts/install_se
 
 Cet installateur ne requiert ni Python, ni `uv`, ni Bun.
 
+## Choisir le mode de confidentialité
+
+L'installation utilise `local_strict` par défaut. Le profil `local-ai` démarre
+Ollama dans Docker et désactive la télémétrie prise en charge. Le modèle n'est
+téléchargé que sur demande explicite :
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/RashOps/Mindris-AI/main/scripts/install_self_hosted.sh \
+  | MINDRIS_PRIVACY_MODE=local_strict \
+    MINDRIS_DOWNLOAD_LOCAL_MODEL=true \
+    MINDRIS_LOCAL_MODEL=llama3.2:3b \
+    sh
+```
+
+Pour utiliser des providers BYOK avec minimisation et pseudonymisation :
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/RashOps/Mindris-AI/main/scripts/install_self_hosted.sh \
+  | MINDRIS_PRIVACY_MODE=private_cloud sh
+```
+
+Ne passez jamais une clé provider dans cette commande ou l'historique du
+shell. Ajoutez-la ensuite dans les slots write-only de Configuration.
+
+| Variable | Défaut | Rôle |
+| --- | --- | --- |
+| `MINDRIS_PRIVACY_MODE` | `local_strict` | choix local/cloud |
+| `MINDRIS_DOWNLOAD_LOCAL_MODEL` | `false` | téléchargement Ollama explicite |
+| `MINDRIS_LOCAL_MODEL` | `llama3.2:3b` | modèle local |
+| `MINDRIS_HOME` | `~/.mindris-ai` | stockage local |
+| `MINDRIS_*_PORT` | ports standards | exposition locale |
+| `MINDRIS_BIND_HOST` | `127.0.0.1` | interface réseau locale |
+
+Voir [Confidentialité](privacy.md) pour le profil Compose hors egress.
+
 ## Prérequis
 
 - Docker Engine
@@ -34,6 +69,7 @@ Par défaut, l'installation crée :
 ```text
 ~/.mindris-ai/
 ├── docker-compose.yml
+├── docker-compose.privacy-strict.yml
 ├── .env
 ├── storage/
 └── logs/
@@ -81,11 +117,16 @@ MINDRIS_WEB_PORT=3100 "$HOME/.mindris-ai/smoke.sh"
 
 Tous les ports `localhost` et `127.0.0.1` sont acceptés automatiquement par
 l’API. Pour exposer l’interface depuis un autre hôte du réseau, renseigne les
-origines exactes, séparées par des virgules, puis redémarre la stack :
+origines exactes, séparées par des virgules, change explicitement l'interface
+d'écoute, puis redémarre la stack :
 
 ```bash
+MINDRIS_BIND_HOST=0.0.0.0
 CORS_ORIGINS=http://192.168.1.20:3100
 ```
+
+Cette ouverture réseau est volontaire et n'est jamais le comportement par
+défaut.
 
 ## Installation dans un autre dossier
 

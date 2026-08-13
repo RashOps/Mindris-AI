@@ -169,3 +169,13 @@ humaines et nouvelles révisions. Aucun outil ne commit sans
 Voir
 [`docs/scope-b-resume-agents.md`](../../docs/scope-b-resume-agents.md) et
 [`ADR 030`](../../docs/adr/030-human-gated-resume-agent-context-and-tools.md).
+
+## Contrat de confidentialité
+
+`/api/v1/privacy` expose le registre de classification, les politiques,
+providers, consentements révocables et le registre externe sans contenu.
+Un appel cloud sans consentement retourne HTTP `428` avec un manifeste safe ;
+Local strict bloque les providers externes avec HTTP `409`.
+
+Voir [la documentation Scope C](../../docs/privacy.md) et
+[ADR 031](../../docs/adr/031-outbound-privacy-gateway-and-verifiable-local-first.md).

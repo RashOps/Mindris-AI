@@ -403,7 +403,13 @@ async def analyze_company(
         return deterministic.model_dump()
 
     try:
-        llm = get_llm(provider=provider, model_name=model_name)
+        from intelligence.privacy import PrivacyTask
+
+        llm = get_llm(
+            provider=provider,
+            model_name=model_name,
+            privacy_task=PrivacyTask.COMPANY_ANALYSIS,
+        )
         analyst = Agent(
             role="Company Research Analyst",
             goal="Summarize practical company intelligence for a job candidate.",

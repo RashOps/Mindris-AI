@@ -13,7 +13,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { apiUrl, jsonHeaders } from "@/lib/api";
+import { apiUrl, jsonHeaders, privacyFetch } from "@/lib/api";
 import { summarizeSystemDiagnostics, type SystemDiagnosticsPayload } from "@/lib/system-diagnostics";
 import { updateOnboardingStep } from "@/lib/onboarding";
 import {
@@ -24,6 +24,7 @@ import {
 import { resolveProviderList } from "@/components/settings/helpers";
 import { DiagnosticsSection } from "@/components/settings/DiagnosticsSection";
 import { RuntimeConfigurationSection } from "@/components/settings/RuntimeConfigurationSection";
+import { PrivacyActivitySection } from "@/components/settings/PrivacyActivitySection";
 import { SecretSlotsSection } from "@/components/settings/SecretSlotsSection";
 import { TaskModelDefaultsSection } from "@/components/settings/TaskModelDefaultsSection";
 import type {
@@ -135,6 +136,8 @@ export function ConfigurationDrawer({
           },
           pdf_ingestion_mode: draftSettings.pdf_ingestion_mode,
           ui_locale: draftSettings.ui_locale,
+          privacy_mode: draftSettings.privacy_mode,
+          telemetry_enabled: draftSettings.telemetry_enabled,
         }),
       });
       if (!response.ok) {
@@ -193,7 +196,7 @@ export function ConfigurationDrawer({
     setRefreshingModels(true);
     setError(null);
     try {
-      const response = await fetch(apiUrl("/api/v1/llm/catalogue/refresh"), {
+      const response = await privacyFetch(apiUrl("/api/v1/llm/catalogue/refresh"), {
         method: "POST",
         headers: jsonHeaders(),
       });
@@ -242,9 +245,9 @@ export function ConfigurationDrawer({
           </Button>
         )}
       />
-      <SheetContent className="w-full border-border bg-card p-0 sm:max-w-2xl">
+      <SheetContent className="data-[side=right]:w-[calc(100%-0.75rem)] border-border bg-card p-0 sm:max-w-2xl">
         <SheetHeader className="border-b border-border">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col items-stretch gap-3 pr-8 sm:flex-row sm:items-center sm:justify-between">
             <SheetTitle className="flex items-center gap-2 text-foreground">
               <ShieldCheck size={18} />
               Configuration
@@ -255,7 +258,7 @@ export function ConfigurationDrawer({
               size="sm"
               disabled={refreshingModels}
               onClick={() => void refreshModelCatalogue()}
-              className="gap-2"
+              className="w-full gap-2 sm:w-auto"
             >
               <RefreshCw size={14} className={refreshingModels ? "animate-spin" : ""} />
               Actualiser les modèles
@@ -296,6 +299,8 @@ export function ConfigurationDrawer({
                 saving={saving}
                 onSave={() => void saveConfiguration()}
               />
+
+              <PrivacyActivitySection />
 
               <DiagnosticsSection
                 diagnosticsCards={diagnosticsCards}

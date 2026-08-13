@@ -28,6 +28,7 @@ from typing import Literal
 
 from utils.config import settings
 from utils.logger import get_logger
+from utils.runtime_config import load_runtime_configuration
 
 from .core import BaseScraper
 from .proxy_scraper import ScrapeDoProvider, ScrapingBeeProvider
@@ -76,6 +77,9 @@ class SmartScraper:
         """
         self._strategy: str = strategy or settings.scraper_strategy
         self._fallback_enabled: bool = settings.scraper_proxy_fallback
+        if load_runtime_configuration()["privacy_mode"] == "local_strict":
+            self._strategy = "playwright_only"
+            self._fallback_enabled = False
         self._headless = headless
 
         # Lazy-initialised Playwright scraper (only if needed)
